@@ -51,7 +51,7 @@ def canUploadArchives = isMasterBranch
 uploadArchives {
     repositories.mavenDeployer {
         configuration = configurations.deployerJars
-        repository(url: "packagecloud+https://packagecloud.io/iexec/worker-new") {
+        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
             authentication(password: packageCloudPassword)
         }
     }
