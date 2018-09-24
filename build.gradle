@@ -1,0 +1,59 @@
+buildscript {
+	ext {
+		springBootVersion = '2.0.5.RELEASE'
+	}
+	repositories {
+		mavenCentral()
+        jcenter()
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'maven'
+
+group = 'com.iexec.core'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+def UNIQUE_ID='hostname -f'.execute().text.trim()
+def token='curl -XPOST --data name=${UNIQUE_ID} https://c770a93177c87a84c17cdfadc2f2a14f504988b89998083a:@packagecloud.io/install/repositories/iexec/common-new/tokens.text'.execute().text.trim()
+
+repositories {
+	mavenCentral()
+	jcenter()
+    maven {
+        url "https://packagecloud.io/priv/${token}/iexec/common-new/maven2"
+    }
+}
+
+configurations {
+    deployerJars
+}
+
+dependencies {
+    compile "com.iexec.common:iexec-common-new:$iexecCommonVersion"
+	compile "org.springframework.boot:spring-boot-starter"
+
+	testCompile "org.springframework.boot:spring-boot-starter-test"
+    deployerJars "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
+}
+
+def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
+def isMasterBranch = gitBranch == "remotes/origin/master"
+def canUploadArchives = isMasterBranch
+
+uploadArchives {
+    repositories.mavenDeployer {
+        configuration = configurations.deployerJars
+        repository(url: "packagecloud+https://packagecloud.io/iexec/worker-new") {
+            authentication(password: packageCloudPassword)
+        }
+    }
+}
+uploadArchives.enabled = canUploadArchives
