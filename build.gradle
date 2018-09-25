@@ -39,7 +39,12 @@ configurations {
 dependencies {
     compile "com.iexec.common:iexec-common-new:$iexecCommonVersion"
 	compile "org.springframework.boot:spring-boot-starter"
+    compile "org.springframework.boot:spring-boot-starter-web"
     compile "org.springframework.boot:spring-boot-starter-data-mongodb"
+
+    compile "io.springfox:springfox-swagger2:2.9.2"
+    compile "io.springfox:springfox-swagger-ui:2.9.2"
+
 
 	testCompile "org.springframework.boot:spring-boot-starter-test"
     deployerJars "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
