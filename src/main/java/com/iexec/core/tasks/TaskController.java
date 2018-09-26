@@ -27,5 +27,12 @@ public class TaskController {
         Optional<Task> optional = taskService.getTask(taskId);
         return optional.orElse(new Task());
     }
+
+    @PostMapping("/tasks/{taskId}/updateStatus/")
+    @ResponseBody
+    public Task getTask(@PathVariable("taskId") String taskId,
+                        @RequestParam TaskStatus taskStatus){
+        return taskService.updateTaskStatus(taskId, taskStatus);
+    }
 }
 
