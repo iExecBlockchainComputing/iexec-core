@@ -8,17 +8,21 @@ public class Task {
 
     @Id
     private String id;
-
-    private List<TaskStatusChange> dateStatusList;
-
     private String commandLine;
+    private TaskStatus currentStatus;
+    private List<TaskStatusChange> dateStatusList;
+    private List<Replicate> replicates;
+    private int nbContributionNeeded;
 
     public Task() {}
 
-    public Task(String commandLine) {
+    public Task(String commandLine, int nbContributionNeeded) {
         this.commandLine = commandLine;
+        this.nbContributionNeeded = nbContributionNeeded;
         this.dateStatusList = new ArrayList<>();
         this.dateStatusList.add(new TaskStatusChange(new Date(), TaskStatus.CREATED));
+        this.currentStatus = TaskStatus.CREATED;
+        this.replicates = new ArrayList<>();
     }
 
     public String getId() {
@@ -44,4 +48,30 @@ public class Task {
     public void setCommandLine(String commandLine) {
         this.commandLine = commandLine;
     }
+
+    public List<Replicate> getReplicates() {
+        return replicates;
+    }
+
+    public void setReplicates(List<Replicate> replicates) {
+        this.replicates = replicates;
+    }
+
+    public int getNbContributionNeeded() {
+        return nbContributionNeeded;
+    }
+
+    public void setNbContributionNeeded(int nbContributionNeeded) {
+        this.nbContributionNeeded = nbContributionNeeded;
+    }
+
+    public TaskStatus getCurrentStatus() {
+        return currentStatus;
+    }
+
+    public void setCurrentStatus(TaskStatus currentStatus) {
+        this.currentStatus = currentStatus;
+        this.getDateStatusList().add(new TaskStatusChange(new Date(), currentStatus));
+    }
+
 }

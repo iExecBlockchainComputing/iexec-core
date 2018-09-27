@@ -11,4 +11,5 @@ public class WorkerController {
     public void ping(@RequestParam(name="workerName") String workerName) {
         System.out.println("Worker " + workerName + " has just pinged");
     }
+
 }
