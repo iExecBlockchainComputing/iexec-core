@@ -1,8 +1,13 @@
 package com.iexec.core.tasks;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+
+import static org.springframework.http.ResponseEntity.ok;
+import static org.springframework.http.ResponseEntity.status;
 
 @RestController
 public class TaskController {
@@ -14,34 +19,45 @@ public class TaskController {
     }
 
     @PostMapping("/tasks")
-    public String postTask(@RequestParam(name = "commandLine") String commandLine,
-                           @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
+    public ResponseEntity postTask(@RequestParam(name = "commandLine") String commandLine,
+                                   @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
         Task task = taskService.addTask(commandLine, nbContributionNeeded);
-        return task.getId();
+        return ok(task.getId());
     }
 
     @GetMapping("/tasks/{taskId}")
-    public Optional<Task> getTask(@PathVariable("taskId") String taskId) {
-        return taskService.getTask(taskId);
+    public ResponseEntity getTask(@PathVariable("taskId") String taskId) {
+        Optional<Task> optional = taskService.getTask(taskId);
+        return optional.
+                <ResponseEntity>map(ResponseEntity::ok).
+                orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @PostMapping("/tasks/{taskId}/updateStatus/")
-    public Task updateTaskStatus(@PathVariable("taskId") String taskId,
+    public ResponseEntity updateTaskStatus(@PathVariable("taskId") String taskId,
                                  @RequestParam TaskStatus taskStatus) {
-        return taskService.updateTaskStatus(taskId, taskStatus);
+        Optional<Task> optional = taskService.updateTaskStatus(taskId, taskStatus);
+        return optional.
+                <ResponseEntity>map(ResponseEntity::ok)
+                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @PostMapping("/tasks/{taskId}/replicates/updateStatus")
-    public Optional<Replicate> updateReplicateStatus(@PathVariable("taskId") String taskId,
-                                           @RequestParam ReplicateStatus replicateStatus,
-                                           @RequestParam String workerName) {
-        return taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
+    public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
+                                                @RequestParam ReplicateStatus replicateStatus,
+                                                @RequestParam String workerName) {
+        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
+        return optional.
+                <ResponseEntity>map(ResponseEntity::ok)
+                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @GetMapping("/tasks/available")
-    public Replicate getReplicate(@RequestParam String workerName) {
-        Optional<Replicate> replicate = taskService.getAvailableReplicate(workerName);
-        return replicate.orElseGet(Replicate::new);
+    public ResponseEntity getReplicate(@RequestParam String workerName) {
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        return optional.
+                <ResponseEntity>map(ResponseEntity::ok)
+                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 }
 

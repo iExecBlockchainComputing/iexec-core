@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,14 +23,14 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
-    public Task updateTaskStatus(String taskId, TaskStatus status) {
+    public Optional<Task> updateTaskStatus(String taskId, TaskStatus status) {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (optional.isPresent()) {
             Task task = optional.get();
             task.getDateStatusList().add(new TaskStatusChange(new Date(), status));
-            return taskRepository.save(task);
+            return Optional.of(taskRepository.save(task));
         } else {
-            return new Task();
+            return Optional.empty();
         }
     }
 
