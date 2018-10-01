@@ -2,7 +2,9 @@ package com.iexec.core.tasks;
 
 import org.springframework.data.annotation.Id;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class Task {
 
@@ -20,7 +22,7 @@ public class Task {
         this.commandLine = commandLine;
         this.nbContributionNeeded = nbContributionNeeded;
         this.dateStatusList = new ArrayList<>();
-        this.dateStatusList.add(new TaskStatusChange(new Date(), TaskStatus.CREATED));
+        this.dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
         this.currentStatus = TaskStatus.CREATED;
         this.replicates = new ArrayList<>();
     }
@@ -69,9 +71,9 @@ public class Task {
         return currentStatus;
     }
 
-    public void setCurrentStatus(TaskStatus currentStatus) {
-        this.currentStatus = currentStatus;
-        this.getDateStatusList().add(new TaskStatusChange(new Date(), currentStatus));
+    public void setCurrentStatus(TaskStatus status) {
+        this.currentStatus = status;
+        this.getDateStatusList().add(new TaskStatusChange(status));
     }
 
 }

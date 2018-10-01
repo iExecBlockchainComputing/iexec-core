@@ -37,16 +37,23 @@ configurations {
 }
 
 dependencies {
+    // iexec
     compile "com.iexec.common:iexec-common-new:$iexecCommonVersion"
-	compile "org.springframework.boot:spring-boot-starter"
+
+    // spring
+    compile "org.springframework.boot:spring-boot-starter"
     compile "org.springframework.boot:spring-boot-starter-web"
     compile "org.springframework.boot:spring-boot-starter-data-mongodb"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
 
+    // swagger
     compile "io.springfox:springfox-swagger2:2.9.2"
     compile "io.springfox:springfox-swagger-ui:2.9.2"
 
+    // lombok
+    compileOnly "org.projectlombok:lombok:1.18.2"
 
-	testCompile "org.springframework.boot:spring-boot-starter-test"
+	// package cloud
     deployerJars "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 }
 
