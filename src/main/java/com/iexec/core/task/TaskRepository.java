@@ -1,4 +1,4 @@
-package com.iexec.core.tasks;
+package com.iexec.core.task;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 

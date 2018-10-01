@@ -1,4 +1,4 @@
-package com.iexec.core.tasks;
+package com.iexec.core.task;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,7 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @PostMapping("/tasks")
+    @PostMapping("/task")
     public ResponseEntity postTask(@RequestParam(name = "commandLine") String commandLine,
                                    @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
         Task task = taskService.addTask(commandLine, nbContributionNeeded);
@@ -28,7 +28,7 @@ public class TaskController {
         return ok(task.getId());
     }
 
-    @GetMapping("/tasks/{taskId}")
+    @GetMapping("/task/{taskId}")
     public ResponseEntity getTask(@PathVariable("taskId") String taskId) {
         Optional<Task> optional = taskService.getTask(taskId);
         return optional.
@@ -36,7 +36,7 @@ public class TaskController {
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @PostMapping("/tasks/{taskId}/updateStatus/")
+    @PostMapping("/task/{taskId}/updateStatus/")
     public ResponseEntity updateTaskStatus(@PathVariable("taskId") String taskId,
                                  @RequestParam TaskStatus taskStatus) {
         Optional<Task> optional = taskService.updateTaskStatus(taskId, taskStatus);
@@ -45,7 +45,7 @@ public class TaskController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @PostMapping("/tasks/{taskId}/replicates/updateStatus")
+    @PostMapping("/task/{taskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
                                                 @RequestParam ReplicateStatus replicateStatus,
                                                 @RequestParam String workerName) {
@@ -55,7 +55,7 @@ public class TaskController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @GetMapping("/tasks/available")
+    @GetMapping("/task/available")
     public ResponseEntity getReplicate(@RequestParam String workerName) {
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
         return optional.
