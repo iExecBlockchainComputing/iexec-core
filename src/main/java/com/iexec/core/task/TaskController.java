@@ -1,5 +1,7 @@
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.Replicate;
+import com.iexec.common.replicate.ReplicateStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

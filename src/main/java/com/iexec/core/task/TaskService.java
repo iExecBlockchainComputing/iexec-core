@@ -1,5 +1,8 @@
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.Replicate;
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusChange;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

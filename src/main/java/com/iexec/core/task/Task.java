@@ -1,5 +1,6 @@
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.Replicate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
