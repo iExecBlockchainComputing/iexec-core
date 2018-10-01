@@ -1,6 +1,8 @@
 package com.iexec.core.task;
 
 import com.iexec.common.replicate.Replicate;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -10,6 +12,8 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Task {
 
     @Id

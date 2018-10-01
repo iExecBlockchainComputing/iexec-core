@@ -38,6 +38,7 @@ public class TaskService {
         Task task = optional.get();
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getWorkerName().equals(workerName)) {
+                // a control should happen here to check if the state transition is correct or not
                 replicate.getStatusList().add(new ReplicateStatusChange(status));
                 updateTaskStatus(task);
                 taskRepository.save(task);
@@ -52,31 +53,33 @@ public class TaskService {
 
     // this is the main method that will update the status of the task
     private void updateTaskStatus(Task task) {
-        int nbRunning = 0;
-        int nbCompleted = 0;
+        int nbRunningReplicates = 0;
+        int nbCompletedReplicates = 0;
+        int nbContributionNeeded = task.getNbContributionNeeded();
+
         for (Replicate replicate : task.getReplicates()) {
             ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
-                nbRunning++;
-            }
-
-            if (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
-                nbCompleted++;
+                nbRunningReplicates++;
+            } else if  (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
+                nbCompletedReplicates++;
             }
         }
 
-        if (nbCompleted == task.getNbContributionNeeded() && !task.getCurrentStatus().equals(TaskStatus.COMPLETED)){
+        if (nbCompletedReplicates == nbContributionNeeded &&
+                !task.getCurrentStatus().equals(TaskStatus.COMPLETED)) {
             task.setCurrentStatus(TaskStatus.COMPLETED);
         }
 
-        if (nbCompleted < task.getNbContributionNeeded() && nbRunning > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)){
+        if (nbCompletedReplicates < nbContributionNeeded &&
+                nbRunningReplicates > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
             task.setCurrentStatus(TaskStatus.RUNNING);
         }
     }
 
 
     public Optional<Replicate> getAvailableReplicate(String workerName) {
-        // CREATED task means they still need some contributions
+        // an Replicate can contribute to a task in CREATED or in RUNNING status
         HashSet<Task> tasks = new HashSet<>();
         tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.CREATED));
         tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.RUNNING));
@@ -86,8 +89,8 @@ public class TaskService {
             return Optional.empty();
         }
 
-        for(Task task:tasks){
-            if (!hasWorkerAlreadyContributed(task, workerName)){
+        for (Task task : tasks) {
+            if (!hasWorkerAlreadyContributed(task, workerName)) {
                 Replicate newReplicate = new Replicate(workerName, task.getId());
                 task.getReplicates().add(newReplicate);
                 taskRepository.save(task);
@@ -99,7 +102,7 @@ public class TaskService {
 
     }
 
-    private boolean hasWorkerAlreadyContributed(Task task, String workerName){
+    private boolean hasWorkerAlreadyContributed(Task task, String workerName) {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getWorkerName().equals(workerName)) {
                 return true;
