@@ -2,7 +2,6 @@ package com.iexec.core.tasks;
 
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -27,7 +26,7 @@ public class TaskService {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (optional.isPresent()) {
             Task task = optional.get();
-            task.getDateStatusList().add(new TaskStatusChange(new Date(), status));
+            task.getDateStatusList().add(new TaskStatusChange(status));
             return Optional.of(taskRepository.save(task));
         } else {
             return Optional.empty();
