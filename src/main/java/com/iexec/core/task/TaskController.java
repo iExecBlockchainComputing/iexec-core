@@ -22,7 +22,7 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @PostMapping("/task")
+    @PostMapping("/tasks")
     public ResponseEntity postTask(@RequestParam(name = "commandLine") String commandLine,
                                    @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
         Task task = taskService.addTask(commandLine, nbContributionNeeded);
@@ -30,7 +30,7 @@ public class TaskController {
         return ok(task.getId());
     }
 
-    @GetMapping("/task/{taskId}")
+    @GetMapping("/tasks/{taskId}")
     public ResponseEntity getTask(@PathVariable("taskId") String taskId) {
         Optional<Task> optional = taskService.getTask(taskId);
         return optional.
@@ -40,7 +40,7 @@ public class TaskController {
 
 
 
-    @PostMapping("/task/{taskId}/replicates/updateStatus")
+    @PostMapping("/tasks/{taskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
                                                 @RequestParam ReplicateStatus replicateStatus,
                                                 @RequestParam String workerName) {
@@ -50,7 +50,7 @@ public class TaskController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @GetMapping("/task/available")
+    @GetMapping("/tasks/available")
     public ResponseEntity getAvailableReplicate(@RequestParam String workerName) {
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
         return optional.
