@@ -30,8 +30,10 @@ public class TaskService {
         if (optional.isPresent()) {
             Task task = optional.get();
             task.getDateStatusList().add(new TaskStatusChange(status));
+            log.info("Update of status for task [taskId:{}, status:{}]", taskId, status);
             return Optional.of(taskRepository.save(task));
         } else {
+            log.warn("No task found for update [taskId:{}]", taskId);
             return Optional.empty();
         }
     }
@@ -39,6 +41,7 @@ public class TaskService {
     public Optional<Replicate> updateReplicateStatus(String taskId, ReplicateStatus status, String workerName) {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (!optional.isPresent()) {
+            log.warn("No task found for replicate update [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
             return Optional.empty();
         }
 
@@ -48,10 +51,12 @@ public class TaskService {
                 replicate.getStatusList().add(new ReplicateStatusChange(status));
                 updateTaskStatus(task);
                 taskRepository.save(task);
+                log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
                 return Optional.of(replicate);
             }
         }
 
+        log.warn("No replicate found for status update [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
         return Optional.empty();
     }
 
