@@ -1,10 +1,12 @@
 package com.iexec.core.tasks;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class TaskService {
 
@@ -15,6 +17,7 @@ public class TaskService {
     }
 
     public Task addTask(String commandLine, int nbContributionNeeded) {
+        log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
         return taskRepository.save(new Task(commandLine, nbContributionNeeded));
     }
 

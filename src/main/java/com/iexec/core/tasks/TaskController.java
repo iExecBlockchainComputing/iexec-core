@@ -1,5 +1,6 @@
 package com.iexec.core.tasks;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import java.util.Optional;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
 
+@Slf4j
 @RestController
 public class TaskController {
 
@@ -22,6 +24,7 @@ public class TaskController {
     public ResponseEntity postTask(@RequestParam(name = "commandLine") String commandLine,
                                    @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
         Task task = taskService.addTask(commandLine, nbContributionNeeded);
+        log.info("New task created [taskId:{}]", task.getId());
         return ok(task.getId());
     }
 
