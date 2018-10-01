@@ -1,2 +1,7 @@
 server:
   port: ${IEXEC_CORE_PORT:18090}
+
+spring:
+  data:
+    mongodb:
+      database: iexec
