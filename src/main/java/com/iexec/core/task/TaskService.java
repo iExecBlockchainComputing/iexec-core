@@ -25,19 +25,6 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
-    public Optional<Task> updateTaskStatus(String taskId, TaskStatus status) {
-        Optional<Task> optional = taskRepository.findById(taskId);
-        if (optional.isPresent()) {
-            Task task = optional.get();
-            task.getDateStatusList().add(new TaskStatusChange(status));
-            log.info("Update of status for task [taskId:{}, status:{}]", taskId, status);
-            return Optional.of(taskRepository.save(task));
-        } else {
-            log.warn("No task found for update [taskId:{}]", taskId);
-            return Optional.empty();
-        }
-    }
-
     public Optional<Replicate> updateReplicateStatus(String taskId, ReplicateStatus status, String workerName) {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (!optional.isPresent()) {

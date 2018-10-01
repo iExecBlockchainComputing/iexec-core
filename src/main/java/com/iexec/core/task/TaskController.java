@@ -36,14 +36,7 @@ public class TaskController {
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @PostMapping("/task/{taskId}/updateStatus/")
-    public ResponseEntity updateTaskStatus(@PathVariable("taskId") String taskId,
-                                 @RequestParam TaskStatus taskStatus) {
-        Optional<Task> optional = taskService.updateTaskStatus(taskId, taskStatus);
-        return optional.
-                <ResponseEntity>map(ResponseEntity::ok)
-                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
-    }
+
 
     @PostMapping("/task/{taskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
@@ -56,7 +49,7 @@ public class TaskController {
     }
 
     @GetMapping("/task/available")
-    public ResponseEntity getReplicate(@RequestParam String workerName) {
+    public ResponseEntity getAvailableReplicate(@RequestParam String workerName) {
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
         return optional.
                 <ResponseEntity>map(ResponseEntity::ok)
