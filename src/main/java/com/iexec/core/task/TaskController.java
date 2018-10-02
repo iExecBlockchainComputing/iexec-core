@@ -18,11 +18,9 @@ import static org.springframework.http.ResponseEntity.status;
 public class TaskController {
 
     private TaskService taskService;
-    private ReplicateConverterService replicateConverterService;
 
-    public TaskController(TaskService taskService, ReplicateConverterService replicateConverterService) {
+    public TaskController(TaskService taskService) {
         this.taskService = taskService;
-        this.replicateConverterService = replicateConverterService;
     }
 
     @PostMapping("/tasks")
