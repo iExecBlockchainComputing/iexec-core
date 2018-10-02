@@ -1,8 +1,7 @@
 package com.iexec.core.task;
-
-import com.iexec.common.replicate.Replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.core.replicate.Replicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +18,9 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public Task addTask(String commandLine, int nbContributionNeeded) {
+    public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
         log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
-        return taskRepository.save(new Task(commandLine, nbContributionNeeded));
+        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded));
     }
 
     public Optional<Task> getTask(String id) {
@@ -110,4 +109,5 @@ public class TaskService {
         }
         return false;
     }
+
 }

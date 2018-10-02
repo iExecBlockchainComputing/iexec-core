@@ -1,6 +1,7 @@
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.Replicate;
+import com.iexec.common.dapp.DappType;
+import com.iexec.core.replicate.Replicate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,13 +19,17 @@ public class Task {
 
     @Id
     private String id;
+    private DappType dappType;
+    private String dappName;
     private String commandLine;
     private TaskStatus currentStatus;
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
     private int nbContributionNeeded;
 
-    public Task(String commandLine, int nbContributionNeeded) {
+    public Task(String dappName, String commandLine, int nbContributionNeeded) {
+        this.dappType=DappType.DOCKER;
+        this.dappName = dappName;
         this.commandLine = commandLine;
         this.nbContributionNeeded = nbContributionNeeded;
         this.dateStatusList = new ArrayList<>();
