@@ -1,8 +1,8 @@
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +18,11 @@ import static org.springframework.http.ResponseEntity.status;
 public class TaskController {
 
     private TaskService taskService;
-    private ReplicateService replicateService;
+    private ReplicateConverterService replicateConverterService;
 
-    public TaskController(TaskService taskService, ReplicateService replicateService) {
+    public TaskController(TaskService taskService, ReplicateConverterService replicateConverterService) {
         this.taskService = taskService;
-        this.replicateService = replicateService;
+        this.replicateConverterService = replicateConverterService;
     }
 
     @PostMapping("/tasks")
@@ -50,7 +50,7 @@ public class TaskController {
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
-        return replicateService.entity2Dto(optional.get()).
+        return replicate2Dto(optional.get()).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
 
@@ -62,9 +62,26 @@ public class TaskController {
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
-        return replicateService.entity2Dto(optional.get()).
+        return replicate2Dto(optional.get()).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+    }
+
+    public Optional<ReplicateModel> replicate2Dto(Replicate replicate) {
+        Optional<Task> optional = taskService.getTask(replicate.getTaskId());
+        if (!optional.isPresent()) {
+            return Optional.empty();
+        }
+        Task task = optional.get();
+
+        return Optional.of(ReplicateModel.builder()
+                .taskId(replicate.getTaskId())
+                .workerAddress(replicate.getWorkerName())
+                .dappType(task.getDappType())
+                .dappName(task.getDappName())
+                .cmd(task.getCommandLine())
+                .replicateStatus(replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus())
+                .build());
     }
 }
 
