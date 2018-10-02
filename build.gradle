@@ -38,7 +38,6 @@ configurations {
 dependencies {
     // iexec
     compile "com.iexec.common:iexec-common-new:$iexecCommonVersion"
-    compile files('../iexec-common-new/build/libs/iexec-common-new-0.0.1-SNAPSHOT.jar')
 
     // spring
     compile "org.springframework.boot:spring-boot-starter"
