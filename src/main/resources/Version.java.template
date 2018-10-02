@@ -1,0 +1,16 @@
+package com.iexec.core.utils;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class Version {
+
+    public String PROJECT_VERSION = "@projectversion@";
+
+    @GetMapping("/version")
+    public ResponseEntity getVersion() {
+        return ResponseEntity.ok(PROJECT_VERSION);
+    }
+}

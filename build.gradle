@@ -18,7 +18,6 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'maven'
 
 group = 'com.iexec.core'
-version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
 
 def UNIQUE_ID='hostname -f'.execute().text.trim()
@@ -70,3 +69,22 @@ uploadArchives {
     }
 }
 uploadArchives.enabled = canUploadArchives
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+// create the version controller for the core
+task createVersion(type: Copy) {
+    // delete old one
+    delete 'src/main/java/com/iexec/core/utils/Version.java'
+    // use and copy template to the new location
+    from 'src/main/resources/Version.java.template'
+    into 'src/main/java/com/iexec/core/utils/'
+
+    rename { String fileName ->
+        fileName.replace('.template', '')
+    }
+    // replace tokens in the template file
+    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
+}
+// the createVersion task should be called before compileJava or the version service will not work
+compileJava.dependsOn createVersion
