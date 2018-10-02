@@ -1,6 +1,5 @@
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
 import org.junit.Before;
@@ -85,7 +84,7 @@ public class TaskServiceTests {
                 .build();
 
         when(taskRepository.findById("taskId")).thenReturn(Optional.of(task));
-        Optional<ReplicateModel> updated = taskService.updateReplicateStatus("taskId", ReplicateStatus.RUNNING, "worker1");
+        Optional<Replicate> updated = taskService.updateReplicateStatus("taskId", ReplicateStatus.RUNNING, "worker1");
         assertThat(updated.isPresent()).isTrue();
         assertEquals(2, updated.get().getStatusList().size());
         assertThat(updated.get().getStatusList().get(0).getStatus()).isEqualTo(ReplicateStatus.CREATED);

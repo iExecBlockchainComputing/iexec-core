@@ -1,8 +1,8 @@
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +18,11 @@ import static org.springframework.http.ResponseEntity.status;
 public class TaskController {
 
     private TaskService taskService;
+    private ReplicateService replicateService;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, ReplicateService replicateService) {
         this.taskService = taskService;
+        this.replicateService = replicateService;
     }
 
     @PostMapping("/tasks")
@@ -40,22 +42,27 @@ public class TaskController {
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-
-
     @PostMapping("/tasks/{taskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
                                                 @RequestParam ReplicateStatus replicateStatus,
                                                 @RequestParam String workerName) {
-        Optional<ReplicateModel> optional = taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
-        return optional.
+        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
+        if (!optional.isPresent()) {
+            return status(HttpStatus.NO_CONTENT).build();
+        }
+        return replicateService.entity2Dto(optional.get()).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+
     }
 
     @GetMapping("/tasks/available")
     public ResponseEntity getAvailableReplicate(@RequestParam String workerName) {
-        Optional<ReplicateModel> optional = taskService.getAvailableReplicate(workerName);
-        return optional.
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        if (!optional.isPresent()) {
+            return status(HttpStatus.NO_CONTENT).build();
+        }
+        return replicateService.entity2Dto(optional.get()).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
