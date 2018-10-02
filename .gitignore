@@ -24,3 +24,5 @@
 /dist/
 /nbdist/
 /.nb-gradle/
+
+src/main/java/com/iexec/core/utils/Version.java
