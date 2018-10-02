@@ -16,16 +16,13 @@ public class WorkerService {
         this.workerRepository = workerRepository;
     }
 
-    public Worker addWorker(String name) {
-        Optional<Worker> optional = workerRepository.findByName(name);
+    public Worker addWorker(Worker worker) {
+        Optional<Worker> optional = workerRepository.findByName(worker.getName());
         if (optional.isPresent()){
             log.info("The worker is already registered [workerId:{}]", optional.get().getId());
             return optional.get();
         } else {
-            Worker newWorker = workerRepository.save(Worker.builder()
-                    .name(name)
-                    .lastAliveDate(new Date())
-                    .build());
+            Worker newWorker = workerRepository.save(worker);
             log.info("A new worker has been registered [workerId:{}]", newWorker.getId());
             return newWorker;
         }

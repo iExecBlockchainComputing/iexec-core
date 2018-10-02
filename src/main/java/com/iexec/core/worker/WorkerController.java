@@ -1,11 +1,14 @@
 package com.iexec.core.worker;
 
+import com.iexec.common.config.WorkerConfigurationModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.ok;
@@ -29,8 +32,17 @@ public class WorkerController {
     }
 
     @PostMapping("/workers/register")
-    public ResponseEntity registerWorker(@RequestParam(name = "workerName") String workerName){
-        return ok(workerService.addWorker(workerName));
+    public ResponseEntity registerWorker(@RequestBody WorkerConfigurationModel model){
+
+        Worker worker = Worker.builder()
+                .name(model.getName())
+                .os(model.getOs())
+                .cpu(model.getCpu())
+                .cpuNb(model.getCpuNb())
+                .lastAliveDate(new Date())
+                .build();
+
+        return ok(workerService.addWorker(worker));
     }
 
 

@@ -32,11 +32,14 @@ public class WorkerServiceTests {
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
                 .lastAliveDate(new Date())
                 .build();
 
         when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
-        Worker addedWorker = workerService.addWorker(workerName);
+        Worker addedWorker = workerService.addWorker(existingWorker);
         assertThat(addedWorker).isEqualTo(existingWorker);
     }
 
@@ -44,17 +47,20 @@ public class WorkerServiceTests {
     public void shouldAddNewWorker() {
         String workerName = "worker1";
         Worker worker = Worker.builder()
-                .id("1")
                 .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
                 .lastAliveDate(new Date())
                 .build();
         when(workerRepository.findByName(workerName)).thenReturn(Optional.empty());
         when(workerRepository.save(Mockito.any())).thenReturn(worker);
 
-        Worker addedWorker = workerService.addWorker(workerName);
+        Worker addedWorker = workerService.addWorker(worker);
         // check that the save method was called once
         Mockito.verify(workerRepository, Mockito.times(1)).save(Mockito.any());
-        assertThat(addedWorker).isEqualTo(worker);
+        assertThat(addedWorker.getName()).isEqualTo(worker.getName());
+        assertThat(addedWorker.getLastAliveDate()).isEqualTo(worker.getLastAliveDate());
     }
 
     @Test
