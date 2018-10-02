@@ -1,7 +1,8 @@
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.Replicate;
+import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.core.replicate.Replicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -56,11 +57,12 @@ public class TaskServiceTests {
         Task task = Task.builder()
                 .id("realId")
                 .currentStatus(TaskStatus.CREATED)
+                .dappName("dappName")
                 .commandLine("commandLine")
                 .nbContributionNeeded(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("commandLine", 2);
+        Task saved = taskService.addTask("dappName", "commandLine", 2);
         assertThat(saved).isNotNull();
         assertThat(saved).isEqualTo(task);
     }
@@ -83,7 +85,7 @@ public class TaskServiceTests {
                 .build();
 
         when(taskRepository.findById("taskId")).thenReturn(Optional.of(task));
-        Optional<Replicate> updated = taskService.updateReplicateStatus("taskId", ReplicateStatus.RUNNING, "worker1");
+        Optional<ReplicateModel> updated = taskService.updateReplicateStatus("taskId", ReplicateStatus.RUNNING, "worker1");
         assertThat(updated.isPresent()).isTrue();
         assertEquals(2, updated.get().getStatusList().size());
         assertThat(updated.get().getStatusList().get(0).getStatus()).isEqualTo(ReplicateStatus.CREATED);
