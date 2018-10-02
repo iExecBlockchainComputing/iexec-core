@@ -1,12 +1,10 @@
 package com.iexec.core.worker;
 
 import com.iexec.common.config.WorkerConfigurationModel;
+import com.iexec.common.config.PublicConfiguration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.Optional;
@@ -43,6 +41,15 @@ public class WorkerController {
                 .build();
 
         return ok(workerService.addWorker(worker));
+    }
+
+    @GetMapping("/workers/config")
+    public ResponseEntity getCoreConfiguration(){
+        PublicConfiguration config = PublicConfiguration.builder()
+                .blockchainAddress("dummyAddress")
+                .build();
+
+        return ok(config);
     }
 
 
