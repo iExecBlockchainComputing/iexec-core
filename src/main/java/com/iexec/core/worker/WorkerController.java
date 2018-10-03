@@ -1,10 +1,12 @@
 package com.iexec.core.worker;
 
-import com.iexec.common.config.WorkerConfigurationModel;
+
 import com.iexec.common.config.PublicConfiguration;
+import com.iexec.common.config.WorkerConfigurationModel;
+import com.iexec.common.core.WorkerInterface;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
 import java.util.Optional;
@@ -13,7 +15,7 @@ import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
 
 @RestController
-public class WorkerController {
+public class WorkerController implements WorkerInterface {
 
     private WorkerService workerService;
 
@@ -21,16 +23,20 @@ public class WorkerController {
         this.workerService = workerService;
     }
 
-    @PostMapping("/workers/ping")
-    public ResponseEntity ping(@RequestParam(name = "workerName") String workerName) {
+    @Override
+    public ResponseEntity<String> getCoreVersion() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<String> ping(String workerName) {
         Optional<Worker> optional = workerService.updateLastAlive(workerName);
         return optional.
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @PostMapping("/workers/register")
-    public ResponseEntity registerWorker(@RequestBody WorkerConfigurationModel model){
+    @Override
+    public ResponseEntity registerWorker(WorkerConfigurationModel model) {
 
         Worker worker = Worker.builder()
                 .name(model.getName())
@@ -43,15 +49,14 @@ public class WorkerController {
         return ok(workerService.addWorker(worker));
     }
 
-    @GetMapping("/workers/config")
-    public ResponseEntity getCoreConfiguration(){
+    @Override
+    public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
                 .blockchainAddress("dummyAddress")
                 .build();
 
         return ok(config);
     }
-
 
 
 }

@@ -1,5 +1,6 @@
 package com.iexec.core.task;
 
+import com.iexec.common.core.TaskInterface;
 import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
@@ -15,7 +16,7 @@ import static org.springframework.http.ResponseEntity.status;
 
 @Slf4j
 @RestController
-public class TaskController {
+public class TaskController implements TaskInterface {
 
     private TaskService taskService;
 
@@ -40,10 +41,13 @@ public class TaskController {
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @PostMapping("/tasks/{taskId}/replicates/updateStatus")
-    public ResponseEntity updateReplicateStatus(@PathVariable("taskId") String taskId,
-                                                @RequestParam ReplicateStatus replicateStatus,
-                                                @RequestParam String workerName) {
+
+    @Override
+    public ResponseEntity<ReplicateModel> updateReplicateStatus(@PathVariable(name = "taskId") String taskId,
+                                                ReplicateStatus replicateStatus,
+                                                String workerName) {
+        log.info("updateReplicateStatus");
+        log.info("{}{}{}",taskId, replicateStatus, workerName);
         Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
@@ -54,8 +58,8 @@ public class TaskController {
 
     }
 
-    @GetMapping("/tasks/available")
-    public ResponseEntity getAvailableReplicate(@RequestParam String workerName) {
+    @Override
+    public ResponseEntity<ReplicateModel> getReplicate(String workerName) {
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
