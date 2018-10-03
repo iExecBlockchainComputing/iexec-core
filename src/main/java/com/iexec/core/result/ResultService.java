@@ -16,16 +16,10 @@ public class ResultService {
         this.resultRepository = resultRepository;
     }
 
-    public Result addResult(String taskId, String image, String cmd, String stdout, byte[] payload) {
+    public Result addResult(Result result) {
         log.info("Adding new resultData [taskId:{}, image:{}, cmd:{}, stdout:{}, payload:{}]",
-                taskId, image, cmd, stdout, payload);
-        return resultRepository.save(Result.builder().
-                taskId(taskId)
-                .image(image)
-                .cmd(cmd)
-                .stdout(stdout)
-                .payload(payload)
-                .build());
+                result.getTaskId(), result.getImage(), result.getCmd(), result.getStdout(), result.getPayload());
+        return resultRepository.save(result);
     }
 
     public Optional<Result> getResult(String id) {

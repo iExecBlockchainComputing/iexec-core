@@ -1,22 +1,13 @@
 package com.iexec.core.result;
 
-import com.iexec.common.core.TaskInterface;
-import com.iexec.common.replicate.ReplicateModel;
-import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.ResultModel;
-import com.iexec.core.replicate.Replicate;
-import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.ok;
-import static org.springframework.http.ResponseEntity.status;
 
 @Slf4j
 @RestController
@@ -29,8 +20,14 @@ public class ResultController {// implements TaskInterface {
     }
 
     @PostMapping("/results")
-    public ResponseEntity addResult(@RequestBody ResultModel resultModel) {
-        Result result = resultService.addResult(resultModel.getTaskId(), resultModel.getImage(), resultModel.getCmd(), resultModel.getStdout(), null);
+    public ResponseEntity addResult(@RequestBody ResultModel model) {
+        Result result = resultService.addResult(
+                Result.builder()
+                        .taskId(model.getTaskId())
+                        .image(model.getImage())
+                        .cmd(model.getCmd())
+                        .stdout(model.getStdout())
+                        .payload(model.getPayload()).build());
         return ok(result.getTaskId());
     }
 
@@ -39,7 +36,6 @@ public class ResultController {// implements TaskInterface {
         List<Result> results = resultService.getResultByTaskId(taskId);
         return ok(results);
     }
-
 
 
 }
