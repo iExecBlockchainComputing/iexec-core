@@ -18,7 +18,7 @@ public class ResultService {
 
     public Result addResult(Result result) {
         log.info("Adding new resultData [taskId:{}, image:{}, cmd:{}, stdout:{}, payload:{}]",
-                result.getTaskId(), result.getImage(), result.getCmd(), result.getStdout(), result.getPayload());
+                result.getTaskId(), result.getImage(), result.getCmd(), result.getStdout(), result.getZip());
         return resultRepository.save(result);
     }
 
