@@ -60,7 +60,7 @@ public class TaskService {
             ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
-            } else if  (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
+            } else if (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
                 nbCompletedReplicates++;
             }
         }
@@ -89,35 +89,16 @@ public class TaskService {
         }
 
         for (Task task : tasks) {
-            if (!hasWorkerAlreadyContributed(task, workerName) &&
-                    taskNeedMoreReplicates(task)) {
-                Replicate newReplicate = new Replicate(workerName, task.getId());
-                task.getReplicates().add(newReplicate);
+            if (!task.hasWorkerAlreadyContributed(workerName) &&
+                    task.needMoreReplicates()) {
+                task.createNewReplicate(workerName);
                 taskRepository.save(task);
-                return Optional.of(newReplicate);
+                return task.getReplicate(workerName);
             }
         }
 
         return Optional.empty();
     }
 
-    private boolean taskNeedMoreReplicates(Task task){
-        int nbValidReplicates = 0;
-        for (Replicate replicate:task.getReplicates()){
-            if (!replicate.getLatestStatus().equals(ReplicateStatus.ERROR)){
-                nbValidReplicates++;
-            }
-        }
-        return nbValidReplicates < task.getNbContributionNeeded();
-    }
-
-    private boolean hasWorkerAlreadyContributed(Task task, String workerName) {
-        for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getWorkerName().equals(workerName)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
 }
