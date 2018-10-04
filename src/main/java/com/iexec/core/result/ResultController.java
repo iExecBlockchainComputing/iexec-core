@@ -2,7 +2,6 @@ package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,11 +31,11 @@ public class ResultController {
         return ok(result.getTaskId());
     }
 
-    @GetMapping(value = "/results/{taskId}", produces="application/zip")
+    @GetMapping(value = "/results/{taskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("taskId") String taskId) {
         List<Result> results = resultService.getResultByTaskId(taskId);
         byte[] zip = null;
-        if (results.size()>0 && results.get(0)!=null){
+        if (results.size() > 0 && results.get(0) != null) {
             zip = results.get(0).getZip();
         }
         return ResponseEntity.ok()

@@ -3,10 +3,10 @@ package com.iexec.core.worker;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerConfigurationModel;
-import com.iexec.common.core.WorkerInterface;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.Optional;
@@ -14,8 +14,9 @@ import java.util.Optional;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
 
+@Slf4j
 @RestController
-public class WorkerController implements WorkerInterface {
+public class WorkerController {
 
     private WorkerService workerService;
 
@@ -23,20 +24,16 @@ public class WorkerController implements WorkerInterface {
         this.workerService = workerService;
     }
 
-    @Override
-    public ResponseEntity<String> getCoreVersion() {
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<String> ping(String workerName) {
+    @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
+    public ResponseEntity ping(@RequestParam(name = "workerName") String workerName) {
         Optional<Worker> optional = workerService.updateLastAlive(workerName);
         return optional.
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    @Override
-    public ResponseEntity registerWorker(WorkerConfigurationModel model) {
+    @RequestMapping(method = RequestMethod.POST, path = "/workers/register")
+    public ResponseEntity registerWorker(@RequestBody WorkerConfigurationModel model) {
 
         Worker worker = Worker.builder()
                 .name(model.getName())
@@ -46,11 +43,13 @@ public class WorkerController implements WorkerInterface {
                 .lastAliveDate(new Date())
                 .build();
 
-        return ok(workerService.addWorker(worker));
+        Worker savedWorker = workerService.addWorker(worker);
+        log.info("Worker has been registered [worker:{}]", savedWorker);
+        return ok(savedWorker);
     }
 
-    @Override
-    public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
+    @RequestMapping(method = RequestMethod.GET, path = "/workers/config")
+    public ResponseEntity getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
                 .blockchainAddress("dummyAddress")
                 .build();

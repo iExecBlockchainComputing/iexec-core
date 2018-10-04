@@ -17,15 +17,14 @@ public class ResultService {
     }
 
     public Result addResult(Result result) {
-        log.info("Adding new resultData [taskId:{}, image:{}, cmd:{}, stdout:{}, payload:{}]",
-                result.getTaskId(), result.getImage(), result.getCmd(), result.getStdout(), result.getZip());
-        return resultRepository.save(result);
+        Result savedResult = resultRepository.save(result);
+        log.info("Result saved in repo [result:{}]", savedResult);
+        return savedResult;
     }
 
     public Optional<Result> getResult(String id) {
         return resultRepository.findById(id);
     }
-
 
     public List<Result> getResultByTaskId(String taskId) {
         return resultRepository.findByTaskId(taskId);
