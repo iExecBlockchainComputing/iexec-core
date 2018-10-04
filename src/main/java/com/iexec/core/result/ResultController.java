@@ -25,6 +25,7 @@ public class ResultController {
                 Result.builder()
                         .taskId(model.getTaskId())
                         .image(model.getImage())
+                        .cmd(model.getCmd())
                         .zip(model.getZip()).build());
         return ok(result.getTaskId());
     }

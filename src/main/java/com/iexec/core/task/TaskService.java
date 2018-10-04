@@ -1,6 +1,6 @@
 package com.iexec.core.task;
+
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.core.replicate.Replicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ public class TaskService {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getWorkerName().equals(workerName)) {
                 // a control should happen here to check if the state transition is correct or not
-                replicate.getStatusList().add(new ReplicateStatusChange(status));
+                replicate.updateStatus(status);
                 updateTaskStatus(task);
                 taskRepository.save(task);
                 log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
@@ -60,7 +60,7 @@ public class TaskService {
             ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
-            } else if  (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
+            } else if (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
                 nbCompletedReplicates++;
             }
         }
@@ -89,25 +89,16 @@ public class TaskService {
         }
 
         for (Task task : tasks) {
-            if (!hasWorkerAlreadyContributed(task, workerName)) {
-                Replicate newReplicate = new Replicate(workerName, task.getId());
-                task.getReplicates().add(newReplicate);
+            if (!task.hasWorkerAlreadyContributed(workerName) &&
+                    task.needMoreReplicates()) {
+                task.createNewReplicate(workerName);
                 taskRepository.save(task);
-                return Optional.of(newReplicate);
+                return task.getReplicate(workerName);
             }
         }
 
         return Optional.empty();
-
     }
 
-    private boolean hasWorkerAlreadyContributed(Task task, String workerName) {
-        for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getWorkerName().equals(workerName)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
 }
