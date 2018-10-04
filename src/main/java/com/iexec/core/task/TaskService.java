@@ -1,6 +1,6 @@
 package com.iexec.core.task;
+
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.core.replicate.Replicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ public class TaskService {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getWorkerName().equals(workerName)) {
                 // a control should happen here to check if the state transition is correct or not
-                replicate.getStatusList().add(new ReplicateStatusChange(status));
+                replicate.updateStatus(status);
                 updateTaskStatus(task);
                 taskRepository.save(task);
                 log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
@@ -89,7 +89,8 @@ public class TaskService {
         }
 
         for (Task task : tasks) {
-            if (!hasWorkerAlreadyContributed(task, workerName)) {
+            if (!hasWorkerAlreadyContributed(task, workerName) &&
+                    taskNeedMoreReplicates(task)) {
                 Replicate newReplicate = new Replicate(workerName, task.getId());
                 task.getReplicates().add(newReplicate);
                 taskRepository.save(task);
@@ -98,7 +99,16 @@ public class TaskService {
         }
 
         return Optional.empty();
+    }
 
+    private boolean taskNeedMoreReplicates(Task task){
+        int nbValidReplicates = 0;
+        for (Replicate replicate:task.getReplicates()){
+            if (!replicate.getLatestStatus().equals(ReplicateStatus.ERROR)){
+                nbValidReplicates++;
+            }
+        }
+        return nbValidReplicates < task.getNbContributionNeeded();
     }
 
     private boolean hasWorkerAlreadyContributed(Task task, String workerName) {

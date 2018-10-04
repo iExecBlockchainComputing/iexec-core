@@ -16,14 +16,21 @@ public class Replicate {
     private String workerName;
     private String resultSha;
     private String resultUri;
-
     private String taskId;
-
 
     public Replicate(String workerName, String taskId) {
         this.taskId = taskId;
         this.statusList = new ArrayList<>();
         this.statusList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
         this.workerName = workerName;
+    }
+
+    public ReplicateStatus getLatestStatus(){
+        return this.getStatusList().get(this.getStatusList().size() - 1).getStatus();
+    }
+
+    public Replicate updateStatus(ReplicateStatus status){
+        this.statusList.add(new ReplicateStatusChange(status));
+        return this;
     }
 }
