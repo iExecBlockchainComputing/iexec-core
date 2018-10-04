@@ -5,13 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 import static org.springframework.http.ResponseEntity.ok;
 
 @Slf4j
 @RestController
-public class ResultController {// implements TaskInterface {
+public class ResultController {
 
     private ResultService resultService;
 
@@ -28,13 +26,13 @@ public class ResultController {// implements TaskInterface {
                         .cmd(model.getCmd())
                         .stdout(model.getStdout())
                         .payload(model.getPayload()).build());
+
         return ok(result.getTaskId());
     }
 
     @GetMapping("/tasks/{taskId}/results")
-    public ResponseEntity<List> getResult(@PathVariable("taskId") String taskId) {
-        List<Result> results = resultService.getResultByTaskId(taskId);
-        return ok(results);
+    public ResponseEntity getResult(@PathVariable("taskId") String taskId) {
+        return ok(resultService.getResultByTaskId(taskId));
     }
 
 
