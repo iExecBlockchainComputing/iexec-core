@@ -29,8 +29,7 @@ public class Replicate {
         return this.getStatusList().get(this.getStatusList().size() - 1).getStatus();
     }
 
-    public Replicate updateStatus(ReplicateStatus status){
-        this.statusList.add(new ReplicateStatusChange(status));
-        return this;
+    public boolean updateStatus(ReplicateStatus status){
+        return statusList.add(new ReplicateStatusChange(status));
     }
 }
