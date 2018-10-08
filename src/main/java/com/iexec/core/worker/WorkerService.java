@@ -10,15 +10,20 @@ import java.util.Optional;
 @Service
 public class WorkerService {
 
-    private  WorkerRepository workerRepository;
+    private WorkerRepository workerRepository;
 
     public WorkerService(WorkerRepository workerRepository) {
         this.workerRepository = workerRepository;
     }
 
+    public Worker getWorker(String workerName) {
+        Optional<Worker> optional = workerRepository.findByName(workerName);
+        return optional.orElse(null);
+    }
+
     public Worker addWorker(Worker worker) {
         Optional<Worker> optional = workerRepository.findByName(worker.getName());
-        if (optional.isPresent()){
+        if (optional.isPresent()) {
             log.info("The worker is already registered [workerId:{}]", optional.get().getId());
             return optional.get();
         } else {
