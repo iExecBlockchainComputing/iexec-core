@@ -2,10 +2,13 @@ package com.iexec.core.task;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -13,9 +16,11 @@ import java.util.Optional;
 public class TaskService {
 
     private TaskRepository taskRepository;
+    private WorkerService workerService;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, WorkerService workerService) {
         this.taskRepository = taskRepository;
+        this.workerService = workerService;
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
@@ -76,16 +81,20 @@ public class TaskService {
         }
     }
 
-
     public Optional<Replicate> getAvailableReplicate(String workerName) {
         // an Replicate can contribute to a task in CREATED or in RUNNING status
-        HashSet<Task> tasks = new HashSet<>();
-        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.CREATED));
-        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.RUNNING));
         // TODO: the task selection is basic for now, we may tune it later
-        // return empty if no task
+        HashSet<Task> tasks = getAllRunningTasks();
         if (tasks.isEmpty()) {
-            return Optional.empty();
+            return Optional.empty();// return empty if no task
+        }
+
+        int workerRunningReplicateNb = getRunningReplicatesOfWorker(workerName).size();
+        int workerCpuNb = workerService.getWorker(workerName).getCpuNb();
+        if (workerRunningReplicateNb >= workerCpuNb) {
+            log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
+                    workerName, workerRunningReplicateNb, workerCpuNb);
+            return Optional.empty();// return empty if worker has enough running tasks
         }
 
         for (Task task : tasks) {
@@ -98,6 +107,27 @@ public class TaskService {
         }
 
         return Optional.empty();
+    }
+
+    private List<Replicate> getRunningReplicatesOfWorker(String workerName) {
+        List<Replicate> workerActiveReplicates = new ArrayList<>();
+        for (Task task : getAllRunningTasks()) {
+            List<Replicate> replicates = task.getReplicates();
+            for (Replicate replicate : replicates) {
+                if (replicate.getWorkerName().equals(workerName) &&
+                        (replicate.getLatestStatus().equals(ReplicateStatus.CREATED) || replicate.getLatestStatus().equals(ReplicateStatus.RUNNING))) {
+                    workerActiveReplicates.add(replicate);
+                }
+            }
+        }
+        return workerActiveReplicates;
+    }
+
+    private HashSet<Task> getAllRunningTasks() {
+        HashSet<Task> tasks = new HashSet<>();
+        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.CREATED));
+        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.RUNNING));
+        return tasks;
     }
 
 
