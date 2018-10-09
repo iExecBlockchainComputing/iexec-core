@@ -80,7 +80,7 @@ public class TaskController {
                             .dappType(task.getDappType())
                             .dappName(task.getDappName())
                             .cmd(task.getCommandLine())
-                            .replicateStatus(replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus())
+                            .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
                             .build()
         );
     }

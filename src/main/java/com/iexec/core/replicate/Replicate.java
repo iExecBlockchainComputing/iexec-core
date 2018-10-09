@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class Replicate {
 
-    private List<ReplicateStatusChange> statusList;
+    private List<ReplicateStatusChange> statusChangeList;
     private String workerName;
     private String resultSha;
     private String resultUri;
@@ -20,16 +20,20 @@ public class Replicate {
 
     public Replicate(String workerName, String taskId) {
         this.taskId = taskId;
-        this.statusList = new ArrayList<>();
-        this.statusList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
+        this.statusChangeList = new ArrayList<>();
+        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
         this.workerName = workerName;
     }
 
     public ReplicateStatus getLatestStatus(){
-        return this.getStatusList().get(this.getStatusList().size() - 1).getStatus();
+        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1).getStatus();
+    }
+
+    public ReplicateStatusChange getLatestStatusChange(){
+        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
 
     public boolean updateStatus(ReplicateStatus status){
-        return statusList.add(new ReplicateStatusChange(status));
+        return statusChangeList.add(new ReplicateStatusChange(status));
     }
 }

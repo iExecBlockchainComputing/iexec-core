@@ -1,15 +1,14 @@
 package com.iexec.core.task;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.result.UploadResultMessage;
+import com.iexec.core.pubsub.UploadService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -17,10 +16,12 @@ public class TaskService {
 
     private TaskRepository taskRepository;
     private WorkerService workerService;
+    private UploadService uploadService;
 
-    public TaskService(TaskRepository taskRepository, WorkerService workerService) {
+    public TaskService(TaskRepository taskRepository, WorkerService workerService, UploadService uploadService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
+        this.uploadService = uploadService;
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
@@ -62,7 +63,7 @@ public class TaskService {
         int nbContributionNeeded = task.getNbContributionNeeded();
 
         for (Replicate replicate : task.getReplicates()) {
-            ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
+            ReplicateStatus replicateStatus = replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
             } else if (replicateStatus.equals(ReplicateStatus.COMPUTED)) {
@@ -70,16 +71,78 @@ public class TaskService {
             }
         }
 
+        if (nbComputedReplicates < nbContributionNeeded &&
+                nbRunningReplicates > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
+            task.setCurrentStatus(TaskStatus.RUNNING);
+        }
+
         if (nbComputedReplicates == nbContributionNeeded &&
                 !task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
             task.setCurrentStatus(TaskStatus.COMPUTED);
         }
 
-        if (nbComputedReplicates < nbContributionNeeded &&
-                nbRunningReplicates > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
-            task.setCurrentStatus(TaskStatus.RUNNING);
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOAD_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADING)) {
+                    task.setCurrentStatus(TaskStatus.UPLOADING);
+                }
+            }
+        }
+
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOADING)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADED)) {
+                    task.setCurrentStatus(TaskStatus.UPLOADED);
+                }
+            }
+        }
+
+        if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+            requestUpload(task);
+        }
+
+
+        //Should be called (here? +) elsewhere by a checkUploadStatus cron
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_REQUESTED) && detectUploadRequestTimeout(task)) {
+            requestUpload(task);
+        }
+
+
+    }
+
+    private void requestUpload(Task task) {
+        for (Replicate replicate : task.getReplicates()) {
+            if (replicate.getLatestStatus().equals(ReplicateStatus.COMPUTED)) {
+                uploadService.requestUpload(UploadResultMessage.builder()
+                        .taskId(task.getId()).workerAddress(replicate.getWorkerName()).build());
+                replicate.updateStatus(ReplicateStatus.UPLOAD_REQUESTED);
+                task.setCurrentStatus(TaskStatus.UPLOAD_REQUESTED);
+                return;
+            }
         }
     }
+
+    private boolean detectUploadRequestTimeout(Task task) {
+        boolean uploadRequestTimeout = false;
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOAD_REQUESTED)
+                        && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
+                    replicate.updateStatus(ReplicateStatus.UPLOAD_REQUEST_FAILED);
+                    uploadRequestTimeout = true;
+                }
+            }
+        }
+        return uploadRequestTimeout;
+    }
+
+    private static Date addMinutesToDate(Date date, int minutes) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.MINUTE, minutes);
+        return calendar.getTime();
+    }
+
 
     public Optional<Replicate> getAvailableReplicate(String workerName) {
         // an Replicate can contribute to a task in CREATED or in RUNNING status

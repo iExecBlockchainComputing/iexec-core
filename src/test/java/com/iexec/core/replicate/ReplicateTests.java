@@ -14,9 +14,9 @@ public class ReplicateTests {
     @Test
     public void shouldInitializeStatusProperly(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
 
-        ReplicateStatusChange statusChange = replicate.getStatusList().get(0);
+        ReplicateStatusChange statusChange = replicate.getStatusChangeList().get(0);
         assertThat(statusChange.getStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         Date now = new Date();
@@ -28,15 +28,15 @@ public class ReplicateTests {
     @Test
     public void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
 
         replicate.updateStatus(ReplicateStatus.RUNNING);
-        assertThat(replicate.getStatusList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
 
-        ReplicateStatusChange initialStatus = replicate.getStatusList().get(0);
+        ReplicateStatusChange initialStatus = replicate.getStatusChangeList().get(0);
         assertThat(initialStatus.getStatus()).isEqualTo(ReplicateStatus.CREATED);
 
-        ReplicateStatusChange updatedStatus = replicate.getStatusList().get(1);
+        ReplicateStatusChange updatedStatus = replicate.getStatusChangeList().get(1);
         assertThat(updatedStatus.getStatus()).isEqualTo(ReplicateStatus.RUNNING);
 
         Date now = new Date();
@@ -48,11 +48,11 @@ public class ReplicateTests {
     @Test
     public void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
         assertThat(replicate.getLatestStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         replicate.updateStatus(ReplicateStatus.RUNNING);
-        assertThat(replicate.getStatusList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
         assertThat(replicate.getLatestStatus()).isEqualTo(ReplicateStatus.RUNNING);
     }
 
