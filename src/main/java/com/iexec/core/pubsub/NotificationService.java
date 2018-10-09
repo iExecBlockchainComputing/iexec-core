@@ -1,22 +1,22 @@
 package com.iexec.core.pubsub;
 
-import com.iexec.common.result.UploadResultMessage;
+import com.iexec.common.result.TaskNotification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class UploadService {
+public class NotificationService {
 
     private SimpMessagingTemplate sender;
 
-    public UploadService(SimpMessagingTemplate sender) {
+    public NotificationService(SimpMessagingTemplate sender) {
         this.sender = sender;
     }
 
-    public void requestUpload(UploadResultMessage uploadResultMessage) {
-        sender.convertAndSend("/topic/uploadResult", uploadResultMessage);
+    public void sendTaskNotification(TaskNotification taskNotification) {
+        sender.convertAndSend("/topic/task/" + taskNotification.getTaskId(), taskNotification);
     }
 
     /* Test PubSub method
@@ -29,7 +29,7 @@ public class UploadService {
                 .taskId(null)
                 .workerAddress(null)
                 .build();
-        requestUpload(uploadResultMessage);
+        sendTaskNotification(uploadResultMessage);
 
     }*/
 

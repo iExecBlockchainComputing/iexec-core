@@ -1,8 +1,9 @@
 package com.iexec.core.task;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.result.UploadResultMessage;
-import com.iexec.core.pubsub.UploadService;
+import com.iexec.common.result.TaskNotification;
+import com.iexec.common.result.TaskNotificationType;
+import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,12 +17,19 @@ public class TaskService {
 
     private TaskRepository taskRepository;
     private WorkerService workerService;
-    private UploadService uploadService;
+    private NotificationService notificationService;
 
-    public TaskService(TaskRepository taskRepository, WorkerService workerService, UploadService uploadService) {
+    public TaskService(TaskRepository taskRepository, WorkerService workerService, NotificationService notificationService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
-        this.uploadService = uploadService;
+        this.notificationService = notificationService;
+    }
+
+    private static Date addMinutesToDate(Date date, int minutes) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.MINUTE, minutes);
+        return calendar.getTime();
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
@@ -113,8 +121,11 @@ public class TaskService {
     private void requestUpload(Task task) {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getLatestStatus().equals(ReplicateStatus.COMPUTED)) {
-                uploadService.requestUpload(UploadResultMessage.builder()
-                        .taskId(task.getId()).workerAddress(replicate.getWorkerName()).build());
+                notificationService.sendTaskNotification(TaskNotification.builder()
+                        .taskId(task.getId())
+                        .workerAddress(replicate.getWorkerName())
+                        .taskNotificationType(TaskNotificationType.UPLOAD)
+                        .build());
                 replicate.updateStatus(ReplicateStatus.UPLOAD_REQUESTED);
                 task.setCurrentStatus(TaskStatus.UPLOAD_REQUESTED);
                 return;
@@ -135,14 +146,6 @@ public class TaskService {
         }
         return uploadRequestTimeout;
     }
-
-    private static Date addMinutesToDate(Date date, int minutes) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.MINUTE, minutes);
-        return calendar.getTime();
-    }
-
 
     public Optional<Replicate> getAvailableReplicate(String workerName) {
         // an Replicate can contribute to a task in CREATED or in RUNNING status
