@@ -58,24 +58,24 @@ public class TaskService {
     // this is the main method that will update the status of the task
     private void updateTaskStatus(Task task) {
         int nbRunningReplicates = 0;
-        int nbCompletedReplicates = 0;
+        int nbComputedReplicates = 0;
         int nbContributionNeeded = task.getNbContributionNeeded();
 
         for (Replicate replicate : task.getReplicates()) {
             ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
-            } else if (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
-                nbCompletedReplicates++;
+            } else if (replicateStatus.equals(ReplicateStatus.COMPUTED)) {
+                nbComputedReplicates++;
             }
         }
 
-        if (nbCompletedReplicates == nbContributionNeeded &&
-                !task.getCurrentStatus().equals(TaskStatus.COMPLETED)) {
-            task.setCurrentStatus(TaskStatus.COMPLETED);
+        if (nbComputedReplicates == nbContributionNeeded &&
+                !task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+            task.setCurrentStatus(TaskStatus.COMPUTED);
         }
 
-        if (nbCompletedReplicates < nbContributionNeeded &&
+        if (nbComputedReplicates < nbContributionNeeded &&
                 nbRunningReplicates > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
             task.setCurrentStatus(TaskStatus.RUNNING);
         }
