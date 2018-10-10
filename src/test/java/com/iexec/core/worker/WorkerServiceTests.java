@@ -108,4 +108,22 @@ public class WorkerServiceTests {
         assertThat(optional.isPresent()).isFalse();
     }
 
+    @Test
+    public void shouldGetWorker() {
+        String workerName = "worker1";
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .build();
+
+        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        Optional<Worker> foundWorker = workerService.getWorker(workerName);
+        assertThat(foundWorker.isPresent()).isTrue();
+        assertThat(foundWorker.get()).isEqualTo(existingWorker);
+    }
+
 }
