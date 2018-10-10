@@ -89,18 +89,18 @@ public class TaskService {
             task.setCurrentStatus(TaskStatus.COMPUTED);
         }
 
-        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOAD_REQUESTED)) {
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADING)) {
-                    task.setCurrentStatus(TaskStatus.UPLOADING);
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
+                    task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
                 }
             }
         }
 
-        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOADING)) {
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOADING_RESULT)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADED)) {
-                    task.setCurrentStatus(TaskStatus.UPLOADED);
+                if (replicate.getLatestStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
+                    task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
                 }
             }
         }
@@ -111,7 +111,7 @@ public class TaskService {
 
 
         //Should be called (here? +) elsewhere by a checkUploadStatus cron
-        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_REQUESTED) && detectUploadRequestTimeout(task)) {
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED) && detectUploadRequestTimeout(task)) {
             requestUpload(task);
         }
 
@@ -126,8 +126,8 @@ public class TaskService {
                         .workerAddress(replicate.getWorkerName())
                         .taskNotificationType(TaskNotificationType.UPLOAD)
                         .build());
-                replicate.updateStatus(ReplicateStatus.UPLOAD_REQUESTED);
-                task.setCurrentStatus(TaskStatus.UPLOAD_REQUESTED);
+                replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUESTED);
+                task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
                 return;
             }
         }
@@ -135,11 +135,11 @@ public class TaskService {
 
     private boolean detectUploadRequestTimeout(Task task) {
         boolean uploadRequestTimeout = false;
-        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_REQUESTED)) {
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOAD_REQUESTED)
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
                         && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
-                    replicate.updateStatus(ReplicateStatus.UPLOAD_REQUEST_FAILED);
+                    replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                     uploadRequestTimeout = true;
                 }
             }
