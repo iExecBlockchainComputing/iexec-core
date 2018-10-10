@@ -16,9 +16,8 @@ public class WorkerService {
         this.workerRepository = workerRepository;
     }
 
-    public Worker getWorker(String workerName) {
-        Optional<Worker> optional = workerRepository.findByName(workerName);
-        return optional.orElse(null);
+    public Optional<Worker> getWorker(String workerName) {
+        return workerRepository.findByName(workerName);
     }
 
     public Worker addWorker(Worker worker) {
