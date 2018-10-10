@@ -121,8 +121,9 @@ public class WorkerServiceTests {
                 .build();
 
         when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
-        Worker foundWorker = workerService.getWorker(workerName);
-        assertThat(foundWorker).isEqualTo(existingWorker);
+        Optional<Worker> foundWorker = workerService.getWorker(workerName);
+        assertThat(foundWorker.isPresent()).isTrue();
+        assertThat(foundWorker.get()).isEqualTo(existingWorker);
     }
 
 }

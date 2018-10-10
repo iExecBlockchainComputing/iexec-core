@@ -5,6 +5,7 @@ import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -156,19 +157,22 @@ public class TaskService {
         }
 
         int workerRunningReplicateNb = getRunningReplicatesOfWorker(workerName).size();
-        int workerCpuNb = workerService.getWorker(workerName).getCpuNb();
-        if (workerRunningReplicateNb >= workerCpuNb) {
-            log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
-                    workerName, workerRunningReplicateNb, workerCpuNb);
-            return Optional.empty();// return empty if worker has enough running tasks
-        }
+        Optional<Worker> worker = workerService.getWorker(workerName);
+        if (worker.isPresent()) {
+            int workerCpuNb = worker.get().getCpuNb();
+            if (workerRunningReplicateNb >= workerCpuNb) {
+                log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
+                        workerName, workerRunningReplicateNb, workerCpuNb);
+                return Optional.empty();// return empty if worker has enough running tasks
+            }
 
-        for (Task task : tasks) {
-            if (!task.hasWorkerAlreadyContributed(workerName) &&
-                    task.needMoreReplicates()) {
-                task.createNewReplicate(workerName);
-                taskRepository.save(task);
-                return task.getReplicate(workerName);
+            for (Task task : tasks) {
+                if (!task.hasWorkerAlreadyContributed(workerName) &&
+                        task.needMoreReplicates()) {
+                    task.createNewReplicate(workerName);
+                    taskRepository.save(task);
+                    return task.getReplicate(workerName);
+                }
             }
         }
 
