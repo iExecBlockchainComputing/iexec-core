@@ -72,7 +72,7 @@ public class TaskService {
         int nbContributionNeeded = task.getNbContributionNeeded();
 
         for (Replicate replicate : task.getReplicates()) {
-            ReplicateStatus replicateStatus = replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus();
+            ReplicateStatus replicateStatus = replicate.getLatestStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
             } else if (replicateStatus.equals(ReplicateStatus.COMPUTED)) {

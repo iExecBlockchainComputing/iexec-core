@@ -26,7 +26,7 @@ public class Replicate {
     }
 
     public ReplicateStatus getLatestStatus(){
-        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1).getStatus();
+        return this.getLatestStatusChange().getStatus();
     }
 
     public ReplicateStatusChange getLatestStatusChange(){
