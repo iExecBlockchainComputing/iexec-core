@@ -1,16 +1,16 @@
 package com.iexec.core.task;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.result.TaskNotification;
+import com.iexec.common.result.TaskNotificationType;
+import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -18,10 +18,19 @@ public class TaskService {
 
     private TaskRepository taskRepository;
     private WorkerService workerService;
+    private NotificationService notificationService;
 
-    public TaskService(TaskRepository taskRepository, WorkerService workerService) {
+    public TaskService(TaskRepository taskRepository, WorkerService workerService, NotificationService notificationService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
+        this.notificationService = notificationService;
+    }
+
+    private static Date addMinutesToDate(Date date, int minutes) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.MINUTE, minutes);
+        return calendar.getTime();
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
@@ -59,27 +68,84 @@ public class TaskService {
     // this is the main method that will update the status of the task
     private void updateTaskStatus(Task task) {
         int nbRunningReplicates = 0;
-        int nbCompletedReplicates = 0;
+        int nbComputedReplicates = 0;
         int nbContributionNeeded = task.getNbContributionNeeded();
 
         for (Replicate replicate : task.getReplicates()) {
-            ReplicateStatus replicateStatus = replicate.getStatusList().get(replicate.getStatusList().size() - 1).getStatus();
+            ReplicateStatus replicateStatus = replicate.getLatestStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
-            } else if (replicateStatus.equals(ReplicateStatus.COMPLETED)) {
-                nbCompletedReplicates++;
+            } else if (replicateStatus.equals(ReplicateStatus.COMPUTED)) {
+                nbComputedReplicates++;
             }
         }
 
-        if (nbCompletedReplicates == nbContributionNeeded &&
-                !task.getCurrentStatus().equals(TaskStatus.COMPLETED)) {
-            task.setCurrentStatus(TaskStatus.COMPLETED);
-        }
-
-        if (nbCompletedReplicates < nbContributionNeeded &&
+        if (nbComputedReplicates < nbContributionNeeded &&
                 nbRunningReplicates > 0 && !task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
             task.setCurrentStatus(TaskStatus.RUNNING);
         }
+
+        if (nbComputedReplicates == nbContributionNeeded &&
+                !task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+            task.setCurrentStatus(TaskStatus.COMPUTED);
+        }
+
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
+                    task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
+                }
+            }
+        }
+
+        if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOADING_RESULT)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
+                    task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
+                }
+            }
+        }
+
+        if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+            requestUpload(task);
+        }
+
+
+        //Should be called (here? +) elsewhere by a checkUploadStatus cron
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED) && detectUploadRequestTimeout(task)) {
+            requestUpload(task);
+        }
+
+
+    }
+
+    private void requestUpload(Task task) {
+        for (Replicate replicate : task.getReplicates()) {
+            if (replicate.getLatestStatus().equals(ReplicateStatus.COMPUTED)) {
+                notificationService.sendTaskNotification(TaskNotification.builder()
+                        .taskId(task.getId())
+                        .workerAddress(replicate.getWorkerName())
+                        .taskNotificationType(TaskNotificationType.UPLOAD)
+                        .build());
+                replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUESTED);
+                task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+                return;
+            }
+        }
+    }
+
+    private boolean detectUploadRequestTimeout(Task task) {
+        boolean uploadRequestTimeout = false;
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
+                        && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
+                    replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+                    uploadRequestTimeout = true;
+                }
+            }
+        }
+        return uploadRequestTimeout;
     }
 
     public Optional<Replicate> getAvailableReplicate(String workerName) {

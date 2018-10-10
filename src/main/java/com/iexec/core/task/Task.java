@@ -96,4 +96,8 @@ public class Task {
         }
         return false;
     }
+
+    public TaskStatusChange getLatestStatusChange(){
+        return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
+    }
 }

@@ -32,10 +32,10 @@ public class TaskTests {
         assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.RUNNING);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
 
-        task.setCurrentStatus(TaskStatus.COMPLETED);
+        task.setCurrentStatus(TaskStatus.COMPUTED);
         assertThat(task.getDateStatusList().size()).isEqualTo(3);
-        assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.COMPLETED);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPLETED);
+        assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.COMPUTED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPUTED);
     }
 
     @Test
@@ -88,7 +88,7 @@ public class TaskTests {
 
         // with different statuses
         task.getReplicate("worker1").get().updateStatus(ReplicateStatus.RUNNING);
-        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPLETED);
+        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
         assertThat(task.needMoreReplicates()).isTrue();
     }
 
@@ -100,7 +100,7 @@ public class TaskTests {
         task.createNewReplicate("worker2");
         task.createNewReplicate("worker3");
         task.getReplicate("worker1").get().updateStatus(ReplicateStatus.RUNNING);
-        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPLETED);
+        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
         task.getReplicate("worker3").get().updateStatus(ReplicateStatus.ERROR);
 
         assertThat(task.needMoreReplicates()).isTrue();
@@ -125,7 +125,7 @@ public class TaskTests {
         task.createNewReplicate("worker3");
         task.createNewReplicate("worker4");
         task.getReplicate("worker1").get().updateStatus(ReplicateStatus.RUNNING);
-        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPLETED);
+        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
         task.getReplicate("worker3").get().updateStatus(ReplicateStatus.ERROR);
         task.getReplicate("worker4").get().updateStatus(ReplicateStatus.ERROR);
 
@@ -138,7 +138,7 @@ public class TaskTests {
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
         task.createNewReplicate("worker3");
-        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPLETED);
+        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
         task.getReplicate("worker3").get().updateStatus(ReplicateStatus.ERROR);
 
         assertThat(task.hasWorkerAlreadyContributed("worker1")).isTrue();
