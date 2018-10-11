@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,10 @@ public class Task {
 
     @Id
     private String id;
+
+    @Version
+    private Long version;
+
     private DappType dappType;
     private String dappName;
     private String commandLine;
@@ -42,6 +47,10 @@ public class Task {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public void setVersion(Long version){
+        this.version = version;
     }
 
     public void setDateStatusList(List<TaskStatusChange> dateStatusList) {
