@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+
 @Slf4j
 @Service
 public class TaskService {
@@ -26,13 +28,6 @@ public class TaskService {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
-    }
-
-    private static Date addMinutesToDate(Date date, int minutes) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.MINUTE, minutes);
-        return calendar.getTime();
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
