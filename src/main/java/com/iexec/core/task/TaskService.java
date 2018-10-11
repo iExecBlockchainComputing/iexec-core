@@ -177,6 +177,7 @@ public class TaskService {
                 task.getNbReplicatesWithStatus(ReplicateStatus.RUNNING) > 0 && task.getCurrentStatus().equals(TaskStatus.CREATED)) {
             task.setCurrentStatus(TaskStatus.RUNNING);
             taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RUNNING);
         }
     }
 
@@ -186,6 +187,8 @@ public class TaskService {
             task.setCurrentStatus(TaskStatus.COMPUTED);
             task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             task = taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
             requestUpload(task);
         }
     }
@@ -195,6 +198,7 @@ public class TaskService {
             if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
                 task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
                 taskRepository.save(task);
+                log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOADING_RESULT);
                 break;
             }
         }
@@ -204,7 +208,8 @@ public class TaskService {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
                 task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
-                task = taskRepository.save(task);
+                taskRepository.save(task);
+                log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
             }
         }
     }
@@ -218,6 +223,7 @@ public class TaskService {
                         .taskNotificationType(TaskNotificationType.UPLOAD)
                         .build());
                 // TODO: this is the worker job to upload its status
+                // not sure this status is still needed anyway
                 replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUESTED);
                 taskRepository.save(task);
                 return;
