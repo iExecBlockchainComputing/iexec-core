@@ -8,6 +8,8 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -148,31 +150,37 @@ public class TaskService {
         return uploadRequestTimeout;
     }
 
+    // in case the task has been modified between reading and writing it, it is retried up to 5 times
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Optional<Replicate> getAvailableReplicate(String workerName) {
-        // an Replicate can contribute to a task in CREATED or in RUNNING status
-        // TODO: the task selection is basic for now, we may tune it later
-        HashSet<Task> tasks = getAllRunningTasks();
-        if (tasks.isEmpty()) {
-            return Optional.empty();// return empty if no task
+        // return empty if the worker is not registered
+        Optional<Worker> optional = workerService.getWorker(workerName);
+        if(!optional.isPresent()){
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
+
+        // return empty if the worker already has enough running tasks
+        int workerRunningReplicateNb = getRunningReplicatesOfWorker(workerName).size();
+        int workerCpuNb = worker.getCpuNb();
+        if (workerRunningReplicateNb >= workerCpuNb) {
+            log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
+                    workerName, workerRunningReplicateNb, workerCpuNb);
+            return Optional.empty();
         }
 
-        int workerRunningReplicateNb = getRunningReplicatesOfWorker(workerName).size();
-        Optional<Worker> worker = workerService.getWorker(workerName);
-        if (worker.isPresent()) {
-            int workerCpuNb = worker.get().getCpuNb();
-            if (workerRunningReplicateNb >= workerCpuNb) {
-                log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
-                        workerName, workerRunningReplicateNb, workerCpuNb);
-                return Optional.empty();// return empty if worker has enough running tasks
-            }
+        // return empty if there is no task to contribute
+        HashSet<Task> tasks = getAllRunningTasks();
+        if (tasks.isEmpty()) {
+            return Optional.empty();
+        }
 
-            for (Task task : tasks) {
-                if (!task.hasWorkerAlreadyContributed(workerName) &&
-                        task.needMoreReplicates()) {
-                    task.createNewReplicate(workerName);
-                    taskRepository.save(task);
-                    return task.getReplicate(workerName);
-                }
+        for (Task task : tasks) {
+            if (!task.hasWorkerAlreadyContributed(workerName) &&
+                    task.needMoreReplicates()) {
+                task.createNewReplicate(workerName);
+                Task savedTask = taskRepository.save(task);
+                return savedTask.getReplicate(workerName);
             }
         }
 
@@ -199,6 +207,5 @@ public class TaskService {
         tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.RUNNING));
         return tasks;
     }
-
 
 }
