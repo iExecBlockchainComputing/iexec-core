@@ -49,11 +49,11 @@ public class ReplicateTests {
     public void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
-        assertThat(replicate.getLatestStatus()).isEqualTo(ReplicateStatus.CREATED);
+        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         replicate.updateStatus(ReplicateStatus.RUNNING);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
-        assertThat(replicate.getLatestStatus()).isEqualTo(ReplicateStatus.RUNNING);
+        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.RUNNING);
     }
 
 }

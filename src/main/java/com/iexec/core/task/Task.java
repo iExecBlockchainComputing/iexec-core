@@ -90,7 +90,7 @@ public class Task {
     public boolean needMoreReplicates() {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates()) {
-            if (!replicate.getLatestStatus().equals(ReplicateStatus.ERROR)) {
+            if (!replicate.getCurrentStatus().equals(ReplicateStatus.ERROR)) {
                 nbValidReplicates++;
             }
         }
