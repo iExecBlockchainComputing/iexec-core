@@ -84,6 +84,7 @@ public class TaskServiceTests {
                 .build();
 
         when(taskRepository.findById("taskId")).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
         Optional<Replicate> updated = taskService.updateReplicateStatus("taskId", ReplicateStatus.RUNNING, "worker1");
         assertThat(updated.isPresent()).isTrue();
         assertEquals(2, updated.get().getStatusChangeList().size());
