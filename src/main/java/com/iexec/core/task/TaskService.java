@@ -39,6 +39,8 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
+    // in case the task has been modified between reading and writing it, it is retried up to 5 times
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Optional<Replicate> updateReplicateStatus(String taskId, ReplicateStatus status, String workerName) {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (!optional.isPresent()) {
