@@ -25,6 +25,7 @@ public class TaskWorkflow extends Workflow<TaskStatus> {
         addTransition(COMPUTED, UPLOAD_RESULT_REQUESTED);
         addTransition(UPLOAD_RESULT_REQUESTED, UPLOADING_RESULT);
         addTransition(UPLOADING_RESULT, RESULT_UPLOADED);
+        addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(UPLOADING_RESULT, ERROR);
     }
 }
