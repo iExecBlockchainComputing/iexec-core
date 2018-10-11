@@ -25,15 +25,15 @@ public class Replicate {
         this.workerName = workerName;
     }
 
-    public ReplicateStatus getCurrentStatus(){
+    public ReplicateStatus getCurrentStatus() {
         return this.getLatestStatusChange().getStatus();
     }
 
-    public ReplicateStatusChange getLatestStatusChange(){
+    public ReplicateStatusChange getLatestStatusChange() {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
 
-    public boolean updateStatus(ReplicateStatus status){
-        return statusChangeList.add(new ReplicateStatusChange(status));
+    public boolean updateStatus(ReplicateStatus newStatus) {
+        return statusChangeList.add(new ReplicateStatusChange(newStatus));
     }
 }

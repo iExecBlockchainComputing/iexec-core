@@ -46,7 +46,7 @@ public class TaskController {
                                                 @RequestParam(name = "workerName") String workerName,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
         log.info("Update replicate status [taskId:{}, replicateStatus:{}, workerName:{}]", taskId, replicateStatus, workerName);
-        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, replicateStatus, workerName);
+        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, workerName, replicateStatus);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
