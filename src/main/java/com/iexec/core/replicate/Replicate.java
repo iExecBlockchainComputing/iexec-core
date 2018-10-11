@@ -25,7 +25,7 @@ public class Replicate {
         this.workerName = workerName;
     }
 
-    public ReplicateStatus getLatestStatus(){
+    public ReplicateStatus getCurrentStatus(){
         return this.getLatestStatusChange().getStatus();
     }
 

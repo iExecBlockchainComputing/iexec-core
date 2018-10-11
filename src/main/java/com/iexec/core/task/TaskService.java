@@ -52,9 +52,9 @@ public class TaskService {
                 // a control should happen here to check if the state transition is correct or not
                 replicate.updateStatus(status);
                 updateTaskStatus(task);
-                taskRepository.save(task);
+                Task savedTask = taskRepository.save(task);
                 log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId, workerName, status);
-                return Optional.of(replicate);
+                return savedTask.getReplicate(workerName);
             }
         }
 
@@ -69,7 +69,7 @@ public class TaskService {
         int nbContributionNeeded = task.getNbContributionNeeded();
 
         for (Replicate replicate : task.getReplicates()) {
-            ReplicateStatus replicateStatus = replicate.getLatestStatus();
+            ReplicateStatus replicateStatus = replicate.getCurrentStatus();
             if (replicateStatus.equals(ReplicateStatus.RUNNING)) {
                 nbRunningReplicates++;
             } else if (replicateStatus.equals(ReplicateStatus.COMPUTED)) {
@@ -89,7 +89,7 @@ public class TaskService {
 
         if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
+                if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
                     task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
                 }
             }
@@ -97,7 +97,7 @@ public class TaskService {
 
         if (task.getLatestStatusChange().getStatus().equals(TaskStatus.UPLOADING_RESULT)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
+                if (replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
                     task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
                 }
             }
@@ -118,7 +118,7 @@ public class TaskService {
 
     private void requestUpload(Task task) {
         for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getLatestStatus().equals(ReplicateStatus.COMPUTED)) {
+            if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
                 notificationService.sendTaskNotification(TaskNotification.builder()
                         .taskId(task.getId())
                         .workerAddress(replicate.getWorkerName())
@@ -135,7 +135,7 @@ public class TaskService {
         boolean uploadRequestTimeout = false;
         if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getLatestStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
+                if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
                         && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
                     replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                     uploadRequestTimeout = true;
@@ -188,7 +188,7 @@ public class TaskService {
             List<Replicate> replicates = task.getReplicates();
             for (Replicate replicate : replicates) {
                 if (replicate.getWorkerName().equals(workerName) &&
-                        (replicate.getLatestStatus().equals(ReplicateStatus.CREATED) || replicate.getLatestStatus().equals(ReplicateStatus.RUNNING))) {
+                        (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) || replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING))) {
                     workerActiveReplicates.add(replicate);
                 }
             }
