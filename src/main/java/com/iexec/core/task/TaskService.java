@@ -64,10 +64,13 @@ public class TaskService {
                 }
 
                 replicate.updateStatus(newStatus);
-                // once the replicate status is updated, the task status has to be checked as well
-                updateTaskStatus(task);
                 log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId,
                         workerName, newStatus);
+                taskRepository.save(task);
+
+                // once the replicate status is updated, the task status has to be checked as well
+                updateTaskStatus(task);
+
                 return Optional.of(replicate);
 
             }
@@ -78,19 +81,17 @@ public class TaskService {
     }
 
 
-    // Timeout for the replicate uploading its result is 1min.
+    // Timeout for the replicate uploading its result is 1 min.
     @Scheduled(fixedRate = 20000)
     void detectUploadRequestTimeout() {
 
-        // check all task with status upload result requested
+        // check all tasks with status upload result requested
         List<Task> tasks = taskRepository.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
         for (Task task : tasks) {
             for (Replicate replicate : task.getReplicates()) {
                 if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
                         && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
-                    replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
-                    taskRepository.save(task);
-                    requestUpload(task);
+                    updateReplicateStatus(task.getId(), replicate.getWorkerName(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
         }
@@ -154,6 +155,7 @@ public class TaskService {
         return tasks;
     }
 
+    // TODO: when the workflow becomes more complicated, a chain of responsability can be implemented here
     void updateTaskStatus(Task task) {
         TaskStatus currentStatus = task.getCurrentStatus();
         switch (currentStatus) {
@@ -161,13 +163,21 @@ public class TaskService {
                 tryUpdateToRunning(task);
                 break;
             case RUNNING:
-                tryUpdateToComputed(task);
+                tryUpdateToComputedAndResultRequest(task);
+                break;
+            case COMPUTED:
                 break;
             case UPLOAD_RESULT_REQUESTED:
                 tryUpdateToUploadingResult(task);
                 break;
             case UPLOADING_RESULT:
                 tryUpdateToResultUploaded(task);
+                break;
+            case RESULT_UPLOADED:
+                break;
+            case COMPLETED:
+                break;
+            case ERROR:
                 break;
         }
     }
@@ -181,7 +191,7 @@ public class TaskService {
         }
     }
 
-    void tryUpdateToComputed(Task task) {
+    void tryUpdateToComputedAndResultRequest(Task task) {
         if (task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded() &&
                 task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
             task.setCurrentStatus(TaskStatus.COMPUTED);
@@ -194,27 +204,28 @@ public class TaskService {
     }
 
     void tryUpdateToUploadingResult(Task task) {
-        for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOADING_RESULT)) {
-                task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
-                taskRepository.save(task);
-                log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOADING_RESULT);
-                break;
-            }
+
+        if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) > 0) {
+            task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
+            taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOADING_RESULT);
         }
     }
 
     void tryUpdateToResultUploaded(Task task) {
-        for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOADED)) {
-                task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
-                taskRepository.save(task);
-                log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
-            }
+        if (task.getNbReplicatesWithStatus(ReplicateStatus.RESULT_UPLOADED) > 0) {
+            task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
+            task.setCurrentStatus(TaskStatus.COMPLETED);
+            taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
+        } else if(task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
+                task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0){
+            // need to request upload again
+            requestUpload(task);
         }
     }
 
-    void requestUpload(Task task) {
+    private void requestUpload(Task task) {
         for (Replicate replicate : task.getReplicates()) {
             if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
                 notificationService.sendTaskNotification(TaskNotification.builder()
@@ -222,10 +233,6 @@ public class TaskService {
                         .workerAddress(replicate.getWorkerName())
                         .taskNotificationType(TaskNotificationType.UPLOAD)
                         .build());
-                // TODO: this is the worker job to upload its status
-                // not sure this status is still needed anyway
-                replicate.updateStatus(ReplicateStatus.UPLOAD_RESULT_REQUESTED);
-                taskRepository.save(task);
                 return;
             }
         }

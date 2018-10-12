@@ -22,9 +22,9 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CREATED, RUNNING);
         addTransition(RUNNING, COMPUTED);
         addTransition(COMPUTED, UPLOAD_RESULT_REQUESTED);
-        addTransition(UPLOAD_RESULT_REQUESTED, UPLOAD_RESULT_REQUEST_FAILED);
         addTransition(UPLOAD_RESULT_REQUESTED, UPLOADING_RESULT);
         addTransition(UPLOADING_RESULT, RESULT_UPLOADED);
+        addTransition(UPLOADING_RESULT, UPLOAD_RESULT_REQUEST_FAILED);
         addTransition(UPLOADING_RESULT, ERROR);
     }
 }
