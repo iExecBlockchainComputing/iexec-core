@@ -119,4 +119,16 @@ public class Task {
         }
         return nbReplicates;
     }
+
+    public int getNbReplicatesStatusEqualTo(ReplicateStatus ... listStatus ){
+        int nbReplicates = 0;
+        for (Replicate replicate : replicates) {
+            for (ReplicateStatus status : listStatus){
+                if (replicate.getCurrentStatus().equals(status)) {
+                    nbReplicates++;
+                }
+            }
+        }
+        return nbReplicates;
+    }
 }

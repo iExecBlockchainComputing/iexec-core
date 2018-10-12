@@ -183,8 +183,11 @@ public class TaskService {
     }
 
     void tryUpdateToRunning(Task task) {
-        if (task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getNbContributionNeeded() &&
-                task.getNbReplicatesWithStatus(ReplicateStatus.RUNNING) > 0 && task.getCurrentStatus().equals(TaskStatus.CREATED)) {
+        boolean condition1 = task.getNbReplicatesStatusEqualTo(ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getNbContributionNeeded();
+        boolean condition3 = task.getCurrentStatus().equals(TaskStatus.CREATED);
+
+        if (condition1 && condition2 && condition3) {
             task.setCurrentStatus(TaskStatus.RUNNING);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RUNNING);
@@ -192,8 +195,10 @@ public class TaskService {
     }
 
     void tryUpdateToComputedAndResultRequest(Task task) {
-        if (task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded() &&
-                task.getCurrentStatus().equals(TaskStatus.RUNNING)) {
+        boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded();
+        boolean condition2 = task.getCurrentStatus().equals(TaskStatus.RUNNING);
+
+        if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.COMPUTED);
             task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             task = taskRepository.save(task);
@@ -218,8 +223,8 @@ public class TaskService {
             task.setCurrentStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
-        } else if(task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
-                task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0){
+        } else if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
+                task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0) {
             // need to request upload again
             requestUpload(task);
         }
