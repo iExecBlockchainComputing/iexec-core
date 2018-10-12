@@ -209,8 +209,10 @@ public class TaskService {
     }
 
     void tryUpdateToUploadingResult(Task task) {
+        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) > 0;
 
-        if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) > 0) {
+        if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOADING_RESULT);
@@ -218,7 +220,10 @@ public class TaskService {
     }
 
     void tryUpdateToResultUploaded(Task task) {
-        if (task.getNbReplicatesWithStatus(ReplicateStatus.RESULT_UPLOADED) > 0) {
+        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.RESULT_UPLOADED) > 0;
+
+        if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
             task.setCurrentStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
