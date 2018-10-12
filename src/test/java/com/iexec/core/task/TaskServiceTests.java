@@ -282,6 +282,7 @@ public class TaskServiceTests {
         task.setCurrentStatus(TaskStatus.RUNNING);
         task.setCurrentStatus(TaskStatus.COMPLETED);
         task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
 
         when(taskRepository.save(task)).thenReturn(task);
 
