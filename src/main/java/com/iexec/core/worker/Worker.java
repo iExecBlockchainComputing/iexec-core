@@ -3,13 +3,13 @@ package com.iexec.core.worker;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Worker {
@@ -20,6 +20,19 @@ public class Worker {
     private String os;
     private String cpu;
     private int cpuNb;
+    private List<String> taskIds;
 
     private Date lastAliveDate;
+
+    public Worker() {
+        taskIds = new ArrayList<>();
+    }
+
+    void addTaskId(String taskId) {
+        taskIds.add(taskId);
+    }
+
+    void removeTaskId(String taskId) {
+        taskIds.remove(taskId);
+    }
 }

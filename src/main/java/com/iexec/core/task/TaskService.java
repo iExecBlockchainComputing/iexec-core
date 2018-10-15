@@ -95,6 +95,24 @@ public class TaskService {
         }
     }
 
+    @Scheduled(fixedRate = 20000)
+    void detectLostWorkers() {
+        for (Worker worker : workerService.getLostWorkers()) {
+            for (String taskId : worker.getTaskIds()) {
+                Optional<Task> task = this.getTask(taskId);
+                if (task.isPresent()) {
+                    Optional<Replicate> replicate = task.get().getReplicate(worker.getName());
+                    replicate.ifPresent(optionalReplicate -> {
+                        if (!optionalReplicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
+                            workerService.removeTaskIdFromWorker(taskId, worker.getName());
+                            updateReplicateStatus(taskId, worker.getName(), ReplicateStatus.WORKER_LOST);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Optional<Replicate> getAvailableReplicate(String workerName) {
@@ -125,6 +143,7 @@ public class TaskService {
                     task.needMoreReplicates()) {
                 task.createNewReplicate(workerName);
                 Task savedTask = taskRepository.save(task);
+                workerService.addTaskIdToWorker(savedTask.getId(), workerName);
                 return savedTask.getReplicate(workerName);
             }
         }
@@ -222,14 +241,22 @@ public class TaskService {
 
         if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
+            taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
+
             task.setCurrentStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
+
+            for (Replicate replicate : task.getReplicates()) {
+                workerService.removeTaskIdFromWorker(task.getId(), replicate.getWorkerName());
+            }
+
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskId(task.getId())
                     .workerAddress("")
                     .taskNotificationType(TaskNotificationType.COMPLETED)
                     .build());
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPLETED);
         } else if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
                 task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0) {
             // need to request upload again

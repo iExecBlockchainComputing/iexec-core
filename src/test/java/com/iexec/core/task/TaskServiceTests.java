@@ -280,9 +280,10 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
         task.setCurrentStatus(TaskStatus.RUNNING);
-        task.setCurrentStatus(TaskStatus.COMPLETED);
         task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
         task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
+        task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
+        task.setCurrentStatus(TaskStatus.COMPLETED);
 
         when(taskRepository.save(task)).thenReturn(task);
 
