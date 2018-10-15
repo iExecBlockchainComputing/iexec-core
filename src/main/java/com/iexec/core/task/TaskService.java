@@ -80,7 +80,6 @@ public class TaskService {
         return Optional.empty();
     }
 
-
     // Timeout for the replicate uploading its result is 1 min.
     @Scheduled(fixedRate = 20000)
     void detectUploadRequestTimeout() {
@@ -227,6 +226,11 @@ public class TaskService {
             task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
             task.setCurrentStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
+            notificationService.sendTaskNotification(TaskNotification.builder()
+                    .taskId(task.getId())
+                    .workerAddress("")
+                    .taskNotificationType(TaskNotificationType.COMPLETED)
+                    .build());
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
         } else if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
                 task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0) {
