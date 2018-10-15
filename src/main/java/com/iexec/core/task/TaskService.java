@@ -198,10 +198,8 @@ public class TaskService {
 
         if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.COMPUTED);
-            task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             task = taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
 
             requestUpload(task);
         }
@@ -240,18 +238,27 @@ public class TaskService {
     }
 
     private void requestUpload(Task task) {
-        for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
-                notificationService.sendTaskNotification(TaskNotification.builder()
-                        .taskId(task.getId())
-                        .workerAddress(replicate.getWorkerName())
-                        .taskNotificationType(TaskNotificationType.UPLOAD)
-                        .build());
-                log.info("Notify uploading worker [uploadingWorker={}]", replicate.getWorkerName());
+        if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+            task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+            task = taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
+        }
 
-                // save in the task the workerName that is in charge of uploading the result
-                task.setUploadingWorkerName(replicate.getWorkerName());
-                taskRepository.save(task);
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
+                    notificationService.sendTaskNotification(TaskNotification.builder()
+                            .taskId(task.getId())
+                            .workerAddress(replicate.getWorkerName())
+                            .taskNotificationType(TaskNotificationType.UPLOAD)
+                            .build());
+                    log.info("Notify uploading worker [uploadingWorker={}]", replicate.getWorkerName());
+
+                    // save in the task the workerName that is in charge of uploading the result
+                    task.setUploadingWorkerName(replicate.getWorkerName());
+                    taskRepository.save(task);
+                    return;
+                }
             }
         }
     }
