@@ -252,6 +252,7 @@ public class TaskService {
                 // save in the task the workerName that is in charge of uploading the result
                 task.setUploadingWorkerName(replicate.getWorkerName());
                 taskRepository.save(task);
+                return;
             }
         }
     }
