@@ -33,6 +33,7 @@ public class Task {
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
     private int nbContributionNeeded;
+    private String uploadingWorkerName;
 
     public Task(String dappName, String commandLine, int nbContributionNeeded) {
         this.dappType = DappType.DOCKER;
@@ -49,7 +50,7 @@ public class Task {
         this.id = id;
     }
 
-    public void setVersion(Long version){
+    public void setVersion(Long version) {
         this.version = version;
     }
 
@@ -69,16 +70,20 @@ public class Task {
         this.nbContributionNeeded = nbContributionNeeded;
     }
 
+    public void setUploadingWorkerName(String uploadingWorkerName) {
+        this.uploadingWorkerName = uploadingWorkerName;
+    }
+
     public void setCurrentStatus(TaskStatus status) {
         this.currentStatus = status;
         this.getDateStatusList().add(new TaskStatusChange(status));
     }
 
-    public boolean createNewReplicate(String workerName){
+    public boolean createNewReplicate(String workerName) {
         return replicates.add(new Replicate(workerName, id));
     }
 
-    public Optional<Replicate> getReplicate(String workerName){
+    public Optional<Replicate> getReplicate(String workerName) {
         for (Replicate replicate : replicates) {
             if (replicate.getWorkerName().equals(workerName)) {
                 return Optional.of(replicate);
@@ -106,7 +111,7 @@ public class Task {
         return false;
     }
 
-    public TaskStatusChange getLatestStatusChange(){
+    public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
     }
 
@@ -120,10 +125,10 @@ public class Task {
         return nbReplicates;
     }
 
-    public int getNbReplicatesStatusEqualTo(ReplicateStatus ... listStatus ){
+    public int getNbReplicatesStatusEqualTo(ReplicateStatus... listStatus) {
         int nbReplicates = 0;
         for (Replicate replicate : replicates) {
-            for (ReplicateStatus status : listStatus){
+            for (ReplicateStatus status : listStatus) {
                 if (replicate.getCurrentStatus().equals(status)) {
                     nbReplicates++;
                 }
