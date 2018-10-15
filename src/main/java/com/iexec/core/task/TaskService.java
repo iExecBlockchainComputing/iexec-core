@@ -89,7 +89,7 @@ public class TaskService {
         for (Task task : taskRepository.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
                 if (replicate.getWorkerName().equals(task.getUploadingWorkerName())
-                        && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
+                        && new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1))) {
                     updateReplicateStatus(task.getId(), replicate.getWorkerName(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
