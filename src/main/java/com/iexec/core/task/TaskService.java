@@ -86,11 +86,10 @@ public class TaskService {
     void detectUploadRequestTimeout() {
 
         // check all tasks with status upload result requested
-        List<Task> tasks = taskRepository.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
-        for (Task task : tasks) {
+        for (Task task : taskRepository.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getCurrentStatus().equals(ReplicateStatus.UPLOAD_RESULT_REQUESTED)
-                        && new Date().after(addMinutesToDate(replicate.getLatestStatusChange().getDate(), 1))) {
+                if (replicate.getWorkerName().equals(task.getUploadingWorkerName())
+                        && new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1))) {
                     updateReplicateStatus(task.getId(), replicate.getWorkerName(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
@@ -204,6 +203,7 @@ public class TaskService {
             task = taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
+
             requestUpload(task);
         }
     }
@@ -243,7 +243,11 @@ public class TaskService {
                         .workerAddress(replicate.getWorkerName())
                         .taskNotificationType(TaskNotificationType.UPLOAD)
                         .build());
-                return;
+                log.info("Notify uploading worker [uploadingWorker={}]", replicate.getWorkerName());
+
+                // save in the task the workerName that is in charge of uploading the result
+                task.setUploadingWorkerName(replicate.getWorkerName());
+                taskRepository.save(task);
             }
         }
     }
