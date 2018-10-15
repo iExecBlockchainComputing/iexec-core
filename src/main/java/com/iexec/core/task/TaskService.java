@@ -237,7 +237,7 @@ public class TaskService {
         }
     }
 
-    private boolean requestUpload(Task task) {
+    private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
             task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             task = taskRepository.save(task);
@@ -257,11 +257,10 @@ public class TaskService {
                     // save in the task the workerName that is in charge of uploading the result
                     task.setUploadingWorkerName(replicate.getWorkerName());
                     taskRepository.save(task);
-                    return true;
+                    return;
                 }
             }
         }
-        return false;
     }
 
 }
