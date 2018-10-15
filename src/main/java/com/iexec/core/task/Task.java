@@ -109,4 +109,26 @@ public class Task {
     public TaskStatusChange getLatestStatusChange(){
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
     }
+
+    public int getNbReplicatesWithStatus(ReplicateStatus status) {
+        int nbReplicates = 0;
+        for (Replicate replicate : replicates) {
+            if (replicate.getCurrentStatus().equals(status)) {
+                nbReplicates++;
+            }
+        }
+        return nbReplicates;
+    }
+
+    public int getNbReplicatesStatusEqualTo(ReplicateStatus ... listStatus ){
+        int nbReplicates = 0;
+        for (Replicate replicate : replicates) {
+            for (ReplicateStatus status : listStatus){
+                if (replicate.getCurrentStatus().equals(status)) {
+                    nbReplicates++;
+                }
+            }
+        }
+        return nbReplicates;
+    }
 }
