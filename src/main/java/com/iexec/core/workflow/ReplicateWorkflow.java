@@ -8,13 +8,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
 
-    public static synchronized ReplicateWorkflow getInstance() {
-        if (instance == null) {
-            instance = new ReplicateWorkflow();
-        }
-        return instance;
-    }
-
     private ReplicateWorkflow() {
         super();
 
@@ -32,6 +25,12 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(UPLOADING_RESULT, WORKER_LOST);
         addTransition(RESULT_UPLOADED, WORKER_LOST);
         addTransition(UPLOAD_RESULT_REQUEST_FAILED, WORKER_LOST);
-        addTransition(ERROR, WORKER_LOST);
+    }
+
+    public static synchronized ReplicateWorkflow getInstance() {
+        if (instance == null) {
+            instance = new ReplicateWorkflow();
+        }
+        return instance;
     }
 }
