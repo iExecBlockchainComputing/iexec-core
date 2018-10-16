@@ -10,6 +10,9 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     Optional<Task> findById(String id);
 
+    @Query("{ 'id': {$in: ?0} }")
+    List<Task> findById(List<String> ids);
+
     List<Task> findByCurrentStatus(TaskStatus status);
 
     @Query("{ 'currentStatus': {$in: ?0} }")
