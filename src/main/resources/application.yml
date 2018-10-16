@@ -5,3 +5,8 @@ spring:
   data:
     mongodb:
       database: iexec
+
+# all in milliseconds
+detector:
+  workerlost.period: 30000
+  resultuploadtimeout.period: 30000
