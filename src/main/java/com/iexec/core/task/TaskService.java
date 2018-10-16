@@ -11,12 +11,12 @@ import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -80,37 +80,8 @@ public class TaskService {
         return Optional.empty();
     }
 
-    // Timeout for the replicate uploading its result is 1 min.
-    @Scheduled(fixedRate = 20000)
-    void detectUploadRequestTimeout() {
-
-        // check all tasks with status upload result requested
-        for (Task task : taskRepository.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
-            for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getWorkerName().equals(task.getUploadingWorkerName())
-                        && new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1))) {
-                    updateReplicateStatus(task.getId(), replicate.getWorkerName(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
-                }
-            }
-        }
-    }
-
-    @Scheduled(fixedRate = 20000)
-    void detectLostWorkers() {
-        for (Worker worker : workerService.getLostWorkers()) {
-            for (String taskId : worker.getTaskIds()) {
-                Optional<Task> task = this.getTask(taskId);
-                if (task.isPresent()) {
-                    Optional<Replicate> replicate = task.get().getReplicate(worker.getName());
-                    replicate.ifPresent(optionalReplicate -> {
-                        if (!optionalReplicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
-                            workerService.removeTaskIdFromWorker(taskId, worker.getName());
-                            updateReplicateStatus(taskId, worker.getName(), ReplicateStatus.WORKER_LOST);
-                        }
-                    });
-                }
-            }
-        }
+    public List<Task> findByCurrentStatus(TaskStatus status){
+        return taskRepository.findByCurrentStatus(status);
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
