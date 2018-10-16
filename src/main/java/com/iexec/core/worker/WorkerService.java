@@ -3,8 +3,12 @@ package com.iexec.core.worker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+
+import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
@@ -43,5 +47,40 @@ public class WorkerService {
 
         return Optional.empty();
     }
+
+    public Optional<Worker> addTaskIdToWorker(String taskId, String workerName) {
+        Optional<Worker> optional = workerRepository.findByName(workerName);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.addTaskId(taskId);
+            log.info("Added taskId to worker [taskId:{}, workerName:{}]", taskId, workerName);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Worker> removeTaskIdFromWorker(String taskId, String workerName) {
+        Optional<Worker> optional = workerRepository.findByName(workerName);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.removeTaskId(taskId);
+            log.info("Removed taskId from worker [taskId:{}, workerName:{}]", taskId, workerName);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+
+
+    public List<Worker> getLostWorkers() {
+        List<Worker> lostWorkers = new ArrayList<>();
+
+        for (Worker worker : workerRepository.findAll()) {
+            if (new Date().after(addMinutesToDate(worker.getLastAliveDate(), 1))) {
+                lostWorkers.add(worker);
+            }
+        }
+        return lostWorkers;
+    }
+
 
 }
