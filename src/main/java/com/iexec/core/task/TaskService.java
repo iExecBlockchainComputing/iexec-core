@@ -13,10 +13,10 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+
+import static com.iexec.core.task.TaskStatus.CREATED;
+import static com.iexec.core.task.TaskStatus.RUNNING;
 
 @Slf4j
 @Service
@@ -104,7 +104,7 @@ public class TaskService {
         }
 
         // return empty if there is no task to contribute
-        HashSet<Task> tasks = getAllRunningTasks();
+        List<Task> tasks = getAllRunningTasks();
         if (tasks.isEmpty()) {
             return Optional.empty();
         }
@@ -136,11 +136,8 @@ public class TaskService {
         return workerActiveReplicates;
     }
 
-    private HashSet<Task> getAllRunningTasks() {
-        HashSet<Task> tasks = new HashSet<>();
-        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.CREATED));
-        tasks.addAll(taskRepository.findByCurrentStatus(TaskStatus.RUNNING));
-        return tasks;
+    private List<Task> getAllRunningTasks() {
+        return taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING));
     }
 
     // TODO: when the workflow becomes more complicated, a chain of responsability can be implemented here
@@ -173,18 +170,18 @@ public class TaskService {
     void tryUpdateToRunning(Task task) {
         boolean condition1 = task.getNbReplicatesStatusEqualTo(ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getNbContributionNeeded();
-        boolean condition3 = task.getCurrentStatus().equals(TaskStatus.CREATED);
+        boolean condition3 = task.getCurrentStatus().equals(CREATED);
 
         if (condition1 && condition2 && condition3) {
-            task.setCurrentStatus(TaskStatus.RUNNING);
+            task.setCurrentStatus(RUNNING);
             taskRepository.save(task);
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RUNNING);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), RUNNING);
         }
     }
 
     void tryUpdateToComputedAndResultRequest(Task task) {
         boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded();
-        boolean condition2 = task.getCurrentStatus().equals(TaskStatus.RUNNING);
+        boolean condition2 = task.getCurrentStatus().equals(RUNNING);
 
         if (condition1 && condition2) {
             task.setCurrentStatus(TaskStatus.COMPUTED);
