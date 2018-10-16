@@ -3,7 +3,6 @@ package com.iexec.core.worker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -71,16 +70,9 @@ public class WorkerService {
     }
 
 
+    // worker is considered lost if it didn't ping for 1 minute
     public List<Worker> getLostWorkers() {
-        List<Worker> lostWorkers = new ArrayList<>();
-
-        for (Worker worker : workerRepository.findAll()) {
-            if (new Date().after(addMinutesToDate(worker.getLastAliveDate(), 1))) {
-                lostWorkers.add(worker);
-            }
-        }
-        return lostWorkers;
+        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
+        return workerRepository.findByLastAliveDateBefore(oneMinuteAgo);
     }
-
-
 }
