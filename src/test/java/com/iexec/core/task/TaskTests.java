@@ -6,9 +6,11 @@ import com.iexec.core.replicate.Replicate;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TaskTests {
@@ -38,6 +40,25 @@ public class TaskTests {
         assertThat(task.getDateStatusList().size()).isEqualTo(3);
         assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.COMPUTED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPUTED);
+    }
+
+    @Test
+    public void shouldGetCorrectLastStatusChange(){
+        Task task = new Task("dappName", "cmdLine", 2);
+        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
+
+        TaskStatusChange latestChange = task.getLatestStatusChange();
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.CREATED);
+
+        task.setCurrentStatus(TaskStatus.RUNNING);
+        latestChange = task.getLatestStatusChange();
+        assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RUNNING);
+
+        task.setCurrentStatus(TaskStatus.COMPUTED);
+        latestChange = task.getLatestStatusChange();
+        assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.COMPUTED);
     }
 
     @Test
@@ -80,7 +101,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldNeedMoreReplicateNoErrorCase(){
+    public void shouldNeedMoreReplicateBasicCase(){
         Task task = new Task("dappName", "cmdLine", 3);
 
         // basic case
@@ -104,6 +125,22 @@ public class TaskTests {
         task.getReplicate("worker1").get().updateStatus(ReplicateStatus.RUNNING);
         task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
         task.getReplicate("worker3").get().updateStatus(ReplicateStatus.ERROR);
+
+        assertThat(task.needMoreReplicates()).isTrue();
+    }
+
+    @Test
+    public void shouldNeedMoreReplicateWorkerLostCase(){
+        Task task = new Task("dappName", "cmdLine", 3);
+
+        task.createNewReplicate("worker1");
+        task.createNewReplicate("worker2");
+        task.createNewReplicate("worker3");
+        task.createNewReplicate("worker4");
+        task.getReplicate("worker1").get().updateStatus(ReplicateStatus.RUNNING);
+        task.getReplicate("worker2").get().updateStatus(ReplicateStatus.COMPUTED);
+        task.getReplicate("worker3").get().updateStatus(ReplicateStatus.ERROR);
+        task.getReplicate("worker4").get().updateStatus(ReplicateStatus.WORKER_LOST);
 
         assertThat(task.needMoreReplicates()).isTrue();
     }
