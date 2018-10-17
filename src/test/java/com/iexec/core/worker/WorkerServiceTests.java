@@ -6,7 +6,9 @@ import org.mockito.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -126,4 +128,95 @@ public class WorkerServiceTests {
         assertThat(foundWorker.get()).isEqualTo(existingWorker);
     }
 
+    @Test
+    public void shouldAddTaskIdToWorker(){
+        String workerName = "worker1";
+        List<String> listIds = new ArrayList<>();
+        listIds.add("task1");
+        listIds.add("task2");
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .taskIds(listIds)
+                .build();
+
+        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task3", workerName);
+        assertThat(addedWorker.isPresent()).isTrue();
+        Worker worker = addedWorker.get();
+        assertThat(worker.getTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getTaskIds().get(2)).isEqualTo("task3");
+    }
+
+    @Test
+    public void shouldNotAddTaskIdToWorker(){
+        when(workerRepository.findByName(Mockito.anyString())).thenReturn(Optional.empty());
+        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task1", "worker1");
+        assertThat(addedWorker.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldRemoveTaskIdFromWorker(){
+        String workerName = "worker1";
+        List<String> listIds = new ArrayList<>();
+        listIds.add("task1");
+        listIds.add("task2");
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .taskIds(listIds)
+                .build();
+
+        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("task2", workerName);
+        assertThat(removedWorker.isPresent()).isTrue();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getTaskIds().get(0)).isEqualTo("task1");
+    }
+
+    @Test
+    public void shouldNotRemoveTaskIdWorkerNotFound(){
+        when(workerRepository.findByName(Mockito.anyString())).thenReturn(Optional.empty());
+        Optional<Worker> addedWorker = workerService.removeTaskIdFromWorker("task1", "worker1");
+        assertThat(addedWorker.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotRemoveAnythingSinceTaskIdNotFound(){
+        String workerName = "worker1";
+        List<String> listIds = new ArrayList<>();
+        listIds.add("task1");
+        listIds.add("task2");
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .taskIds(listIds)
+                .build();
+
+        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("dummyTaskId", workerName);
+        assertThat(removedWorker.isPresent()).isTrue();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getTaskIds()).isEqualTo(listIds);
+    }
 }
