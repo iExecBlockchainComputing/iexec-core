@@ -1,0 +1,91 @@
+package com.iexec.core.detector;
+
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.core.replicate.Replicate;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static org.mockito.Mockito.when;
+
+public class ResultUploadTimeoutDetectorTests {
+
+    @Mock
+    private TaskService taskService;
+
+    @InjectMocks
+    private ResultUploadTimeoutDetector timeoutDetector;
+
+    @Before
+    public void init() {
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    public void shouldNotDetectAnything(){
+        // the latest status change from the replicate is very new so it is not timed out.
+
+        String taskId = "task1";
+        String workerName = "worker1";
+
+        Task task = new Task("dappName", "commandLine", 2);
+        task.setId(taskId);
+        task.createNewReplicate(workerName);
+        task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
+        task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.COMPUTED));
+        task.setUploadingWorkerName(workerName);
+        task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+
+        when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
+
+        // trying to detect any timeout
+        timeoutDetector.detect();
+        Mockito.verify(taskService, Mockito.times(0))
+                .updateReplicateStatus(task.getId(), workerName, ReplicateStatus.WORKER_LOST);
+    }
+
+    @Test
+    public void shouldDetectOneReplicateStartedUploadLongAgo(){
+        // the latest status change from the replicate is very new so it is not timed out.
+        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
+        Date threeMinutesAgo = addMinutesToDate(new Date(), -3);
+        Date fourMinutesAgo = addMinutesToDate(new Date(), -4);
+
+        String taskId = "task1";
+        String workerName = "worker1";
+
+        Task task = new Task("dappName", "commandLine", 2);
+        task.setId(taskId);
+        task.createNewReplicate(workerName);
+        task.getReplicate(workerName).get();
+
+        TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.CREATED);
+        TaskStatusChange change2 = new TaskStatusChange(fourMinutesAgo, TaskStatus.RUNNING);
+        TaskStatusChange change3 = new TaskStatusChange(threeMinutesAgo, TaskStatus.COMPUTED);
+        TaskStatusChange change4 = new TaskStatusChange(twoMinutesAgo, TaskStatus.UPLOAD_RESULT_REQUESTED);
+
+        task.setUploadingWorkerName(workerName);
+        task.setDateStatusList(Arrays.asList(change1, change2, change3, change4));
+
+        when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
+
+        // trying to detect any timeout
+        timeoutDetector.detect();
+        Mockito.verify(taskService, Mockito.times(1))
+                .updateReplicateStatus(task.getId(), workerName, ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+    }
+}
