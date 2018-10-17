@@ -43,7 +43,7 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
-    public List<Task> getTasks(List<String> ids){
+    public List<Task> getTasks(List<String> ids) {
         return taskRepository.findById(ids);
     }
 
@@ -84,7 +84,7 @@ public class TaskService {
         return Optional.empty();
     }
 
-    public List<Task> findByCurrentStatus(TaskStatus status){
+    public List<Task> findByCurrentStatus(TaskStatus status) {
         return taskRepository.findByCurrentStatus(status);
     }
 
@@ -98,8 +98,14 @@ public class TaskService {
         }
         Worker worker = optional.get();
 
+        // return empty if there is no task to contribute
+        List<Task> runningTasks = getAllRunningTasks();
+        if (runningTasks.isEmpty()) {
+            return Optional.empty();
+        }
+
         // return empty if the worker already has enough running tasks
-        int workerRunningReplicateNb = getRunningReplicatesOfWorker(workerName).size();
+        int workerRunningReplicateNb = getRunningReplicatesOfWorker(runningTasks, workerName).size();
         int workerCpuNb = worker.getCpuNb();
         if (workerRunningReplicateNb >= workerCpuNb) {
             log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
@@ -107,13 +113,7 @@ public class TaskService {
             return Optional.empty();
         }
 
-        // return empty if there is no task to contribute
-        List<Task> tasks = getAllRunningTasks();
-        if (tasks.isEmpty()) {
-            return Optional.empty();
-        }
-
-        for (Task task : tasks) {
+        for (Task task : runningTasks) {
             if (!task.hasWorkerAlreadyContributed(workerName) &&
                     task.needMoreReplicates()) {
                 task.createNewReplicate(workerName);
@@ -126,13 +126,17 @@ public class TaskService {
         return Optional.empty();
     }
 
-    private List<Replicate> getRunningReplicatesOfWorker(String workerName) {
+    private List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String workerName) {
         List<Replicate> workerActiveReplicates = new ArrayList<>();
-        for (Task task : getAllRunningTasks()) {
+        for (Task task : runningTasks) {
             List<Replicate> replicates = task.getReplicates();
             for (Replicate replicate : replicates) {
-                if (replicate.getWorkerName().equals(workerName) &&
-                        (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) || replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING))) {
+
+                boolean isReplicateFromWorker = replicate.getWorkerName().equals(workerName);
+                boolean isReplicateInCorrectStatus = (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) ||
+                        replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING));
+
+                if (isReplicateFromWorker && isReplicateInCorrectStatus) {
                     workerActiveReplicates.add(replicate);
                 }
             }

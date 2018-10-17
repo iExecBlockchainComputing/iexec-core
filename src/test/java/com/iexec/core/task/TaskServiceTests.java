@@ -3,17 +3,20 @@ package com.iexec.core.task;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.worker.Worker;
+import com.iexec.core.worker.WorkerService;
 import org.hibernate.validator.constraints.br.TituloEleitoral;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+import static com.iexec.core.task.TaskStatus.CREATED;
+import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +30,9 @@ public class TaskServiceTests {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private WorkerService workerService;
+
     @InjectMocks
     private TaskService taskService;
 
@@ -36,14 +42,14 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldGetNothing() {
+    public void shouldGetTask() {
         when(taskRepository.findById("dummyId")).thenReturn(Optional.empty());
         Optional<Task> task = taskService.getTask("dummyId");
         assertThat(task.isPresent()).isFalse();
     }
 
     @Test
-    public void shouldGetOneResult() {
+    public void shouldGetOneTask() {
         Task task = Task.builder()
                 .id("realId")
                 .currentStatus(TaskStatus.CREATED)
@@ -322,5 +328,166 @@ public class TaskServiceTests {
         taskService.tryUpdateToResultUploaded(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.COMPLETED);
+    }
+
+    @Test
+    public void shouldNotGetAnyReplicateSinceWorkerDoesntExist(){
+        when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate("worker1");
+        assertThat(optional.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotGetReplicateSinceNoRunningTask(){
+        String workerName = "worker1";
+
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .cpuNb(1)
+                .lastAliveDate(new Date())
+                .build();
+
+        when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.of(existingWorker));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+                .thenReturn(new ArrayList<>());
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        assertThat(optional.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotGetAnyReplicateSinceWorkerIsFull(){
+        String workerName = "worker1";
+
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .cpuNb(1)
+                .lastAliveDate(new Date())
+                .build();
+
+        List<Replicate> listReplicates1 = new ArrayList<>();
+        listReplicates1.add(new Replicate(workerName, "task1"));
+        listReplicates1.add(new Replicate("worker2", "task1"));
+        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
+        listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
+
+        Task runningTask1 = new Task("dappName", "command", 3);
+        runningTask1.setId("task1");
+        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.setReplicates(listReplicates1);
+
+        List<Replicate> listReplicates2 = new ArrayList<>();
+        listReplicates2.add(new Replicate("worker2", "task2"));
+        listReplicates2.get(0).updateStatus(ReplicateStatus.RUNNING);
+
+        Task runningTask2 = new Task("dappName2", "command", 3);
+        runningTask2.setId("task2");
+        runningTask2.setCurrentStatus(RUNNING);
+        runningTask2.setReplicates(listReplicates2);
+
+        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+                .thenReturn(Arrays.asList(runningTask1, runningTask2));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        assertThat(optional.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotGetAnyReplicateSinceWorkerAlreadyContributed(){
+        String workerName = "worker1";
+
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .cpuNb(2)
+                .lastAliveDate(new Date())
+                .build();
+
+        List<Replicate> listReplicates1 = new ArrayList<>();
+        listReplicates1.add(new Replicate(workerName, "task1"));
+        listReplicates1.add(new Replicate("worker2", "task1"));
+        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
+        listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
+
+        Task runningTask1 = new Task("dappName", "command", 3);
+        runningTask1.setId("task1");
+        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.setReplicates(listReplicates1);
+
+        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+                .thenReturn(Collections.singletonList(runningTask1));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        assertThat(optional.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotGetReplicateSinceTaskDoesntNeedMoreReplicate(){
+        String workerName = "worker1";
+        String taskId = "task1";
+
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .cpuNb(2)
+                .lastAliveDate(new Date())
+                .build();
+
+        List<Replicate> listReplicates1 = new ArrayList<>();
+        listReplicates1.add(new Replicate("worker2", taskId));
+        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
+
+        Task runningTask1 = new Task("dappName", "command", 1);
+        runningTask1.setId(taskId);
+        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.setReplicates(listReplicates1);
+
+        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+                .thenReturn(Collections.singletonList(runningTask1));
+        when(taskRepository.save(any())).thenReturn(runningTask1);
+        when(workerService.addTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        assertThat(optional.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldGetAReplicate(){
+        String workerName = "worker1";
+        String taskId = "task1";
+
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .cpuNb(2)
+                .lastAliveDate(new Date())
+                .build();
+
+        List<Replicate> listReplicates1 = new ArrayList<>();
+        listReplicates1.add(new Replicate("worker2", taskId));
+        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
+
+        Task runningTask1 = new Task("dappName", "command", 3);
+        runningTask1.setId(taskId);
+        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.setReplicates(listReplicates1);
+
+        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+                .thenReturn(Collections.singletonList(runningTask1));
+        when(taskRepository.save(any())).thenReturn(runningTask1);
+        when(workerService.addTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        assertThat(optional.isPresent()).isTrue();
+        Replicate replicate = optional.get();
+        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
+        assertThat(replicate.getWorkerName()).isEqualTo(workerName);
     }
 }
