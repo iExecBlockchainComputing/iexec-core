@@ -5,6 +5,8 @@ spring:
   data:
     mongodb:
       database: iexec
+      host: ${MONGO_HOST:localhost}
+      port: ${MONGO_PORT:27017}
 
 # all in milliseconds
 detector:
