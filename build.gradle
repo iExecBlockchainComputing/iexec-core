@@ -102,3 +102,8 @@ task createVersion(type: Copy) {
 }
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
+
+task buildImage(type: Exec) {
+    description 'Build a docker image for the core'
+    commandLine("sh", "-c", "docker image build -f src/main/resources/Dockerfile -t iexechub/core:${version} .")
+}
