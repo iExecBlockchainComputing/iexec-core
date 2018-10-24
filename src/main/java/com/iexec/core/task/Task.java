@@ -76,6 +76,10 @@ public class Task {
 
     public void setCurrentStatus(TaskStatus status) {
         this.currentStatus = status;
+    }
+
+    public void changeStatus(TaskStatus status) {
+        setCurrentStatus(status);
         this.getDateStatusList().add(new TaskStatusChange(status));
     }
 
