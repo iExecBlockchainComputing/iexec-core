@@ -1,14 +1,14 @@
 buildscript {
-	ext {
-		springBootVersion = '2.0.5.RELEASE'
-	}
-	repositories {
-		mavenCentral()
+    ext {
+        springBootVersion = '2.0.5.RELEASE'
+    }
+    repositories {
+        mavenCentral()
         jcenter()
-	}
-	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-	}
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
 }
 
 apply plugin: 'java'
@@ -21,12 +21,12 @@ apply plugin: 'jacoco'
 group = 'com.iexec.core'
 sourceCompatibility = 1.8
 
-def UNIQUE_ID='hostname -f'.execute().text.trim()
-def token='curl -XPOST --data name=${UNIQUE_ID} https://c770a93177c87a84c17cdfadc2f2a14f504988b89998083a:@packagecloud.io/install/repositories/iexec/common-new/tokens.text'.execute().text.trim()
+def UNIQUE_ID = 'hostname -f'.execute().text.trim()
+def token = 'curl -XPOST --data name=${UNIQUE_ID} https://c770a93177c87a84c17cdfadc2f2a14f504988b89998083a:@packagecloud.io/install/repositories/iexec/common-new/tokens.text'.execute().text.trim()
 
 repositories {
-	mavenCentral()
-	jcenter()
+    mavenCentral()
+    jcenter()
     maven {
         url "https://packagecloud.io/priv/${token}/iexec/common-new/maven2"
     }
@@ -45,7 +45,7 @@ jar {
 
 // the project will create two artifacts: one spring boot executable and one library
 artifacts {
-    springBootJar file: file('build/libs/' + project.name + '-' + version +'.jar')
+    springBootJar file: file('build/libs/' + project.name + '-' + version + '.jar')
     libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
 }
 
@@ -72,7 +72,7 @@ dependencies {
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
 
-	// package cloud
+    // package cloud
     springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
     libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 }
@@ -87,7 +87,8 @@ build.dependsOn jacocoTestReport
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "remotes/origin/master"
 def canUploadArchives = isMasterBranch
-
+def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
+def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
 uploadSpringBootJar {
     description 'Upload the executable jar version of the core'
@@ -142,7 +143,40 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
+project.ext.getDockerImageName = {
+    def imageName = "iexechub/iexec-core:${version}"
+    if (isSnapshotVersion) {
+        return imageName + "-" + gitShortCommit
+    } else {
+        return imageName
+    }
+}
+
+task prepareDockerFile(type: Copy) {
+    delete 'build/main/resources/'
+    from 'src/main/resources/Dockerfile'
+    into 'build/main/resources/'
+    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
+}
+
+
 task buildImage(type: Exec) {
     description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f src/main/resources/Dockerfile -t iexechub/core:${version} .")
+    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageName() + " .")
 }
+
+buildImage.dependsOn prepareDockerFile
+buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
+
+task pushImage(type: Exec) {
+    if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
+        commandLine("sh", "-c", "docker login -u " + project.dockerHubUser + " -p " + project.dockerHubPassword + " && " +
+                "docker push " + getDockerImageName() + " && " +
+                "docker logout")
+    } else {
+        println "Credentials for DockerHub are missing, the images cannot be pushed"
+    }
+}
+
+pushImage.dependsOn buildImage
+pushImage.enabled = isMasterBranch && project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")
