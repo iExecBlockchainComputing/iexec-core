@@ -166,7 +166,7 @@ task buildImage(type: Exec) {
 }
 
 buildImage.dependsOn prepareDockerFile
-
+buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
     if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
@@ -179,5 +179,4 @@ task pushImage(type: Exec) {
 }
 
 pushImage.dependsOn buildImage
-
 pushImage.enabled = isMasterBranch && project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")
