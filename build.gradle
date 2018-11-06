@@ -87,7 +87,8 @@ build.dependsOn jacocoTestReport
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "remotes/origin/master"
 def canUploadArchives = isMasterBranch
-
+def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
+def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
 uploadSpringBootJar {
     description 'Upload the executable jar version of the core'
@@ -142,7 +143,41 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
+project.ext.getDockerImageName = {
+    def imageName = "iexechub/iexec-core:${version}"
+    if(isSnapshotVersion){
+        return imageName + "-" + gitShortCommit
+    } else {
+        return imageName
+    }
+}
+
+task prepareDockerFile(type: Copy) {
+    delete 'build/main/resources/'
+    from 'src/main/resources/Dockerfile'
+    into 'build/main/resources/'
+    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
+}
+
+
 task buildImage(type: Exec) {
     description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f src/main/resources/Dockerfile -t iexechub/core:${version} .")
+    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t "+ getDockerImageName() +" .")
 }
+
+buildImage.dependsOn prepareDockerFile
+
+
+task pushImage(type: Exec) {
+    if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
+        commandLine("sh", "-c", "docker login -u " + project.dockerHubUser + " -p " + project.dockerHubPassword + " && " +
+                "docker push " + getDockerImageName() + " && " +
+                "docker logout")
+    } else {
+        println "Credentials for DockerHub are missing, the images cannot be pushed"
+    }
+}
+
+pushImage.dependsOn buildImage
+
+pushImage.enabled = isMasterBranch && project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")
