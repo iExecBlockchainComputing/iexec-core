@@ -33,7 +33,20 @@ repositories {
 }
 
 configurations {
-    deployerJars
+    springBootJar
+    libraryJar
+}
+
+def LIBRARY_JAR_NAME = project.name + "-library"
+jar {
+    enabled = true
+    baseName = LIBRARY_JAR_NAME
+}
+
+// the project will create two artifacts: one spring boot executable and one library
+artifacts {
+    springBootJar file: file('build/libs/' + project.name + '-' + version +'.jar')
+    libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
 }
 
 dependencies {
@@ -60,7 +73,8 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:1.18.2"
 
 	// package cloud
-    deployerJars "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
+    springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
+    libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 }
 
 jacoco {
@@ -73,16 +87,43 @@ build.dependsOn jacocoTestReport
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "remotes/origin/master"
 def canUploadArchives = isMasterBranch
+def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
+def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
-uploadArchives {
+
+uploadSpringBootJar {
+    description 'Upload the executable jar version of the core'
     repositories.mavenDeployer {
-        configuration = configurations.deployerJars
+        pom.groupId = project.group
+        pom.artifactId = project.name
+        pom.version = version
+        configuration = configurations.springBootJar
         repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
             authentication(password: packageCloudPassword)
         }
     }
 }
+
+uploadLibraryJar {
+    description 'Upload the library jar version of the core'
+    repositories.mavenDeployer {
+        pom.groupId = project.group
+        pom.artifactId = LIBRARY_JAR_NAME
+        pom.version = version
+        configuration = configurations.libraryJar
+        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
+            authentication(password: packageCloudPassword)
+        }
+    }
+}
+
+uploadLibraryJar.enabled = canUploadArchives
+uploadSpringBootJar.enabled = canUploadArchives
 uploadArchives.enabled = canUploadArchives
+
+uploadArchives.dependsOn uploadLibraryJar
+uploadArchives.dependsOn uploadSpringBootJar
+
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
@@ -104,7 +145,12 @@ task createVersion(type: Copy) {
 compileJava.dependsOn createVersion
 
 project.ext.getDockerImageName = {
-    return "iexechub/iexec-core:${version}"
+    def imageName = "iexechub/iexec-core:${version}"
+    if(isSnapshotVersion){
+        return imageName + "-" + gitShortCommit
+    } else {
+        return imageName
+    }
 }
 
 task prepareDockerFile(type: Copy) {

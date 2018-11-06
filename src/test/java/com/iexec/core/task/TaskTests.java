@@ -30,13 +30,13 @@ public class TaskTests {
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.CREATED);
 
-        task.setCurrentStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.RUNNING);
         assertThat(task.getDateStatusList().size()).isEqualTo(2);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.CREATED);
         assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.RUNNING);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
 
-        task.setCurrentStatus(TaskStatus.COMPUTED);
+        task.changeStatus(TaskStatus.COMPUTED);
         assertThat(task.getDateStatusList().size()).isEqualTo(3);
         assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.COMPUTED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPUTED);
@@ -50,12 +50,12 @@ public class TaskTests {
         TaskStatusChange latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.CREATED);
 
-        task.setCurrentStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.RUNNING);
         latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RUNNING);
 
-        task.setCurrentStatus(TaskStatus.COMPUTED);
+        task.changeStatus(TaskStatus.COMPUTED);
         latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.COMPUTED);

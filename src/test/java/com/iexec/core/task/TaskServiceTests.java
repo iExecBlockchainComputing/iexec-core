@@ -5,7 +5,6 @@ import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import org.hibernate.validator.constraints.br.TituloEleitoral;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -227,7 +226,7 @@ public class TaskServiceTests {
                 .replicates(replicates)
                 .dateStatusList(dateStatusList)
                 .build();
-        task.setCurrentStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryUpdateToComputedAndResultRequest(task);
@@ -257,7 +256,7 @@ public class TaskServiceTests {
                 .replicates(replicates)
                 .dateStatusList(dateStatusList)
                 .build();
-        task.setCurrentStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryUpdateToComputedAndResultRequest(task);
@@ -285,11 +284,11 @@ public class TaskServiceTests {
                 .replicates(replicates)
                 .dateStatusList(dateStatusList)
                 .build();
-        task.setCurrentStatus(TaskStatus.RUNNING);
-        task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
-        task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
-        task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
-        task.setCurrentStatus(TaskStatus.COMPLETED);
+        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.UPLOADING_RESULT);
+        task.changeStatus(TaskStatus.RESULT_UPLOADED);
+        task.changeStatus(TaskStatus.COMPLETED);
 
         when(taskRepository.save(task)).thenReturn(task);
 
@@ -319,9 +318,9 @@ public class TaskServiceTests {
                 .replicates(replicates)
                 .dateStatusList(dateStatusList)
                 .build();
-        task.setCurrentStatus(TaskStatus.RUNNING);
-        task.setCurrentStatus(TaskStatus.COMPLETED);
-        task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.COMPLETED);
+        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
 
         when(taskRepository.save(task)).thenReturn(task);
 
@@ -376,7 +375,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId("task1");
-        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
         List<Replicate> listReplicates2 = new ArrayList<>();
@@ -385,7 +384,7 @@ public class TaskServiceTests {
 
         Task runningTask2 = new Task("dappName2", "command", 3);
         runningTask2.setId("task2");
-        runningTask2.setCurrentStatus(RUNNING);
+        runningTask2.changeStatus(RUNNING);
         runningTask2.setReplicates(listReplicates2);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
@@ -415,7 +414,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId("task1");
-        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
@@ -444,7 +443,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task("dappName", "command", 1);
         runningTask1.setId(taskId);
-        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
@@ -475,7 +474,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId(taskId);
-        runningTask1.setCurrentStatus(RUNNING);
+        runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));

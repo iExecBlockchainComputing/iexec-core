@@ -46,7 +46,7 @@ public class ResultUploadTimeoutDetectorTests {
         task.getReplicate(workerName1).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
         task.getReplicate(workerName1).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.COMPUTED));
         task.setUploadingWorkerName(workerName1);
-        task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
 
         task.createNewReplicate(workerName2);
         task.getReplicate(workerName2).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));

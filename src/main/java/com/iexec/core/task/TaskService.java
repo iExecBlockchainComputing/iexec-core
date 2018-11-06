@@ -181,7 +181,7 @@ public class TaskService {
         boolean condition3 = task.getCurrentStatus().equals(CREATED);
 
         if (condition1 && condition2 && condition3) {
-            task.setCurrentStatus(RUNNING);
+            task.changeStatus(RUNNING);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), RUNNING);
         }
@@ -192,7 +192,7 @@ public class TaskService {
         boolean condition2 = task.getCurrentStatus().equals(RUNNING);
 
         if (condition1 && condition2) {
-            task.setCurrentStatus(TaskStatus.COMPUTED);
+            task.changeStatus(TaskStatus.COMPUTED);
             task = taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
 
@@ -205,7 +205,7 @@ public class TaskService {
         boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) > 0;
 
         if (condition1 && condition2) {
-            task.setCurrentStatus(TaskStatus.UPLOADING_RESULT);
+            task.changeStatus(TaskStatus.UPLOADING_RESULT);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOADING_RESULT);
         }
@@ -216,11 +216,11 @@ public class TaskService {
         boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
-            task.setCurrentStatus(TaskStatus.RESULT_UPLOADED);
+            task.changeStatus(TaskStatus.RESULT_UPLOADED);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
 
-            task.setCurrentStatus(TaskStatus.COMPLETED);
+            task.changeStatus(TaskStatus.COMPLETED);
             taskRepository.save(task);
 
             for (Replicate replicate : task.getReplicates()) {
@@ -242,7 +242,7 @@ public class TaskService {
 
     private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
-            task.setCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+            task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             task = taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
         }
