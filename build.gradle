@@ -90,7 +90,6 @@ def canUploadArchives = isMasterBranch
 def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
-
 uploadSpringBootJar {
     description 'Upload the executable jar version of the core'
     repositories.mavenDeployer {
