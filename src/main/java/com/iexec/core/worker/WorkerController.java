@@ -4,6 +4,7 @@ package com.iexec.core.worker;
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerConfigurationModel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,12 @@ import static org.springframework.http.ResponseEntity.status;
 @Slf4j
 @RestController
 public class WorkerController {
+
+    @Value("${chain.address}")
+    private String chainAddress;
+
+    @Value("${chain.poolAddress}")
+    private String poolAddress;
 
     private WorkerService workerService;
 
@@ -51,7 +58,8 @@ public class WorkerController {
     @RequestMapping(method = RequestMethod.GET, path = "/workers/config")
     public ResponseEntity getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
-                .blockchainAddress("dummyAddress")
+                .blockchainURL(chainAddress)
+                .workerPoolAddress(poolAddress)
                 .build();
 
         return ok(config);
