@@ -19,8 +19,11 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 public class WorkerController {
 
-    @Value("${chain.address}")
+    @Value("${chain.publicAddress}")
     private String chainAddress;
+
+    @Value("${chain.hubAddress}")
+    private String hubAddress;
 
     @Value("${chain.poolAddress}")
     private String poolAddress;
@@ -59,6 +62,7 @@ public class WorkerController {
     public ResponseEntity getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
                 .blockchainURL(chainAddress)
+                .iexecHubAddress(hubAddress)
                 .workerPoolAddress(poolAddress)
                 .build();
 
