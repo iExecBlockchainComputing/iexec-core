@@ -3,8 +3,8 @@ package com.iexec.core.worker;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerConfigurationModel;
+import com.iexec.core.chain.ChainConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,19 +19,13 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 public class WorkerController {
 
-    @Value("${chain.publicAddress}")
-    private String chainAddress;
-
-    @Value("${chain.hubAddress}")
-    private String hubAddress;
-
-    @Value("${chain.poolAddress}")
-    private String poolAddress;
-
     private WorkerService workerService;
+    private ChainConfig chainConfig;
 
-    public WorkerController(WorkerService workerService) {
+    public WorkerController(WorkerService workerService,
+                            ChainConfig chainConfig) {
         this.workerService = workerService;
+        this.chainConfig = chainConfig;
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
@@ -61,9 +55,9 @@ public class WorkerController {
     @RequestMapping(method = RequestMethod.GET, path = "/workers/config")
     public ResponseEntity getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
-                .blockchainURL(chainAddress)
-                .iexecHubAddress(hubAddress)
-                .workerPoolAddress(poolAddress)
+                .blockchainURL(chainConfig.getPublicChainAddress())
+                .iexecHubAddress(chainConfig.getHubAddress())
+                .workerPoolAddress(chainConfig.getPoolAddress())
                 .build();
 
         return ok(config);
