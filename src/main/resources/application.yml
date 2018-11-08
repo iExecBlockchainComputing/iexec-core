@@ -13,6 +13,11 @@ detector:
   workerlost.period: 30000
   resultuploadtimeout.period: 30000
 
+
+wallet:
+  encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
+  password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
+
 chain:
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
