@@ -16,27 +16,25 @@ import static com.iexec.common.chain.ChainUtils.getWeb3j;
 
 @Slf4j
 @Service
-public class IexecHubService {
+public class IexecClerkService {
 
     // outside services
     // TODO: this should be replaced by DealService ?
     private final TaskService taskService;
 
     // internal variables
-    private final IexecHubABILegacy iexecHub;
     private final IexecClerkABILegacy iexecClerk;
     private final Credentials credentials;
     private final Web3j web3j;
 
     @Autowired
-    public IexecHubService(CredentialsService credentialsService,
-                           ChainConfig chainConfig,
-                           TaskService taskService) {
+    public IexecClerkService(CredentialsService credentialsService,
+                             ChainConfig chainConfig,
+                             TaskService taskService) {
         this.taskService = taskService;
 
         this.credentials = credentialsService.getCredentials();
         this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
-        this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
 
         startWatchers();
