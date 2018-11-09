@@ -1,9 +1,9 @@
 package com.iexec.core.chain;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
-import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,11 +52,14 @@ public class IexecClerkService {
 
             Dapp dapp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
             String dappName = dapp.m_dappName().send();
+            String jsonDappParams = dapp.m_dappParams().send();
 
             log.info("Received an order match, trigger a computation [dappName:{}]", dappName);
+            // deserialize the dapp params json into POJO
+            ChainDappParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainDappParams.class);
 
-            // TODO: hard coded values for now
-            taskService.addTask("iexechub/vanityeth:latest", "ace", 1);
+            // TODO: contribution is hard coded for now
+            taskService.addTask(dappParams.getUri(), chainDeal.params, 1);
         } catch (Exception e) {
             e.printStackTrace();
         }
