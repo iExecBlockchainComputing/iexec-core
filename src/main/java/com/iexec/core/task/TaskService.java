@@ -34,9 +34,9 @@ public class TaskService {
         this.notificationService = notificationService;
     }
 
-    public Task addTask(String dappName, String commandLine, int nbContributionNeeded) {
+    public Task addTask(byte[] chainTaskId, String dappName, String commandLine, int nbContributionNeeded) {
         log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
-        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded));
+        return taskRepository.save(new Task(chainTaskId, dappName, commandLine, nbContributionNeeded));
     }
 
     public Optional<Task> getTask(String id) {
