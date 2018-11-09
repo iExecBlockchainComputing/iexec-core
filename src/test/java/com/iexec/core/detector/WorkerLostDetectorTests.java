@@ -29,6 +29,8 @@ public class WorkerLostDetectorTests {
     @InjectMocks
     private WorkerLostDetector workerLostDetector;
 
+    private final byte[] EMPTY_BYTE = new byte[0];
+
     @Before
     public void init() {
         MockitoAnnotations.initMocks(this);
@@ -55,7 +57,7 @@ public class WorkerLostDetectorTests {
                 .taskIds(Collections.singletonList(taskId))
                 .build();
 
-        Task task = new Task("dappName", "commandLine", 2);
+        Task task = new Task( "dappName", "commandLine", 2, EMPTY_BYTE);
         task.setId(taskId);
         task.createNewReplicate(workerName);
         task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
@@ -86,7 +88,7 @@ public class WorkerLostDetectorTests {
                 .taskIds(Collections.singletonList(taskId))
                 .build();
 
-        Task task = new Task("dappName", "commandLine", 2);
+        Task task = new Task("dappName", "commandLine", 2, EMPTY_BYTE);
         task.setId(taskId);
         task.createNewReplicate(workerName);
         task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));

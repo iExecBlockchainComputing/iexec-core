@@ -36,7 +36,7 @@ public class Task {
     private int nbContributionNeeded;
     private String uploadingWorkerName;
 
-    public Task(byte[] chainTaskId, String dappName, String commandLine, int nbContributionNeeded) {
+    public Task(String dappName, String commandLine, int nbContributionNeeded, byte[] chainTaskId) {
         this.chainTaskId = chainTaskId;
         this.dappType = DappType.DOCKER;
         this.dappName = dappName;

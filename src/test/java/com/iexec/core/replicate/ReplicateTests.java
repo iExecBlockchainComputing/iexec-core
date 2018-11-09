@@ -11,9 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReplicateTests {
 
+    private final byte[] EMPTY_BYTE = new byte[0];
+
     @Test
     public void shouldInitializeStatusProperly(){
-        Replicate replicate = new Replicate("worker", "taskId");
+        Replicate replicate = new Replicate("worker", "taskId", EMPTY_BYTE);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
 
         ReplicateStatusChange statusChange = replicate.getStatusChangeList().get(0);
@@ -27,7 +29,7 @@ public class ReplicateTests {
 
     @Test
     public void shouldUpdateReplicateStatus(){
-        Replicate replicate = new Replicate("worker", "taskId");
+        Replicate replicate = new Replicate("worker", "taskId", EMPTY_BYTE);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
 
         replicate.updateStatus(ReplicateStatus.RUNNING);
@@ -47,7 +49,7 @@ public class ReplicateTests {
 
     @Test
     public void shouldGetProperLatestStatus(){
-        Replicate replicate = new Replicate("worker", "taskId");
+        Replicate replicate = new Replicate("worker", "taskId", EMPTY_BYTE);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
 

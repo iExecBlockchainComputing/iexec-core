@@ -15,9 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TaskTests {
 
+    private final byte[] EMPTY_BYTE = new byte[0];
+
     @Test
     public void shouldInitializeProperly(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
 
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.CREATED);
@@ -26,7 +28,7 @@ public class TaskTests {
 
     @Test
     public void shouldSetCurrentStatus() {
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.CREATED);
 
@@ -44,7 +46,7 @@ public class TaskTests {
 
     @Test
     public void shouldGetCorrectLastStatusChange(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
 
         TaskStatusChange latestChange = task.getLatestStatusChange();
@@ -63,7 +65,7 @@ public class TaskTests {
 
     @Test
     public void shouldCreateNewReplicate(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
         assertThat(task.getReplicates()).isEmpty();
 
         String worker1 = "worker1";
@@ -79,7 +81,7 @@ public class TaskTests {
 
     @Test
     public void shouldGetExistingReplicate(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
         task.createNewReplicate("worker3");
@@ -91,7 +93,7 @@ public class TaskTests {
 
     @Test
     public void shouldNotGetAnyReplicate(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
         task.createNewReplicate("worker3");
@@ -102,7 +104,7 @@ public class TaskTests {
 
     @Test
     public void shouldNeedMoreReplicateBasicCase(){
-        Task task = new Task("dappName", "cmdLine", 3);
+        Task task = new Task("dappName", "cmdLine", 3, EMPTY_BYTE);
 
         // basic case
         task.createNewReplicate("worker1");
@@ -117,7 +119,7 @@ public class TaskTests {
 
     @Test
     public void shouldNeedMoreReplicateErrorCase(){
-        Task task = new Task("dappName", "cmdLine", 3);
+        Task task = new Task("dappName", "cmdLine", 3, EMPTY_BYTE);
 
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
@@ -131,7 +133,7 @@ public class TaskTests {
 
     @Test
     public void shouldNeedMoreReplicateWorkerLostCase(){
-        Task task = new Task("dappName", "cmdLine", 3);
+        Task task = new Task("dappName", "cmdLine", 3, EMPTY_BYTE);
 
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
@@ -147,7 +149,7 @@ public class TaskTests {
 
     @Test
     public void shouldNotNeedMoreReplicateNoErrorCase(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
 
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
@@ -157,7 +159,7 @@ public class TaskTests {
 
     @Test
     public void shouldNotNeedMoreReplicateErrorCase(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        Task task = new Task("dappName", "cmdLine", 2, EMPTY_BYTE);
 
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
@@ -173,7 +175,7 @@ public class TaskTests {
 
     @Test
     public void shouldHaveWorkerAlreadyContributed(){
-        Task task = new Task("dappName", "cmdLine", 4);
+        Task task = new Task("dappName", "cmdLine", 4, EMPTY_BYTE);
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
         task.createNewReplicate("worker3");
@@ -187,7 +189,7 @@ public class TaskTests {
 
     @Test
     public void shouldNotHaveWorkerAlreadyContributed(){
-        Task task = new Task("dappName", "cmdLine", 3);
+        Task task = new Task("dappName", "cmdLine", 3, EMPTY_BYTE);
         task.createNewReplicate("worker1");
         task.createNewReplicate("worker2");
 
@@ -196,11 +198,11 @@ public class TaskTests {
 
     @Test
     public void shouldCountNbReplicateStatusCorrectly(){
-        Task task = new Task("dappName", "cmdLine", 3);
+        Task task = new Task("dappName", "cmdLine", 3, EMPTY_BYTE);
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId"));
-        replicates.add(new Replicate("worker2", "taskId"));
-        replicates.add(new Replicate("worker3", "taskId"));
+        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
         replicates.get(0).updateStatus(ReplicateStatus.RUNNING);
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
@@ -212,12 +214,12 @@ public class TaskTests {
 
     @Test
     public void shouldCountNbReplicateStatusCorrectlyOrCase(){
-        Task task = new Task("dappName", "cmdLine", 4);
+        Task task = new Task("dappName", "cmdLine", 4, EMPTY_BYTE);
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId"));
-        replicates.add(new Replicate("worker2", "taskId"));
-        replicates.add(new Replicate("worker3", "taskId"));
-        replicates.add(new Replicate("worker4", "taskId"));
+        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker4", "taskId", EMPTY_BYTE));
         replicates.get(0).updateStatus(ReplicateStatus.RUNNING);
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);

@@ -78,7 +78,7 @@ public class IexecClerkService {
                 if(!iexecHub.getTaskInitializeEvents(res).isEmpty()){
                     byte[] chainTaskId = iexecHub.getTaskInitializeEvents(res).get(0).taskid;
                     // TODO: contribution is hard coded for now
-                    taskService.addTask(chainTaskId, dockerImage, taskParams.get(iter), 1);
+                    taskService.addTask(dockerImage, taskParams.get(iter), 1, chainTaskId);
                 }
             }
 
