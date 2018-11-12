@@ -1,5 +1,6 @@
 package com.iexec.core.task;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.dapp.DappType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
@@ -126,6 +127,8 @@ public class Task {
         return false;
     }
 
+
+    @JsonIgnore
     public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
     }
