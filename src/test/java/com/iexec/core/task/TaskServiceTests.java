@@ -35,8 +35,6 @@ public class TaskServiceTests {
     @InjectMocks
     private TaskService taskService;
 
-    private final byte[] EMPTY_BYTE = new byte[0];
-
     @Before
     public void init() {
         MockitoAnnotations.initMocks(this);
@@ -65,15 +63,17 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
+        String chainTaskId = "123";
         Task task = Task.builder()
                 .id("realId")
                 .currentStatus(TaskStatus.CREATED)
+                .chainTaskId(chainTaskId)
                 .dappName("dappName")
                 .commandLine("commandLine")
                 .nbContributionNeeded(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("dappName", "commandLine", 2, EMPTY_BYTE);
+        Task saved = taskService.addTask("dappName", "commandLine", 2, chainTaskId);
         assertThat(saved).isNotNull();
         assertThat(saved).isEqualTo(task);
     }
@@ -81,7 +81,7 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateReplicateStatus() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
         dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
@@ -108,9 +108,9 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateToRunningCase1() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.RUNNING);
         replicates.get(2).updateStatus(ReplicateStatus.RUNNING);
 
@@ -134,9 +134,9 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateToRunningCase2() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.RUNNING);
 
@@ -160,9 +160,9 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToRunningCase1() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
         dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
@@ -186,9 +186,9 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToRunningCase2() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
 
@@ -211,9 +211,9 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateToComputedAndResultRequest() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
 
@@ -241,9 +241,9 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToComputedAndResultRequest() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.RUNNING);
 
@@ -269,9 +269,9 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateToUploadingResult() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.RESULT_UPLOADED);
 
@@ -303,9 +303,9 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToResultUploaded() {
         List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("worker1", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker2", "taskId", EMPTY_BYTE));
-        replicates.add(new Replicate("worker3", "taskId", EMPTY_BYTE));
+        replicates.add(new Replicate("worker1", "taskId"));
+        replicates.add(new Replicate("worker2", "taskId"));
+        replicates.add(new Replicate("worker3", "taskId"));
         replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
 
@@ -370,21 +370,21 @@ public class TaskServiceTests {
                 .build();
 
         List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate(workerName, "task1", EMPTY_BYTE));
-        listReplicates1.add(new Replicate("worker2", "task1", EMPTY_BYTE));
+        listReplicates1.add(new Replicate(workerName, "task1"));
+        listReplicates1.add(new Replicate("worker2", "task1"));
         listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
         listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
 
-        Task runningTask1 = new Task("dappName", "command", 3, EMPTY_BYTE);
+        Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId("task1");
         runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
         List<Replicate> listReplicates2 = new ArrayList<>();
-        listReplicates2.add(new Replicate("worker2", "task2", EMPTY_BYTE));
+        listReplicates2.add(new Replicate("worker2", "task2"));
         listReplicates2.get(0).updateStatus(ReplicateStatus.RUNNING);
 
-        Task runningTask2 = new Task("dappName2", "command", 3, EMPTY_BYTE);
+        Task runningTask2 = new Task("dappName2", "command", 3);
         runningTask2.setId("task2");
         runningTask2.changeStatus(RUNNING);
         runningTask2.setReplicates(listReplicates2);
@@ -409,12 +409,12 @@ public class TaskServiceTests {
                 .build();
 
         List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate(workerName, "task1", EMPTY_BYTE));
-        listReplicates1.add(new Replicate("worker2", "task1", EMPTY_BYTE));
+        listReplicates1.add(new Replicate(workerName, "task1"));
+        listReplicates1.add(new Replicate("worker2", "task1"));
         listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
         listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
 
-        Task runningTask1 = new Task("dappName", "command", 3, EMPTY_BYTE);
+        Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId("task1");
         runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
@@ -440,10 +440,10 @@ public class TaskServiceTests {
                 .build();
 
         List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate("worker2", taskId, EMPTY_BYTE));
+        listReplicates1.add(new Replicate("worker2", taskId));
         listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
 
-        Task runningTask1 = new Task("dappName", "command", 1, EMPTY_BYTE);
+        Task runningTask1 = new Task("dappName", "command", 1);
         runningTask1.setId(taskId);
         runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
@@ -471,10 +471,10 @@ public class TaskServiceTests {
                 .build();
 
         List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate("worker2", taskId, EMPTY_BYTE));
+        listReplicates1.add(new Replicate("worker2", taskId));
         listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
 
-        Task runningTask1 = new Task("dappName", "command", 3, EMPTY_BYTE);
+        Task runningTask1 = new Task("dappName", "command", 3);
         runningTask1.setId(taskId);
         runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);

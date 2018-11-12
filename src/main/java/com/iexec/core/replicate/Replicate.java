@@ -17,11 +17,9 @@ public class Replicate {
     private String resultSha;
     private String resultUri;
     private String taskId;
-    private byte[] chainTaskId;
 
-    public Replicate(String workerName, String taskId, byte[] chainTaskId) {
+    public Replicate(String workerName, String taskId) {
         this.taskId = taskId;
-        this.chainTaskId = chainTaskId;
         this.statusChangeList = new ArrayList<>();
         this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
         this.workerName = workerName;

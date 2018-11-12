@@ -27,8 +27,6 @@ public class ResultUploadTimeoutDetectorTests {
     @InjectMocks
     private ResultUploadTimeoutDetector timeoutDetector;
 
-    private final byte[] EMPTY_BYTE = new byte[0];
-
     @Before
     public void init() {
         MockitoAnnotations.initMocks(this);
@@ -42,7 +40,7 @@ public class ResultUploadTimeoutDetectorTests {
         String workerName1 = "worker1";
         String workerName2 = "worker2";
 
-        Task task = new Task("dappName", "commandLine", 2, EMPTY_BYTE);
+        Task task = new Task("dappName", "commandLine", 2);
         task.setId(taskId);
         task.createNewReplicate(workerName1);
         task.getReplicate(workerName1).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
@@ -72,7 +70,7 @@ public class ResultUploadTimeoutDetectorTests {
         String taskId = "task1";
         String workerName = "worker1";
 
-        Task task = new Task("dappName", "commandLine", 2, EMPTY_BYTE);
+        Task task = new Task("dappName", "commandLine", 2);
         task.setId(taskId);
         task.createNewReplicate(workerName);
 

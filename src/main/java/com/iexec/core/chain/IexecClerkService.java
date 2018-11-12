@@ -1,10 +1,10 @@
 package com.iexec.core.chain;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,6 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
 
@@ -56,36 +55,34 @@ public class IexecClerkService {
 
     private void onOrderMatchedEvents(IexecClerkABILegacy.OrdersMatchedEventResponse ordersMatchedEvent) {
         try {
-            byte[] dealId = ordersMatchedEvent.dealid;
             ChainDeal chainDeal = ChainHelpers.getChainDeal(iexecClerk, ordersMatchedEvent.dealid);
 
             Dapp dapp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
-            String dappName = dapp.m_dappName().send();
-            String jsonDappParams = dapp.m_dappParams().send();
+            log.info("Received an order match, trigger a computation [dappName:{}]", ChainHelpers.getDappName(dapp));
 
-            log.info("Received an order match, trigger a computation [dappName:{}]", dappName);
-            // deserialize the dapp params json into POJO
-            ChainDappParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainDappParams.class);
-            String dockerImage = dappParams.getUri();
+            String dockerImage = ChainHelpers.getDockerImage(dapp);
+            ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
 
-            // get params for all tasks
-            LinkedHashMap<String,String> tasksParamsMap = new ObjectMapper().readValue(chainDeal.getParams(), LinkedHashMap.class);
-            ArrayList<String> taskParams = new ArrayList<>(tasksParamsMap.values());
+            // get range of tasks in the deal
+            int start = chainDeal.botFirst.intValue();
+            int end = chainDeal.botFirst.intValue() + chainDeal.botSize.intValue();
 
-            for(int iter = chainDeal.botFirst.intValue(); iter < chainDeal.botFirst.intValue() + chainDeal.botSize.intValue(); iter++){
-
-                TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(iter)).send();
-                if(!iexecHub.getTaskInitializeEvents(res).isEmpty()){
-                    byte[] chainTaskId = iexecHub.getTaskInitializeEvents(res).get(0).taskid;
-                    // TODO: contribution is hard coded for now
-                    taskService.addTask(dockerImage, taskParams.get(iter), 1, chainTaskId);
-                }
+            // initialize all tasks in the deal
+            for (int iter = start; iter < end; iter++) {
+                initializeTask(ordersMatchedEvent.dealid, iter, dealParams.get(iter), dockerImage);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
+    private void initializeTask(byte[] dealId, int numTask, String param, String dockerImage) throws Exception {
+        TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(numTask)).send();
+        if (!iexecHub.getTaskInitializeEvents(res).isEmpty()) {
+            String chainTaskId = BytesUtils.bytesToString(iexecHub.getTaskInitializeEvents(res).get(0).taskid);
+            // TODO: contribution is hard coded for now
+            taskService.addTask(dockerImage, param, 1, chainTaskId);
+        }
+    }
 }

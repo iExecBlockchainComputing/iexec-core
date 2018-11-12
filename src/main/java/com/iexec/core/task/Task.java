@@ -26,7 +26,7 @@ public class Task {
     @Version
     private Long version;
 
-    private byte[] chainTaskId;
+    private String chainTaskId;
     private DappType dappType;
     private String dappName;
     private String commandLine;
@@ -36,8 +36,7 @@ public class Task {
     private int nbContributionNeeded;
     private String uploadingWorkerName;
 
-    public Task(String dappName, String commandLine, int nbContributionNeeded, byte[] chainTaskId) {
-        this.chainTaskId = chainTaskId;
+    public Task(String dappName, String commandLine, int nbContributionNeeded) {
         this.dappType = DappType.DOCKER;
         this.dappName = dappName;
         this.commandLine = commandLine;
@@ -48,6 +47,11 @@ public class Task {
         this.replicates = new ArrayList<>();
     }
 
+    public Task(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
+        this(dappName, commandLine, nbContributionNeeded);
+        this.chainTaskId = chainTaskId;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -56,7 +60,7 @@ public class Task {
         this.version = version;
     }
 
-    public void setChainTaskId(byte[] chainTaskId) {
+    public void setChainTaskId(String chainTaskId) {
         this.chainTaskId = chainTaskId;
     }
 
@@ -90,7 +94,7 @@ public class Task {
     }
 
     public boolean createNewReplicate(String workerName) {
-        return replicates.add(new Replicate(workerName, id, chainTaskId));
+        return replicates.add(new Replicate(workerName, id));
     }
 
     public Optional<Replicate> getReplicate(String workerName) {
