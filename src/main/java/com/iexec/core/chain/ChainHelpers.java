@@ -1,10 +1,15 @@
 package com.iexec.core.chain;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import org.web3j.tuples.generated.Tuple6;
 import org.web3j.tuples.generated.Tuple9;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 class ChainHelpers {
 
@@ -40,5 +45,21 @@ class ChainHelpers {
                 .workerStake(config.getValue5())
                 .schedulerRewardRatio(config.getValue6())
                 .build();
+    }
+
+    static ArrayList<String> getChainDealParams(ChainDeal chainDeal) throws IOException {
+        LinkedHashMap tasksParamsMap = new ObjectMapper().readValue(chainDeal.getParams(), LinkedHashMap.class);
+        return new ArrayList<String>(tasksParamsMap.values());
+    }
+
+    static String getDappName(Dapp dapp) throws Exception {
+        return dapp.m_dappName().send();
+    }
+
+    static String getDockerImage(Dapp dapp) throws Exception {
+        // deserialize the dapp params json into POJO
+        String jsonDappParams = dapp.m_dappParams().send();
+        ChainDappParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainDappParams.class);
+        return dappParams.getUri();
     }
 }

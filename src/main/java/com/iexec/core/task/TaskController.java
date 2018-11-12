@@ -23,14 +23,17 @@ public class TaskController {
         this.taskService = taskService;
     }
 
+
+    // /!\ This creates a task off-chain without chainTaskId
     @PostMapping("/tasks")
     public ResponseEntity postTask(@RequestParam(name = "dappName") String dappName,
                                    @RequestParam(name = "commandLine") String commandLine,
                                    @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
-        Task task = taskService.addTask(dappName, commandLine, nbContributionNeeded);
+        Task task = taskService.addTask(dappName, commandLine, nbContributionNeeded, "");
         log.info("New task created [taskId:{}]", task.getId());
         return ok(task.getId());
     }
+
 
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity getTask(@PathVariable("taskId") String taskId) {
@@ -75,13 +78,14 @@ public class TaskController {
         Task task = optional.get();
 
         return Optional.of(ReplicateModel.builder()
-                            .taskId(replicate.getTaskId())
-                            .workerAddress(replicate.getWorkerName())
-                            .dappType(task.getDappType())
-                            .dappName(task.getDappName())
-                            .cmd(task.getCommandLine())
-                            .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
-                            .build()
+                .taskId(replicate.getTaskId())
+                .chainTaskId(task.getChainTaskId())
+                .workerAddress(replicate.getWorkerName())
+                .dappType(task.getDappType())
+                .dappName(task.getDappName())
+                .cmd(task.getCommandLine())
+                .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
+                .build()
         );
     }
 }

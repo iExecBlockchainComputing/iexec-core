@@ -55,7 +55,7 @@ public class WorkerLostDetectorTests {
                 .taskIds(Collections.singletonList(taskId))
                 .build();
 
-        Task task = new Task("dappName", "commandLine", 2);
+        Task task = new Task( "dappName", "commandLine", 2);
         task.setId(taskId);
         task.createNewReplicate(workerName);
         task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));

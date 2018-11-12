@@ -27,6 +27,7 @@ public class Task {
     @Version
     private Long version;
 
+    private String chainTaskId;
     private DappType dappType;
     private String dappName;
     private String commandLine;
@@ -47,12 +48,21 @@ public class Task {
         this.replicates = new ArrayList<>();
     }
 
+    public Task(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
+        this(dappName, commandLine, nbContributionNeeded);
+        this.chainTaskId = chainTaskId;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public void setChainTaskId(String chainTaskId) {
+        this.chainTaskId = chainTaskId;
     }
 
     public void setDateStatusList(List<TaskStatusChange> dateStatusList) {

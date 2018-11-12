@@ -63,15 +63,17 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
+        String chainTaskId = "123";
         Task task = Task.builder()
                 .id("realId")
                 .currentStatus(TaskStatus.CREATED)
+                .chainTaskId(chainTaskId)
                 .dappName("dappName")
                 .commandLine("commandLine")
                 .nbContributionNeeded(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("dappName", "commandLine", 2);
+        Task saved = taskService.addTask("dappName", "commandLine", 2, chainTaskId);
         assertThat(saved).isNotNull();
         assertThat(saved).isEqualTo(task);
     }
