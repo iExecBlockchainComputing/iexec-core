@@ -1,5 +1,6 @@
 package com.iexec.core.replicate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import lombok.Data;
@@ -25,10 +26,12 @@ public class Replicate {
         this.workerName = workerName;
     }
 
+    @JsonIgnore
     public ReplicateStatus getCurrentStatus() {
         return this.getLatestStatusChange().getStatus();
     }
 
+    @JsonIgnore
     public ReplicateStatusChange getLatestStatusChange() {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
