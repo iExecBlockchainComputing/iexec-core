@@ -229,7 +229,7 @@ public class TaskService {
 
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskId(task.getId())
-                    .workerAddress("")
+                    .workerAddress(task.getUploadingWorkerWalletAddress())
                     .taskNotificationType(TaskNotificationType.COMPLETED)
                     .build());
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPLETED);
