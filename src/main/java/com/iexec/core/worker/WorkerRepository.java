@@ -9,7 +9,7 @@ import java.util.Optional;
 
 interface WorkerRepository extends MongoRepository<Worker, String> {
 
-    Optional<Worker> findByName(String name);
+    Optional<Worker> findByWalletAddress(String walletAddress);
 
     @Query("{'lastAliveDate': {$lt: ?0}}")
     List<Worker> findByLastAliveDateBefore(Date date);

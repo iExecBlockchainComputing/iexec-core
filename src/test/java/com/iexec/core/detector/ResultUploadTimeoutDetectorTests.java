@@ -45,7 +45,7 @@ public class ResultUploadTimeoutDetectorTests {
         task.createNewReplicate(workerName1);
         task.getReplicate(workerName1).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
         task.getReplicate(workerName1).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.COMPUTED));
-        task.setUploadingWorkerName(workerName1);
+        task.setUploadingWorkerWalletAddress(workerName1);
         task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
 
         task.createNewReplicate(workerName2);
@@ -79,7 +79,7 @@ public class ResultUploadTimeoutDetectorTests {
         TaskStatusChange change3 = new TaskStatusChange(threeMinutesAgo, TaskStatus.COMPUTED);
         TaskStatusChange change4 = new TaskStatusChange(twoMinutesAgo, TaskStatus.UPLOAD_RESULT_REQUESTED);
 
-        task.setUploadingWorkerName(workerName);
+        task.setUploadingWorkerWalletAddress(workerName);
         task.setDateStatusList(Arrays.asList(change1, change2, change3, change4));
 
         when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));

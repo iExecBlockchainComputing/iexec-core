@@ -14,16 +14,16 @@ import java.util.List;
 public class Replicate {
 
     private List<ReplicateStatusChange> statusChangeList;
-    private String workerName;
+    private String walletAddress;
     private String resultSha;
     private String resultUri;
     private String taskId;
 
-    public Replicate(String workerName, String taskId) {
+    public Replicate(String walletAddress, String taskId) {
         this.taskId = taskId;
+        this.walletAddress = walletAddress;
         this.statusChangeList = new ArrayList<>();
         this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
-        this.workerName = workerName;
     }
 
     @JsonIgnore

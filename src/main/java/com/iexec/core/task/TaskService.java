@@ -49,27 +49,27 @@ public class TaskService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> updateReplicateStatus(String taskId, String workerName, ReplicateStatus newStatus) {
+    public Optional<Replicate> updateReplicateStatus(String taskId, String walletAddress, ReplicateStatus newStatus) {
         Optional<Task> optional = taskRepository.findById(taskId);
         if (!optional.isPresent()) {
-            log.warn("No task found for replicate update [taskId:{}, workerName:{}, status:{}]", taskId, workerName, newStatus);
+            log.warn("No task found for replicate update [taskId:{}, walletAddress:{}, status:{}]", taskId, walletAddress, newStatus);
             return Optional.empty();
         }
 
         Task task = optional.get();
         for (Replicate replicate : task.getReplicates()) {
-            if (replicate.getWorkerName().equals(workerName)) {
+            if (replicate.getWalletAddress().equals(walletAddress)) {
                 ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
                 if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                    log.error("The replicate can't be updated to the new status [taskId:{}, workerName:{}, currentStatus:{}, newStatus:{}]",
-                            taskId, workerName, currentStatus, newStatus);
+                    log.error("The replicate can't be updated to the new status [taskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                            taskId, walletAddress, currentStatus, newStatus);
                     return Optional.empty();
                 }
 
                 replicate.updateStatus(newStatus);
-                log.info("Status of replicate updated [taskId:{}, workerName:{}, status:{}]", taskId,
-                        workerName, newStatus);
+                log.info("Status of replicate updated [taskId:{}, walletAddress:{}, status:{}]", taskId,
+                        walletAddress, newStatus);
                 taskRepository.save(task);
 
                 // once the replicate status is updated, the task status has to be checked as well
@@ -80,7 +80,7 @@ public class TaskService {
             }
         }
 
-        log.warn("No replicate found for status update [taskId:{}, workerName:{}, status:{}]", taskId, workerName, newStatus);
+        log.warn("No replicate found for status update [taskId:{}, walletAddress:{}, status:{}]", taskId, walletAddress, newStatus);
         return Optional.empty();
     }
 
@@ -90,9 +90,9 @@ public class TaskService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> getAvailableReplicate(String workerName) {
+    public Optional<Replicate> getAvailableReplicate(String walletAddress) {
         // return empty if the worker is not registered
-        Optional<Worker> optional = workerService.getWorker(workerName);
+        Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
             return Optional.empty();
         }
@@ -105,34 +105,34 @@ public class TaskService {
         }
 
         // return empty if the worker already has enough running tasks
-        int workerRunningReplicateNb = getRunningReplicatesOfWorker(runningTasks, workerName).size();
+        int workerRunningReplicateNb = getRunningReplicatesOfWorker(runningTasks, walletAddress).size();
         int workerCpuNb = worker.getCpuNb();
         if (workerRunningReplicateNb >= workerCpuNb) {
-            log.info("Worker asking for too many replicates [workerName: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
-                    workerName, workerRunningReplicateNb, workerCpuNb);
+            log.info("Worker asking for too many replicates [walletAddress: {}, workerRunningReplicateNb:{}, workerCpuNb:{}]",
+                    walletAddress, workerRunningReplicateNb, workerCpuNb);
             return Optional.empty();
         }
 
         for (Task task : runningTasks) {
-            if (!task.hasWorkerAlreadyContributed(workerName) &&
+            if (!task.hasWorkerAlreadyContributed(walletAddress) &&
                     task.needMoreReplicates()) {
-                task.createNewReplicate(workerName);
+                task.createNewReplicate(walletAddress);
                 Task savedTask = taskRepository.save(task);
-                workerService.addTaskIdToWorker(savedTask.getId(), workerName);
-                return savedTask.getReplicate(workerName);
+                workerService.addTaskIdToWorker(savedTask.getId(), walletAddress);
+                return savedTask.getReplicate(walletAddress);
             }
         }
 
         return Optional.empty();
     }
 
-    private List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String workerName) {
+    private List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String walletAddress) {
         List<Replicate> workerActiveReplicates = new ArrayList<>();
         for (Task task : runningTasks) {
             List<Replicate> replicates = task.getReplicates();
             for (Replicate replicate : replicates) {
 
-                boolean isReplicateFromWorker = replicate.getWorkerName().equals(workerName);
+                boolean isReplicateFromWorker = replicate.getWalletAddress().equals(walletAddress);
                 boolean isReplicateInCorrectStatus = (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) ||
                         replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING));
 
@@ -224,12 +224,12 @@ public class TaskService {
             taskRepository.save(task);
 
             for (Replicate replicate : task.getReplicates()) {
-                workerService.removeTaskIdFromWorker(task.getId(), replicate.getWorkerName());
+                workerService.removeTaskIdFromWorker(task.getId(), replicate.getWalletAddress());
             }
 
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskId(task.getId())
-                    .workerAddress("")
+                    .workerAddress(task.getUploadingWorkerWalletAddress())
                     .taskNotificationType(TaskNotificationType.COMPLETED)
                     .build());
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPLETED);
@@ -252,13 +252,13 @@ public class TaskService {
                 if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .taskId(task.getId())
-                            .workerAddress(replicate.getWorkerName())
+                            .workerAddress(replicate.getWalletAddress())
                             .taskNotificationType(TaskNotificationType.UPLOAD)
                             .build());
-                    log.info("Notify uploading worker [uploadingWorker={}]", replicate.getWorkerName());
+                    log.info("Notify uploading worker [uploadingWorkerWallet={}]", replicate.getWalletAddress());
 
-                    // save in the task the workerName that is in charge of uploading the result
-                    task.setUploadingWorkerName(replicate.getWorkerName());
+                    // save in the task the workerWallet that is in charge of uploading the result
+                    task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
                     taskRepository.save(task);
                     return;
                 }

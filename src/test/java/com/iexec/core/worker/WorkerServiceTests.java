@@ -31,16 +31,18 @@ public class WorkerServiceTests {
     @Test
     public void shouldNotAddNewWorker() {
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
                 .build();
 
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         Worker addedWorker = workerService.addWorker(existingWorker);
         assertThat(addedWorker).isEqualTo(existingWorker);
     }
@@ -48,14 +50,16 @@ public class WorkerServiceTests {
     @Test
     public void shouldAddNewWorker() {
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker worker = Worker.builder()
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
                 .build();
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.empty());
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
         when(workerRepository.save(Mockito.any())).thenReturn(worker);
 
         Worker addedWorker = workerService.addWorker(worker);
@@ -69,16 +73,18 @@ public class WorkerServiceTests {
     public void shouldUpdateLastAlive() throws ParseException {
         // init
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Date oldLastAlive = new SimpleDateFormat("yyyy-MM-dd").parse("2018-01-01");
         Worker worker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .lastAliveDate(oldLastAlive)
                 .build();
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(worker));
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(worker));
 
         // call
-        Optional<Worker> updatedWorker = workerService.updateLastAlive(workerName);
+        Optional<Worker> updatedWorker = workerService.updateLastAlive(walletAddress);
 
         // check argument passed to the save method
         ArgumentCaptor<Worker> argument = ArgumentCaptor.forClass(Worker.class);
@@ -103,27 +109,29 @@ public class WorkerServiceTests {
 
     @Test
     public void shouldNotFindWorkerForUpdateLastAlive() {
-        String workerName = "worker1";
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.empty());
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
 
-        Optional<Worker> optional = workerService.updateLastAlive(workerName);
+        Optional<Worker> optional = workerService.updateLastAlive(walletAddress);
         assertThat(optional.isPresent()).isFalse();
     }
 
     @Test
     public void shouldGetWorker() {
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
                 .build();
 
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
-        Optional<Worker> foundWorker = workerService.getWorker(workerName);
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
+        Optional<Worker> foundWorker = workerService.getWorker(walletAddress);
         assertThat(foundWorker.isPresent()).isTrue();
         assertThat(foundWorker.get()).isEqualTo(existingWorker);
     }
@@ -131,12 +139,14 @@ public class WorkerServiceTests {
     @Test
     public void shouldAddTaskIdToWorker(){
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> listIds = new ArrayList<>();
         listIds.add("task1");
         listIds.add("task2");
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
@@ -144,10 +154,10 @@ public class WorkerServiceTests {
                 .taskIds(listIds)
                 .build();
 
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task3", workerName);
+        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task3", walletAddress);
         assertThat(addedWorker.isPresent()).isTrue();
         Worker worker = addedWorker.get();
         assertThat(worker.getTaskIds().size()).isEqualTo(3);
@@ -156,20 +166,22 @@ public class WorkerServiceTests {
 
     @Test
     public void shouldNotAddTaskIdToWorker(){
-        when(workerRepository.findByName(Mockito.anyString())).thenReturn(Optional.empty());
-        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task1", "worker1");
+        when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
+        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
     @Test
     public void shouldRemoveTaskIdFromWorker(){
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> listIds = new ArrayList<>();
         listIds.add("task1");
         listIds.add("task2");
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
@@ -177,10 +189,10 @@ public class WorkerServiceTests {
                 .taskIds(listIds)
                 .build();
 
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("task2", workerName);
+        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("task2", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
         assertThat(worker.getTaskIds().size()).isEqualTo(1);
@@ -189,20 +201,22 @@ public class WorkerServiceTests {
 
     @Test
     public void shouldNotRemoveTaskIdWorkerNotFound(){
-        when(workerRepository.findByName(Mockito.anyString())).thenReturn(Optional.empty());
-        Optional<Worker> addedWorker = workerService.removeTaskIdFromWorker("task1", "worker1");
+        when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
+        Optional<Worker> addedWorker = workerService.removeTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
     @Test
     public void shouldNotRemoveAnythingSinceTaskIdNotFound(){
         String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> listIds = new ArrayList<>();
         listIds.add("task1");
         listIds.add("task2");
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
+                .walletAddress(walletAddress)
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
@@ -210,10 +224,10 @@ public class WorkerServiceTests {
                 .taskIds(listIds)
                 .build();
 
-        when(workerRepository.findByName(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("dummyTaskId", workerName);
+        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("dummyTaskId", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
         assertThat(worker.getTaskIds().size()).isEqualTo(2);
