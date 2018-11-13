@@ -46,10 +46,10 @@ public class TaskController {
 
     @RequestMapping(method = RequestMethod.POST, path = "/tasks/{taskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable(name = "taskId") String taskId,
-                                                @RequestParam(name = "workerName") String workerName,
+                                                @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
-        log.info("Update replicate status [taskId:{}, replicateStatus:{}, workerName:{}]", taskId, replicateStatus, workerName);
-        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, workerName, replicateStatus);
+        log.info("Update replicate status [taskId:{}, replicateStatus:{}, walletAddress:{}]", taskId, replicateStatus, walletAddress);
+        Optional<Replicate> optional = taskService.updateReplicateStatus(taskId, walletAddress, replicateStatus);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
@@ -60,8 +60,8 @@ public class TaskController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
-    public ResponseEntity getReplicate(@RequestParam(name = "workerName") String workerName) {
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+    public ResponseEntity getReplicate(@RequestParam(name = "walletAddress") String walletAddress) {
+        Optional<Replicate> optional = taskService.getAvailableReplicate(walletAddress);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
@@ -70,7 +70,7 @@ public class TaskController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    Optional<ReplicateModel> convertReplicateToModel(Replicate replicate) {
+    private Optional<ReplicateModel> convertReplicateToModel(Replicate replicate) {
         Optional<Task> optional = taskService.getTask(replicate.getTaskId());
         if (!optional.isPresent()) {
             return Optional.empty();
