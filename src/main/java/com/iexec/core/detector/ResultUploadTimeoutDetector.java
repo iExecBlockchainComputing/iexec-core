@@ -30,11 +30,11 @@ public class ResultUploadTimeoutDetector implements Detector {
         // Timeout for the replicate uploading its result is 1 min.
         for (Task task : taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
             for (Replicate replicate : task.getReplicates()) {
-                boolean isUploadingResultReplicate = replicate.getWorkerName().equals(task.getUploadingWorkerName());
+                boolean isUploadingResultReplicate = replicate.getWalletAddress().equals(task.getUploadingWorkerWalletAddress());
                 boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1));
 
                 if (isUploadingResultReplicate && startUploadLongAgo) {
-                    taskService.updateReplicateStatus(task.getId(), replicate.getWorkerName(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+                    taskService.updateReplicateStatus(task.getId(), replicate.getWalletAddress(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
         }

@@ -80,7 +80,7 @@ public class TaskController {
         return Optional.of(ReplicateModel.builder()
                 .taskId(replicate.getTaskId())
                 .chainTaskId(task.getChainTaskId())
-                .workerAddress(replicate.getWorkerName())
+                .workerAddress(replicate.getWalletAddress())
                 .dappType(task.getDappType())
                 .dappName(task.getDappName())
                 .cmd(task.getCommandLine())

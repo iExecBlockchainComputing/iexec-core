@@ -29,8 +29,8 @@ public class WorkerController {
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
-    public ResponseEntity ping(@RequestParam(name = "workerName") String workerName) {
-        Optional<Worker> optional = workerService.updateLastAlive(workerName);
+    public ResponseEntity ping(@RequestParam(name = "walletAddress") String walletAddress) {
+        Optional<Worker> optional = workerService.updateLastAlive(walletAddress);
         return optional.
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
@@ -41,6 +41,7 @@ public class WorkerController {
 
         Worker worker = Worker.builder()
                 .name(model.getName())
+                .walletAddress(model.getWalletAddress())
                 .os(model.getOs())
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())

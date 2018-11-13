@@ -19,12 +19,12 @@ public class WorkerService {
         this.workerRepository = workerRepository;
     }
 
-    public Optional<Worker> getWorker(String workerName) {
-        return workerRepository.findByName(workerName);
+    public Optional<Worker> getWorker(String walletAddress) {
+        return workerRepository.findByWalletAddress(walletAddress);
     }
 
     public Worker addWorker(Worker worker) {
-        Optional<Worker> optional = workerRepository.findByName(worker.getName());
+        Optional<Worker> optional = workerRepository.findByWalletAddress(worker.getWalletAddress());
         if (optional.isPresent()) {
             log.info("The worker is already registered [workerId:{}]", optional.get().getId());
             return optional.get();
@@ -35,8 +35,8 @@ public class WorkerService {
         }
     }
 
-    public Optional<Worker> updateLastAlive(String name) {
-        Optional<Worker> optional = workerRepository.findByName(name);
+    public Optional<Worker> updateLastAlive(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
             worker.setLastAliveDate(new Date());
@@ -47,23 +47,23 @@ public class WorkerService {
         return Optional.empty();
     }
 
-    public Optional<Worker> addTaskIdToWorker(String taskId, String workerName) {
-        Optional<Worker> optional = workerRepository.findByName(workerName);
+    public Optional<Worker> addTaskIdToWorker(String taskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
             worker.addTaskId(taskId);
-            log.info("Added taskId to worker [taskId:{}, workerName:{}]", taskId, workerName);
+            log.info("Added taskId to worker [taskId:{}, workerName:{}]", taskId, walletAddress);
             return Optional.of(workerRepository.save(worker));
         }
         return Optional.empty();
     }
 
-    public Optional<Worker> removeTaskIdFromWorker(String taskId, String workerName) {
-        Optional<Worker> optional = workerRepository.findByName(workerName);
+    public Optional<Worker> removeTaskIdFromWorker(String taskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
             worker.removeTaskId(taskId);
-            log.info("Removed taskId from worker [taskId:{}, workerName:{}]", taskId, workerName);
+            log.info("Removed taskId from worker [taskId:{}, walletAddress:{}]", taskId, walletAddress);
             return Optional.of(workerRepository.save(worker));
         }
         return Optional.empty();

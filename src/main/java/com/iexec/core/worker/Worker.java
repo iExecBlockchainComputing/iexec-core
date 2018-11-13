@@ -17,6 +17,7 @@ public class Worker {
     @Id
     private String id;
     private String name;
+    private String walletAddress;
     private String os;
     private String cpu;
     private int cpuNb;

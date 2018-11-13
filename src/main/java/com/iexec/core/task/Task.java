@@ -35,7 +35,7 @@ public class Task {
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
     private int nbContributionNeeded;
-    private String uploadingWorkerName;
+    private String uploadingWorkerWalletAddress;
 
     public Task(String dappName, String commandLine, int nbContributionNeeded) {
         this.dappType = DappType.DOCKER;
@@ -81,8 +81,8 @@ public class Task {
         this.nbContributionNeeded = nbContributionNeeded;
     }
 
-    public void setUploadingWorkerName(String uploadingWorkerName) {
-        this.uploadingWorkerName = uploadingWorkerName;
+    public void setUploadingWorkerWalletAddress(String uploadingWorkerWalletAddress) {
+        this.uploadingWorkerWalletAddress = uploadingWorkerWalletAddress;
     }
 
     public void setCurrentStatus(TaskStatus status) {
@@ -94,13 +94,13 @@ public class Task {
         this.getDateStatusList().add(new TaskStatusChange(status));
     }
 
-    public boolean createNewReplicate(String workerName) {
-        return replicates.add(new Replicate(workerName, id));
+    public boolean createNewReplicate(String walletAddress) {
+        return replicates.add(new Replicate(walletAddress, id));
     }
 
-    public Optional<Replicate> getReplicate(String workerName) {
+    public Optional<Replicate> getReplicate(String walletAddress) {
         for (Replicate replicate : replicates) {
-            if (replicate.getWorkerName().equals(workerName)) {
+            if (replicate.getWalletAddress().equals(walletAddress)) {
                 return Optional.of(replicate);
             }
         }
@@ -118,9 +118,9 @@ public class Task {
         return nbValidReplicates < nbContributionNeeded;
     }
 
-    public boolean hasWorkerAlreadyContributed(String workerName) {
+    public boolean hasWorkerAlreadyContributed(String walletAddress) {
         for (Replicate replicate : replicates) {
-            if (replicate.getWorkerName().equals(workerName)) {
+            if (replicate.getWalletAddress().equals(walletAddress)) {
                 return true;
             }
         }

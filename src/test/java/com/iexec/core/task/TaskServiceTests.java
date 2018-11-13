@@ -460,12 +460,13 @@ public class TaskServiceTests {
 
     @Test
     public void shouldGetAReplicate(){
-        String workerName = "worker1";
         String taskId = "task1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
         Worker existingWorker = Worker.builder()
                 .id("1")
-                .name(workerName)
+                .name("worker1")
+                .walletAddress(walletAddress)
                 .cpuNb(2)
                 .lastAliveDate(new Date())
                 .build();
@@ -479,16 +480,16 @@ public class TaskServiceTests {
         runningTask1.changeStatus(RUNNING);
         runningTask1.setReplicates(listReplicates1);
 
-        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.getWorker(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(taskRepository.save(any())).thenReturn(runningTask1);
-        when(workerService.addTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.addTaskIdToWorker(taskId, walletAddress)).thenReturn(Optional.of(existingWorker));
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(walletAddress);
         assertThat(optional.isPresent()).isTrue();
         Replicate replicate = optional.get();
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
-        assertThat(replicate.getWorkerName()).isEqualTo(workerName);
+        assertThat(replicate.getWalletAddress()).isEqualTo(walletAddress);
     }
 }
