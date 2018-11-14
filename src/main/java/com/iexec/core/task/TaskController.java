@@ -1,7 +1,10 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.replicate.AvailableReplicateModel;
 import com.iexec.common.replicate.ReplicateModel;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,9 +21,12 @@ import static org.springframework.http.ResponseEntity.status;
 public class TaskController {
 
     private TaskService taskService;
+    private SignatureService signatureService;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService,
+                          SignatureService signatureService) {
         this.taskService = taskService;
+        this.signatureService = signatureService;
     }
 
 
@@ -53,6 +59,7 @@ public class TaskController {
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
+
         return convertReplicateToModel(optional.get()).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
@@ -60,14 +67,44 @@ public class TaskController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
-    public ResponseEntity getReplicate(@RequestParam(name = "walletAddress") String walletAddress) {
-        Optional<Replicate> optional = taskService.getAvailableReplicate(walletAddress);
+    public ResponseEntity getAvailableReplicate(@RequestParam(name = "workerWalletAddress") String workerWalletAddress,
+                                                @RequestParam(name = "workerEnclaveAddress") String workerEnclaveAddress) {
+        // get available replicate
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerWalletAddress);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
-        return convertReplicateToModel(optional.get()).
+        Replicate replicate = optional.get();
+
+        // get associated task
+        Optional<Task> taskOptional = taskService.getTask(replicate.getTaskId());
+        if (!taskOptional.isPresent()) {
+            return status(HttpStatus.NO_CONTENT).build();
+        }
+        Task task = taskOptional.get();
+
+        // generate contribution authorization
+        ContributionAuthorization authorization = signatureService.createAuthorization(workerWalletAddress, task.getChainTaskId(), workerEnclaveAddress);
+
+        return createAvailableReplicateModel(replicate, task, authorization).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+    }
+
+    private Optional<AvailableReplicateModel> createAvailableReplicateModel(Replicate replicate,
+                                                                            Task task,
+                                                                            ContributionAuthorization contribAuth) {
+        return Optional.of(AvailableReplicateModel.builder()
+                .taskId(replicate.getTaskId())
+                .chainTaskId(task.getChainTaskId())
+                .workerAddress(replicate.getWalletAddress())
+                .dappType(task.getDappType())
+                .dappName(task.getDappName())
+                .cmd(task.getCommandLine())
+                .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
+                .contributionAuthorization(contribAuth)
+                .build()
+        );
     }
 
     private Optional<ReplicateModel> convertReplicateToModel(Replicate replicate) {
