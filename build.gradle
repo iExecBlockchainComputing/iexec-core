@@ -143,13 +143,19 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
-project.ext.getDockerImageName = {
-    def imageName = "iexechub/iexec-core:${version}"
+def imageName = "iexechub/iexec-core"
+
+project.ext.getDockerImageNameFull = {
+    def imageNameWithVersion = imageName + ":${version}"
     if (isSnapshotVersion) {
-        return imageName + "-" + gitShortCommit
+        return imageNameWithVersion + "-" + gitShortCommit
     } else {
-        return imageName
+        return imageNameWithVersion
     }
+}
+
+project.ext.getDockerImageNameShortCommit = {
+    return imageName + ":" + gitShortCommit
 }
 
 task prepareDockerFile(type: Copy) {
@@ -162,7 +168,7 @@ task prepareDockerFile(type: Copy) {
 
 task buildImage(type: Exec) {
     description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageName() + " .")
+    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageNameFull() + " .")
 }
 
 buildImage.dependsOn prepareDockerFile
@@ -171,7 +177,9 @@ buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
 task pushImage(type: Exec) {
     if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
         commandLine("sh", "-c", "docker login -u " + project.dockerHubUser + " -p " + project.dockerHubPassword + " && " +
-                "docker push " + getDockerImageName() + " && " +
+                "docker push " + getDockerImageNameFull() + " && " +
+                "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
+                "docker push " + getDockerImageNameShortCommit() + " && " +
                 "docker logout")
     } else {
         println "Credentials for DockerHub are missing, the images cannot be pushed"
