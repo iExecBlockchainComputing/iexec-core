@@ -1,5 +1,6 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.Arrays;
@@ -19,21 +20,34 @@ public class SignatureService {
         this.credentialsService = credentialsService;
     }
 
-    public String computeAuthorizationHash(String workerWallet, byte[] taskId, String enclaveAddress) {
+    String computeAuthorizationHash(String workerWallet, String chainTaskId, String enclaveAddress) {
 
         // concatenate 3 byte[] fields
         byte[] res = Arrays.concatenate(
                 BytesUtils.stringToBytes(workerWallet),
-                taskId,
+                BytesUtils.stringToBytes(chainTaskId),
                 BytesUtils.stringToBytes(enclaveAddress));
 
         // Hash the result and convert to String
         return Numeric.toHexString(Hash.sha3(res));
     }
 
-    public Sign.SignatureData signMessage(byte[] data) {
+    Sign.SignatureData signMessage(byte[] data) {
         return signPrefixedMessage(data, credentialsService.getCredentials().getEcKeyPair());
     }
+
+    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveAddress){
+        String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
+        Sign.SignatureData sign = signMessage(BytesUtils.stringToBytes(hash));
+
+        return ContributionAuthorization.builder()
+                .workerWallet(workerWallet)
+                .chainTaskId(chainTaskId)
+                .enclave(enclaveAddress)
+                .sign(sign)
+                .build();
+    }
+
 
     //Note to dev: The following block is copied/pasted from web3j 4.0-beta at this commit:
     // https://github.com/web3j/web3j/commit/4997746e566faaf9c88defad78af54ede24db65b

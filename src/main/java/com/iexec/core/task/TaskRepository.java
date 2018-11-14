@@ -8,7 +8,10 @@ import java.util.Optional;
 
 interface TaskRepository extends MongoRepository<Task, String> {
 
-    Optional<Task> findById(String id);
+    Optional<Task> findByChainTaskId(String id);
+
+    @Query("{ 'chainTaskId': {$in: ?0} }")
+    List<Task> findByChainTaskId(List<String> ids);
 
     @Query("{ 'id': {$in: ?0} }")
     List<Task> findById(List<String> ids);

@@ -47,6 +47,7 @@ public class WorkerLostDetectorTests {
     public void shouldUpdateOneReplicateToWorkerLost(){
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
         String taskId = "task1";
+        String chainTaskId = "chainTaskId";
         String workerName = "worker1";
 
         Worker worker = Worker.builder()
@@ -57,16 +58,17 @@ public class WorkerLostDetectorTests {
 
         Task task = new Task( "dappName", "commandLine", 2);
         task.setId(taskId);
+        task.setChainTaskId(chainTaskId);
         task.createNewReplicate(workerName);
         task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
-        when(taskService.getTasks(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
+        when(taskService.getTasksByIds(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(taskService, Mockito.times(1))
-                .updateReplicateStatus(task.getId(), worker.getName(), ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(task.getChainTaskId(), worker.getName(), ReplicateStatus.WORKER_LOST);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(1))
@@ -93,7 +95,7 @@ public class WorkerLostDetectorTests {
         task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.WORKER_LOST));
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
-        when(taskService.getTasks(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
+        when(taskService.getTasksByChainTaskIds(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
 
         workerLostDetector.detect();
         // verify that the call on the update is correct

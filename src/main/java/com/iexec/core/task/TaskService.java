@@ -39,20 +39,24 @@ public class TaskService {
         return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded, chainTaskId));
     }
 
-    public Optional<Task> getTask(String id) {
-        return taskRepository.findById(id);
+    public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
+        return taskRepository.findByChainTaskId(chainTaskId);
     }
 
-    public List<Task> getTasks(List<String> ids) {
+    public List<Task> getTasksByIds(List<String> ids) {
         return taskRepository.findById(ids);
+    }
+
+    public List<Task> getTasksByChainTaskIds(List<String> chainTaskIds) {
+        return taskRepository.findByChainTaskId(chainTaskIds);
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> updateReplicateStatus(String taskId, String walletAddress, ReplicateStatus newStatus) {
-        Optional<Task> optional = taskRepository.findById(taskId);
+    public Optional<Replicate> updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
+        Optional<Task> optional = taskRepository.findByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
-            log.warn("No task found for replicate update [taskId:{}, walletAddress:{}, status:{}]", taskId, walletAddress, newStatus);
+            log.warn("No task found for replicate update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
             return Optional.empty();
         }
 
@@ -62,13 +66,13 @@ public class TaskService {
                 ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
                 if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                    log.error("The replicate can't be updated to the new status [taskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
-                            taskId, walletAddress, currentStatus, newStatus);
+                    log.error("The replicate can't be updated to the new status [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                            chainTaskId, walletAddress, currentStatus, newStatus);
                     return Optional.empty();
                 }
 
                 replicate.updateStatus(newStatus);
-                log.info("Status of replicate updated [taskId:{}, walletAddress:{}, status:{}]", taskId,
+                log.info("Status of replicate updated [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId,
                         walletAddress, newStatus);
                 taskRepository.save(task);
 
@@ -80,7 +84,7 @@ public class TaskService {
             }
         }
 
-        log.warn("No replicate found for status update [taskId:{}, walletAddress:{}, status:{}]", taskId, walletAddress, newStatus);
+        log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
         return Optional.empty();
     }
 
