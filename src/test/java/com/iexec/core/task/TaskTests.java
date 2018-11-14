@@ -68,16 +68,19 @@ public class TaskTests {
 
     @Test
     public void shouldCreateNewReplicate(){
-        Task task = new Task("dappName", "cmdLine", 2);
+        String chainTaskId = "chainTaskId";
+        Task task = new Task("dappName", "cmdLine", 2, chainTaskId);
         assertThat(task.getReplicates()).isEmpty();
 
         task.createNewReplicate(WALLET_ADDRESS_1);
         assertThat(task.getReplicates().size()).isEqualTo(1);
         assertThat(task.getReplicates().get(0).getWalletAddress()).isEqualTo(WALLET_ADDRESS_1);
+        assertThat(task.getReplicates().get(0).getChainTaskId()).isEqualTo(chainTaskId);
 
         task.createNewReplicate(WALLET_ADDRESS_2);
         assertThat(task.getReplicates().size()).isEqualTo(2);
         assertThat(task.getReplicates().get(1).getWalletAddress()).isEqualTo(WALLET_ADDRESS_2);
+        assertThat(task.getReplicates().get(0).getChainTaskId()).isEqualTo(chainTaskId);
     }
 
     @Test

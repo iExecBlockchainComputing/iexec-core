@@ -16,8 +16,8 @@ public class NotificationService {
     }
 
     public void sendTaskNotification(TaskNotification taskNotification) {
-        sender.convertAndSend("/topic/task/" + taskNotification.getTaskId(), taskNotification);
-        log.info("Sent TaskNotification [taskId:{}, type:{}, worker:{}]", taskNotification.getTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkerAddress());
+        sender.convertAndSend("/topic/task/" + taskNotification.getChainTaskId(), taskNotification);
+        log.info("Sent TaskNotification [chainTaskId:{}, type:{}, worker:{}]", taskNotification.getChainTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkerAddress());
     }
 
     /* Test PubSub method

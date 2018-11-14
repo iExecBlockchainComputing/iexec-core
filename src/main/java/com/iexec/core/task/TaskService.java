@@ -232,7 +232,7 @@ public class TaskService {
             }
 
             notificationService.sendTaskNotification(TaskNotification.builder()
-                    .taskId(task.getId())
+                    .chainTaskId(task.getChainTaskId())
                     .workerAddress(task.getUploadingWorkerWalletAddress())
                     .taskNotificationType(TaskNotificationType.COMPLETED)
                     .build());
@@ -255,7 +255,7 @@ public class TaskService {
             for (Replicate replicate : task.getReplicates()) {
                 if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
                     notificationService.sendTaskNotification(TaskNotification.builder()
-                            .taskId(task.getId())
+                            .chainTaskId(task.getChainTaskId())
                             .workerAddress(replicate.getWalletAddress())
                             .taskNotificationType(TaskNotificationType.UPLOAD)
                             .build());

@@ -95,7 +95,7 @@ public class Task {
     }
 
     public boolean createNewReplicate(String walletAddress) {
-        return replicates.add(new Replicate(walletAddress, id));
+        return replicates.add(new Replicate(walletAddress, chainTaskId));
     }
 
     public Optional<Replicate> getReplicate(String walletAddress) {

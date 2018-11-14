@@ -44,7 +44,9 @@ public class SignatureService {
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
-                .sign(sign)
+                .signR(sign.getR())
+                .signS(sign.getS())
+                .signV(sign.getV())
                 .build();
     }
 
