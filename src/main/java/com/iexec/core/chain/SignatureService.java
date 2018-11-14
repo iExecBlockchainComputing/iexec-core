@@ -20,7 +20,7 @@ public class SignatureService {
         this.credentialsService = credentialsService;
     }
 
-    String computeAuthorizationHash(String workerWallet, String taskId, String enclaveAddress) {
+    String computeAuthorizationHash(String workerWallet, String chainTaskId, String enclaveAddress) {
 
         // concatenate 3 byte[] fields
         byte[] res = Arrays.concatenate(
