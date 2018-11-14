@@ -25,7 +25,7 @@ public class SignatureService {
         // concatenate 3 byte[] fields
         byte[] res = Arrays.concatenate(
                 BytesUtils.stringToBytes(workerWallet),
-                BytesUtils.stringToBytes(taskId),
+                BytesUtils.stringToBytes(chainTaskId),
                 BytesUtils.stringToBytes(enclaveAddress));
 
         // Hash the result and convert to String
