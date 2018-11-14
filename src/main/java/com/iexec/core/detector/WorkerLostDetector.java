@@ -26,11 +26,11 @@ public class WorkerLostDetector implements Detector {
     @Override
     public void detect() {
         for (Worker worker : workerService.getLostWorkers()) {
-            for (Task task : taskService.getTasks(worker.getTaskIds())) {
+            for (Task task : taskService.getTasksByIds(worker.getTaskIds())) {
                 task.getReplicate(worker.getName()).ifPresent(replicate -> {
                     if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
                         workerService.removeTaskIdFromWorker(task.getId(), worker.getName());
-                        taskService.updateReplicateStatus(task.getId(), worker.getName(), ReplicateStatus.WORKER_LOST);
+                        taskService.updateReplicateStatus(task.getChainTaskId(), worker.getName(), ReplicateStatus.WORKER_LOST);
                     }
                 });
             }

@@ -36,13 +36,13 @@ public class SignatureService {
         return signPrefixedMessage(data, credentialsService.getCredentials().getEcKeyPair());
     }
 
-    public ContributionAuthorization createAuthorization(String workerWallet, String taskId, String enclaveAddress){
-        String hash = computeAuthorizationHash(workerWallet, taskId, enclaveAddress);
+    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveAddress){
+        String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
         Sign.SignatureData sign = signMessage(BytesUtils.stringToBytes(hash));
 
         return ContributionAuthorization.builder()
                 .workerWallet(workerWallet)
-                .taskId(taskId)
+                .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
                 .sign(sign)
                 .build();

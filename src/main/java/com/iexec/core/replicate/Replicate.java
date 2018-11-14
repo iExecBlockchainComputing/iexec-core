@@ -17,10 +17,10 @@ public class Replicate {
     private String walletAddress;
     private String resultSha;
     private String resultUri;
-    private String taskId;
+    private String chainTaskId;
 
-    public Replicate(String walletAddress, String taskId) {
-        this.taskId = taskId;
+    public Replicate(String walletAddress, String chainTaskId) {
+        this.chainTaskId = chainTaskId;
         this.walletAddress = walletAddress;
         this.statusChangeList = new ArrayList<>();
         this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
