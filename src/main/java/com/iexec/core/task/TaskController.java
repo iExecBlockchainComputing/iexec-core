@@ -50,7 +50,7 @@ public class TaskController {
     }
 
 
-    @RequestMapping(method = RequestMethod.POST, path = "/tasks/{taskId}/replicates/updateStatus")
+    @RequestMapping(method = RequestMethod.POST, path = "/tasks/{chainTaskId}/replicates/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable(name = "chainTaskId") String chainTaskId,
                                                 @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
