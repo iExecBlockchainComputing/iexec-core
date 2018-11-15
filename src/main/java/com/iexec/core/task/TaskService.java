@@ -197,7 +197,7 @@ public class TaskService {
 
         if (condition1 && condition2) {
             task.changeStatus(TaskStatus.COMPUTED);
-            task = taskRepository.save(task);
+            taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
 
             requestUpload(task);
@@ -247,7 +247,7 @@ public class TaskService {
     private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
             task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
-            task = taskRepository.save(task);
+            taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
         }
 

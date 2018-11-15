@@ -130,7 +130,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.tryUpdateToRunning(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
@@ -156,7 +156,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.tryUpdateToRunning(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
@@ -181,7 +181,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.tryUpdateToRunning(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
@@ -209,7 +209,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.tryUpdateToRunning(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
@@ -236,7 +236,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryUpdateToComputedAndResultRequest(task);
+        taskService.updateTaskStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         assertThat(lastButOneStatus).isEqualTo(TaskStatus.COMPUTED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
@@ -266,13 +266,100 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryUpdateToComputedAndResultRequest(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
+    }
+
+    @Test
+    public void shouldUpdateToUploadingResult() {//one worker is uploading
+        List<Replicate> replicates = new ArrayList<>();
+        replicates.add(new Replicate("worker1", "chainTaskId"));
+        replicates.add(new Replicate("worker2", "chainTaskId"));
+        replicates.add(new Replicate("worker3", "chainTaskId"));
+        replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
+        replicates.get(2).updateStatus(ReplicateStatus.UPLOADING_RESULT);
+
+        List<TaskStatusChange> dateStatusList = new ArrayList<>();
+        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+
+        Task task = Task.builder()
+                .id("taskId")
+                .chainTaskId("chainTaskId")
+                .commandLine("ls")
+                .nbContributionNeeded(2)
+                .replicates(replicates)
+                .dateStatusList(dateStatusList)
+                .build();
+        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.COMPUTED);
+        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.updateTaskStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOADING_RESULT);
+    }
+
+    @Test
+    public void shouldNotUpdateToUploadingResult() { //no worker is uploading
+        List<Replicate> replicates = new ArrayList<>();
+        replicates.add(new Replicate("worker1", "chainTaskId"));
+        replicates.add(new Replicate("worker2", "chainTaskId"));
+        replicates.add(new Replicate("worker3", "chainTaskId"));
+        replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
+        replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
+
+        List<TaskStatusChange> dateStatusList = new ArrayList<>();
+        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+
+        Task task = Task.builder()
+                .id("taskId")
+                .chainTaskId("chainTaskId")
+                .commandLine("ls")
+                .nbContributionNeeded(2)
+                .replicates(replicates)
+                .dateStatusList(dateStatusList)
+                .build();
+        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.COMPUTED);
+        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.updateTaskStatus(task);
+        assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.UPLOADING_RESULT);
+    }
+
+    @Test
+    public void shouldUpdateToResultUploadedThenCompleted() { //one worker uploaded
+        List<Replicate> replicates = new ArrayList<>();
+        replicates.add(new Replicate("worker1", "chainTaskId"));
+        replicates.add(new Replicate("worker2", "chainTaskId"));
+        replicates.add(new Replicate("worker3", "chainTaskId"));
+        replicates.get(1).updateStatus(ReplicateStatus.COMPUTED);
+        replicates.get(2).updateStatus(ReplicateStatus.RESULT_UPLOADED);
+
+        List<TaskStatusChange> dateStatusList = new ArrayList<>();
+        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+
+        Task task = Task.builder()
+                .id("taskId")
+                .chainTaskId("chainTaskId")
+                .commandLine("ls")
+                .nbContributionNeeded(2)
+                .replicates(replicates)
+                .dateStatusList(dateStatusList)
+                .build();
+        task.changeStatus(TaskStatus.UPLOADING_RESULT);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.updateTaskStatus(task);
+        TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
+        assertThat(lastButOneStatus).isEqualTo(TaskStatus.RESULT_UPLOADED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPLETED);
     }
 
     // at least one UPLOADED
     @Test
-    public void shouldUpdateToUploadingResult() {
+    public void shouldUpdateToResultUploaded() {
         List<Replicate> replicates = new ArrayList<>();
         replicates.add(new Replicate("worker1", "chainTaskId"));
         replicates.add(new Replicate("worker2", "chainTaskId"));
@@ -299,7 +386,7 @@ public class TaskServiceTests {
 
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryUpdateToResultUploaded(task);
+        taskService.updateTaskStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         assertThat(lastButOneStatus).isEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPLETED);
@@ -331,7 +418,7 @@ public class TaskServiceTests {
 
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryUpdateToResultUploaded(task);
+        taskService.updateTaskStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.COMPLETED);
     }
