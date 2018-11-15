@@ -284,6 +284,7 @@ public class TaskServiceTests {
 
         Task task = Task.builder()
                 .id("taskId")
+                .chainTaskId("chainTaskId")
                 .commandLine("ls")
                 .nbContributionNeeded(2)
                 .replicates(replicates)
