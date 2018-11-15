@@ -34,7 +34,7 @@ public class ResultController {
 
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId) {
-        List<Result> results = resultService.getResultByTaskId(chainTaskId);
+        List<Result> results = resultService.getResultByChainTaskId(chainTaskId);
         byte[] zip = null;
         if (!results.isEmpty() && results.get(0) != null) {
             zip = results.get(0).getZip();
