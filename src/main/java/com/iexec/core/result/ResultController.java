@@ -26,19 +26,21 @@ public class ResultController {
                         .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
                         .cmd(model.getCmd())
-                        .zip(model.getZip()).build());
+                        .zip(model.getZip())
+                        .chainTaskId(model.getConsensusHash())
+                        .build());
         return ok(result.getChainTaskId());
     }
 
-    @GetMapping(value = "/results/{taskId}", produces = "application/zip")
-    public ResponseEntity<byte[]> getResult(@PathVariable("taskId") String taskId) {
-        List<Result> results = resultService.getResultByTaskId(taskId);
+    @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
+    public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId) {
+        List<Result> results = resultService.getResultByTaskId(chainTaskId);
         byte[] zip = null;
         if (!results.isEmpty() && results.get(0) != null) {
             zip = results.get(0).getZip();
         }
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=iexec-result-" + taskId)
+                .header("Content-Disposition", "attachment; filename=iexec-result-" + chainTaskId)
                 .body(zip);
     }
 
