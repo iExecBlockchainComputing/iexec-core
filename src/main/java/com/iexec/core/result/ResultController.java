@@ -23,18 +23,18 @@ public class ResultController {
     public ResponseEntity addResult(@RequestBody ResultModel model) {
         Result result = resultService.addResult(
                 Result.builder()
-                        .taskId(model.getTaskId())
+                        .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
                         .cmd(model.getCmd())
                         .zip(model.getZip()).build());
-        return ok(result.getTaskId());
+        return ok(result.getChainTaskId());
     }
 
     @GetMapping(value = "/results/{taskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("taskId") String taskId) {
         List<Result> results = resultService.getResultByTaskId(taskId);
         byte[] zip = null;
-        if (results.size() > 0 && results.get(0) != null) {
+        if (!results.isEmpty() && results.get(0) != null) {
             zip = results.get(0).getZip();
         }
         return ResponseEntity.ok()

@@ -18,7 +18,7 @@ public class ResultService {
 
     public Result addResult(Result result) {
         Result savedResult = resultRepository.save(result);
-        log.info("Result saved in repo [taskId:{}]", savedResult.getTaskId());
+        log.info("Result saved in repo [chainTaskId:{}]", savedResult.getChainTaskId());
         return savedResult;
     }
 
