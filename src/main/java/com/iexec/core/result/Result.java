@@ -9,12 +9,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Result {
+class Result {
 
-    private String taskId;
+    private String chainTaskId;
     private String image;
     private String cmd;
     private String stdout;
     private byte[] zip;
+    private String deterministHash;
 
 }
