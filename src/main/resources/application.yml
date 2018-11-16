@@ -14,6 +14,8 @@ detector:
   resultuploadtimeout.period: 30000
 
 
+
+
 wallet:
   encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
@@ -23,3 +25,7 @@ chain:
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
   hubAddress: ${IEXEC_HUB_ADDRESS:0x537C423A919110BcC8C05ecBDa39Ba8d30192061}
   poolAddress: ${POOL_ADDRESS:0xdBB8eA3FCc53B67521685DFa02d7C06313FdE0aA}
+
+txManager:
+  maxRetry: 3
+  retryDelay: 500 #ms

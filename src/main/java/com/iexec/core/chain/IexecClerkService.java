@@ -1,6 +1,8 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainUtils;
+import com.iexec.common.chain.Contribution;
+import com.iexec.common.chain.ContributionStatus;
 import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
@@ -13,6 +15,7 @@ import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -85,4 +88,16 @@ public class IexecClerkService {
             taskService.addTask(dockerImage, param, 1, chainTaskId);
         }
     }
+
+    public Contribution getContribution(String chainTaskId, String workerWalletAddress){
+        Tuple6<BigInteger, byte[], byte[], String, BigInteger, BigInteger> contributionTuple = null;
+        try {
+            contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Contribution.tuple2Contribution(contributionTuple);
+    }
+
+
 }

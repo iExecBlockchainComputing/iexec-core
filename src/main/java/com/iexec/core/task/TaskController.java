@@ -55,14 +55,9 @@ public class TaskController {
                                                 @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
         log.info("Update replicate status [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]", chainTaskId, replicateStatus, walletAddress);
-        Optional<Replicate> optional = taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
-        if (!optional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
+        taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
 
-        return convertReplicateToModel(optional.get()).
-                <ResponseEntity>map(ResponseEntity::ok)
-                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        return ResponseEntity.ok().build();
 
     }
 

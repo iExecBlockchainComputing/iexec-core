@@ -1,8 +1,11 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.Contribution;
+import com.iexec.common.chain.ContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
+import com.iexec.core.chain.IexecClerkService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -13,8 +16,12 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.isBlockchainStatus;
 import static com.iexec.core.task.TaskStatus.CREATED;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 
@@ -25,13 +32,16 @@ public class TaskService {
     private TaskRepository taskRepository;
     private WorkerService workerService;
     private NotificationService notificationService;
+    private IexecClerkService iexecClerkService;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       IexecClerkService iexecClerkService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
+        this.iexecClerkService = iexecClerkService;
     }
 
     public Task addTask(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
@@ -53,11 +63,11 @@ public class TaskService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
+    public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
         Optional<Task> optional = taskRepository.findByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
             log.warn("No task found for replicate update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
-            return Optional.empty();
+            return;
         }
 
         Task task = optional.get();
@@ -66,9 +76,15 @@ public class TaskService {
                 ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
                 if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                    log.error("The replicate can't be updated to the new status [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                    log.error("The replicate can't be updated to the new status (bad workflow transition) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
                             chainTaskId, walletAddress, currentStatus, newStatus);
-                    return Optional.empty();
+                    return;
+                }
+
+                if (isBlockchainStatus(newStatus) && !isStatusProvedOnChain(chainTaskId, walletAddress, newStatus, 0)) {
+                    log.error("The replicate can't be updated to the new status (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                            chainTaskId, walletAddress, currentStatus, newStatus);
+                    return;
                 }
 
                 replicate.updateStatus(newStatus);
@@ -79,13 +95,53 @@ public class TaskService {
                 // once the replicate status is updated, the task status has to be checked as well
                 updateTaskStatus(task);
 
-                return Optional.of(replicate);
+                return;
 
             }
         }
 
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
-        return Optional.empty();
+    }
+
+    boolean isStatusProvedOnChain(String chainTaskId, String walletAddress, ReplicateStatus wishedReplicateStatus, int tryIndex) {
+        int MAX_RETRY = 3;
+
+        if (tryIndex >= MAX_RETRY) {
+            return false;
+        }
+        tryIndex++;
+
+        Contribution contribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
+        ContributionStatus contributionStatus = contribution.getStatus();
+
+        if (wishedReplicateStatus.equals(ReplicateStatus.CONTRIBUTED)) {
+            if (contributionStatus.equals(ContributionStatus.UNSET)) {
+                return isStatusProvedOnChainWithDelay(chainTaskId, walletAddress, wishedReplicateStatus, tryIndex);
+            } else if (contributionStatus.equals(ContributionStatus.CONTRIBUTED) || contributionStatus.equals(ContributionStatus.REVEALED)) {
+                return true;
+            }
+        } else if (wishedReplicateStatus.equals(ReplicateStatus.REVEALED)) {
+            if (contributionStatus.equals(ContributionStatus.CONTRIBUTED)){
+                return isStatusProvedOnChainWithDelay(chainTaskId, walletAddress, wishedReplicateStatus, tryIndex);
+            } else if (contributionStatus.equals(ContributionStatus.REVEALED)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isStatusProvedOnChainWithDelay(String chainTaskId, String walletAddress, ReplicateStatus newStatus, int tryNb) {
+        return sleep(500L) && isStatusProvedOnChain(chainTaskId, walletAddress, newStatus, tryNb);
+    }
+
+    public static boolean sleep(long ms) {
+        try {
+
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
