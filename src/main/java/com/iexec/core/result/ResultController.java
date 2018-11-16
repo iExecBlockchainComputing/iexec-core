@@ -23,22 +23,24 @@ public class ResultController {
     public ResponseEntity addResult(@RequestBody ResultModel model) {
         Result result = resultService.addResult(
                 Result.builder()
-                        .taskId(model.getTaskId())
+                        .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
                         .cmd(model.getCmd())
-                        .zip(model.getZip()).build());
-        return ok(result.getTaskId());
+                        .zip(model.getZip())
+                        .deterministHash(model.getDeterministHash())
+                        .build());
+        return ok(result.getChainTaskId());
     }
 
-    @GetMapping(value = "/results/{taskId}", produces = "application/zip")
-    public ResponseEntity<byte[]> getResult(@PathVariable("taskId") String taskId) {
-        List<Result> results = resultService.getResultByTaskId(taskId);
+    @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
+    public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId) {
+        List<Result> results = resultService.getResultByChainTaskId(chainTaskId);
         byte[] zip = null;
-        if (results.size() > 0 && results.get(0) != null) {
+        if (!results.isEmpty() && results.get(0) != null) {
             zip = results.get(0).getZip();
         }
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=iexec-result-" + taskId)
+                .header("Content-Disposition", "attachment; filename=iexec-result-" + chainTaskId)
                 .body(zip);
     }
 

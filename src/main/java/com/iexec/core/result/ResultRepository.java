@@ -9,6 +9,6 @@ interface ResultRepository extends MongoRepository<Result, String> {
 
     Optional<Result> findById(String id);
 
-    List<Result> findByTaskId(String taskId);
+    List<Result> findByChainTaskId(String chainTaskId);
 
 }
