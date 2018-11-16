@@ -80,24 +80,21 @@ public class TaskController {
         Task task = taskOptional.get();
 
         // generate contribution authorization
-        ContributionAuthorization authorization = signatureService.createAuthorization(workerWalletAddress, task.getChainTaskId(), workerEnclaveAddress);
+        ContributionAuthorization authorization = signatureService.createAuthorization(
+                workerWalletAddress, task.getChainTaskId(), workerEnclaveAddress);
 
-        return createAvailableReplicateModel(replicate, task, authorization).
+        return createAvailableReplicateModel(task, authorization).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    private Optional<AvailableReplicateModel> createAvailableReplicateModel(Replicate replicate,
-                                                                            Task task,
+    private Optional<AvailableReplicateModel> createAvailableReplicateModel(Task task,
                                                                             ContributionAuthorization contribAuth) {
         return Optional.of(AvailableReplicateModel.builder()
-                .chainTaskId(task.getChainTaskId())
-                .workerAddress(replicate.getWalletAddress())
+                .contributionAuthorization(contribAuth)
                 .dappType(task.getDappType())
                 .dappName(task.getDappName())
                 .cmd(task.getCommandLine())
-                .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
-                .contributionAuthorization(contribAuth)
                 .build()
         );
     }
