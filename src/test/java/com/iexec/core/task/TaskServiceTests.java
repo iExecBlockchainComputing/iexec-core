@@ -83,7 +83,7 @@ public class TaskServiceTests {
                 .nbContributionNeeded(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("dappName", "commandLine", 2, chainTaskId);
+        Task saved = taskService.addTask("dappName", "commandLine", 2, chainTaskId, 2);
         assertThat(saved).isNotNull();
         assertThat(saved).isEqualTo(task);
     }

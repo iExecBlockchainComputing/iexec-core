@@ -52,9 +52,9 @@ public class TaskService {
         return true;
     }
 
-    public Task addTask(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
+    public Task addTask(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId, int trust) {
         log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
-        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded, chainTaskId));
+        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded, chainTaskId, trust));
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {

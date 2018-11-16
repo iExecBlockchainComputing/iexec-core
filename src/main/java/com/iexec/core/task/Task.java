@@ -55,6 +55,11 @@ public class Task {
         this.chainTaskId = chainTaskId;
     }
 
+    public Task(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId, int trust) {
+        this(dappName, commandLine, nbContributionNeeded, chainTaskId);
+        this.trust = trust;
+    }
+
     public void setId(String id) {
         this.id = id;
     }

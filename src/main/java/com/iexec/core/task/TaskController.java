@@ -35,7 +35,8 @@ public class TaskController {
     public ResponseEntity postTask(@RequestParam(name = "dappName") String dappName,
                                    @RequestParam(name = "commandLine") String commandLine,
                                    @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
-        Task task = taskService.addTask(dappName, commandLine, nbContributionNeeded, "");
+        //TODO change hardcoded trust
+        Task task = taskService.addTask(dappName, commandLine, nbContributionNeeded, "", 1);
         log.info("New task created [taskId:{}]", task.getId());
         return ok(task.getId());
     }
