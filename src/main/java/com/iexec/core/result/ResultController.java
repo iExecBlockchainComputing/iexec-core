@@ -27,7 +27,7 @@ public class ResultController {
                         .image(model.getImage())
                         .cmd(model.getCmd())
                         .zip(model.getZip())
-                        .chainTaskId(model.getConsensusHash())
+                        .deterministHash(model.getDeterministHash())
                         .build());
         return ok(result.getChainTaskId());
     }
