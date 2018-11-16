@@ -1,8 +1,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainUtils;
-import com.iexec.common.chain.Contribution;
-import com.iexec.common.chain.ContributionStatus;
 import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
@@ -98,6 +96,12 @@ public class IexecClerkService {
         }
         return Contribution.tuple2Contribution(contributionTuple);
     }
+
+    public TransactionReceipt consensus(String chainTaskId, String consensus) throws Exception {
+        return iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
+                BytesUtils.stringToBytes(consensus)).send();
+    }
+
 
 
 }

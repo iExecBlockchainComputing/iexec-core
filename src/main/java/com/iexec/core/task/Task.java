@@ -35,7 +35,9 @@ public class Task {
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
     private int nbContributionNeeded;
+    private int trust;
     private String uploadingWorkerWalletAddress;
+    private String consensus;
 
     public Task(String dappName, String commandLine, int nbContributionNeeded) {
         this.dappType = DappType.DOCKER;
@@ -83,6 +85,10 @@ public class Task {
 
     public void setUploadingWorkerWalletAddress(String uploadingWorkerWalletAddress) {
         this.uploadingWorkerWalletAddress = uploadingWorkerWalletAddress;
+    }
+
+    public void setTrust(int trust) {
+        this.trust = trust;
     }
 
     public void setCurrentStatus(TaskStatus status) {
@@ -153,5 +159,9 @@ public class Task {
             }
         }
         return nbReplicates;
+    }
+
+    public void setConsensus(String consensus) {
+        this.consensus = consensus;
     }
 }
