@@ -56,13 +56,15 @@ public class IexecClerkService {
         return null;
     }
 
-    public String consensus(String chainTaskId, String consensus) throws Exception {
+    public boolean consensus(String chainTaskId, String consensus) throws Exception {
         TransactionReceipt receipt = iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
                 BytesUtils.stringToBytes(consensus)).send();
         if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()){
-            return BytesUtils.bytesToString(iexecHub.getTaskConsensusEvents(receipt).get(0).taskid);
+            log.info("Set consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
+            //return BytesUtils.bytesToString(iexecHub.getTaskConsensusEvents(receipt).get(0).taskid);
+            return true;
         }
-        return null;
+        return false;
     }
 
 

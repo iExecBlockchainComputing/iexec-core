@@ -229,12 +229,10 @@ public class TaskService {
                 tryUpdateToRunning(task);
                 break;
             case RUNNING:
-                tryUpdateToComputed(task);
-                break;
-            case COMPUTED:
+                //tryUpdateToComputed(task);
+                tryUpdateToContributed(task);
                 break;
             case CONTRIBUTED:
-                tryUpdateToContributed(task);
                 break;
             case UPLOAD_RESULT_REQUESTED:
                 tryUpdateToUploadingResult(task);
@@ -294,12 +292,13 @@ public class TaskService {
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), CONTRIBUTED);
 
             try {
-                iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus());
-                //TODO call only winners?
-                notificationService.sendTaskNotification(TaskNotification.builder()
-                        .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
-                        .chainTaskId(task.getChainTaskId()).build()
-                );
+                if (iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus())){
+                    //TODO call only winners?
+                    notificationService.sendTaskNotification(TaskNotification.builder()
+                            .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                            .chainTaskId(task.getChainTaskId()).build()
+                    );
+                }
             } catch (Exception e) {
                 log.error("Failed to consensus [taskId:{}, consensus:{}]", task.getId(), task.getConsensus());
             }
