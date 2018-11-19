@@ -24,6 +24,7 @@ import static com.iexec.common.replicate.ReplicateStatus.isBlockchainStatus;
 import static com.iexec.core.chain.ContributionUtils.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.now;
+import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
@@ -42,16 +43,6 @@ public class TaskService {
         this.workerService = workerService;
         this.notificationService = notificationService;
         this.iexecClerkService = iexecClerkService;
-    }
-
-    public static boolean sleep(long ms) {
-        try {
-
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return true;
     }
 
     public Task addTask(String dappName, String commandLine, int trust, String chainTaskId) {

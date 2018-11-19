@@ -20,5 +20,15 @@ public class DateTimeUtils {
         return new Date().getTime() / 1000;
     }
 
+    public static boolean sleep(long ms) {
+        try {
+
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
 
 }

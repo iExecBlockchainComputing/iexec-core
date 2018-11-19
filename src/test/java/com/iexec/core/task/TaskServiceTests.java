@@ -17,9 +17,9 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 
-import static com.iexec.core.task.TaskService.sleep;
 import static com.iexec.core.task.TaskStatus.CREATED;
 import static com.iexec.core.task.TaskStatus.RUNNING;
+import static com.iexec.core.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
