@@ -4,6 +4,7 @@ package com.iexec.core.worker;
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerConfigurationModel;
 import com.iexec.core.chain.ChainConfig;
+import com.iexec.core.chain.CredentialsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +22,14 @@ public class WorkerController {
 
     private WorkerService workerService;
     private ChainConfig chainConfig;
+    private CredentialsService credentialsService;
 
     public WorkerController(WorkerService workerService,
-                            ChainConfig chainConfig) {
+                            ChainConfig chainConfig,
+                            CredentialsService credentialsService) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
+        this.credentialsService = credentialsService;
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
@@ -59,6 +63,7 @@ public class WorkerController {
                 .blockchainURL(chainConfig.getPublicChainAddress())
                 .iexecHubAddress(chainConfig.getHubAddress())
                 .workerPoolAddress(chainConfig.getPoolAddress())
+                .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .build();
 
         return ok(config);
