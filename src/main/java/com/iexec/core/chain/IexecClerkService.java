@@ -4,7 +4,6 @@ import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -65,6 +64,15 @@ public class IexecClerkService {
             return true;
         }
         return false;
+    }
+
+    public ChainTask getChainTask(String chainTaskId) {
+        try {
+            return ChainTask.tuple2ChainTask(iexecHub.viewTaskABILegacy(BytesUtils.stringToBytes(chainTaskId)).send());
+        } catch (Exception e) {
+            log.error("Failed to view chainTask [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
+        }
+        return null;
     }
 
 

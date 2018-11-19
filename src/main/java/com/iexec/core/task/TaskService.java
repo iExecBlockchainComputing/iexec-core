@@ -3,9 +3,7 @@ package com.iexec.core.task;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
-import com.iexec.core.chain.Contribution;
-import com.iexec.core.chain.ContributionStatus;
-import com.iexec.core.chain.IexecClerkService;
+import com.iexec.core.chain.*;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -19,8 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.isBlockchainStatus;
-import static com.iexec.core.chain.ContributionUtils.getHash2CredibilityClusters;
-import static com.iexec.core.chain.ContributionUtils.sortClustersByCredibility;
+import static com.iexec.core.chain.ContributionUtils.*;
 import static com.iexec.core.task.TaskStatus.*;
 
 @Slf4j
@@ -52,9 +49,9 @@ public class TaskService {
         return true;
     }
 
-    public Task addTask(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId, int trust) {
-        log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
-        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded, chainTaskId, trust));
+    public Task addTask(String dappName, String commandLine, int trust, String chainTaskId) {
+        log.info("Adding new task [commandLine:{}, trust:{}]", commandLine, trust);
+        return taskRepository.save(new Task(dappName, commandLine, trust, chainTaskId));
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -94,12 +91,7 @@ public class TaskService {
                         if (newStatus.equals(ReplicateStatus.CONTRIBUTED)) {
                             Contribution contribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
                             replicate.setResultHash(contribution.getResultHash());
-                            int s = contribution.getScore();
-                            /*
-                             *  should be :   c(s)=1-/(1-s)
-                             *  considering   :   c(s)= 1
-                             */
-                            replicate.setCredibility(1);
+                            replicate.setCredibility(scoreToCredibility(contribution.getScore()));
                         } else if ((newStatus.equals(ReplicateStatus.REVEALED))) {
 
                         }
@@ -229,7 +221,6 @@ public class TaskService {
                 tryUpdateToRunning(task);
                 break;
             case RUNNING:
-                //tryUpdateToComputed(task);
                 tryUpdateToContributed(task);
                 break;
             case CONTRIBUTED:
@@ -251,7 +242,7 @@ public class TaskService {
 
     void tryUpdateToRunning(Task task) {
         boolean condition1 = task.getNbReplicatesStatusEqualTo(ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getNbContributionNeeded();
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getTrust();
         boolean condition3 = task.getCurrentStatus().equals(CREATED);
 
         if (condition1 && condition2 && condition3) {
@@ -262,19 +253,19 @@ public class TaskService {
     }
 
     void tryUpdateToComputed(Task task) {
-        boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded();
+        //TODO requestUpload(task); before finalize
+
+        boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getTrust();
         boolean condition2 = task.getCurrentStatus().equals(RUNNING);
 
         if (condition1 && condition2) {
             task.changeStatus(COMPUTED);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), COMPUTED);
-
-            //requestUpload(task);
         }
     }
 
-    private void tryUpdateToContributed(Task task) {
+    void tryUpdateToContributed(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RUNNING);
 
         Map<String, Integer> sortedClusters = getHash2CredibilityClusters(task);
@@ -282,18 +273,21 @@ public class TaskService {
         Map.Entry<String, Integer> bestCluster = sortedClusters.entrySet().iterator().next();
         Integer bestCredibility = bestCluster.getValue();
         String consensus = bestCluster.getKey();
+        boolean condition2 = bestCredibility >= trustToCredibility(task.getTrust());
 
-        boolean condition2 = bestCredibility >= task.getTrust();
+        ChainTask chainTask = iexecClerkService.getChainTask(task.getChainTaskId());
+        boolean condition3 = chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
+        boolean condition4 = now() < chainTask.getConsensusDeadline();
 
-        if (condition1 && condition2) {
+        if (condition1 && condition2 && condition3 && condition4) {
             task.changeStatus(CONTRIBUTED);
             task.setConsensus(consensus);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), CONTRIBUTED);
 
             try {
-                if (iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus())){
-                    //TODO call only winners?
+                if (iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus())) {
+                    //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
                             .chainTaskId(task.getChainTaskId()).build()
@@ -302,6 +296,9 @@ public class TaskService {
             } catch (Exception e) {
                 log.error("Failed to consensus [taskId:{}, consensus:{}]", task.getId(), task.getConsensus());
             }
+        } else {
+            log.info("Unsatisfied check(s) for consensus [condition1:{}, condition2:{}, condition3:{}, condition4:{}, ] ",
+                    condition1, condition2, condition3, condition4);
         }
     }
 

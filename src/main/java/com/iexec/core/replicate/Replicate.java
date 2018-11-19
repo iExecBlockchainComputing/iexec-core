@@ -55,6 +55,6 @@ public class Replicate {
     }
 
     public void setCredibility(int credibility) {
-        this.credibility = credibility;
+        this.credibility = credibility + 1;
     }
 }

@@ -76,7 +76,7 @@ public class IexecWatcherService {
                 String chainTaskId = iexecClerkService.initializeTask(ordersMatchedEvent.dealid, iter);
                 // TODO: contribution  is hard coded for now
                 // TODO: hardcoded trust
-                taskService.addTask(dockerImage, dealParams.get(iter), 1, chainTaskId, 1);
+                taskService.addTask(dockerImage, dealParams.get(iter), 1, chainTaskId);
             }
 
         } catch (Exception e) {

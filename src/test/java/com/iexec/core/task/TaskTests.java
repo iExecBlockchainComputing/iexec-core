@@ -157,6 +157,7 @@ public class TaskTests {
 
         task.createNewReplicate(WALLET_ADDRESS_1);
         task.createNewReplicate(WALLET_ADDRESS_2);
+        task.createNewReplicate(WALLET_ADDRESS_3);
 
         assertThat(task.needMoreReplicates()).isFalse();
     }
