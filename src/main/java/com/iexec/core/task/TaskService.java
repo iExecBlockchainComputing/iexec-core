@@ -1,9 +1,13 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
-import com.iexec.core.chain.*;
+import com.iexec.core.chain.Contribution;
+import com.iexec.core.chain.ContributionStatus;
+import com.iexec.core.chain.IexecClerkService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -19,6 +23,7 @@ import java.util.*;
 import static com.iexec.common.replicate.ReplicateStatus.isBlockchainStatus;
 import static com.iexec.core.chain.ContributionUtils.*;
 import static com.iexec.core.task.TaskStatus.*;
+import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service
@@ -252,19 +257,6 @@ public class TaskService {
         }
     }
 
-    void tryUpdateToComputed(Task task) {
-        //TODO requestUpload(task); before finalize
-
-        boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getTrust();
-        boolean condition2 = task.getCurrentStatus().equals(RUNNING);
-
-        if (condition1 && condition2) {
-            task.changeStatus(COMPUTED);
-            taskRepository.save(task);
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), COMPUTED);
-        }
-    }
-
     void tryUpdateToContributed(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RUNNING);
 
@@ -366,14 +358,6 @@ public class TaskService {
                 }
             }
         }
-    }
-
-    private void requestReveal(Task task) {
-        if (task.getCurrentStatus().equals(CONTRIBUTED)) {
-            //iexecClerkService.
-        }
-
-
     }
 
 }

@@ -1,5 +1,6 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
@@ -36,8 +37,7 @@ public class IexecClerkService {
     }
 
 
-
-    public Contribution getContribution(String chainTaskId, String workerWalletAddress){
+    public Contribution getContribution(String chainTaskId, String workerWalletAddress) {
         Tuple6<BigInteger, byte[], byte[], String, BigInteger, BigInteger> contributionTuple = null;
         try {
             contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
@@ -58,7 +58,7 @@ public class IexecClerkService {
     public boolean consensus(String chainTaskId, String consensus) throws Exception {
         TransactionReceipt receipt = iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
                 BytesUtils.stringToBytes(consensus)).send();
-        if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()){
+        if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()) {
             log.info("Set consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
             //return BytesUtils.bytesToString(iexecHub.getTaskConsensusEvents(receipt).get(0).taskid);
             return true;
@@ -74,7 +74,6 @@ public class IexecClerkService {
         }
         return null;
     }
-
 
 
 }

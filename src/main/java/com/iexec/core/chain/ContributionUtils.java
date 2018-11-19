@@ -3,7 +3,6 @@ package com.iexec.core.chain;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.task.Task;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,11 +18,11 @@ public class ContributionUtils {
 
     public static Map<String, Integer> getHash2CredibilityClusters(Task task) {
         Map<String, Integer> resultHashToC = new HashMap<>();
-        for (Replicate replicate: task.getReplicates()){
+        for (Replicate replicate : task.getReplicates()) {
             String hash = replicate.getResultHash();
             int c = replicate.getCredibility();
 
-            if (!resultHashToC.containsKey(hash)){
+            if (!resultHashToC.containsKey(hash)) {
                 resultHashToC.put(hash, c);
             } else {
                 Integer totalC = resultHashToC.get(hash);
@@ -52,22 +51,4 @@ public class ContributionUtils {
         return credibility;
     }
 
-    public static long now() {
-        return new Date().getTime() / 1000;
-    }
-
-    public static void main(String[] args) {
-        //TODO move to tests
-        Map<String, Integer> map = new HashMap<>();
-        map.put("0x2", 3);
-        map.put("0x4", 1);
-        map.put("0x1", 1);
-        map.put("0x3", 5);
-
-        map = sortClustersByCredibility(map);
-
-        for (String hash: map.keySet()){
-            System.out.println(hash + " " + map.get(hash));
-        }
-    }
 }

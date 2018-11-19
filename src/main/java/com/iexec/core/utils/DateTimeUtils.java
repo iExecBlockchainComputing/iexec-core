@@ -16,4 +16,9 @@ public class DateTimeUtils {
         return calendar.getTime();
     }
 
+    public static long now() {
+        return new Date().getTime() / 1000;
+    }
+
+
 }

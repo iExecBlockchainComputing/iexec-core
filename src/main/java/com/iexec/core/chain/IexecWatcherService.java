@@ -3,8 +3,6 @@ package com.iexec.core.chain;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
-import com.iexec.common.contract.generated.IexecHubABILegacy;
-import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +10,7 @@ import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple6;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
@@ -31,7 +26,6 @@ public class IexecWatcherService {
 
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
-    private final IexecHubABILegacy iexecHub;
     private final Credentials credentials;
     private final Web3j web3j;
 
@@ -45,7 +39,6 @@ public class IexecWatcherService {
         this.credentials = credentialsService.getCredentials();
         this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
-        this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
         this.iexecClerkService = iexecClerkService;
 
         startWatchers();
@@ -83,9 +76,6 @@ public class IexecWatcherService {
             e.printStackTrace();
         }
     }
-
-
-
 
 
 }
