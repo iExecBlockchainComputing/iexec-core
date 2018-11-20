@@ -1,5 +1,7 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
@@ -15,7 +17,9 @@ import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
 
+import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
+import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
@@ -37,15 +41,59 @@ public class IexecClerkService {
     }
 
 
-    public Contribution getContribution(String chainTaskId, String workerWalletAddress) {
+    public ChainContribution getContribution(String chainTaskId, String workerWalletAddress) {
         Tuple6<BigInteger, byte[], byte[], String, BigInteger, BigInteger> contributionTuple = null;
         try {
             contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return Contribution.tuple2Contribution(contributionTuple);
+        return ChainContribution.tuple2Contribution(contributionTuple);
     }
+
+    public boolean checkContributionStatusMultipleTimes(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+        return checkContributionStatusRecursivelyWithDelay(chainTaskId, walletAddress, statusToCheck);
+    }
+
+    private boolean checkContributionStatusRecursivelyWithDelay(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+        return sleep(500) && checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, 0);
+    }
+
+    private boolean checkContributionStatusRecursively(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck, int tryIndex) {
+        int MAX_RETRY = 3;
+
+        if (tryIndex >= MAX_RETRY) {
+            return false;
+        }
+        tryIndex++;
+
+        ChainContribution onChainContribution = getContribution(chainTaskId, walletAddress);
+        if (onChainContribution != null) {
+            ChainContributionStatus onChainStatus = onChainContribution.getStatus();
+            switch (statusToCheck) {
+                case CONTRIBUTED:
+                    if (onChainStatus.equals(UNSET)) { // should wait
+                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                    } else if (onChainStatus.equals(CONTRIBUTED) || onChainStatus.equals(REVEALED)) { // has at least contributed
+                        return true;
+                    } else {
+                        return false;
+                    }
+                case REVEALED:
+                    if (onChainStatus.equals(CONTRIBUTED)) { // should wait
+                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                    } else if (onChainStatus.equals(REVEALED)) { // has at least revealed
+                        return true;
+                    } else {
+                        return false;
+                    }
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
+
 
     public String initializeTask(byte[] dealId, int numTask) throws Exception {
         TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(numTask)).send();

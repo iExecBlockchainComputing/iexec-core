@@ -1,12 +1,12 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
-import com.iexec.core.chain.Contribution;
-import com.iexec.core.chain.ContributionStatus;
 import com.iexec.core.chain.IexecClerkService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
@@ -20,11 +20,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-import static com.iexec.common.replicate.ReplicateStatus.isBlockchainStatus;
+import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
 import static com.iexec.core.chain.ContributionUtils.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.now;
-import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
@@ -82,15 +81,10 @@ public class TaskService {
                     return;
                 }
 
-                if (isBlockchainStatus(newStatus)) {
-                    if (isStatusProvedOnChain(chainTaskId, walletAddress, newStatus, 0)) {
-                        if (newStatus.equals(ReplicateStatus.CONTRIBUTED)) {
-                            Contribution contribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
-                            replicate.setResultHash(contribution.getResultHash());
-                            replicate.setCredibility(scoreToCredibility(contribution.getScore()));
-                        } else if ((newStatus.equals(ReplicateStatus.REVEALED))) {
-
-                        }
+                ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
+                if (wishedChainStatus != null) {
+                    if (iexecClerkService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
+                        handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
                     } else {
                         log.error("The replicate can't be updated to the new status (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
                                 chainTaskId, walletAddress, currentStatus, newStatus);
@@ -114,35 +108,18 @@ public class TaskService {
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
     }
 
-    boolean isStatusProvedOnChain(String chainTaskId, String walletAddress, ReplicateStatus wishedReplicateStatus, int tryIndex) {
-        int MAX_RETRY = 3;
-
-        if (tryIndex >= MAX_RETRY) {
-            return false;
+    public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
+        ChainContribution onChainContribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
+        switch (wishedChainStatus) {
+            case CONTRIBUTED:
+                replicate.setResultHash(onChainContribution.getResultHash());
+                replicate.setCredibility(scoreToCredibility(onChainContribution.getScore()));
+                break;
+            case REVEALED:
+                break;
+            default:
+                break;
         }
-        tryIndex++;
-
-        Contribution contribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
-        ContributionStatus contributionStatus = contribution.getStatus();
-
-        if (wishedReplicateStatus.equals(ReplicateStatus.CONTRIBUTED)) {
-            if (contributionStatus.equals(ContributionStatus.UNSET)) {
-                return isStatusProvedOnChainWithDelay(chainTaskId, walletAddress, wishedReplicateStatus, tryIndex);
-            } else if (contributionStatus.equals(ContributionStatus.CONTRIBUTED) || contributionStatus.equals(ContributionStatus.REVEALED)) {
-                return true;
-            }
-        } else if (wishedReplicateStatus.equals(ReplicateStatus.REVEALED)) {
-            if (contributionStatus.equals(ContributionStatus.CONTRIBUTED)) {
-                return isStatusProvedOnChainWithDelay(chainTaskId, walletAddress, wishedReplicateStatus, tryIndex);
-            } else if (contributionStatus.equals(ContributionStatus.REVEALED)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isStatusProvedOnChainWithDelay(String chainTaskId, String walletAddress, ReplicateStatus newStatus, int tryNb) {
-        return sleep(500) && isStatusProvedOnChain(chainTaskId, walletAddress, newStatus, tryNb);
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
