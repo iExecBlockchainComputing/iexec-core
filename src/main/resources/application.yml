@@ -14,6 +14,8 @@ detector:
   resultuploadtimeout.period: 30000
 
 
+
+
 wallet:
   encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}

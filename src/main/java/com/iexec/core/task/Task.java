@@ -34,22 +34,23 @@ public class Task {
     private TaskStatus currentStatus;
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
-    private int nbContributionNeeded;
+    private int trust;
     private String uploadingWorkerWalletAddress;
+    private String consensus;
 
-    public Task(String dappName, String commandLine, int nbContributionNeeded) {
+    public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;
         this.dappName = dappName;
         this.commandLine = commandLine;
-        this.nbContributionNeeded = nbContributionNeeded;
+        this.trust = trust;
         this.dateStatusList = new ArrayList<>();
         this.dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
         this.currentStatus = TaskStatus.CREATED;
         this.replicates = new ArrayList<>();
     }
 
-    public Task(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
-        this(dappName, commandLine, nbContributionNeeded);
+    public Task(String dappName, String commandLine, int trust, String chainTaskId) {
+        this(dappName, commandLine, trust);
         this.chainTaskId = chainTaskId;
     }
 
@@ -77,8 +78,8 @@ public class Task {
         this.replicates = replicates;
     }
 
-    public void setNbContributionNeeded(int nbContributionNeeded) {
-        this.nbContributionNeeded = nbContributionNeeded;
+    public void setTrust(int trust) {
+        this.trust = trust;
     }
 
     public void setUploadingWorkerWalletAddress(String uploadingWorkerWalletAddress) {
@@ -115,7 +116,7 @@ public class Task {
                 nbValidReplicates++;
             }
         }
-        return nbValidReplicates < nbContributionNeeded;
+        return nbValidReplicates < trust;
     }
 
     public boolean hasWorkerAlreadyContributed(String walletAddress) {
@@ -153,5 +154,9 @@ public class Task {
             }
         }
         return nbReplicates;
+    }
+
+    public void setConsensus(String consensus) {
+        this.consensus = consensus;
     }
 }

@@ -16,4 +16,19 @@ public class DateTimeUtils {
         return calendar.getTime();
     }
 
+    public static long now() {
+        return new Date().getTime();
+    }
+
+    public static boolean sleep(long ms) {
+        try {
+
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+
 }

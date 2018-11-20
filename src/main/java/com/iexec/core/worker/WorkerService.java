@@ -75,4 +75,10 @@ public class WorkerService {
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
         return workerRepository.findByLastAliveDateBefore(oneMinuteAgo);
     }
+
+    // worker is considered alive if it ping after 1 minute
+    public List<Worker> getAliveWorkers() {
+        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
+        return workerRepository.findByLastAliveDateAfter(oneMinuteAgo);
+    }
 }

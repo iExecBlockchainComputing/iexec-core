@@ -23,4 +23,5 @@ public class ChainConfig {
 
     @Value("${chain.poolAddress}")
     private String poolAddress;
+
 }

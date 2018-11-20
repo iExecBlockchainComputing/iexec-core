@@ -18,6 +18,8 @@ public class Replicate {
     private String resultSha;
     private String resultUri;
     private String chainTaskId;
+    private String resultHash;
+    private int credibility;
 
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;
@@ -38,5 +40,21 @@ public class Replicate {
 
     public boolean updateStatus(ReplicateStatus newStatus) {
         return statusChangeList.add(new ReplicateStatusChange(newStatus));
+    }
+
+    public String getResultHash() {
+        return resultHash;
+    }
+
+    public void setResultHash(String resultHash) {
+        this.resultHash = resultHash;
+    }
+
+    public int getCredibility() {
+        return credibility;
+    }
+
+    public void setCredibility(int credibility) {
+        this.credibility = credibility + 1;
     }
 }

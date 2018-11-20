@@ -34,8 +34,9 @@ public class TaskController {
     @PostMapping("/tasks")
     public ResponseEntity postTask(@RequestParam(name = "dappName") String dappName,
                                    @RequestParam(name = "commandLine") String commandLine,
-                                   @RequestParam(name = "nbContributionNeeded") int nbContributionNeeded) {
-        Task task = taskService.addTask(dappName, commandLine, nbContributionNeeded, "");
+                                   @RequestParam(name = "trust") int trust) {
+        //TODO change hardcoded trust
+        Task task = taskService.addTask(dappName, commandLine, 1, "");
         log.info("New task created [taskId:{}]", task.getId());
         return ok(task.getId());
     }
@@ -55,14 +56,9 @@ public class TaskController {
                                                 @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
         log.info("Update replicate status [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]", chainTaskId, replicateStatus, walletAddress);
-        Optional<Replicate> optional = taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
-        if (!optional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
+        taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
 
-        return convertReplicateToModel(optional.get()).
-                <ResponseEntity>map(ResponseEntity::ok)
-                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        return ResponseEntity.ok().build();
 
     }
 

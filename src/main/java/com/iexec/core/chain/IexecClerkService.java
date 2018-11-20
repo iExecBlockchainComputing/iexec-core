@@ -1,31 +1,29 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainUtils;
-import com.iexec.common.contract.generated.Dapp;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple6;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 
+import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
+import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
 public class IexecClerkService {
-
-    // outside services
-    // TODO: this should be replaced by DealService ?
-    private final TaskService taskService;
 
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
@@ -35,54 +33,94 @@ public class IexecClerkService {
 
     @Autowired
     public IexecClerkService(CredentialsService credentialsService,
-                             ChainConfig chainConfig,
-                             TaskService taskService) {
-        this.taskService = taskService;
-
+                             ChainConfig chainConfig) {
         this.credentials = credentialsService.getCredentials();
         this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
-
-        startWatchers();
     }
 
 
-    private void startWatchers() {
-        iexecClerk.ordersMatchedEventObservable(DefaultBlockParameterName.EARLIEST, DefaultBlockParameterName.LATEST)
-                .subscribe(this::onOrderMatchedEvents);
-    }
-
-    private void onOrderMatchedEvents(IexecClerkABILegacy.OrdersMatchedEventResponse ordersMatchedEvent) {
+    public ChainContribution getContribution(String chainTaskId, String workerWalletAddress) {
+        Tuple6<BigInteger, byte[], byte[], String, BigInteger, BigInteger> contributionTuple = null;
         try {
-            ChainDeal chainDeal = ChainHelpers.getChainDeal(iexecClerk, ordersMatchedEvent.dealid);
-
-            Dapp dapp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
-            log.info("Received an order match, trigger a computation [dappName:{}]", ChainHelpers.getDappName(dapp));
-
-            String dockerImage = ChainHelpers.getDockerImage(dapp);
-            ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
-
-            // get range of tasks in the deal
-            int start = chainDeal.botFirst.intValue();
-            int end = chainDeal.botFirst.intValue() + chainDeal.botSize.intValue();
-
-            // initialize all tasks in the deal
-            for (int iter = start; iter < end; iter++) {
-                initializeTask(ordersMatchedEvent.dealid, iter, dealParams.get(iter), dockerImage);
-            }
-
+            contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return ChainContribution.tuple2Contribution(contributionTuple);
     }
 
-    private void initializeTask(byte[] dealId, int numTask, String param, String dockerImage) throws Exception {
+    public boolean checkContributionStatusMultipleTimes(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+        return checkContributionStatusRecursivelyWithDelay(chainTaskId, walletAddress, statusToCheck);
+    }
+
+    private boolean checkContributionStatusRecursivelyWithDelay(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+        return sleep(500) && checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, 0);
+    }
+
+    private boolean checkContributionStatusRecursively(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck, int tryIndex) {
+        int MAX_RETRY = 3;
+
+        if (tryIndex >= MAX_RETRY) {
+            return false;
+        }
+        tryIndex++;
+
+        ChainContribution onChainContribution = getContribution(chainTaskId, walletAddress);
+        if (onChainContribution != null) {
+            ChainContributionStatus onChainStatus = onChainContribution.getStatus();
+            switch (statusToCheck) {
+                case CONTRIBUTED:
+                    if (onChainStatus.equals(UNSET)) { // should wait
+                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                    } else if (onChainStatus.equals(CONTRIBUTED) || onChainStatus.equals(REVEALED)) { // has at least contributed
+                        return true;
+                    } else {
+                        return false;
+                    }
+                case REVEALED:
+                    if (onChainStatus.equals(CONTRIBUTED)) { // should wait
+                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                    } else if (onChainStatus.equals(REVEALED)) { // has at least revealed
+                        return true;
+                    } else {
+                        return false;
+                    }
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
+
+
+    public String initializeTask(byte[] dealId, int numTask) throws Exception {
         TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(numTask)).send();
         if (!iexecHub.getTaskInitializeEvents(res).isEmpty()) {
-            String chainTaskId = BytesUtils.bytesToString(iexecHub.getTaskInitializeEvents(res).get(0).taskid);
-            // TODO: contribution is hard coded for now
-            taskService.addTask(dockerImage, param, 1, chainTaskId);
+            return BytesUtils.bytesToString(iexecHub.getTaskInitializeEvents(res).get(0).taskid);
         }
+        return null;
     }
+
+    public boolean consensus(String chainTaskId, String consensus) throws Exception {
+        TransactionReceipt receipt = iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
+                BytesUtils.stringToBytes(consensus)).send();
+        if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()) {
+            log.info("Set consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
+            return true;
+        }
+        return false;
+    }
+
+    public ChainTask getChainTask(String chainTaskId) {
+        try {
+            return ChainTask.tuple2ChainTask(iexecHub.viewTaskABILegacy(BytesUtils.stringToBytes(chainTaskId)).send());
+        } catch (Exception e) {
+            log.error("Failed to view chainTask [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
+        }
+        return null;
+    }
+
+
 }

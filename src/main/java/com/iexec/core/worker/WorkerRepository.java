@@ -13,4 +13,7 @@ interface WorkerRepository extends MongoRepository<Worker, String> {
 
     @Query("{'lastAliveDate': {$lt: ?0}}")
     List<Worker> findByLastAliveDateBefore(Date date);
+
+    @Query("{'lastAliveDate': {$gt: ?0}}")
+    List<Worker> findByLastAliveDateAfter(Date date);
 }

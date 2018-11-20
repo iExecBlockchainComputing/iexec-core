@@ -1,8 +1,13 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
+import com.iexec.core.chain.IexecClerkService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -15,8 +20,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-import static com.iexec.core.task.TaskStatus.CREATED;
-import static com.iexec.core.task.TaskStatus.RUNNING;
+import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
+import static com.iexec.core.chain.ContributionUtils.*;
+import static com.iexec.core.task.TaskStatus.*;
+import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service
@@ -25,18 +32,21 @@ public class TaskService {
     private TaskRepository taskRepository;
     private WorkerService workerService;
     private NotificationService notificationService;
+    private IexecClerkService iexecClerkService;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       IexecClerkService iexecClerkService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
+        this.iexecClerkService = iexecClerkService;
     }
 
-    public Task addTask(String dappName, String commandLine, int nbContributionNeeded, String chainTaskId) {
-        log.info("Adding new task [commandLine:{}, nbContributionNeeded:{}]", commandLine, nbContributionNeeded);
-        return taskRepository.save(new Task(dappName, commandLine, nbContributionNeeded, chainTaskId));
+    public Task addTask(String dappName, String commandLine, int trust, String chainTaskId) {
+        log.info("Adding new task [commandLine:{}, trust:{}]", commandLine, trust);
+        return taskRepository.save(new Task(dappName, commandLine, trust, chainTaskId));
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -53,11 +63,11 @@ public class TaskService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
+    public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
         Optional<Task> optional = taskRepository.findByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
             log.warn("No task found for replicate update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
-            return Optional.empty();
+            return;
         }
 
         Task task = optional.get();
@@ -66,9 +76,20 @@ public class TaskService {
                 ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
                 if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                    log.error("The replicate can't be updated to the new status [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                    log.error("The replicate can't be updated to the new status (bad workflow transition) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
                             chainTaskId, walletAddress, currentStatus, newStatus);
-                    return Optional.empty();
+                    return;
+                }
+
+                ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
+                if (wishedChainStatus != null) {
+                    if (iexecClerkService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
+                        handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
+                    } else {
+                        log.error("The replicate can't be updated to the new status (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
+                                chainTaskId, walletAddress, currentStatus, newStatus);
+                        return;
+                    }
                 }
 
                 replicate.updateStatus(newStatus);
@@ -79,13 +100,26 @@ public class TaskService {
                 // once the replicate status is updated, the task status has to be checked as well
                 updateTaskStatus(task);
 
-                return Optional.of(replicate);
+                return;
 
             }
         }
 
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
-        return Optional.empty();
+    }
+
+    public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
+        ChainContribution onChainContribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
+        switch (wishedChainStatus) {
+            case CONTRIBUTED:
+                replicate.setResultHash(onChainContribution.getResultHash());
+                replicate.setCredibility(scoreToCredibility(onChainContribution.getScore()));
+                break;
+            case REVEALED:
+                break;
+            default:
+                break;
+        }
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
@@ -160,9 +194,9 @@ public class TaskService {
                 tryUpdateToRunning(task);
                 break;
             case RUNNING:
-                tryUpdateToComputedAndResultRequest(task);
+                tryUpdateToContributed(task);
                 break;
-            case COMPUTED:
+            case CONTRIBUTED:
                 break;
             case UPLOAD_RESULT_REQUESTED:
                 tryUpdateToUploadingResult(task);
@@ -181,7 +215,7 @@ public class TaskService {
 
     void tryUpdateToRunning(Task task) {
         boolean condition1 = task.getNbReplicatesStatusEqualTo(ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getNbContributionNeeded();
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) < task.getTrust();
         boolean condition3 = task.getCurrentStatus().equals(CREATED);
 
         if (condition1 && condition2 && condition3) {
@@ -191,16 +225,40 @@ public class TaskService {
         }
     }
 
-    void tryUpdateToComputedAndResultRequest(Task task) {
-        boolean condition1 = task.getNbReplicatesWithStatus(ReplicateStatus.COMPUTED) == task.getNbContributionNeeded();
-        boolean condition2 = task.getCurrentStatus().equals(RUNNING);
+    void tryUpdateToContributed(Task task) {
+        boolean condition1 = task.getCurrentStatus().equals(RUNNING);
 
-        if (condition1 && condition2) {
-            task.changeStatus(TaskStatus.COMPUTED);
+        Map<String, Integer> sortedClusters = getHash2CredibilityClusters(task);
+        sortedClusters = sortClustersByCredibility(sortedClusters);
+        Map.Entry<String, Integer> bestCluster = sortedClusters.entrySet().iterator().next();
+        Integer bestCredibility = bestCluster.getValue();
+        String consensus = bestCluster.getKey();
+        boolean condition2 = bestCredibility >= trustToCredibility(task.getTrust());
+
+        ChainTask chainTask = iexecClerkService.getChainTask(task.getChainTaskId());
+        boolean condition3 = chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
+        boolean condition4 = now() < chainTask.getConsensusDeadline();
+
+        if (condition1 && condition2 && condition3 && condition4) {
+            task.changeStatus(CONTRIBUTED);
+            task.setConsensus(consensus);
             taskRepository.save(task);
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPUTED);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), CONTRIBUTED);
 
-            requestUpload(task);
+            try {
+                if (iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus())) {
+                    //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
+                    notificationService.sendTaskNotification(TaskNotification.builder()
+                            .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                            .chainTaskId(task.getChainTaskId()).build()
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Failed to consensus [taskId:{}, consensus:{}]", task.getId(), task.getConsensus());
+            }
+        } else {
+            log.info("Unsatisfied check(s) for consensus [condition1:{}, condition2:{}, condition3:{}, condition4:{}, ] ",
+                    condition1, condition2, condition3, condition4);
         }
     }
 
@@ -245,7 +303,7 @@ public class TaskService {
     }
 
     private void requestUpload(Task task) {
-        if (task.getCurrentStatus().equals(TaskStatus.COMPUTED)) {
+        if (task.getCurrentStatus().equals(COMPUTED)) {
             task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
