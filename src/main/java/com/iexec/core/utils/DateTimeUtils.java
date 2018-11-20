@@ -17,7 +17,7 @@ public class DateTimeUtils {
     }
 
     public static long now() {
-        return new Date().getTime() / 1000;
+        return new Date().getTime();
     }
 
     public static boolean sleep(long ms) {
