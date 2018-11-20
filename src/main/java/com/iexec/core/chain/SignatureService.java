@@ -2,10 +2,10 @@ package com.iexec.core.chain;
 
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.utils.BytesUtils;
+import com.iexec.common.utils.SignatureUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.Arrays;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Hash;
 import org.web3j.crypto.Sign;
 import org.web3j.utils.Numeric;
@@ -32,13 +32,11 @@ public class SignatureService {
         return Numeric.toHexString(Hash.sha3(res));
     }
 
-    Sign.SignatureData signMessage(byte[] data) {
-        return signPrefixedMessage(data, credentialsService.getCredentials().getEcKeyPair());
-    }
-
-    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveAddress){
+    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveAddress) {
         String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
-        Sign.SignatureData sign = signMessage(BytesUtils.stringToBytes(hash));
+
+        Sign.SignatureData sign = SignatureUtils.signPrefixedMessage(
+                BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
         return ContributionAuthorization.builder()
                 .workerWallet(workerWallet)
@@ -49,31 +47,4 @@ public class SignatureService {
                 .signV(sign.getV())
                 .build();
     }
-
-
-    //Note to dev: The following block is copied/pasted from web3j 4.0-beta at this commit:
-    // https://github.com/web3j/web3j/commit/4997746e566faaf9c88defad78af54ede24db65b
-    // Once we update to web3j 4.0, the signPrefixedMessage method should be directly available and this block should
-    // be deleted
-
-    //!!!!!!!!!!! Beginning block web3j 4.0-beta !!!!!!!!!!!
-    private String messagePrefix = "\u0019Ethereum Signed Message:\n";
-
-    private byte[] getEthereumMessagePrefix(int messageLength) {
-        return messagePrefix.concat(String.valueOf(messageLength)).getBytes();
-    }
-
-    private byte[] getEthereumMessageHash(byte[] message) {
-        byte[] prefix = getEthereumMessagePrefix(message.length);
-        byte[] result = new byte[prefix.length + message.length];
-        System.arraycopy(prefix, 0, result, 0, prefix.length);
-        System.arraycopy(message, 0, result, prefix.length, message.length);
-        return Hash.sha3(result);
-    }
-
-    private Sign.SignatureData signPrefixedMessage(byte[] message, ECKeyPair keyPair) {
-        return Sign.signMessage(getEthereumMessageHash(message), keyPair, false);
-    }
-    // !!!!!!!!!!! End block web3j 4.0-beta !!!!!!!!!!!
-
 }
