@@ -7,7 +7,7 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
-import com.iexec.core.chain.IexecClerkService;
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -32,16 +32,16 @@ public class TaskService {
     private TaskRepository taskRepository;
     private WorkerService workerService;
     private NotificationService notificationService;
-    private IexecClerkService iexecClerkService;
+    private IexecHubService iexecHubService;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        NotificationService notificationService,
-                       IexecClerkService iexecClerkService) {
+                       IexecHubService iexecHubService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
-        this.iexecClerkService = iexecClerkService;
+        this.iexecHubService = iexecHubService;
     }
 
     public Task addTask(String dappName, String commandLine, int trust, String chainTaskId) {
@@ -83,7 +83,7 @@ public class TaskService {
 
                 ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
                 if (wishedChainStatus != null) {
-                    if (iexecClerkService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
+                    if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
                         handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
                     } else {
                         log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
@@ -109,7 +109,7 @@ public class TaskService {
     }
 
     public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
-        ChainContribution onChainContribution = iexecClerkService.getContribution(chainTaskId, walletAddress);
+        ChainContribution onChainContribution = iexecHubService.getContribution(chainTaskId, walletAddress);
         switch (wishedChainStatus) {
             case CONTRIBUTED:
                 replicate.setResultHash(onChainContribution.getResultHash());
@@ -238,7 +238,7 @@ public class TaskService {
         String consensus = bestCluster.getKey();
         boolean condition2 = bestCredibility >= trustToCredibility(task.getTrust());
 
-        ChainTask chainTask = iexecClerkService.getChainTask(task.getChainTaskId());
+        ChainTask chainTask = iexecHubService.getChainTask(task.getChainTaskId());
         boolean condition3 = chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
         boolean condition4 = now() < chainTask.getConsensusDeadline();
 
@@ -249,7 +249,7 @@ public class TaskService {
             log.info("UpdateTaskStatus completed [taskId:{}, status:{}]", task.getId(), CONTRIBUTED);
 
             try {
-                if (iexecClerkService.consensus(task.getChainTaskId(), task.getConsensus())) {
+                if (iexecHubService.consensus(task.getChainTaskId(), task.getConsensus())) {
                     //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
@@ -333,11 +333,11 @@ public class TaskService {
 
     private void tryUpdateFromResultUploadedToFinalize(Task task) {
         if (task.getCurrentStatus().equals(RESULT_UPLOADED) &&
-                iexecClerkService.canFinalize(task.getChainTaskId())){
+                iexecHubService.canFinalize(task.getChainTaskId())){
             task.changeStatus(FINALIZE_STARTED);
             taskRepository.save(task);
             log.info("UpdateTaskStatus completed [taskId:{}, status:{}]", task.getId(), TaskStatus.FINALIZE_STARTED);
-            if (iexecClerkService.finalize(task.getChainTaskId(), "GET /results/" + task.getChainTaskId())){
+            if (iexecHubService.finalize(task.getChainTaskId(), "GET /results/" + task.getChainTaskId())){
                 task.changeStatus(FINALIZE_COMPLETED);
                 taskRepository.save(task);
                 log.info("UpdateTaskStatus completed [taskId:{}, status:{}]", task.getId(), TaskStatus.FINALIZE_COMPLETED);

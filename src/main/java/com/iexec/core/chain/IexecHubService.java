@@ -21,20 +21,15 @@ import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
-public class IexecClerkService {
+public class IexecHubService {
 
-    // internal variables
-    private final IexecClerkABILegacy iexecClerk;
     private final IexecHubABILegacy iexecHub;
-    private final Credentials credentials;
-    private final Web3j web3j;
 
     @Autowired
-    public IexecClerkService(CredentialsService credentialsService,
-                             ChainConfig chainConfig) {
-        this.credentials = credentialsService.getCredentials();
-        this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
-        this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
+    public IexecHubService(CredentialsService credentialsService,
+                           ChainConfig chainConfig) {
+        Credentials credentials = credentialsService.getCredentials();
+        Web3j web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
     }
 

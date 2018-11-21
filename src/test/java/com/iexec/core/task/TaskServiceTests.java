@@ -3,7 +3,7 @@ package com.iexec.core.task;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.core.chain.IexecClerkService;
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.worker.Worker;
@@ -37,7 +37,7 @@ public class TaskServiceTests {
     private WorkerService workerService;
 
     @Mock
-    private IexecClerkService iexecClerkService;
+    private IexecHubService iexecHubService;
 
     @InjectMocks
     private TaskService taskService;
@@ -142,7 +142,7 @@ public class TaskServiceTests {
 
         ChainContribution onChainContribution = new ChainContribution();
         onChainContribution.setStatus(ChainContributionStatus.CONTRIBUTED);
-        when(iexecClerkService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
+        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
 
         taskService.updateReplicateStatus("chainTaskId", "0x1", ReplicateStatus.CONTRIBUTED);
 
@@ -176,7 +176,7 @@ public class TaskServiceTests {
 
         ChainContribution onChainContribution = new ChainContribution();
         onChainContribution.setStatus(ChainContributionStatus.REJECTED);
-        when(iexecClerkService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
+        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
 
         taskService.updateReplicateStatus("chainTaskId", "0x1", ReplicateStatus.CONTRIBUTED);
 
@@ -210,7 +210,7 @@ public class TaskServiceTests {
 
         ChainContribution onChainContribution = new ChainContribution();
         onChainContribution.setStatus(ChainContributionStatus.UNSET);
-        when(iexecClerkService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
+        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
 
 
         Runnable runnable1 = () -> {
