@@ -197,6 +197,7 @@ public class TaskService {
                 tryUpdateToContributed(task);
                 break;
             case CONTRIBUTED:
+                tryUpdateToAtLeastOneRevealAndRequestUpload(task);
                 break;
             case UPLOAD_RESULT_REQUESTED:
                 tryUpdateToUploadingResult(task);
@@ -205,6 +206,7 @@ public class TaskService {
                 tryUpdateToResultUploaded(task);
                 break;
             case RESULT_UPLOADED:
+                tryUpdateToCompleted(task);
                 break;
             case COMPLETED:
                 break;
@@ -212,6 +214,7 @@ public class TaskService {
                 break;
         }
     }
+
 
     void tryUpdateToRunning(Task task) {
         boolean condition1 = task.getNbReplicatesStatusEqualTo(ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
@@ -228,7 +231,7 @@ public class TaskService {
     void tryUpdateToContributed(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RUNNING);
 
-        Map<String, Integer> sortedClusters = getHash2CredibilityClusters(task);
+        Map<String, Integer> sortedClusters = getCredibilityMap(task);
         sortedClusters = sortClustersByCredibility(sortedClusters);
         Map.Entry<String, Integer> bestCluster = sortedClusters.entrySet().iterator().next();
         Integer bestCredibility = bestCluster.getValue();
@@ -250,7 +253,8 @@ public class TaskService {
                     //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
-                            .chainTaskId(task.getChainTaskId()).build()
+                            .chainTaskId(task.getChainTaskId())
+                            .workerAddress("").build()
                     );
                 }
             } catch (Exception e) {
@@ -259,6 +263,45 @@ public class TaskService {
         } else {
             log.info("Unsatisfied check(s) for consensus [condition1:{}, condition2:{}, condition3:{}, condition4:{}, ] ",
                     condition1, condition2, condition3, condition4);
+        }
+    }
+
+    void tryUpdateToAtLeastOneRevealAndRequestUpload(Task task) {
+        boolean condition1 = task.getCurrentStatus().equals(CONTRIBUTED);
+        boolean condition2 = task.getNbReplicatesWithStatus(ReplicateStatus.REVEALED) > 0;
+
+        if (condition1 && condition2) {
+            task.changeStatus(AT_LEAST_ONE_REVEALED);
+            taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), AT_LEAST_ONE_REVEALED);
+
+            requestUpload(task);
+        }
+    }
+
+    private void requestUpload(Task task) {
+        if (task.getCurrentStatus().equals(AT_LEAST_ONE_REVEALED)) {
+            task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+            taskRepository.save(task);
+            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
+        }
+
+        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+            for (Replicate replicate : task.getReplicates()) {
+                if (replicate.getCurrentStatus().equals(ReplicateStatus.REVEALED)) {
+                    notificationService.sendTaskNotification(TaskNotification.builder()
+                            .chainTaskId(task.getChainTaskId())
+                            .workerAddress(replicate.getWalletAddress())
+                            .taskNotificationType(TaskNotificationType.UPLOAD)
+                            .build());
+                    log.info("Notify uploading worker [uploadingWorkerWallet={}]", replicate.getWalletAddress());
+
+                    // save in the task the workerWallet that is in charge of uploading the result
+                    task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
+                    taskRepository.save(task);
+                    return; //ask only 1 worker to upload
+                }
+            }
         }
     }
 
@@ -282,7 +325,21 @@ public class TaskService {
             taskRepository.save(task);
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.RESULT_UPLOADED);
 
-            task.changeStatus(TaskStatus.COMPLETED);
+            tryUpdateToCompleted(task);
+        } else if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
+                task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0) {
+            // need to request upload again
+            requestUpload(task);
+        }
+    }
+
+    private void tryUpdateToCompleted(Task task) {
+        boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADED);
+        boolean condition2 = iexecClerkService.canFinalize(task.getChainTaskId());
+        boolean condition3 = iexecClerkService.finalize(task.getChainTaskId(), "myresult");
+
+        if (condition1 && condition2 && condition3) {
+            task.changeStatus(COMPLETED);
             taskRepository.save(task);
 
             for (Replicate replicate : task.getReplicates()) {
@@ -293,39 +350,10 @@ public class TaskService {
                     .chainTaskId(task.getChainTaskId())
                     .workerAddress(task.getUploadingWorkerWalletAddress())
                     .taskNotificationType(TaskNotificationType.COMPLETED)
-                    .build());
+                    .workerAddress("").build());
             log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.COMPLETED);
-        } else if (task.getNbReplicatesWithStatus(ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
-                task.getNbReplicatesWithStatus(ReplicateStatus.UPLOADING_RESULT) == 0) {
-            // need to request upload again
-            requestUpload(task);
         }
     }
 
-    private void requestUpload(Task task) {
-        if (task.getCurrentStatus().equals(COMPUTED)) {
-            task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
-            taskRepository.save(task);
-            log.info("Status of task updated [taskId:{}, status:{}]", task.getId(), TaskStatus.UPLOAD_RESULT_REQUESTED);
-        }
-
-        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
-            for (Replicate replicate : task.getReplicates()) {
-                if (replicate.getCurrentStatus().equals(ReplicateStatus.COMPUTED)) {
-                    notificationService.sendTaskNotification(TaskNotification.builder()
-                            .chainTaskId(task.getChainTaskId())
-                            .workerAddress(replicate.getWalletAddress())
-                            .taskNotificationType(TaskNotificationType.UPLOAD)
-                            .build());
-                    log.info("Notify uploading worker [uploadingWorkerWallet={}]", replicate.getWalletAddress());
-
-                    // save in the task the workerWallet that is in charge of uploading the result
-                    task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
-                    taskRepository.save(task);
-                    return;
-                }
-            }
-        }
-    }
 
 }

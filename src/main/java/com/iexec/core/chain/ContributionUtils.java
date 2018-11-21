@@ -16,7 +16,7 @@ public class ContributionUtils {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
     }
 
-    public static Map<String, Integer> getHash2CredibilityClusters(Task task) {
+    public static Map<String, Integer> getCredibilityMap(Task task) {
         Map<String, Integer> resultHashToC = new HashMap<>();
         for (Replicate replicate : task.getReplicates()) {
             String hash = replicate.getResultHash();
