@@ -70,7 +70,7 @@ public class IexecWatcherService {
                 if (chainTaskId != null && !chainTaskId.isEmpty()) {
                     // TODO: contribution  is hard coded for now
                     // TODO: hardcoded trust
-                    taskService.addTask(dockerImage, dealParams.get(iter), 2, chainTaskId);
+                    taskService.addTask(dockerImage, dealParams.get(iter), 1, chainTaskId);
                 }
             }
 
