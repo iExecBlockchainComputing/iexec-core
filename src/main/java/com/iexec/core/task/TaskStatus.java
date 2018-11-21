@@ -1,13 +1,11 @@
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.ReplicateStatus;
-
 public enum TaskStatus {
-    CREATED, RUNNING, COMPUTED, CONTRIBUTED, REVEALED, UPLOAD_RESULT_REQUESTED, UPLOADING_RESULT, RESULT_UPLOADED, FINALIZED, COMPLETED,ERROR;
+    CREATED, RUNNING, COMPUTED, CONTRIBUTED, AT_LEAST_ONE_REVEALED, REVEALED, UPLOAD_RESULT_REQUESTED, UPLOADING_RESULT, RESULT_UPLOADED, FINALIZE_STARTED, FINALIZE_COMPLETED, FINALIZE_FAILED, COMPLETED, ERROR;
 
     public static boolean isBlockchainStatus(TaskStatus status) {
         return status.equals(TaskStatus.CONTRIBUTED)
                 || status.equals(TaskStatus.REVEALED)
-                || status.equals(TaskStatus.FINALIZED);
+                || status.equals(TaskStatus.FINALIZE_COMPLETED);
     }
 }

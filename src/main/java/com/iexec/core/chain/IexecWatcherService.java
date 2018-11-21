@@ -22,7 +22,7 @@ public class IexecWatcherService {
     // outside services
     // TODO: this should be replaced by DealService ?
     private final TaskService taskService;
-    private final IexecClerkService iexecClerkService;
+    private final IexecHubService iexecHubService;
 
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
@@ -33,13 +33,13 @@ public class IexecWatcherService {
     public IexecWatcherService(CredentialsService credentialsService,
                                ChainConfig chainConfig,
                                TaskService taskService,
-                               IexecClerkService iexecClerkService) {
+                               IexecHubService iexecHubService) {
         this.taskService = taskService;
 
         this.credentials = credentialsService.getCredentials();
         this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
-        this.iexecClerkService = iexecClerkService;
+        this.iexecHubService = iexecHubService;
 
         startWatchers();
     }
@@ -66,10 +66,12 @@ public class IexecWatcherService {
 
             // initialize all tasks in the deal
             for (int iter = start; iter < end; iter++) {
-                String chainTaskId = iexecClerkService.initializeTask(ordersMatchedEvent.dealid, iter);
-                // TODO: contribution  is hard coded for now
-                // TODO: hardcoded trust
-                taskService.addTask(dockerImage, dealParams.get(iter), 1, chainTaskId);
+                String chainTaskId = iexecHubService.initializeTask(ordersMatchedEvent.dealid, iter);
+                if (chainTaskId != null && !chainTaskId.isEmpty()) {
+                    // TODO: contribution  is hard coded for now
+                    // TODO: hardcoded trust
+                    taskService.addTask(dockerImage, dealParams.get(iter), 1, chainTaskId);
+                }
             }
 
         } catch (Exception e) {

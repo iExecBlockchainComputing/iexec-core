@@ -55,7 +55,7 @@ public class TaskController {
     public ResponseEntity updateReplicateStatus(@PathVariable(name = "chainTaskId") String chainTaskId,
                                                 @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
-        log.info("Update replicate status [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]", chainTaskId, replicateStatus, walletAddress);
+        log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]", chainTaskId, replicateStatus, walletAddress);
         taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
 
         return ResponseEntity.ok().build();

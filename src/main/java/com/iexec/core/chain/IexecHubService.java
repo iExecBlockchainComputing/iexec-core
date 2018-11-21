@@ -1,9 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.chain.ChainTask;
-import com.iexec.common.chain.ChainUtils;
+import com.iexec.common.chain.*;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
@@ -19,24 +16,20 @@ import java.math.BigInteger;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
+import static com.iexec.core.utils.DateTimeUtils.now;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
-public class IexecClerkService {
+public class IexecHubService {
 
-    // internal variables
-    private final IexecClerkABILegacy iexecClerk;
     private final IexecHubABILegacy iexecHub;
-    private final Credentials credentials;
-    private final Web3j web3j;
 
     @Autowired
-    public IexecClerkService(CredentialsService credentialsService,
-                             ChainConfig chainConfig) {
-        this.credentials = credentialsService.getCredentials();
-        this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
-        this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
+    public IexecHubService(CredentialsService credentialsService,
+                           ChainConfig chainConfig) {
+        Credentials credentials = credentialsService.getCredentials();
+        Web3j web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
     }
 
@@ -96,18 +89,21 @@ public class IexecClerkService {
 
 
     public String initializeTask(byte[] dealId, int numTask) throws Exception {
+        log.info("Trying to Initialize task on-chain [dealId:{}, numTask:{}]", BytesUtils.bytesToString(dealId), numTask);
         TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(numTask)).send();
         if (!iexecHub.getTaskInitializeEvents(res).isEmpty()) {
+            log.info("Initialize task on-chain succeeded[dealId:{}, numTask:{}]", BytesUtils.bytesToString(dealId), numTask);
             return BytesUtils.bytesToString(iexecHub.getTaskInitializeEvents(res).get(0).taskid);
         }
         return null;
     }
 
     public boolean consensus(String chainTaskId, String consensus) throws Exception {
+        log.info("Trying to Consensus on-chain [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
         TransactionReceipt receipt = iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
                 BytesUtils.stringToBytes(consensus)).send();
         if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()) {
-            log.info("Set consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
+            log.info("Consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
             return true;
         }
         return false;
@@ -121,6 +117,36 @@ public class IexecClerkService {
         }
         return null;
     }
+
+    public boolean canFinalize(String chainTaskId) {
+        ChainTask chainTask = getChainTask(chainTaskId);
+
+        boolean condition1 = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean condition2 = now() < chainTask.getConsensusDeadline();
+        boolean condition3 = ( chainTask.getRevealCounter() == chainTask.getWinnerCounter() )
+                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now() );
+
+
+        return condition1 && condition2 && condition3;
+    }
+
+    public boolean finalize(String chainTaskId, String result){
+        TransactionReceipt receipt = null;
+        try {
+            log.info("Trying Finalize task on-chain [chainTaskId:{}, result:{}]", chainTaskId, result);
+            receipt = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
+                    BytesUtils.stringToBytes(result)).send();
+            if (!iexecHub.getTaskFinalizeEvents(receipt).isEmpty()) {
+                log.info("Finalize on-chain succeeded [chainTaskId:{}, result:{}]", chainTaskId, result);
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("Finalize on-chain failed [chainTaskId:{}, result:{}]", chainTaskId, result);
+        }
+        return false;
+    }
+
+
 
 
 }
