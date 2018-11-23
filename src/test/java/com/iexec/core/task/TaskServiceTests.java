@@ -259,7 +259,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
@@ -285,7 +285,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
@@ -310,7 +310,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
@@ -338,7 +338,7 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
@@ -365,7 +365,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         assertThat(lastButOneStatus).isEqualTo(TaskStatus.COMPUTED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
@@ -395,7 +395,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RUNNING);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
     }
 
@@ -424,7 +424,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOADING_RESULT);
     }
 
@@ -453,7 +453,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.UPLOADING_RESULT);
     }
 
@@ -478,9 +478,8 @@ public class TaskServiceTests {
                 .dateStatusList(dateStatusList)
                 .build();
         task.changeStatus(TaskStatus.UPLOADING_RESULT);
-        when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         assertThat(lastButOneStatus).isEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPLETED);
@@ -515,7 +514,7 @@ public class TaskServiceTests {
 
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         assertThat(lastButOneStatus).isEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.COMPLETED);
@@ -547,7 +546,7 @@ public class TaskServiceTests {
 
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.updateTaskStatus(task);
+        taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.COMPLETED);
     }

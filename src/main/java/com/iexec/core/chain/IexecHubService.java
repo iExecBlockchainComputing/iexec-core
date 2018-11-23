@@ -1,7 +1,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -67,18 +66,16 @@ public class IexecHubService {
                 case CONTRIBUTED:
                     if (onChainStatus.equals(UNSET)) { // should wait
                         return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
-                    } else if (onChainStatus.equals(CONTRIBUTED) || onChainStatus.equals(REVEALED)) { // has at least contributed
-                        return true;
                     } else {
-                        return false;
+                        // has at least contributed
+                        return onChainStatus.equals(CONTRIBUTED) || onChainStatus.equals(REVEALED);
                     }
                 case REVEALED:
                     if (onChainStatus.equals(CONTRIBUTED)) { // should wait
                         return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
-                    } else if (onChainStatus.equals(REVEALED)) { // has at least revealed
-                        return true;
                     } else {
-                        return false;
+                        // has at least revealed
+                        return onChainStatus.equals(REVEALED);
                     }
                 default:
                     break;
@@ -121,20 +118,26 @@ public class IexecHubService {
     public boolean canFinalize(String chainTaskId) {
         ChainTask chainTask = getChainTask(chainTaskId);
 
-        boolean condition1 = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean condition2 = now() < chainTask.getConsensusDeadline();
-        boolean condition3 = ( chainTask.getRevealCounter() == chainTask.getWinnerCounter() )
+        boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean isConsensusDeadlineInFuture = now() < chainTask.getConsensusDeadline();
+        boolean hasEnoughRevealors = ( chainTask.getRevealCounter() == chainTask.getWinnerCounter() )
                 || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now() );
 
-
-        return condition1 && condition2 && condition3;
+        boolean ret = isChainTaskStatusRevealing && isConsensusDeadlineInFuture && hasEnoughRevealors;
+        if (ret) {
+            log.info("All the conditions are valid for the finalization to happen [chainTaskId:{}]", chainTaskId);
+        } else {
+            log.warn("One or more conditions are not met for the finalization to happen [chainTaskId:{}, " +
+                            "isChainTaskStatusRevealing:{}, isConsensusDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
+                    isChainTaskStatusRevealing, isConsensusDeadlineInFuture, hasEnoughRevealors);
+        }
+        return ret;
     }
 
-    public boolean finalize(String chainTaskId, String result){
-        TransactionReceipt receipt = null;
+    public boolean finalizeTask(String chainTaskId, String result){
         try {
             log.info("Trying Finalize task on-chain [chainTaskId:{}, result:{}]", chainTaskId, result);
-            receipt = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
+            TransactionReceipt receipt = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
                     BytesUtils.stringToBytes(result)).send();
             if (!iexecHub.getTaskFinalizeEvents(receipt).isEmpty()) {
                 log.info("Finalize on-chain succeeded [chainTaskId:{}, result:{}]", chainTaskId, result);
