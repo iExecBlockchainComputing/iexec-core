@@ -1,10 +1,10 @@
 package com.iexec.core.chain;
 
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.task.Task;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -13,11 +13,11 @@ public class CredibilityMap {
     private final int bestCredibility;
     private final String consensusValue;
 
-    public CredibilityMap(Task task) {
+    public CredibilityMap(List<Replicate> replicates) {
 
         // populate map
         Map<String, Integer> unsortedMap = new HashMap<>();
-        for (Replicate replicate : task.getReplicates()) {
+        for (Replicate replicate : replicates) {
             String hash = replicate.getResultHash();
             int credibility = replicate.getCredibility();
 

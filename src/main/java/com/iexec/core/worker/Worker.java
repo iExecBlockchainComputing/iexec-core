@@ -21,19 +21,19 @@ public class Worker {
     private String os;
     private String cpu;
     private int cpuNb;
-    private List<String> taskIds;
+    private List<String> chainTaskIds;
 
     private Date lastAliveDate;
 
     public Worker() {
-        taskIds = new ArrayList<>();
+        chainTaskIds = new ArrayList<>();
     }
 
-    void addTaskId(String taskId) {
-        taskIds.add(taskId);
+    void addChainTaskId(String chainTaskId) {
+        chainTaskIds.add(chainTaskId);
     }
 
-    void removeTaskId(String taskId) {
-        taskIds.remove(taskId);
+    void removeChainTaskId(String chainTaskId) {
+        chainTaskIds.remove(chainTaskId);
     }
 }

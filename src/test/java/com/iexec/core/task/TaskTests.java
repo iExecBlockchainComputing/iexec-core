@@ -26,7 +26,6 @@ public class TaskTests {
 
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.CREATED);
-        assertThat(task.getReplicates()).isEmpty();
     }
 
     @Test

@@ -1,8 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
+import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +12,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class WorkerLostDetector implements Detector {
 
-    private TaskService taskService;
+    private ReplicatesService replicatesService;
     private WorkerService workerService;
 
-    public WorkerLostDetector(TaskService taskService,
+    public WorkerLostDetector(ReplicatesService replicatesService,
                               WorkerService workerService) {
-        this.taskService = taskService;
+        this.replicatesService = replicatesService;
         this.workerService = workerService;
     }
 
@@ -26,14 +25,17 @@ public class WorkerLostDetector implements Detector {
     @Override
     public void detect() {
         for (Worker worker : workerService.getLostWorkers()) {
-            for (Task task : taskService.getTasksByIds(worker.getTaskIds())) {
-                task.getReplicate(worker.getName()).ifPresent(replicate -> {
+            String workerWallet = worker.getWalletAddress();
+
+            for (String chainTaskId : worker.getChainTaskIds()) {
+                replicatesService.getReplicate(chainTaskId, workerWallet).ifPresent(replicate -> {
                     if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
-                        workerService.removeTaskIdFromWorker(task.getId(), worker.getName());
-                        taskService.updateReplicateStatus(task.getChainTaskId(), worker.getName(), ReplicateStatus.WORKER_LOST);
+                        workerService.removeChainTaskIdFromWorker(chainTaskId, workerWallet);
+                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet, ReplicateStatus.WORKER_LOST);
                     }
                 });
             }
         }
     }
 }
+

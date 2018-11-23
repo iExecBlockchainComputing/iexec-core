@@ -2,10 +2,10 @@ package com.iexec.core.task;
 
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.replicate.AvailableReplicateModel;
-import com.iexec.common.replicate.ReplicateModel;
-import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +22,15 @@ public class TaskController {
 
     private TaskService taskService;
     private SignatureService signatureService;
+    private ReplicatesService replicatesService;
 
     public TaskController(TaskService taskService,
-                          SignatureService signatureService) {
+                          SignatureService signatureService,
+                          ReplicatesService replicatesService) {
         this.taskService = taskService;
         this.signatureService = signatureService;
+        this.replicatesService = replicatesService;
     }
-
 
     // /!\ This creates a task off-chain without chainTaskId
     @PostMapping("/tasks")
@@ -44,29 +46,29 @@ public class TaskController {
 
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity getTask(@PathVariable("chainTaskId") String chainTaskId) {
-        Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
-        return optional.
+        Optional<Task> optionalTask = taskService.getTaskByChainTaskId(chainTaskId);
+        if (!optionalTask.isPresent()) {
+            return status(HttpStatus.NO_CONTENT).build();
+        }
+        Task task = optionalTask.get();
+
+        Optional<ReplicatesList> optionalReplicates = replicatesService.getReplicatesList(chainTaskId);
+        if(!optionalReplicates.isPresent()){
+            return createTaskModel(task, new ReplicatesList()).
+                    <ResponseEntity>map(ResponseEntity::ok).
+                    orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        }
+
+        return createTaskModel(task, optionalReplicates.get()).
                 <ResponseEntity>map(ResponseEntity::ok).
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
-    }
-
-
-    @RequestMapping(method = RequestMethod.POST, path = "/tasks/{chainTaskId}/replicates/updateStatus")
-    public ResponseEntity updateReplicateStatus(@PathVariable(name = "chainTaskId") String chainTaskId,
-                                                @RequestParam(name = "walletAddress") String walletAddress,
-                                                @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus) {
-        log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]", chainTaskId, replicateStatus, walletAddress);
-        taskService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
-
-        return ResponseEntity.ok().build();
-
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
     public ResponseEntity getAvailableReplicate(@RequestParam(name = "workerWalletAddress") String workerWalletAddress,
                                                 @RequestParam(name = "workerEnclaveAddress") String workerEnclaveAddress) {
         // get available replicate
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerWalletAddress);
+        Optional<Replicate> optional = replicatesService.getAvailableReplicate(workerWalletAddress);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
@@ -88,6 +90,22 @@ public class TaskController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
+    private Optional<TaskModel> createTaskModel(Task task,
+                                                ReplicatesList replicatesList) {
+        return Optional.of(TaskModel.builder()
+                .chainTaskId(task.getChainTaskId())
+                .dappType(task.getDappType())
+                .commandLine(task.getCommandLine())
+                .currentStatus(task.getCurrentStatus())
+                .dateStatusList(task.getDateStatusList())
+                .replicates(replicatesList.getReplicates())
+                .trust(task.getTrust())
+                .uploadingWorkerWalletAddress(task.getUploadingWorkerWalletAddress())
+                .consensus(task.getConsensus())
+                .build()
+        );
+    }
+
     private Optional<AvailableReplicateModel> createAvailableReplicateModel(Task task,
                                                                             ContributionAuthorization contribAuth) {
         return Optional.of(AvailableReplicateModel.builder()
@@ -95,24 +113,6 @@ public class TaskController {
                 .dappType(task.getDappType())
                 .dappName(task.getDappName())
                 .cmd(task.getCommandLine())
-                .build()
-        );
-    }
-
-    private Optional<ReplicateModel> convertReplicateToModel(Replicate replicate) {
-        Optional<Task> optional = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
-        if (!optional.isPresent()) {
-            return Optional.empty();
-        }
-        Task task = optional.get();
-
-        return Optional.of(ReplicateModel.builder()
-                .chainTaskId(task.getChainTaskId())
-                .workerAddress(replicate.getWalletAddress())
-                .dappType(task.getDappType())
-                .dappName(task.getDappName())
-                .cmd(task.getCommandLine())
-                .replicateStatus(replicate.getStatusChangeList().get(replicate.getStatusChangeList().size() - 1).getStatus())
                 .build()
         );
     }

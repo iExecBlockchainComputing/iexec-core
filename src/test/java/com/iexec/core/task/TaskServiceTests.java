@@ -672,7 +672,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(taskRepository.save(any())).thenReturn(runningTask1);
-        when(workerService.addTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.addChainTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
         assertThat(optional.isPresent()).isFalse();
@@ -705,7 +705,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(taskRepository.save(any())).thenReturn(runningTask1);
-        when(workerService.addTaskIdToWorker(taskId, walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerService.addChainTaskIdToWorker(taskId, walletAddress)).thenReturn(Optional.of(existingWorker));
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(walletAddress);
         assertThat(optional.isPresent()).isTrue();

@@ -26,7 +26,7 @@ public class NotificationService {
     public void run(){
         log.info("Check if results need to be uploaded");
 
-        //List<Replicates> uploadableReplicates = taskService.getUploadableReplicates();
+        //List<ReplicatesList> uploadableReplicates = taskService.getUploadableReplicates();
         UploadResultMessage uploadResultMessage = UploadResultMessage.builder()
                 .taskId(null)
                 .workerAddress(null)
