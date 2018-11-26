@@ -9,12 +9,16 @@ import com.iexec.core.chain.CredibilityMap;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -66,26 +70,51 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(status);
     }
 
-
-    public List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String walletAddress) {
-        List<Replicate> workerActiveReplicates = new ArrayList<>();
-        for (Task task : runningTasks) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-
-                boolean isReplicateFromWorker = replicate.getWalletAddress().equals(walletAddress);
-                boolean isReplicateInCorrectStatus = (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) ||
-                        replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING));
-
-                if (isReplicateFromWorker && isReplicateInCorrectStatus) {
-                    workerActiveReplicates.add(replicate);
-                }
-            }
-        }
-        return workerActiveReplicates;
-    }
-
     public List<Task> getAllRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING));
+    }
+
+    // in case the task has been modified between reading and writing it, it is retried up to 5 times
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
+    public Optional<Replicate> getAvailableReplicate(String walletAddress) {
+        // return empty if the worker is not registered
+        Optional<Worker> optional = workerService.getWorker(walletAddress);
+        if (!optional.isPresent()) {
+            return Optional.empty();
+        }
+
+        // return empty if there is no task to contribute
+        List<Task> runningTasks = getAllRunningTasks();
+        if (runningTasks.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // return empty if the worker already has enough running tasks
+        if (!workerService.canAcceptMoreWorks(walletAddress)) {
+            return Optional.empty();
+        }
+
+        for (Task task : runningTasks) {
+            String chainTaskId = task.getChainTaskId();
+
+            if (!replicatesService.hasWorkerAlreadyContributed(chainTaskId, walletAddress) &&
+                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getTrust())) {
+                replicatesService.createNewReplicate(chainTaskId, walletAddress);
+                workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
+                return replicatesService.getReplicate(chainTaskId, walletAddress);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    @EventListener
+    public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
+        Replicate replicate = event.getReplicate();
+        log.info("Received ReplicateUpdatedEvent [chainTaskId:{}, walletAddress:{}] ",
+                replicate.getChainTaskId(), replicate.getWalletAddress());
+        Optional<Task> optional = taskRepository.findByChainTaskId(replicate.getChainTaskId());
+        optional.ifPresent(this::tryToMoveTaskToNextStatus);
     }
 
     void tryToMoveTaskToNextStatus(Task task) {
@@ -149,7 +178,7 @@ public class TaskService {
         if (isTaskInRunningStatus && isBestCredibilityBetterThanTrust &&
                 isChainTaskInActiveStatus && isConsensusDeadlineInFuture) {
             task.setConsensus(consensus);
-                updateTaskStatusAndSave(task, CONTRIBUTED);
+            updateTaskStatusAndSave(task, CONTRIBUTED);
 
             try {
                 if (iexecHubService.consensus(task.getChainTaskId(), task.getConsensus())) {

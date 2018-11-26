@@ -68,7 +68,7 @@ public class TaskController {
     public ResponseEntity getAvailableReplicate(@RequestParam(name = "workerWalletAddress") String workerWalletAddress,
                                                 @RequestParam(name = "workerEnclaveAddress") String workerEnclaveAddress) {
         // get available replicate
-        Optional<Replicate> optional = replicatesService.getAvailableReplicate(workerWalletAddress);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(workerWalletAddress);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }

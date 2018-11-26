@@ -81,4 +81,22 @@ public class WorkerService {
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
         return workerRepository.findByLastAliveDateAfter(oneMinuteAgo);
     }
+
+    public boolean canAcceptMoreWorks(String walletAddress) {
+        Optional<Worker> optionalWorker = getWorker(walletAddress);
+        if (!optionalWorker.isPresent()){
+            return false;
+        }
+        Worker worker = optionalWorker.get();
+
+        int workerCpuNb = worker.getCpuNb();
+        int runningReplicateNb = worker.getChainTaskIds().size();
+        if (runningReplicateNb <= workerCpuNb) {
+            return true;
+        }
+
+        log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerCpuNb:{}]",
+                walletAddress, runningReplicateNb, workerCpuNb);
+        return false;
+    }
 }
