@@ -59,36 +59,6 @@ class ChainHelpers {
     static String getDockerImage(App app) throws Exception {
         // deserialize the app params json into POJO
         String jsonDappParams = app.m_appParams().send();
-        //TODO tomorrow
-        /*
-        * com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "envvars" (class com.iexec.core.chain.ChainDappParams), not marked as ignorable (4 known properties: "provider", "type", "minmemory", "uri"])
- at [Source: {"type":"DOCKER","envvars":"XWDOCKERIMAGE=iexechub/vanityeth"}; line: 1, column: 29] (through reference chain: com.iexec.core.chain.ChainDappParams["envvars"])
-	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:62)
-	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:834)
-	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:1093)
-	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1477)
-	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1455)
-	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:282)
-	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:140)
-	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:3798)
-	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:2842)
-	at com.iexec.core.chain.ChainHelpers.getDockerImage(ChainHelpers.java:62)
-	at com.iexec.core.chain.IexecWatcherService.onOrderMatchedEvents(IexecWatcherService.java:102)
-	at rx.internal.util.ActionSubscriber.onNext(ActionSubscriber.java:39)
-	at rx.observers.SafeSubscriber.onNext(SafeSubscriber.java:134)
-	at rx.internal.operators.OnSubscribeMap$MapSubscriber.onNext(OnSubscribeMap.java:77)
-	at org.web3j.protocol.core.filters.LogFilter.process(LogFilter.java:39)
-	at org.web3j.protocol.core.filters.Filter.pollFilter(Filter.java:129)
-	at org.web3j.protocol.core.filters.Filter.lambda$run$25(Filter.java:83)
-	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:514)
-	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
-	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1135)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
-	at java.base/java.lang.Thread.run(Thread.java:844)
-
-        *
-        * */
         ChainAppParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainAppParams.class);
         return dappParams.getUri();
     }
