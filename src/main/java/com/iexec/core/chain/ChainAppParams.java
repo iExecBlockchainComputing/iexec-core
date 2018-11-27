@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChainDappParams {
+public class ChainAppParams {
 
     private String type;
     private String provider;

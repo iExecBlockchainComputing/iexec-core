@@ -1,7 +1,7 @@
 package com.iexec.core.chain;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iexec.common.contract.generated.Dapp;
+import com.iexec.common.contract.generated.App;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import org.web3j.tuples.generated.Tuple6;
 import org.web3j.tuples.generated.Tuple9;
@@ -13,7 +13,7 @@ import java.util.LinkedHashMap;
 
 class ChainHelpers {
 
-    private ChainHelpers(){
+    private ChainHelpers() {
         throw new UnsupportedOperationException();
     }
 
@@ -52,14 +52,14 @@ class ChainHelpers {
         return new ArrayList<String>(tasksParamsMap.values());
     }
 
-    static String getDappName(Dapp dapp) throws Exception {
-        return dapp.m_dappName().send();
+    static String getChainAppName(App app) throws Exception {
+        return app.m_appName().send();
     }
 
-    static String getDockerImage(Dapp dapp) throws Exception {
-        // deserialize the dapp params json into POJO
-        String jsonDappParams = dapp.m_dappParams().send();
-        ChainDappParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainDappParams.class);
+    static String getDockerImage(App app) throws Exception {
+        // deserialize the app params json into POJO
+        String jsonDappParams = app.m_appParams().send();
+        ChainAppParams dappParams = new ObjectMapper().readValue(jsonDappParams, ChainAppParams.class);
         return dappParams.getUri();
     }
 }

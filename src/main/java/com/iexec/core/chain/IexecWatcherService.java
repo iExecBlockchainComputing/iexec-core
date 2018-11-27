@@ -1,11 +1,13 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainUtils;
-import com.iexec.common.contract.generated.Dapp;
+import com.iexec.common.contract.generated.App;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
+import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -23,7 +25,6 @@ public class IexecWatcherService {
     // TODO: this should be replaced by DealService ?
     private final TaskService taskService;
     private final IexecHubService iexecHubService;
-
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
     private final Credentials credentials;
@@ -54,10 +55,11 @@ public class IexecWatcherService {
         try {
             ChainDeal chainDeal = ChainHelpers.getChainDeal(iexecClerk, ordersMatchedEvent.dealid);
 
-            Dapp dapp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
-            log.info("Received an order match, trigger a computation [dappName:{}]", ChainHelpers.getDappName(dapp));
+            App chainApp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
 
-            String dockerImage = ChainHelpers.getDockerImage(dapp);
+            log.info("Received an order match, trigger a computation [m_dappParams:{}]", chainApp.m_appParams().send());
+
+            String dockerImage = ChainHelpers.getDockerImage(chainApp);
             ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
 
             // get range of tasks in the deal
