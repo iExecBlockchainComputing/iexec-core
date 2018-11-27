@@ -17,7 +17,8 @@ public class NotificationService {
 
     public void sendTaskNotification(TaskNotification taskNotification) {
         sender.convertAndSend("/topic/task/" + taskNotification.getChainTaskId(), taskNotification);
-        log.info("Sent TaskNotification [chainTaskId:{}, type:{}, worker:{}]", taskNotification.getChainTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkerAddress());
+        log.info("Sent TaskNotification [chainTaskId:{}, type:{}, worker:{}]",
+                taskNotification.getChainTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkerAddress());
     }
 
     /* Test PubSub method
@@ -25,7 +26,7 @@ public class NotificationService {
     public void run(){
         log.info("Check if results need to be uploaded");
 
-        //List<Replicates> uploadableReplicates = taskService.getUploadableReplicates();
+        //List<ReplicatesList> uploadableReplicates = taskService.getUploadableReplicates();
         UploadResultMessage uploadResultMessage = UploadResultMessage.builder()
                 .taskId(null)
                 .workerAddress(null)

@@ -1,6 +1,8 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
@@ -14,17 +16,21 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
 public class WorkerLostDetectorTests {
 
+    private final static String WALLET_WORKER = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private final static String CHAIN_TASK_ID = "chainTaskId";
+
     @Mock
     private WorkerService workerService;
 
     @Mock
-    private TaskService taskService;
+    private ReplicatesService replicatesService;
 
     @InjectMocks
     private WorkerLostDetector workerLostDetector;
@@ -38,7 +44,7 @@ public class WorkerLostDetectorTests {
     public void shouldNotDetectAnyWorkerLost(){
         when(workerService.getLostWorkers()).thenReturn(Collections.emptyList());
         workerLostDetector.detect();
-        Mockito.verify(taskService, Mockito.times(0))
+        Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(Mockito.any(), Mockito.any(), Mockito.any());
 
     }
@@ -46,64 +52,55 @@ public class WorkerLostDetectorTests {
     @Test
     public void shouldUpdateOneReplicateToWorkerLost(){
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
-        String taskId = "task1";
-        String chainTaskId = "chainTaskId";
-        String workerName = "worker1";
 
         Worker worker = Worker.builder()
-                .name(workerName)
+                .walletAddress(WALLET_WORKER)
                 .lastAliveDate(twoMinutesAgo)
-                .taskIds(Collections.singletonList(taskId))
+                .chainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
 
-        Task task = new Task( "dappName", "commandLine", 2);
-        task.setId(taskId);
-        task.setChainTaskId(chainTaskId);
-        task.createNewReplicate(workerName);
-        task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
+
+        Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.RUNNING);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
-        when(taskService.getTasksByIds(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
-        Mockito.verify(taskService, Mockito.times(1))
-                .updateReplicateStatus(task.getChainTaskId(), worker.getName(), ReplicateStatus.WORKER_LOST);
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(1))
-                .removeTaskIdFromWorker(task.getId(), worker.getName());
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET_WORKER);
     }
 
     // similar test with previous except that the Replicate is already is WORKER_LOST status.
     @Test
     public void shouldNotUpdateOneReplicateToWorkerLostSinceAlreadyUpdated(){
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
-        String taskId = "task1";
-        String workerName = "worker1";
 
         Worker worker = Worker.builder()
-                .name(workerName)
+                .walletAddress(WALLET_WORKER)
                 .lastAliveDate(twoMinutesAgo)
-                .taskIds(Collections.singletonList(taskId))
+                .chainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
 
-        Task task = new Task("dappName", "commandLine", 2);
-        task.setId(taskId);
-        task.createNewReplicate(workerName);
-        task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.RUNNING));
-        task.getReplicate(workerName).ifPresent(replicate -> replicate.updateStatus(ReplicateStatus.WORKER_LOST));
+        Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.RUNNING);
+        replicate.updateStatus(ReplicateStatus.WORKER_LOST);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
-        when(taskService.getTasksByChainTaskIds(worker.getTaskIds())).thenReturn(Collections.singletonList(task));
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
-        Mockito.verify(taskService, Mockito.times(0))
-                .updateReplicateStatus(task.getId(), worker.getName(), ReplicateStatus.WORKER_LOST);
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(0))
-                .removeTaskIdFromWorker(task.getId(), worker.getName());
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET_WORKER);
     }
 }

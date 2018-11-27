@@ -151,23 +151,23 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .taskIds(listIds)
+                .chainTaskIds(listIds)
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task3", walletAddress);
+        Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", walletAddress);
         assertThat(addedWorker.isPresent()).isTrue();
         Worker worker = addedWorker.get();
-        assertThat(worker.getTaskIds().size()).isEqualTo(3);
-        assertThat(worker.getTaskIds().get(2)).isEqualTo("task3");
+        assertThat(worker.getChainTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getChainTaskIds().get(2)).isEqualTo("task3");
     }
 
     @Test
     public void shouldNotAddTaskIdToWorker(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
-        Optional<Worker> addedWorker = workerService.addTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
+        Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
@@ -186,23 +186,23 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .taskIds(listIds)
+                .chainTaskIds(listIds)
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("task2", walletAddress);
+        Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("task2", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
-        assertThat(worker.getTaskIds().size()).isEqualTo(1);
-        assertThat(worker.getTaskIds().get(0)).isEqualTo("task1");
+        assertThat(worker.getChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getChainTaskIds().get(0)).isEqualTo("task1");
     }
 
     @Test
     public void shouldNotRemoveTaskIdWorkerNotFound(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
-        Optional<Worker> addedWorker = workerService.removeTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
+        Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
@@ -221,16 +221,16 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .taskIds(listIds)
+                .chainTaskIds(listIds)
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
-        Optional<Worker> removedWorker = workerService.removeTaskIdFromWorker("dummyTaskId", walletAddress);
+        Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("dummyTaskId", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
-        assertThat(worker.getTaskIds().size()).isEqualTo(2);
-        assertThat(worker.getTaskIds()).isEqualTo(listIds);
+        assertThat(worker.getChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getChainTaskIds()).isEqualTo(listIds);
     }
 }

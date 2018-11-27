@@ -2,6 +2,7 @@ package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -10,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.Optional;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 
@@ -18,9 +20,12 @@ import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 public class ResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
+    private ReplicatesService replicatesService;
 
-    public ResultUploadTimeoutDetector(TaskService taskService) {
+    public ResultUploadTimeoutDetector(TaskService taskService,
+                                       ReplicatesService replicatesService) {
         this.taskService = taskService;
+        this.replicatesService = replicatesService;
     }
 
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
@@ -29,12 +34,16 @@ public class ResultUploadTimeoutDetector implements Detector {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 1 min.
         for (Task task : taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
-            for (Replicate replicate : task.getReplicates()) {
-                boolean isUploadingResultReplicate = replicate.getWalletAddress().equals(task.getUploadingWorkerWalletAddress());
+            String chainTaskId = task.getChainTaskId();
+
+            Optional<Replicate> optional = replicatesService.getReplicate(chainTaskId, task.getUploadingWorkerWalletAddress());
+            if(optional.isPresent()){
+                Replicate replicate = optional.get();
                 boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1));
 
-                if (isUploadingResultReplicate && startUploadLongAgo) {
-                    taskService.updateReplicateStatus(task.getId(), replicate.getWalletAddress(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+                if (startUploadLongAgo) {
+                    replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+                            ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
         }
