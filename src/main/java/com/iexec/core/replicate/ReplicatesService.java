@@ -189,7 +189,7 @@ public class ReplicatesService {
         switch (wishedChainStatus) {
             case CONTRIBUTED:
                 replicate.setResultHash(onChainContribution.getResultHash());
-                replicate.setCredibility(scoreToCredibility(onChainContribution.getScore()));
+                //replicate.setCredibility(scoreToCredibility(onChainContribution.getScore()));
                 break;
             case REVEALED:
                 break;

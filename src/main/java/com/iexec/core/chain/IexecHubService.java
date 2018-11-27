@@ -5,11 +5,13 @@ import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple6;
+import org.web3j.tuples.generated.Tuple4;
 
 import java.math.BigInteger;
 
@@ -32,9 +34,8 @@ public class IexecHubService {
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
     }
 
-
     public ChainContribution getContribution(String chainTaskId, String workerWalletAddress) {
-        Tuple6<BigInteger, byte[], byte[], String, BigInteger, BigInteger> contributionTuple = null;
+        Tuple4<BigInteger, byte[], byte[], String> contributionTuple = null;
         try {
             contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
         } catch (Exception e) {
@@ -95,17 +96,6 @@ public class IexecHubService {
         return null;
     }
 
-    public boolean consensus(String chainTaskId, String consensus) throws Exception {
-        log.info("Trying to Consensus on-chain [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
-        TransactionReceipt receipt = iexecHub.consensus(BytesUtils.stringToBytes(chainTaskId),
-                BytesUtils.stringToBytes(consensus)).send();
-        if (!iexecHub.getTaskConsensusEvents(receipt).isEmpty()) {
-            log.info("Consensus on-chain succeeded [chainTaskId:{}, consensus:{}]", chainTaskId, consensus);
-            return true;
-        }
-        return false;
-    }
-
     public ChainTask getChainTask(String chainTaskId) {
         try {
             return ChainTask.tuple2ChainTask(iexecHub.viewTaskABILegacy(BytesUtils.stringToBytes(chainTaskId)).send());
@@ -120,8 +110,8 @@ public class IexecHubService {
 
         boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
         boolean isConsensusDeadlineInFuture = now() < chainTask.getConsensusDeadline();
-        boolean hasEnoughRevealors = ( chainTask.getRevealCounter() == chainTask.getWinnerCounter() )
-                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now() );
+        boolean hasEnoughRevealors = (chainTask.getRevealCounter() == chainTask.getWinnerCounter())
+                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now());
 
         boolean ret = isChainTaskStatusRevealing && isConsensusDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
@@ -134,7 +124,7 @@ public class IexecHubService {
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result){
+    public boolean finalizeTask(String chainTaskId, String result) {
         try {
             log.info("Trying Finalize task on-chain [chainTaskId:{}, result:{}]", chainTaskId, result);
             TransactionReceipt receipt = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
@@ -149,7 +139,7 @@ public class IexecHubService {
         return false;
     }
 
-
-
-
+    public IexecHubABILegacy getIexecHub() {
+        return iexecHub;
+    }
 }

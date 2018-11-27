@@ -5,7 +5,6 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.result.TaskNotification;
 import com.iexec.common.result.TaskNotificationType;
-import com.iexec.core.chain.CredibilityMap;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
@@ -23,9 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.core.chain.ContributionUtils.trustToCredibility;
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service
@@ -117,6 +114,7 @@ public class TaskService {
         optional.ifPresent(this::tryToMoveTaskToNextStatus);
     }
 
+
     void tryToMoveTaskToNextStatus(Task task) {
         log.info("Try to move task to next status [chainTaskId:{}, currentStatus:{}]", task.getChainTaskId(), task.getCurrentStatus());
         switch (task.getCurrentStatus()) {
@@ -124,9 +122,9 @@ public class TaskService {
                 tryUpdateFromCreatedToRunning(task);
                 break;
             case RUNNING:
-                tryUpdateFromRunningToContributed(task);
+                tryUpdateFromRunningToConsensusReached(task);
                 break;
-            case CONTRIBUTED:
+            case CONSENSUS_REACHED:
                 tryUpdateFromContributedToAtLeastOneReveal(task);
                 break;
             case UPLOAD_RESULT_REQUESTED:
@@ -164,43 +162,32 @@ public class TaskService {
         }
     }
 
-    void tryUpdateFromRunningToContributed(Task task) {
+
+    void tryUpdateFromRunningToConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
 
-        CredibilityMap credibilityMap = new CredibilityMap(replicatesService.getReplicates(task.getChainTaskId()));
-        String consensus = credibilityMap.getConsensus();
-        boolean isBestCredibilityBetterThanTrust = credibilityMap.getBestCredibility() >= trustToCredibility(task.getTrust());
-
         ChainTask chainTask = iexecHubService.getChainTask(task.getChainTaskId());
-        boolean isChainTaskInActiveStatus = chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
-        boolean isConsensusDeadlineInFuture = now() < chainTask.getConsensusDeadline();
+        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
-        if (isTaskInRunningStatus && isBestCredibilityBetterThanTrust &&
-                isChainTaskInActiveStatus && isConsensusDeadlineInFuture) {
-            task.setConsensus(consensus);
-            updateTaskStatusAndSave(task, CONTRIBUTED);
+        if (isTaskInRunningStatus && isChainTaskRevealing) {
+            task.setConsensus(chainTask.getConsensusValue());
+            updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
-            try {
-                if (iexecHubService.consensus(task.getChainTaskId(), task.getConsensus())) {
-                    //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
-                    notificationService.sendTaskNotification(TaskNotification.builder()
-                            .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
-                            .chainTaskId(task.getChainTaskId())
-                            .workerAddress("").build()
-                    );
-                }
-            } catch (Exception e) {
-                log.error("Failed to consensus [taskId:{}, consensus:{}]", task.getId(), task.getConsensus());
-            }
+            //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
+            notificationService.sendTaskNotification(TaskNotification.builder()
+                    .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                    .chainTaskId(task.getChainTaskId())
+                    .workerAddress("").build()
+            );
+
         } else {
-            log.info("Unsatisfied check(s) for consensus [isTaskInRunningStatus:{}, isBestCredibilityBetterThanTrust:{}, " +
-                            "isChainTaskInActiveStatus:{}, isConsensusDeadlineInFuture:{}, ] ",
-                    isTaskInRunningStatus, isBestCredibilityBetterThanTrust, isChainTaskInActiveStatus, isConsensusDeadlineInFuture);
+            log.info("Unsatisfied check(s) for consensus [isTaskInRunningStatus:{}, isChainTaskRevealing:{}] ",
+                    isTaskInRunningStatus, isChainTaskRevealing);
         }
     }
 
     void tryUpdateFromContributedToAtLeastOneReveal(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(CONTRIBUTED);
+        boolean condition1 = task.getCurrentStatus().equals(CONSENSUS_REACHED);
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (condition1 && condition2) {
