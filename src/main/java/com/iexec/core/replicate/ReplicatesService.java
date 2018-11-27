@@ -56,7 +56,7 @@ public class ReplicatesService {
     public List<Replicate> getReplicates(String chainTaskId) {
         Optional<ReplicatesList> optionalList = getReplicatesList(chainTaskId);
         if (!optionalList.isPresent()) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
         return optionalList.get().getReplicates();
     }
@@ -77,25 +77,10 @@ public class ReplicatesService {
     }
 
     public boolean hasWorkerAlreadyContributed(String chainTaskId, String walletAddress) {
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (replicate.getWalletAddress().equals(walletAddress)) {
-                return true;
-            }
-        }
-        return false;
+        return getReplicate(chainTaskId, walletAddress).isPresent();
     }
 
-    public int getNbReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (replicate.getCurrentStatus().equals(status)) {
-                nbReplicates++;
-            }
-        }
-        return nbReplicates;
-    }
-
-    public int getNbReplicatesStatusEqualTo(String chainTaskId, ReplicateStatus... listStatus) {
+    public int getNbReplicatesWithStatus(String chainTaskId, ReplicateStatus... listStatus) {
         int nbReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             for (ReplicateStatus status : listStatus) {

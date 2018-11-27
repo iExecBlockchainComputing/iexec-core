@@ -1,20 +1,13 @@
 package com.iexec.core.replicate;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 public class ReplicateUpdatedEvent {
 
     private Replicate replicate;
-
-    public ReplicateUpdatedEvent(Replicate replicate) {
-        this.replicate = replicate;
-    }
-
 }

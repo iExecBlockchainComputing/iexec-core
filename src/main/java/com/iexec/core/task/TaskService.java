@@ -155,7 +155,7 @@ public class TaskService {
 
     void tryUpdateFromCreatedToRunning(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesStatusEqualTo(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getTrust();
         boolean condition3 = task.getCurrentStatus().equals(CREATED);
 
