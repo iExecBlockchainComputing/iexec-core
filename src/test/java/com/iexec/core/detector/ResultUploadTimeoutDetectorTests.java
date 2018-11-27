@@ -24,6 +24,10 @@ import static org.mockito.Mockito.when;
 
 public class ResultUploadTimeoutDetectorTests {
 
+    private final static String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
+    private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
+    private final static String CHAIN_TASK_ID = "CHAIN_TASK_ID";
+
     @Mock
     private TaskService taskService;
 
@@ -42,32 +46,28 @@ public class ResultUploadTimeoutDetectorTests {
     public void shouldNotDetectAnythingNoTimeout(){
         // the latest status change from the replicate is very new so it is not timed out.
 
-        String chainTaskId = "chainTaskId";
-        String walletWorker1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
-        String walletWorker2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
-
-        Task task = new Task("dappName", "commandLine", 2, chainTaskId);
-        Replicate replicate1 = new Replicate(walletWorker1, chainTaskId);
+        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(ReplicateStatus.RUNNING);
         replicate1.updateStatus(ReplicateStatus.COMPUTED);
 
-        Replicate replicate2 = new Replicate(walletWorker2, chainTaskId);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.RUNNING);
         replicate2.updateStatus(ReplicateStatus.COMPUTED);
 
-        task.setUploadingWorkerWalletAddress(walletWorker1);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
         task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
 
         when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
-        when(replicatesService.getReplicates(chainTaskId)).thenReturn(Arrays.asList(replicate1, replicate2));
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate1));
 
 
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(chainTaskId, walletWorker1, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.WORKER_LOST);
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(chainTaskId, walletWorker2, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.WORKER_LOST);
     }
 
     @Test
@@ -77,11 +77,8 @@ public class ResultUploadTimeoutDetectorTests {
         Date threeMinutesAgo = addMinutesToDate(new Date(), -3);
         Date fourMinutesAgo = addMinutesToDate(new Date(), -4);
 
-        String chainTaskId = "chainTaskId";
-        String walletWorker1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
-
-        Task task = new Task("dappName", "commandLine", 2, chainTaskId);
-        Replicate replicate1 = new Replicate(walletWorker1, chainTaskId);
+        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(ReplicateStatus.RUNNING);
         replicate1.updateStatus(ReplicateStatus.COMPUTED);
 
@@ -90,15 +87,15 @@ public class ResultUploadTimeoutDetectorTests {
         TaskStatusChange change3 = new TaskStatusChange(threeMinutesAgo, TaskStatus.COMPUTED);
         TaskStatusChange change4 = new TaskStatusChange(twoMinutesAgo, TaskStatus.UPLOAD_RESULT_REQUESTED);
 
-        task.setUploadingWorkerWalletAddress(walletWorker1);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
         task.setDateStatusList(Arrays.asList(change1, change2, change3, change4));
 
         when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
-        when(replicatesService.getReplicate(chainTaskId, walletWorker1)).thenReturn(Optional.of(replicate1));
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate1));
 
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(chainTaskId, walletWorker1, ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
     }
 }
