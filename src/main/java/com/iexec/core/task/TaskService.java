@@ -108,6 +108,7 @@ public class TaskService {
         return Optional.empty();
     }
 
+    // TODO: run the update Task in a ThreadPool of fixed size 1
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
         Replicate replicate = event.getReplicate();
@@ -243,8 +244,8 @@ public class TaskService {
     }
 
     void tryUpdateFromUploadingResultToResultUploaded(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+            boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
+            boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);

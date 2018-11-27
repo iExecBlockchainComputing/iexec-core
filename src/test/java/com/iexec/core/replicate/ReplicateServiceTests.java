@@ -24,7 +24,7 @@ public class ReplicateServiceTests {
     private final static String WALLET_WORKER_3 = "0x3a3406e69adf886c442ff1791cbf67cea679275d";
     private final static String WALLET_WORKER_4 = "0x4aef50214110fdad4e8b9128347f2ba1ec72f614";
 
-    private final static String CHAIN_TASK_ID = "CHAIN_TASK_ID";
+    private final static String CHAIN_TASK_ID = "chainTaskId";
 
     @Mock
     private ReplicatesRepository replicatesRepository;
