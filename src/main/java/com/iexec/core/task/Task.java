@@ -2,10 +2,7 @@ package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.dapp.DappType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
@@ -13,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -49,38 +47,6 @@ public class Task {
         this.chainTaskId = chainTaskId;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    public void setChainTaskId(String chainTaskId) {
-        this.chainTaskId = chainTaskId;
-    }
-
-    public void setDateStatusList(List<TaskStatusChange> dateStatusList) {
-        this.dateStatusList = dateStatusList;
-    }
-
-    public void setCommandLine(String commandLine) {
-        this.commandLine = commandLine;
-    }
-
-    public void setTrust(int trust) {
-        this.trust = trust;
-    }
-
-    public void setUploadingWorkerWalletAddress(String uploadingWorkerWalletAddress) {
-        this.uploadingWorkerWalletAddress = uploadingWorkerWalletAddress;
-    }
-
-    public void setCurrentStatus(TaskStatus status) {
-        this.currentStatus = status;
-    }
-
     public void changeStatus(TaskStatus status) {
         setCurrentStatus(status);
         this.getDateStatusList().add(new TaskStatusChange(status));
@@ -89,9 +55,5 @@ public class Task {
     @JsonIgnore
     public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
-    }
-
-    public void setConsensus(String consensus) {
-        this.consensus = consensus;
     }
 }

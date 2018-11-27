@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.Optional;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 
@@ -33,12 +34,16 @@ public class ResultUploadTimeoutDetector implements Detector {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 1 min.
         for (Task task : taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                boolean isUploadingResultReplicate = replicate.getWalletAddress().equals(task.getUploadingWorkerWalletAddress());
+            String chainTaskId = task.getChainTaskId();
+
+            Optional<Replicate> optional = replicatesService.getReplicate(chainTaskId, task.getUploadingWorkerWalletAddress());
+            if(optional.isPresent()){
+                Replicate replicate = optional.get();
                 boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1));
 
-                if (isUploadingResultReplicate && startUploadLongAgo) {
-                    replicatesService.updateReplicateStatus(task.getId(), replicate.getWalletAddress(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
+                if (startUploadLongAgo) {
+                    replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+                            ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED);
                 }
             }
         }
