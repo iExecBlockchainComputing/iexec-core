@@ -207,7 +207,7 @@ public class TaskService {
 
     private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(AT_LEAST_ONE_REVEALED)) {
-            updateTaskStatusAndSave(task, UPLOAD_RESULT_REQUESTED);
+            task = updateTaskStatusAndSave(task, UPLOAD_RESULT_REQUESTED);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
