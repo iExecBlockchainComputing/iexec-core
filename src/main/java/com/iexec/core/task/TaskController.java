@@ -32,18 +32,6 @@ public class TaskController {
         this.replicatesService = replicatesService;
     }
 
-    // /!\ This creates a task off-chain without chainTaskId
-    @PostMapping("/tasks")
-    public ResponseEntity postTask(@RequestParam(name = "dappName") String dappName,
-                                   @RequestParam(name = "commandLine") String commandLine,
-                                   @RequestParam(name = "trust") int trust) {
-        //TODO change hardcoded trust
-        Task task = taskService.addTask(dappName, commandLine, 1, "");
-        log.info("New task created [taskId:{}]", task.getId());
-        return ok(task.getId());
-    }
-
-
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity getTask(@PathVariable("chainTaskId") String chainTaskId) {
         Optional<Task> optionalTask = taskService.getTaskByChainTaskId(chainTaskId);

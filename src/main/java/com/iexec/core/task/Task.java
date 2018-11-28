@@ -22,6 +22,8 @@ public class Task {
     @Version
     private Long version;
 
+    private String chainDealId;
+    private int taskIndex;
     private String chainTaskId;
     private DappType dappType;
     private String dappName;
@@ -38,13 +40,20 @@ public class Task {
         this.commandLine = commandLine;
         this.trust = trust;
         this.dateStatusList = new ArrayList<>();
-        this.dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
-        this.currentStatus = TaskStatus.CREATED;
+        this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
+        this.currentStatus = TaskStatus.RECEIVED;
     }
 
     public Task(String dappName, String commandLine, int trust, String chainTaskId) {
         this(dappName, commandLine, trust);
         this.chainTaskId = chainTaskId;
+    }
+
+    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust) {
+        this(dappName, commandLine, trust);
+        this.chainDealId = chainDealId;
+        this.taskIndex = taskIndex;
+        this.chainTaskId = "";
     }
 
     public void changeStatus(TaskStatus status) {
