@@ -44,8 +44,8 @@ public class TaskModel {
         this.commandLine = commandLine;
         this.trust = trust;
         this.dateStatusList = new ArrayList<>();
-        this.dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
-        this.currentStatus = TaskStatus.CREATED;
+        this.dateStatusList.add(new TaskStatusChange(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED));
+        this.currentStatus = TaskStatus.TRANSACTION_INITIALIZE_COMPLETED;
         this.replicates = new ArrayList<>();
     }
 

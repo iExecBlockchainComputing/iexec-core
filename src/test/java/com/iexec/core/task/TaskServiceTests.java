@@ -6,11 +6,9 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import okhttp3.Interceptor;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -20,12 +18,9 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 
-import static com.iexec.core.task.TaskStatus.CREATED;
-import static com.iexec.core.task.TaskStatus.RUNNING;
-import static com.iexec.core.task.TaskStatus.UPLOAD_RESULT_REQUESTED;
+import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -74,7 +69,7 @@ public class TaskServiceTests {
         Task task = Task.builder()
                 .id("realId")
                 .chainTaskId(chainTaskId)
-                .currentStatus(TaskStatus.CREATED)
+                .currentStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED)
                 .commandLine("commandLine")
                 .trust(2)
                 .build();
@@ -86,17 +81,18 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
-        String chainTaskId = "chainTaskId";
+        String chainDealId = "chainDealId";
         Task task = Task.builder()
                 .id("realId")
-                .currentStatus(TaskStatus.CREATED)
-                .chainTaskId(chainTaskId)
+                .currentStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED)
+                .chainDealId(chainDealId)
+                .taskIndex(0)
                 .dappName("dappName")
                 .commandLine("commandLine")
                 .trust(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("dappName", "commandLine", 2, chainTaskId);
+        Task saved = taskService.addTask("chainDealId", 0,"dappName", "commandLine", 2);
         assertThat(saved).isNotNull();
         assertThat(saved).isEqualTo(task);
     }
@@ -224,6 +220,7 @@ public class TaskServiceTests {
     public void shouldUpdateTaskToRunningFromWorkersInRunning() {
 
         Task task = new Task("dappName", "commandLine", 3, CHAIN_TASK_ID);
+        task.changeStatus(TRANSACTION_INITIALIZE_COMPLETED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(3);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
 
@@ -235,6 +232,7 @@ public class TaskServiceTests {
     @Test
     public void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = new Task("dappName", "commandLine", 4, CHAIN_TASK_ID);
+        task.changeStatus(TRANSACTION_INITIALIZE_COMPLETED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(4);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
@@ -242,7 +240,7 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
-    // all replicates in CREATED
+    // all replicates in TRANSACTION_INITIALIZE_COMPLETED
     @Test
     public void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
         Task task = new Task("dappName", "commandLine", 4, CHAIN_TASK_ID);
@@ -255,7 +253,7 @@ public class TaskServiceTests {
 
 
     // Two replicates in COMPUTED BUT trust = 2, so the task should not be able to move directly from
-    // CREATED to COMPUTED
+    // TRANSACTION_INITIALIZE_COMPLETED to COMPUTED
     @Test
     public void shouldNotUpdateToRunningCase2() {
 
@@ -277,11 +275,11 @@ public class TaskServiceTests {
         replicates.get(2).updateStatus(ReplicateStatus.COMPUTED);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED));
 
         Task task = Task.builder()
                 .id("taskId")
-                .currentStatus(TaskStatus.CREATED)
+                .currentStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED)
                 .commandLine("ls")
                 .trust(2)
                 .dateStatusList(dateStatusList)
@@ -306,11 +304,11 @@ public class TaskServiceTests {
         replicates.get(2).updateStatus(ReplicateStatus.RUNNING);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED));
 
         Task task = Task.builder()
                 .id("taskId")
-                .currentStatus(TaskStatus.CREATED)
+                .currentStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED)
                 .commandLine("ls")
                 .trust(2)
                 .dateStatusList(dateStatusList)
@@ -354,7 +352,7 @@ public class TaskServiceTests {
         replicates.get(2).updateStatus(ReplicateStatus.RESULT_UPLOADED);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.CREATED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED));
 
         Task task = Task.builder()
                 .id("taskId")
@@ -421,7 +419,7 @@ public class TaskServiceTests {
                 .build();
 
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.of(existingWorker));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING)))
                 .thenReturn(new ArrayList<>());
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
@@ -461,7 +459,7 @@ public class TaskServiceTests {
         // runningTask2.setReplicates(listReplicates2);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING)))
                 .thenReturn(Arrays.asList(runningTask1, runningTask2));
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
@@ -491,7 +489,7 @@ public class TaskServiceTests {
         // runningTask1.setReplicates(listReplicates1);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
@@ -519,7 +517,7 @@ public class TaskServiceTests {
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(taskRepository.save(any())).thenReturn(runningTask1);
         when(workerService.addChainTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
@@ -552,7 +550,7 @@ public class TaskServiceTests {
         // runningTask1.setReplicates(listReplicates1);
 
         when(workerService.getWorker(walletAddress)).thenReturn(Optional.of(existingWorker));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(taskRepository.save(any())).thenReturn(runningTask1);
         when(workerService.addChainTaskIdToWorker(taskId, walletAddress)).thenReturn(Optional.of(existingWorker));

@@ -15,20 +15,20 @@ public class TaskTests {
         Task task = new Task("dappName", "cmdLine", 2);
 
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
-        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.CREATED);
+        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
     }
 
     @Test
     public void shouldSetCurrentStatus() {
         Task task = new Task("dappName", "cmdLine", 2);
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.CREATED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RECEIVED);
 
-        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
         assertThat(task.getDateStatusList().size()).isEqualTo(2);
-        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.CREATED);
-        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.RUNNING);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
+        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
+        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
 
         task.changeStatus(TaskStatus.COMPUTED);
         assertThat(task.getDateStatusList().size()).isEqualTo(3);
@@ -42,12 +42,12 @@ public class TaskTests {
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
 
         TaskStatusChange latestChange = task.getLatestStatusChange();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.CREATED);
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RECEIVED);
 
-        task.changeStatus(TaskStatus.RUNNING);
+        task.changeStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
         latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RUNNING);
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
 
         task.changeStatus(TaskStatus.COMPUTED);
         latestChange = task.getLatestStatusChange();

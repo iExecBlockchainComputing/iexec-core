@@ -46,9 +46,10 @@ public class TaskService {
         this.replicatesService = replicatesService;
     }
 
-    public Task addTask(String dappName, String commandLine, int trust, String chainTaskId) {
-        log.info("Adding new task [commandLine:{}, trust:{}]", commandLine, trust);
-        return taskRepository.save(new Task(dappName, commandLine, trust, chainTaskId));
+    public Task addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
+        log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+                chainDealId, taskIndex, imageName, commandLine, trust);
+        return taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust));
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -68,7 +69,7 @@ public class TaskService {
     }
 
     public List<Task> getAllRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(CREATED, RUNNING));
+        return taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
@@ -105,6 +106,14 @@ public class TaskService {
         return Optional.empty();
     }
 
+    @EventListener
+    public void onTaskCreatedEvent(TaskCreatedEvent event) {
+        Task task = event.getTask();
+        log.info("Received TaskCreatedEvent [chainDealId:{}, taskIndex:{}] ",
+                task.getChainDealId(), task.getTaskIndex());
+        tryToMoveTaskToNextStatus(task);
+    }
+
     // TODO: run the update Task in a ThreadPool of fixed size 1
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
@@ -119,7 +128,10 @@ public class TaskService {
     void tryToMoveTaskToNextStatus(Task task) {
         log.info("Try to move task to next status [chainTaskId:{}, currentStatus:{}]", task.getChainTaskId(), task.getCurrentStatus());
         switch (task.getCurrentStatus()) {
-            case CREATED:
+            case RECEIVED:
+                tryUpdateFromReceivedToInitialized(task);
+                break;
+            case TRANSACTION_INITIALIZE_COMPLETED:
                 tryUpdateFromCreatedToRunning(task);
                 break;
             case RUNNING:
@@ -152,11 +164,31 @@ public class TaskService {
         return savedTask;
     }
 
+    void tryUpdateFromReceivedToInitialized(Task task) {
+        boolean isChainTaskIdEmpty = task.getChainTaskId() != null && task.getChainTaskId().isEmpty();
+        boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
+
+        if (isChainTaskIdEmpty && isCurrentStatusReceived) {
+            /*TODO ?
+            if (!iexecHubService.canInitializeTask(task.getChainDealId(), task.getTaskIndex())){
+                return;
+            }*/
+
+            String chainTaskId = iexecHubService.initializeTask(task.getChainDealId(), task.getTaskIndex());
+            if (chainTaskId != null && !chainTaskId.isEmpty()) {
+                task.setChainTaskId(chainTaskId);
+                updateTaskStatusAndSave(task, TRANSACTION_INITIALIZE_COMPLETED);
+            } else {
+                updateTaskStatusAndSave(task, TRANSACTION_INITIALIZE_FAILED);
+            }
+        }
+    }
+
     void tryUpdateFromCreatedToRunning(Task task) {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getTrust();
-        boolean condition3 = task.getCurrentStatus().equals(CREATED);
+        boolean condition3 = task.getCurrentStatus().equals(TRANSACTION_INITIALIZE_COMPLETED);
 
         if (condition1 && condition2 && condition3) {
             updateTaskStatusAndSave(task, RUNNING);
@@ -231,8 +263,8 @@ public class TaskService {
     }
 
     void tryUpdateFromUploadingResultToResultUploaded(Task task) {
-            boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
-            boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
+        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
@@ -275,4 +307,5 @@ public class TaskService {
                     .build());
         }
     }
+
 }

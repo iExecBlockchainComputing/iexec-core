@@ -85,13 +85,20 @@ public class IexecHubService {
         return false;
     }
 
-
-    public String initializeTask(byte[] dealId, int numTask) throws Exception {
-        log.info("Trying to Initialize task on-chain [dealId:{}, numTask:{}]", BytesUtils.bytesToString(dealId), numTask);
-        TransactionReceipt res = iexecHub.initialize(dealId, BigInteger.valueOf(numTask)).send();
-        if (!iexecHub.getTaskInitializeEvents(res).isEmpty()) {
-            log.info("Initialize task on-chain succeeded[dealId:{}, numTask:{}]", BytesUtils.bytesToString(dealId), numTask);
-            return BytesUtils.bytesToString(iexecHub.getTaskInitializeEvents(res).get(0).taskid);
+    public String initializeTask(String chainDealId, int taskIndex){
+        log.info("Transaction initializeTask started [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+        try {
+            TransactionReceipt initializeReceipt = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex)).send();
+            if (!iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
+                IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
+                String chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
+                log.info("Transaction initializeTask completed [chainTaskId:{}, chainDealId:{}, taskIndex:{}]",
+                        chainTaskId, chainDealId, taskIndex);
+                return chainTaskId;
+            }
+        } catch (Exception e) {
+            log.error("Transaction initializeTask failed [chainDealId:{}, taskIndex:{}]",
+                    chainDealId, taskIndex);
         }
         return null;
     }
