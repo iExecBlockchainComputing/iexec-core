@@ -55,7 +55,7 @@ public class TaskService {
         return taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust));
     }
 
-    public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
+    Optional<Task> getTaskByChainTaskId(String chainTaskId) {
         return taskRepository.findByChainTaskId(chainTaskId);
     }
 
@@ -63,13 +63,13 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(status);
     }
 
-    public List<Task> getAllRunningTasks() {
+    private List<Task> getAllRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> getAvailableReplicate(String walletAddress) {
+    Optional<Replicate> getAvailableReplicate(String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
