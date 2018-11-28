@@ -8,12 +8,12 @@ import com.iexec.common.result.TaskNotificationType;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -33,17 +33,20 @@ public class TaskService {
     private NotificationService notificationService;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        NotificationService notificationService,
                        IexecHubService iexecHubService,
-                       ReplicatesService replicatesService) {
+                       ReplicatesService replicatesService,
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public Task addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
@@ -54,14 +57,6 @@ public class TaskService {
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
         return taskRepository.findByChainTaskId(chainTaskId);
-    }
-
-    public List<Task> getTasksByIds(List<String> ids) {
-        return taskRepository.findById(ids);
-    }
-
-    public List<Task> getTasksByChainTaskIds(List<String> chainTaskIds) {
-        return taskRepository.findByChainTaskId(chainTaskIds);
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
@@ -105,25 +100,6 @@ public class TaskService {
 
         return Optional.empty();
     }
-
-    @EventListener
-    public void onTaskCreatedEvent(TaskCreatedEvent event) {
-        Task task = event.getTask();
-        log.info("Received TaskCreatedEvent [chainDealId:{}, taskIndex:{}] ",
-                task.getChainDealId(), task.getTaskIndex());
-        tryToMoveTaskToNextStatus(task);
-    }
-
-    // TODO: run the update Task in a ThreadPool of fixed size 1
-    @EventListener
-    public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
-        Replicate replicate = event.getReplicate();
-        log.info("Received ReplicateUpdatedEvent [chainTaskId:{}, walletAddress:{}] ",
-                replicate.getChainTaskId(), replicate.getWalletAddress());
-        Optional<Task> optional = taskRepository.findByChainTaskId(replicate.getChainTaskId());
-        optional.ifPresent(this::tryToMoveTaskToNextStatus);
-    }
-
 
     void tryToMoveTaskToNextStatus(Task task) {
         log.info("Try to move task to next status [chainTaskId:{}, currentStatus:{}]", task.getChainTaskId(), task.getCurrentStatus());
@@ -300,6 +276,9 @@ public class TaskService {
                 workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
             }
 
+            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+
+            // TODO: to move in the TaskCompletedEvent
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .taskNotificationType(TaskNotificationType.COMPLETED)

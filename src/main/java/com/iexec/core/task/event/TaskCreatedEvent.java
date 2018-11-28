@@ -1,4 +1,4 @@
-package com.iexec.core.task;
+package com.iexec.core.task.event;
 
 import com.iexec.core.task.Task;
 import lombok.*;
