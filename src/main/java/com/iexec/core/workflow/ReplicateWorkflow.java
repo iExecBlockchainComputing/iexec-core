@@ -14,12 +14,17 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // This is where the whole workflow is defined
         addTransition(CREATED, RUNNING);
         addTransition(RUNNING, COMPUTED);
-        addTransition(COMPUTED, CONTRIBUTED);
-        addTransition(CONTRIBUTED, REVEALED);
-        addTransition(REVEALED, UPLOADING_RESULT);
-        addTransition(UPLOADING_RESULT, RESULT_UPLOADED);
-        addTransition(UPLOADING_RESULT, UPLOAD_RESULT_REQUEST_FAILED);
-        addTransition(UPLOADING_RESULT, ERROR);
+        addTransition(COMPUTED, CONTRIBUTING);
+        addTransition(CONTRIBUTING, CONTRIBUTED);
+        addTransition(CONTRIBUTING, COMPUTE_FAILED);
+        addTransition(CONTRIBUTED, REVEALING);
+        addTransition(REVEALING, REVEALED);
+        addTransition(REVEALING, REVEAL_FAILED);
+        addTransition(REVEALED, RESULT_UPLOADING);
+        addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
+        addTransition(RESULT_UPLOADING, UPLOAD_RESULT_REQUEST_FAILED);
+        addTransition(RESULT_UPLOADING, ERROR);
+        addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(COMPUTED, ERROR);
 
         //from any status to WORKER_LOST
@@ -28,7 +33,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(COMPUTED, WORKER_LOST);
         addTransition(CONTRIBUTED, WORKER_LOST);
         addTransition(REVEALED, WORKER_LOST);
-        addTransition(UPLOADING_RESULT, WORKER_LOST);
+        addTransition(RESULT_UPLOADING, WORKER_LOST);
         addTransition(RESULT_UPLOADED, WORKER_LOST);
         addTransition(UPLOAD_RESULT_REQUEST_FAILED, WORKER_LOST);
     }

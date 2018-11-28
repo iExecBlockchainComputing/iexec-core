@@ -69,7 +69,7 @@ public class TaskService {
     }
 
     public List<Task> getAllRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING));
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
@@ -131,7 +131,7 @@ public class TaskService {
             case RECEIVED:
                 tryUpdateFromReceivedToInitialized(task);
                 break;
-            case TRANSACTION_INITIALIZE_COMPLETED:
+            case INITIALIZED:
                 tryUpdateFromCreatedToRunning(task);
                 break;
             case RUNNING:
@@ -143,7 +143,7 @@ public class TaskService {
             case UPLOAD_RESULT_REQUESTED:
                 tryUpdateFromUploadRequestedToUploadingResult(task);
                 break;
-            case UPLOADING_RESULT:
+            case RESULT_UPLOADING:
                 tryUpdateFromUploadingResultToResultUploaded(task);
                 break;
             case RESULT_UPLOADED:
@@ -177,9 +177,9 @@ public class TaskService {
             String chainTaskId = iexecHubService.initializeTask(task.getChainDealId(), task.getTaskIndex());
             if (chainTaskId != null && !chainTaskId.isEmpty()) {
                 task.setChainTaskId(chainTaskId);
-                updateTaskStatusAndSave(task, TRANSACTION_INITIALIZE_COMPLETED);
+                updateTaskStatusAndSave(task, INITIALIZED);
             } else {
-                updateTaskStatusAndSave(task, TRANSACTION_INITIALIZE_FAILED);
+                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
             }
         }
     }
@@ -188,7 +188,7 @@ public class TaskService {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getTrust();
-        boolean condition3 = task.getCurrentStatus().equals(TRANSACTION_INITIALIZE_COMPLETED);
+        boolean condition3 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2 && condition3) {
             updateTaskStatusAndSave(task, RUNNING);
@@ -255,22 +255,22 @@ public class TaskService {
 
     void tryUpdateFromUploadRequestedToUploadingResult(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED);
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.UPLOADING_RESULT) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
         if (condition1 && condition2) {
-            updateTaskStatusAndSave(task, UPLOADING_RESULT);
+            updateTaskStatusAndSave(task, RESULT_UPLOADING);
         }
     }
 
     void tryUpdateFromUploadingResultToResultUploaded(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOADING_RESULT);
+        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             tryUpdateFromResultUploadedToFinalize(task);
         } else if (replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
-                replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.UPLOADING_RESULT) == 0) {
+                replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
             requestUpload(task);
         }
@@ -281,9 +281,9 @@ public class TaskService {
         boolean condition2 = iexecHubService.canFinalize(task.getChainTaskId());
 
         if (condition1 && condition2) {
-            updateTaskStatusAndSave(task, FINALIZE_STARTED);
+            updateTaskStatusAndSave(task, FINALIZING);
             if (iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId())) {
-                updateTaskStatusAndSave(task, FINALIZE_COMPLETED);
+                updateTaskStatusAndSave(task, FINALIZED);
                 updateFromFinalizedToCompleted(task);
             } else {
                 updateTaskStatusAndSave(task, FINALIZE_FAILED);
@@ -292,7 +292,7 @@ public class TaskService {
     }
 
     private void updateFromFinalizedToCompleted(Task task) {
-        if (task.getCurrentStatus().equals(FINALIZE_COMPLETED)) {
+        if (task.getCurrentStatus().equals(FINALIZED)) {
             updateTaskStatusAndSave(task, COMPLETED);
 
             String chainTaskId = task.getChainTaskId();
