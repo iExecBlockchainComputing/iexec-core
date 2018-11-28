@@ -8,12 +8,12 @@ import com.iexec.common.result.TaskNotificationType;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -33,17 +33,20 @@ public class TaskService {
     private NotificationService notificationService;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        NotificationService notificationService,
                        IexecHubService iexecHubService,
-                       ReplicatesService replicatesService) {
+                       ReplicatesService replicatesService,
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.notificationService = notificationService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public Task addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
@@ -52,29 +55,21 @@ public class TaskService {
         return taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust));
     }
 
-    public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
+    Optional<Task> getTaskByChainTaskId(String chainTaskId) {
         return taskRepository.findByChainTaskId(chainTaskId);
-    }
-
-    public List<Task> getTasksByIds(List<String> ids) {
-        return taskRepository.findById(ids);
-    }
-
-    public List<Task> getTasksByChainTaskIds(List<String> chainTaskIds) {
-        return taskRepository.findByChainTaskId(chainTaskIds);
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
         return taskRepository.findByCurrentStatus(status);
     }
 
-    public List<Task> getAllRunningTasks() {
+    private List<Task> getAllRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    public Optional<Replicate> getAvailableReplicate(String walletAddress) {
+    Optional<Replicate> getAvailableReplicate(String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
@@ -105,25 +100,6 @@ public class TaskService {
 
         return Optional.empty();
     }
-
-    @EventListener
-    public void onTaskCreatedEvent(TaskCreatedEvent event) {
-        Task task = event.getTask();
-        log.info("Received TaskCreatedEvent [chainDealId:{}, taskIndex:{}] ",
-                task.getChainDealId(), task.getTaskIndex());
-        tryToMoveTaskToNextStatus(task);
-    }
-
-    // TODO: run the update Task in a ThreadPool of fixed size 1
-    @EventListener
-    public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
-        Replicate replicate = event.getReplicate();
-        log.info("Received ReplicateUpdatedEvent [chainTaskId:{}, walletAddress:{}] ",
-                replicate.getChainTaskId(), replicate.getWalletAddress());
-        Optional<Task> optional = taskRepository.findByChainTaskId(replicate.getChainTaskId());
-        optional.ifPresent(this::tryToMoveTaskToNextStatus);
-    }
-
 
     void tryToMoveTaskToNextStatus(Task task) {
         log.info("Try to move task to next status [chainTaskId:{}, currentStatus:{}]", task.getChainTaskId(), task.getCurrentStatus());
@@ -231,7 +207,7 @@ public class TaskService {
 
     private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(AT_LEAST_ONE_REVEALED)) {
-            updateTaskStatusAndSave(task, UPLOAD_RESULT_REQUESTED);
+            task = updateTaskStatusAndSave(task, UPLOAD_RESULT_REQUESTED);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
@@ -300,6 +276,9 @@ public class TaskService {
                 workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
             }
 
+            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+
+            // TODO: to move in the TaskCompletedEvent
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .taskNotificationType(TaskNotificationType.COMPLETED)

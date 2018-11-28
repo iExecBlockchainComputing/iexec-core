@@ -5,7 +5,7 @@ import com.iexec.common.contract.generated.App;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskCreatedEvent;
+import com.iexec.core.task.event.TaskCreatedEvent;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,6 @@ public class IexecWatcherService {
     // outside services
     // TODO: this should be replaced by DealService ?
     private final TaskService taskService;
-    private final IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
@@ -37,14 +36,12 @@ public class IexecWatcherService {
     public IexecWatcherService(CredentialsService credentialsService,
                                ChainConfig chainConfig,
                                TaskService taskService,
-                               IexecHubService iexecHubService,
                                ApplicationEventPublisher applicationEventPublisher) {
         this.taskService = taskService;
 
         this.credentials = credentialsService.getCredentials();
         this.web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
-        this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
 
         startWatchers();
