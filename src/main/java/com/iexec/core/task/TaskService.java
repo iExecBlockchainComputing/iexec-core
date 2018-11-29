@@ -47,10 +47,15 @@ public class TaskService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    public Task addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
-        log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
+        if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
+            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+                    chainDealId, taskIndex, imageName, commandLine, trust);
+            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust)));
+        }
+        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
-        return taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust));
+        return Optional.empty();
     }
 
     Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -61,6 +66,9 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(status);
     }
 
+    private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
+        return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
+    }
 
     private List<Task> getAllRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));

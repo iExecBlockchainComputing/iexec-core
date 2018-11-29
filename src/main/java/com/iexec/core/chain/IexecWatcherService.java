@@ -16,6 +16,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
 
@@ -66,9 +67,9 @@ public class IexecWatcherService {
             int endBag = chainDeal.botFirst.intValue() + chainDeal.botSize.intValue();
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
-                Task task = taskService.addTask(BytesUtils.bytesToString(ordersMatchedEvent.dealid), taskIndex,
+                Optional<Task> optional = taskService.addTask(BytesUtils.bytesToString(ordersMatchedEvent.dealid), taskIndex,
                         dockerImage, dealParams.get(taskIndex), chainDeal.trust.intValue());
-                applicationEventPublisher.publishEvent(new TaskCreatedEvent(task));
+                optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
 
         } catch (Exception e) {
