@@ -202,19 +202,22 @@ public class TaskService {
             }
 
             // winners: please reveal
-            notificationService.sendTaskNotification(TaskNotification.builder()
-                    .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
-                    .chainTaskId(task.getChainTaskId())
-                    .workersAddress(winners).build()
-            );
+            if (!winners.isEmpty()) {
+                notificationService.sendTaskNotification(TaskNotification.builder()
+                        .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                        .chainTaskId(task.getChainTaskId())
+                        .workersAddress(winners).build()
+                );
+            }
 
             // losers: please abort
-            notificationService.sendTaskNotification(TaskNotification.builder()
-                    .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED)
-                    .chainTaskId(task.getChainTaskId())
-                    .workersAddress(losers).build()
-            );
-
+            if (!losers.isEmpty()) {
+                notificationService.sendTaskNotification(TaskNotification.builder()
+                        .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED)
+                        .chainTaskId(task.getChainTaskId())
+                        .workersAddress(losers).build()
+                );
+            }
 
         } else {
             log.info("Unsatisfied check(s) for consensus [isTaskInRunningStatus:{}, isChainTaskRevealing:{}] ",
