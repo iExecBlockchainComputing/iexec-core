@@ -2,25 +2,20 @@ package com.iexec.core.task;
 
 public enum TaskStatus {
     RECEIVED,
-    TRANSACTION_INITIALIZE_COMPLETED,
-    TRANSACTION_INITIALIZE_FAILED,
+    INITIALIZED,
+    INITIALIZE_FAILED,
     RUNNING,
     COMPUTED,
     CONSENSUS_REACHED,
     AT_LEAST_ONE_REVEALED,
     REVEALED,
     UPLOAD_RESULT_REQUESTED,
-    UPLOADING_RESULT,
+    RESULT_UPLOADING,
     RESULT_UPLOADED,
-    FINALIZE_STARTED,
-    FINALIZE_COMPLETED,
+    FINALIZING,
+    FINALIZED,
     FINALIZE_FAILED,
     COMPLETED,
     ERROR;
 
-    public static boolean isBlockchainStatus(TaskStatus status) {
-        return status.equals(TaskStatus.CONSENSUS_REACHED)
-                || status.equals(TaskStatus.REVEALED)
-                || status.equals(TaskStatus.FINALIZE_COMPLETED);
-    }
 }

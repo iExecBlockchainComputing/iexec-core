@@ -24,11 +24,11 @@ public class TaskTests {
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RECEIVED);
 
-        task.changeStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        task.changeStatus(TaskStatus.INITIALIZED);
         assertThat(task.getDateStatusList().size()).isEqualTo(2);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
-        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.INITIALIZED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.INITIALIZED);
 
         task.changeStatus(TaskStatus.COMPUTED);
         assertThat(task.getDateStatusList().size()).isEqualTo(3);
@@ -44,10 +44,10 @@ public class TaskTests {
         TaskStatusChange latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RECEIVED);
 
-        task.changeStatus(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        task.changeStatus(TaskStatus.INITIALIZED);
         latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.INITIALIZED);
 
         task.changeStatus(TaskStatus.COMPUTED);
         latestChange = task.getLatestStatusChange();

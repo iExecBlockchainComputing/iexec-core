@@ -82,7 +82,7 @@ public class ResultUploadTimeoutDetectorTests {
         replicate1.updateStatus(ReplicateStatus.RUNNING);
         replicate1.updateStatus(ReplicateStatus.COMPUTED);
 
-        TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.TRANSACTION_INITIALIZE_COMPLETED);
+        TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.INITIALIZED);
         TaskStatusChange change2 = new TaskStatusChange(fourMinutesAgo, TaskStatus.RUNNING);
         TaskStatusChange change3 = new TaskStatusChange(threeMinutesAgo, TaskStatus.COMPUTED);
         TaskStatusChange change4 = new TaskStatusChange(twoMinutesAgo, TaskStatus.UPLOAD_RESULT_REQUESTED);
