@@ -97,7 +97,7 @@ public class TaskService {
 
             if (!replicatesService.hasWorkerAlreadyContributed(chainTaskId, walletAddress) &&
                     replicatesService.moreReplicatesNeeded(chainTaskId, task.getTrust())) {
-                replicatesService.createNewReplicate(chainTaskId, walletAddress);
+                replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
                 return replicatesService.getReplicate(chainTaskId, walletAddress);
             }
@@ -159,6 +159,7 @@ public class TaskService {
             if (chainTaskId != null && !chainTaskId.isEmpty()) {
                 task.setChainTaskId(chainTaskId);
                 updateTaskStatusAndSave(task, INITIALIZED);
+                replicatesService.createEmptyReplicateList(chainTaskId);
             } else {
                 updateTaskStatusAndSave(task, INITIALIZE_FAILED);
             }
