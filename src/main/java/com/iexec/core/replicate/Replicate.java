@@ -15,10 +15,9 @@ public class Replicate {
 
     private List<ReplicateStatusChange> statusChangeList;
     private String walletAddress;
-    private String resultSha;
     private String resultUri;
     private String chainTaskId;
-    private String resultHash;
+    private String contributionHash;
     private int credibility;
 
     public Replicate(String walletAddress, String chainTaskId) {
@@ -34,7 +33,7 @@ public class Replicate {
     }
 
     @JsonIgnore
-    public ReplicateStatusChange getLatestStatusChange() {
+    private ReplicateStatusChange getLatestStatusChange() {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
 
@@ -42,12 +41,12 @@ public class Replicate {
         return statusChangeList.add(new ReplicateStatusChange(newStatus));
     }
 
-    public String getResultHash() {
-        return resultHash;
+    public String getContributionHash() {
+        return contributionHash;
     }
 
-    public void setResultHash(String resultHash) {
-        this.resultHash = resultHash;
+    void setContributionHash(String contributionHash) {
+        this.contributionHash = contributionHash;
     }
 
     public int getCredibility() {
