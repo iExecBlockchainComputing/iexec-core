@@ -16,13 +16,15 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RUNNING, APP_DOWNLOADING);
         addTransition(APP_DOWNLOADING, APP_DOWNLOADED);
         addTransition(APP_DOWNLOADING, APP_DOWNLOAD_FAILED);
-        addTransition(APP_DOWNLOADED, COMPUTED);
-        addTransition(APP_DOWNLOAD_FAILED, COMPUTED);
+        addTransition(APP_DOWNLOADED, COMPUTING);
+        addTransition(APP_DOWNLOAD_FAILED, COMPUTING);
+        addTransition(COMPUTING, COMPUTED);
         addTransition(COMPUTED, CONTRIBUTING);
+
         addTransition(CONTRIBUTING, CONTRIBUTED);
-        addTransition(CONTRIBUTING, COMPUTE_FAILED);
+        addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
+        addTransition(CONTRIBUTE_FAILED, ABORT_CONSENSUS_REACHED);
         addTransition(CONTRIBUTED, REVEALING);
-        addTransition(CONTRIBUTED, ABORT_CONSENSUS_REACHED);
         addTransition(REVEALING, REVEALED);
         addTransition(REVEALING, REVEAL_FAILED);
         addTransition(REVEALED, RESULT_UPLOADING);

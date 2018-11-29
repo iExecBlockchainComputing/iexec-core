@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
 
 @Slf4j
@@ -89,6 +90,16 @@ public class ReplicatesService {
             }
         }
         return nbReplicates;
+    }
+
+    public Optional<Replicate> getReplicateWithRevealStatus(String chainTaskId) {
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            if(replicate.getCurrentStatus().equals(REVEALED)) {
+                return Optional.of(replicate);
+            }
+        }
+
+        return Optional.empty();
     }
 
     public boolean moreReplicatesNeeded(String chainTaskId, int trust) {
@@ -167,7 +178,7 @@ public class ReplicatesService {
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
     }
 
-    public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
+    private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
         ChainContribution onChainContribution = iexecHubService.getContribution(chainTaskId, walletAddress);
         switch (wishedChainStatus) {
             case CONTRIBUTED:
