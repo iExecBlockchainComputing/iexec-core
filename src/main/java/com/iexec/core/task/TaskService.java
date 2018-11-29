@@ -65,7 +65,7 @@ public class TaskService {
 
 
     private List<Task> getAllRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(TRANSACTION_INITIALIZE_COMPLETED, RUNNING));
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
