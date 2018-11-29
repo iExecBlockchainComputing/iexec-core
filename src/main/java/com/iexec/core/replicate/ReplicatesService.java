@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
-import static com.iexec.core.chain.ContributionUtils.scoreToCredibility;
 
 @Slf4j
 @Service
@@ -168,13 +167,11 @@ public class ReplicatesService {
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
     }
 
-
     public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
         ChainContribution onChainContribution = iexecHubService.getContribution(chainTaskId, walletAddress);
         switch (wishedChainStatus) {
             case CONTRIBUTED:
-                replicate.setResultHash(onChainContribution.getResultHash());
-                //replicate.setCredibility(scoreToCredibility(onChainContribution.getScore()));
+                replicate.setContributionHash(onChainContribution.getResultHash());
                 break;
             case REVEALED:
                 break;

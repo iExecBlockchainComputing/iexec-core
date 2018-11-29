@@ -18,9 +18,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -183,12 +181,32 @@ public class TaskService {
             task.setConsensus(chainTask.getConsensusValue());
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
-            //TODO call only winners PLEASE_REVEAL & losers PLEASE_ABORT
+            String winningHash = task.getConsensus();
+
+            List<String> winners = new ArrayList<>();
+            List<String> losers = new ArrayList<>();
+            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
+                if (replicate.getContributionHash().equals(winningHash)) {
+                    winners.add(replicate.getWalletAddress());
+                } else {
+                    losers.add(replicate.getWalletAddress());
+                }
+            }
+
+            // winners: please reveal
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
                     .chainTaskId(task.getChainTaskId())
-                    .workerAddress("").build()
+                    .workersAddress(winners).build()
             );
+
+            // losers: please abort
+            notificationService.sendTaskNotification(TaskNotification.builder()
+                    .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED)
+                    .chainTaskId(task.getChainTaskId())
+                    .workersAddress(losers).build()
+            );
+
 
         } else {
             log.info("Unsatisfied check(s) for consensus [isTaskInRunningStatus:{}, isChainTaskRevealing:{}] ",
@@ -216,7 +234,7 @@ public class TaskService {
                 if (replicate.getCurrentStatus().equals(ReplicateStatus.REVEALED)) {
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .chainTaskId(task.getChainTaskId())
-                            .workerAddress(replicate.getWalletAddress())
+                            .workersAddress(Collections.singletonList(replicate.getWalletAddress()))
                             .taskNotificationType(TaskNotificationType.PLEASE_UPLOAD)
                             .build());
                     log.info("NotifyUploadingWorker completed[uploadingWorkerWallet={}]", replicate.getWalletAddress());
@@ -283,7 +301,7 @@ public class TaskService {
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .taskNotificationType(TaskNotificationType.COMPLETED)
-                    .workerAddress("")
+                    .workersAddress(Collections.emptyList())
                     .build());
         }
     }
