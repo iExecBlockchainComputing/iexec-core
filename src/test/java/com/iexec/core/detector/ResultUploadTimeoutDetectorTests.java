@@ -56,9 +56,9 @@ public class ResultUploadTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.COMPUTED);
 
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
-        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
 
-        when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOAD_REQUESTED)).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate1));
 
 
@@ -83,14 +83,13 @@ public class ResultUploadTimeoutDetectorTests {
         replicate1.updateStatus(ReplicateStatus.COMPUTED);
 
         TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.INITIALIZED);
-        TaskStatusChange change2 = new TaskStatusChange(fourMinutesAgo, TaskStatus.RUNNING);
-        TaskStatusChange change3 = new TaskStatusChange(threeMinutesAgo, TaskStatus.COMPUTED);
-        TaskStatusChange change4 = new TaskStatusChange(twoMinutesAgo, TaskStatus.UPLOAD_RESULT_REQUESTED);
+        TaskStatusChange change2 = new TaskStatusChange(threeMinutesAgo, TaskStatus.RUNNING);
+        TaskStatusChange change3 = new TaskStatusChange(twoMinutesAgo, TaskStatus.RESULT_UPLOAD_REQUESTED);
 
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
-        task.setDateStatusList(Arrays.asList(change1, change2, change3, change4));
+        task.setDateStatusList(Arrays.asList(change1, change2, change3));
 
-        when(taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOAD_REQUESTED)).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate1));
 
         // trying to detect any timeout

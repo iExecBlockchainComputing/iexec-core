@@ -123,7 +123,7 @@ public class TaskService {
             case CONSENSUS_REACHED:
                 tryUpdateFromContributedToAtLeastOneReveal(task);
                 break;
-            case UPLOAD_RESULT_REQUESTED:
+            case RESULT_UPLOAD_REQUESTED:
                 tryUpdateFromUploadRequestedToUploadingResult(task);
                 break;
             case RESULT_UPLOADING:
@@ -234,10 +234,10 @@ public class TaskService {
 
     private void requestUpload(Task task) {
         if (task.getCurrentStatus().equals(AT_LEAST_ONE_REVEALED)) {
-            task = updateTaskStatusAndSave(task, UPLOAD_RESULT_REQUESTED);
+            task = updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
         }
 
-        if (task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+        if (task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 if (replicate.getCurrentStatus().equals(ReplicateStatus.REVEALED)) {
                     notificationService.sendTaskNotification(TaskNotification.builder()
@@ -257,7 +257,7 @@ public class TaskService {
     }
 
     void tryUpdateFromUploadRequestedToUploadingResult(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
         if (condition1 && condition2) {

@@ -33,7 +33,7 @@ public class ResultUploadTimeoutDetector implements Detector {
     public void detect() {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 1 min.
-        for (Task task : taskService.findByCurrentStatus(TaskStatus.UPLOAD_RESULT_REQUESTED)) {
+        for (Task task : taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOAD_REQUESTED)) {
             String chainTaskId = task.getChainTaskId();
 
             Optional<Replicate> optional = replicatesService.getReplicate(chainTaskId, task.getUploadingWorkerWalletAddress());
