@@ -202,7 +202,7 @@ public class TaskService {
 
             // losers: please abort
             notificationService.sendTaskNotification(TaskNotification.builder()
-                    .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                    .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED)
                     .chainTaskId(task.getChainTaskId())
                     .workersAddress(losers).build()
             );
