@@ -21,12 +21,10 @@ public class TaskWorkflow extends Workflow<TaskStatus> {
 
         // This is where the whole workflow is defined
         addTransition(INITIALIZED, RUNNING);
-        addTransition(RUNNING, COMPUTED);
-        addTransition(COMPUTED, CONSENSUS_REACHED);
+        addTransition(RUNNING, CONSENSUS_REACHED);
         addTransition(CONSENSUS_REACHED, REVEALED);
-        addTransition(REVEALED, UPLOAD_RESULT_REQUESTED);
-        addTransition(COMPUTED, UPLOAD_RESULT_REQUESTED);
-        addTransition(UPLOAD_RESULT_REQUESTED, RESULT_UPLOADING);
+        addTransition(REVEALED, RESULT_UPLOAD_REQUESTED);
+        addTransition(RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
         addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(RESULT_UPLOADING, ERROR);

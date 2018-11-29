@@ -106,12 +106,12 @@ public class TaskServiceTests {
         replicates.get(0).updateStatus(ReplicateStatus.COMPUTED);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.COMPUTED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.RUNNING));
 
         Task task = Task.builder()
                 .id("taskId")
                 .chainTaskId("chainTaskId")
-                .currentStatus(TaskStatus.COMPUTED)
+                .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
                 .trust(2)
                 .dateStatusList(dateStatusList)
@@ -139,12 +139,12 @@ public class TaskServiceTests {
         replicates.get(0).updateStatus(ReplicateStatus.COMPUTED);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.COMPUTED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.RUNNING));
 
         Task task = Task.builder()
                 .id("taskId")
                 .chainTaskId("chainTaskId")
-                .currentStatus(TaskStatus.COMPUTED)
+                .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
                 .trust(2)
                 .dateStatusList(dateStatusList)
@@ -172,12 +172,12 @@ public class TaskServiceTests {
         replicates.get(0).updateStatus(ReplicateStatus.COMPUTED);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.COMPUTED));
+        dateStatusList.add(new TaskStatusChange(TaskStatus.RUNNING));
 
         Task task = Task.builder()
                 .id("taskId")
                 .chainTaskId("chainTaskId")
-                .currentStatus(TaskStatus.COMPUTED)
+                .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
                 .trust(2)
                 .dateStatusList(dateStatusList)
@@ -289,8 +289,8 @@ public class TaskServiceTests {
 
         taskService.tryToMoveTaskToNextStatus(task);
         TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
-        assertThat(lastButOneStatus).isEqualTo(TaskStatus.COMPUTED);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        // assertThat(lastButOneStatus).isEqualTo(TaskStatus.COMPUTED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
     }
 
     // not enough COMPUTED replicates
@@ -317,13 +317,13 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
     }
 
     @Test
     public void shouldUpdateFromUploadRequestedToUploadingResult() {//one worker is uploading
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.setCurrentStatus(UPLOAD_RESULT_REQUESTED);
+        task.setCurrentStatus(RESULT_UPLOAD_REQUESTED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(1);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -333,13 +333,13 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToUploadingResult() { //no worker is uploading
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(RESULT_UPLOAD_REQUESTED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(0);
 
         taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
         taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
     }
 
     //@Test
@@ -374,7 +374,7 @@ public class TaskServiceTests {
     public void shouldUpdateFromUploadingResultToResultUploaded() {
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
-        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
 
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
@@ -388,7 +388,7 @@ public class TaskServiceTests {
     public void shouldNotUpdateToResultUploaded() {
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
-        task.changeStatus(TaskStatus.UPLOAD_RESULT_REQUESTED);
+        task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
 
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
