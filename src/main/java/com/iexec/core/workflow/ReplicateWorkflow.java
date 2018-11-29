@@ -34,6 +34,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(COMPUTED, ERROR);
 
+
         //from any status to WORKER_LOST
         addTransition(CREATED, WORKER_LOST);
         addTransition(RUNNING, WORKER_LOST);
