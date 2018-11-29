@@ -217,7 +217,7 @@ public class TaskService {
                     notificationService.sendTaskNotification(TaskNotification.builder()
                             .chainTaskId(task.getChainTaskId())
                             .workerAddress(replicate.getWalletAddress())
-                            .taskNotificationType(TaskNotificationType.UPLOAD)
+                            .taskNotificationType(TaskNotificationType.PLEASE_UPLOAD)
                             .build());
                     log.info("NotifyUploadingWorker completed[uploadingWorkerWallet={}]", replicate.getWalletAddress());
 
