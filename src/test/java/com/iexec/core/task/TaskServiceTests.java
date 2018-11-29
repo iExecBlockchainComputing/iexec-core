@@ -92,9 +92,9 @@ public class TaskServiceTests {
                 .trust(2)
                 .build();
         when(taskRepository.save(any())).thenReturn(task);
-        Task saved = taskService.addTask("chainDealId", 0,"dappName", "commandLine", 2);
-        assertThat(saved).isNotNull();
-        assertThat(saved).isEqualTo(task);
+        Optional<Task> saved = taskService.addTask("chainDealId", 0, "dappName", "commandLine", 2);
+        assertThat(saved).isPresent();
+        assertThat(saved.get()).isEqualTo(task);
     }
 
 
