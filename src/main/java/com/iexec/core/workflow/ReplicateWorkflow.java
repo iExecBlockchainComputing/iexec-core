@@ -27,7 +27,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALING, REVEAL_FAILED);
         addTransition(REVEALED, RESULT_UPLOADING);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
-        addTransition(RESULT_UPLOADING, UPLOAD_RESULT_REQUEST_FAILED);
+        addTransition(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED);
         addTransition(RESULT_UPLOADING, ERROR);
         addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(COMPUTED, ERROR);
@@ -40,7 +40,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALED, WORKER_LOST);
         addTransition(RESULT_UPLOADING, WORKER_LOST);
         addTransition(RESULT_UPLOADED, WORKER_LOST);
-        addTransition(UPLOAD_RESULT_REQUEST_FAILED, WORKER_LOST);
+        addTransition(RESULT_UPLOAD_REQUEST_FAILED, WORKER_LOST);
     }
 
     public static synchronized ReplicateWorkflow getInstance() {

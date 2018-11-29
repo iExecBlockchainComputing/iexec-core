@@ -272,7 +272,7 @@ public class TaskService {
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             tryUpdateFromResultUploadedToFinalize(task);
-        } else if (replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.UPLOAD_RESULT_REQUEST_FAILED) > 0 &&
+        } else if (replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
                 replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
             requestUpload(task);
