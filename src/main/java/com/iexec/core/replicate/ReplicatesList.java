@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,20 +20,22 @@ public class ReplicatesList {
     @Version
     private Long version;
 
+    @Indexed(unique = true)
     private String chainTaskId;
+
     private List<Replicate> replicates;
 
-    public ReplicatesList(String chainTaskId) {
+    ReplicatesList(String chainTaskId) {
         this.chainTaskId = chainTaskId;
         this.replicates = new ArrayList<>();
     }
 
-    public ReplicatesList(String chainTaskId, List<Replicate> replicates) {
+    ReplicatesList(String chainTaskId, List<Replicate> replicates) {
         this.chainTaskId = chainTaskId;
         this.replicates = replicates;
     }
 
-    public Optional<Replicate> getReplicateOfWorker(String workerWalletAddress) {
+    Optional<Replicate> getReplicateOfWorker(String workerWalletAddress) {
         for (Replicate replicate: replicates){
             if (replicate.getWalletAddress().equals(workerWalletAddress)){
                 return Optional.of(replicate);

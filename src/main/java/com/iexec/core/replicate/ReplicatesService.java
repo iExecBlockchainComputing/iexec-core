@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
 
 @Slf4j
@@ -35,17 +36,23 @@ public class ReplicatesService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    public void createNewReplicate(String chainTaskId, String walletAddress) {
+    public void addNewReplicate(String chainTaskId, String walletAddress) {
         if (!getReplicate(chainTaskId, walletAddress).isPresent()) {
             Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
-            ReplicatesList replicatesList = optional.orElseGet(() -> new ReplicatesList(chainTaskId));
-            replicatesList.getReplicates().add(new Replicate(walletAddress, chainTaskId));
-            replicatesRepository.save(replicatesList);
-            log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            if (optional.isPresent()) {
+                ReplicatesList replicatesList = optional.get();
+                replicatesList.getReplicates().add(new Replicate(walletAddress, chainTaskId));
+                replicatesRepository.save(replicatesList);
+                log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            }
         } else {
             log.error("Replicate already saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
         }
 
+    }
+
+    public synchronized void createEmptyReplicateList(String chainTaskId) {
+        replicatesRepository.save(new ReplicatesList(chainTaskId));
     }
 
     public Optional<ReplicatesList> getReplicatesList(String chainTaskId) {
@@ -89,6 +96,16 @@ public class ReplicatesService {
             }
         }
         return nbReplicates;
+    }
+
+    public Optional<Replicate> getReplicateWithRevealStatus(String chainTaskId) {
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            if (replicate.getCurrentStatus().equals(REVEALED)) {
+                return Optional.of(replicate);
+            }
+        }
+
+        return Optional.empty();
     }
 
     public boolean moreReplicatesNeeded(String chainTaskId, int trust) {
@@ -136,38 +153,38 @@ public class ReplicatesService {
             Replicate replicate = optionalReplicate.get();
             ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
-                // check valid transition
-                if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                    log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
-                                    "currentStatus:{}, newStatus:{}]",
+            // check valid transition
+            if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
+                log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
+                                "currentStatus:{}, newStatus:{}]",
+                        chainTaskId, walletAddress, currentStatus, newStatus);
+                return;
+            }
+
+            // TODO: code to check here
+            ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
+            if (wishedChainStatus != null) {
+                if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
+                    handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
+                } else {
+                    log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
                             chainTaskId, walletAddress, currentStatus, newStatus);
                     return;
                 }
+            }
 
-                // TODO: code to check here
-                ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
-                if (wishedChainStatus != null) {
-                    if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
-                        handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
-                    } else {
-                        log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
-                                chainTaskId, walletAddress, currentStatus, newStatus);
-                        return;
-                    }
-                }
-
-                replicate.updateStatus(newStatus);
-                log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
-                        walletAddress, currentStatus, newStatus);
-                replicatesRepository.save(optionalReplicates.get());
-                applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
-                return;
+            replicate.updateStatus(newStatus);
+            log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
+                    walletAddress, currentStatus, newStatus);
+            replicatesRepository.save(optionalReplicates.get());
+            applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
+            return;
 
         }
         log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
     }
 
-    public void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
+    private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
         ChainContribution onChainContribution = iexecHubService.getContribution(chainTaskId, walletAddress);
         switch (wishedChainStatus) {
             case CONTRIBUTED:

@@ -25,6 +25,7 @@ public class Replicate {
         this.walletAddress = walletAddress;
         this.statusChangeList = new ArrayList<>();
         this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
+        this.contributionHash = "";
     }
 
     @JsonIgnore

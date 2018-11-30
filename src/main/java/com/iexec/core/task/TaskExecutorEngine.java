@@ -24,7 +24,7 @@ public class TaskExecutorEngine {
         executorMap = new ConcurrentHashMap<>();
     }
 
-    void updateTask(Task task) {
+    public void updateTask(Task task) {
         String chainTaskId = task.getChainTaskId();
 
         executorMap.putIfAbsent(chainTaskId, ThreadPoolExecutorUtils.singleThreadExecutorWithFixedSizeQueue(1));
@@ -33,7 +33,7 @@ public class TaskExecutorEngine {
         executor.execute(() -> taskService.tryToMoveTaskToNextStatus(task));
     }
 
-    void removeTaskExecutor(Task task){
+    public void removeTaskExecutor(Task task){
         String chainTaskId = task.getChainTaskId();
 
         if (task.getCurrentStatus().equals(TaskStatus.COMPLETED)) {
