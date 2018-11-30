@@ -11,6 +11,7 @@ import com.iexec.core.task.event.ConsensusReachedEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.task.event.TaskCreatedEvent;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -26,13 +27,16 @@ public class TaskListeners {
     private TaskExecutorEngine taskExecutorEngine;
     private NotificationService notificationService;
     private ReplicatesService replicatesService;
+    private WorkerService workerService;
 
     public TaskListeners(TaskExecutorEngine taskExecutorEngine,
                          NotificationService notificationService,
-                         ReplicatesService replicatesService) {
+                         ReplicatesService replicatesService,
+                         WorkerService workerService) {
         this.taskExecutorEngine = taskExecutorEngine;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
+        this.workerService = workerService;
     }
 
     @EventListener
@@ -58,6 +62,10 @@ public class TaskListeners {
                 .taskNotificationType(TaskNotificationType.COMPLETED)
                 .workersAddress(Collections.emptyList())
                 .build());
+
+        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
+        }
     }
 
     @EventListener
