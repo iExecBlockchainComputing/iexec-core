@@ -51,7 +51,7 @@ public class ReplicatesService {
 
     }
 
-    public void createEmptyReplicateList(String chainTaskId) {
+    public synchronized void createEmptyReplicateList(String chainTaskId) {
         replicatesRepository.save(new ReplicatesList(chainTaskId));
     }
 
