@@ -32,6 +32,7 @@ public class TaskServiceTests {
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String CHAIN_TASK_ID = "chainTaskId";
+    private final static String CHAIN_DEAL_ID = "dealId";
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
 
@@ -71,61 +72,47 @@ public class TaskServiceTests {
 
     @Test
     public void shouldGetOneTask() {
-        String chainTaskId = "chainTaskId";
-        Task task = Task.builder()
-                .id("realId")
-                .chainTaskId(chainTaskId)
-                .currentStatus(TaskStatus.INITIALIZED)
-                .commandLine(COMMAND_LINE)
-                .trust(2)
-                .build();
-        when(taskRepository.findByChainTaskId(chainTaskId)).thenReturn(Optional.of(task));
-        Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
+
         assertThat(optional.isPresent()).isTrue();
-        assertThat(optional.get()).isEqualTo(task);
+        assertThat(optional).isEqualTo(Optional.of(task));
     }
 
     @Test
     public void shouldAddTask() {
-        String chainDealId = "chainDealId";
-        Task task = Task.builder()
-                .id("realId")
-                .currentStatus(TaskStatus.INITIALIZED)
-                .chainDealId(chainDealId)
-                .taskIndex(0)
-                .dappName(DAPP_NAME)
-                .commandLine(COMMAND_LINE)
-                .trust(2)
-                .build();
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2);
+        task.changeStatus(TaskStatus.INITIALIZED);
+
         when(taskRepository.save(any())).thenReturn(task);
-        Optional<Task> saved = taskService.addTask("chainDealId", 0, DAPP_NAME, COMMAND_LINE, 2);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2);
         assertThat(saved).isPresent();
-        assertThat(saved.get()).isEqualTo(task);
+        assertThat(saved).isEqualTo(Optional.of(task));
     }
 
+    @Test
+    public void shouldNotAddTask() {
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2);
+        task.changeStatus(TaskStatus.INITIALIZED);
+
+        ArrayList<Task> list = new ArrayList<>();
+        list.add(task);
+
+        when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(list);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2);
+        assertThat(saved).isEqualTo(Optional.empty());
+    }
 
     // Tests on received2Initialized transition
 
     @Test
     public void shouldUpdateReceived2Initialized() {
-        String chainTaskId = "chainTaskId";
-        String dealId = "dealId";
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
+        task.changeStatus(TaskStatus.RECEIVED);
+        task.setChainTaskId("");
 
-        List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(RECEIVED));
-
-        Task task = Task.builder()
-                .id("taskId")
-                .currentStatus(RECEIVED)
-                .commandLine("ls")
-                .trust(2)
-                .chainDealId(dealId)
-                .chainTaskId("")
-                .taskIndex(1)
-                .dateStatusList(dateStatusList)
-                .build();
-
-        when(iexecHubService.initializeTask(dealId, 1)).thenReturn(chainTaskId);
+        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -138,23 +125,10 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateReceived2InitializedFailed() {
-        String dealId = "dealId";
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
+        task.changeStatus(RECEIVED);
 
-        List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(RECEIVED));
-
-        Task task = Task.builder()
-                .id("taskId")
-                .currentStatus(RECEIVED)
-                .commandLine("ls")
-                .trust(2)
-                .chainDealId(dealId)
-                .chainTaskId("")
-                .taskIndex(1)
-                .dateStatusList(dateStatusList)
-                .build();
-
-        when(iexecHubService.initializeTask(dealId, 1)).thenReturn("");
+        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn("");
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -163,27 +137,10 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() {
-        String chainTaskId = "chainTaskId";
-        String dealId = "dealId";
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(RECEIVED);
 
-        // Task task = new Task(dealId, 1, DAPP_NAME, COMMAND_LINE, 2);
-        // task.changeStatus(RECEIVED);
-
-        List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(RECEIVED));
-
-        Task task = Task.builder()
-                .id("taskId")
-                .currentStatus(RECEIVED)
-                .commandLine("ls")
-                .trust(2)
-                .chainDealId(dealId)
-                .chainTaskId(chainTaskId)
-                .taskIndex(1)
-                .dateStatusList(dateStatusList)
-                .build();
-
-        when(iexecHubService.initializeTask(dealId, 1)).thenReturn(chainTaskId);
+        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -273,7 +230,6 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNOTUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
-
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RUNNING);
 
@@ -292,7 +248,6 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateConsensusReached2AtLeastOneReveal2UploadRequested() {
-
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -312,11 +267,9 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNOTUpdateConsensusReached2AtLeastOneRevealSinceNoRevealedReplicate() {
-        String chainTaskId = "chainTaskId";
-
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(CONSENSUS_REACHED);
-        Replicate replicate = new Replicate(WALLET_WORKER_1, chainTaskId);
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.REVEALED);
 
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(0);
@@ -466,7 +419,6 @@ public class TaskServiceTests {
     // 3 replicates in RUNNING 0 in COMPUTED
     @Test
     public void shouldUpdateTaskToRunningFromWorkersInRunning() {
-
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(3);
@@ -503,7 +455,6 @@ public class TaskServiceTests {
     // INITIALIZED to COMPUTED
     @Test
     public void shouldNotUpdateToRunningCase2() {
-
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
@@ -541,6 +492,10 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.COMPLETED);
     }
+
+    // Tests on the getAvailableReplicate method
+
+    // TODOOOOOOOOOOOOOOO
 
     @Test
     public void shouldNotGetAnyReplicateSinceWorkerDoesntExist() {
