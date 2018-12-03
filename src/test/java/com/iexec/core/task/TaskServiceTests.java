@@ -368,7 +368,7 @@ public class TaskServiceTests {
 
 
     @Test
-    public void shouldWaitUpdateReplicateStatusFromUnsetToContributed() throws InterruptedException {//UNSET on-chain
+    public void shouldWaitUpdateReplicateStatusFromUnsetToContributed() {
         List<Replicate> replicates = new ArrayList<>();
         replicates.add(new Replicate("0x1", "chainTaskId"));
 
@@ -495,8 +495,6 @@ public class TaskServiceTests {
 
     // Tests on the getAvailableReplicate method
 
-    // TODOOOOOOOOOOOOOOO
-
     @Test
     public void shouldNotGetAnyReplicateSinceWorkerDoesntExist() {
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
@@ -507,12 +505,9 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotGetReplicateSinceNoRunningTask() {
-        String workerName = "worker1";
-
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
-                .name(workerName)
                 .cpuNb(1)
                 .lastAliveDate(new Date())
                 .build();
@@ -521,143 +516,105 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(new ArrayList<>());
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
-    // @Test
+    @Test
     public void shouldNotGetAnyReplicateSinceWorkerIsFull() {
-        String workerName = "worker1";
 
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
-                .name(workerName)
                 .cpuNb(1)
                 .lastAliveDate(new Date())
                 .build();
 
-        List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate(workerName, "chainTaskId"));
-        listReplicates1.add(new Replicate("worker2", "chainTaskId"));
-        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
-        listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
-
-        Task runningTask1 = new Task(DAPP_NAME, "command", 3);
-        runningTask1.setId("task1");
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         runningTask1.changeStatus(RUNNING);
-        // runningTask1.setReplicates(listReplicates1);
 
-        List<Replicate> listReplicates2 = new ArrayList<>();
-        listReplicates2.add(new Replicate("worker2", "chainTaskId2"));
-        listReplicates2.get(0).updateStatus(ReplicateStatus.RUNNING);
-
-        Task runningTask2 = new Task("dappName2", "command", 3);
-        runningTask2.setId("task2");
-        runningTask2.changeStatus(RUNNING);
-        // runningTask2.setReplicates(listReplicates2);
-
-        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
-                .thenReturn(Arrays.asList(runningTask1, runningTask2));
+                .thenReturn(Collections.singletonList(runningTask1));
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
-    // @Test
+    @Test
     public void shouldNotGetAnyReplicateSinceWorkerAlreadyContributed() {
-        String workerName = "worker1";
 
         Worker existingWorker = Worker.builder()
                 .id("1")
-                .name(workerName)
+                .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .lastAliveDate(new Date())
                 .build();
 
-        List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate(workerName, "chainTaskId"));
-        listReplicates1.add(new Replicate("worker2", "chainTaskId"));
-        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
-        listReplicates1.get(1).updateStatus(ReplicateStatus.RUNNING);
-
-        Task runningTask1 = new Task(DAPP_NAME, "command", 3);
-        runningTask1.setId("task1");
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3);
         runningTask1.changeStatus(RUNNING);
-        // runningTask1.setReplicates(listReplicates1);
 
-        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
-    // @Test
+    @Test
     public void shouldNotGetReplicateSinceTaskDoesntNeedMoreReplicate() {
-        String workerName = "worker1";
-        String taskId = "task1";
-
         Worker existingWorker = Worker.builder()
                 .id("1")
-                .name(workerName)
+                .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .lastAliveDate(new Date())
                 .build();
 
-        List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate("worker2", taskId));
-        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
-
-        Task runningTask1 = new Task(DAPP_NAME, "command", 1);
-        runningTask1.setId(taskId);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3);
         runningTask1.changeStatus(RUNNING);
 
-        when(workerService.getWorker(workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
-        when(taskRepository.save(any())).thenReturn(runningTask1);
-        when(workerService.addChainTaskIdToWorker(taskId, workerName)).thenReturn(Optional.of(existingWorker));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(false);
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerName);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
-    // @Test
+    @Test
     public void shouldGetAReplicate() {
-        String taskId = "task1";
-        String chainTaskId = "chainTaskId1";
-        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-
         Worker existingWorker = Worker.builder()
                 .id("1")
-                .name("worker1")
-                .walletAddress(walletAddress)
+                .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .lastAliveDate(new Date())
                 .build();
 
-        List<Replicate> listReplicates1 = new ArrayList<>();
-        listReplicates1.add(new Replicate("worker2", chainTaskId));
-        listReplicates1.get(0).updateStatus(ReplicateStatus.RUNNING);
-
-        Task runningTask1 = new Task(DAPP_NAME, "command", 3);
-        runningTask1.setId(taskId);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         runningTask1.changeStatus(RUNNING);
-        // runningTask1.setReplicates(listReplicates1);
 
-        when(workerService.getWorker(walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
-        when(taskRepository.save(any())).thenReturn(runningTask1);
-        when(workerService.addChainTaskIdToWorker(taskId, walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(true);
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(walletAddress);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
+                Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isTrue();
-        Replicate replicate = optional.get();
-        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
-        assertThat(replicate.getWalletAddress()).isEqualTo(walletAddress);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(workerService, Mockito.times(1))
+                .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
     }
 }
