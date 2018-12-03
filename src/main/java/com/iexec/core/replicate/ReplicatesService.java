@@ -119,24 +119,6 @@ public class ReplicatesService {
         return nbValidReplicates < trust;
     }
 
-    //TODO: Remove it (been replaced with workerService.canAcceptMoreWork)
-    public List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String walletAddress) {
-        List<Replicate> workerActiveReplicates = new ArrayList<>();
-        for (Task task : runningTasks) {
-            for (Replicate replicate : getReplicates(task.getChainTaskId())) {
-
-                boolean isReplicateFromWorker = replicate.getWalletAddress().equals(walletAddress);
-                boolean isReplicateInCorrectStatus = (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) ||
-                        replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING));
-
-                if (isReplicateFromWorker && isReplicateInCorrectStatus) {
-                    workerActiveReplicates.add(replicate);
-                }
-            }
-        }
-        return workerActiveReplicates;
-    }
-
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
     public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
