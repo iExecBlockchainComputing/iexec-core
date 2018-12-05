@@ -1,5 +1,6 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.App;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
@@ -27,11 +28,11 @@ public class IexecWatcherService {
     // outside services
     // TODO: this should be replaced by DealService ?
     private final TaskService taskService;
-    private ApplicationEventPublisher applicationEventPublisher;
     // internal variables
     private final IexecClerkABILegacy iexecClerk;
     private final Credentials credentials;
     private final Web3j web3j;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
     public IexecWatcherService(CredentialsService credentialsService,
@@ -56,19 +57,23 @@ public class IexecWatcherService {
 
     private void onOrderMatchedEvents(IexecClerkABILegacy.OrdersMatchedEventResponse ordersMatchedEvent) {
         try {
-            ChainDeal chainDeal = ChainHelpers.getChainDeal(iexecClerk, ordersMatchedEvent.dealid);
-            App chainApp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.dappPointer);
+            Optional<ChainDeal> optionalChainDeal = ChainUtils.getChainDeal(iexecClerk, BytesUtils.bytesToString(ordersMatchedEvent.dealid));
+            if (!optionalChainDeal.isPresent()) {
+                return;
+            }
+            ChainDeal chainDeal = optionalChainDeal.get();
+            App chainApp = ChainUtils.loadDappContract(credentials, web3j, chainDeal.getDappPointer());
             log.info("Received an order match, trigger a computation [m_dappParams:{}]", chainApp.m_appParams().send());
 
             String dockerImage = ChainHelpers.getDockerImage(chainApp);
             ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
 
-            int startBag = chainDeal.botFirst.intValue();
-            int endBag = chainDeal.botFirst.intValue() + chainDeal.botSize.intValue();
+            int startBag = chainDeal.getBotFirst().intValue();
+            int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(BytesUtils.bytesToString(ordersMatchedEvent.dealid), taskIndex,
-                        dockerImage, dealParams.get(taskIndex), chainDeal.trust.intValue());
+                        dockerImage, dealParams.get(taskIndex), chainDeal.getTrust().intValue());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
 
