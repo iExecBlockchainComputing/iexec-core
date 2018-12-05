@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -107,7 +108,6 @@ public class TaskService {
     }
 
     void tryToMoveTaskToNextStatus(Task task) {
-        log.info("Try to move task to next status [chainTaskId:{}, currentStatus:{}]", task.getChainTaskId(), task.getCurrentStatus());
         switch (task.getCurrentStatus()) {
             case RECEIVED:
                 received2Initialized(task);
@@ -137,7 +137,7 @@ public class TaskService {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus);
         Task savedTask = taskRepository.save(task);
-        log.info("Update task to new status[taskId:{}, currentStatus:{}, newStatus:{}]", task.getId(), currentStatus, newStatus);
+        log.info("UpdateTaskStatus suceeded [taskId:{}, currentStatus:{}, newStatus:{}]", task.getId(), currentStatus, newStatus);
         return savedTask;
     }
 
@@ -151,8 +151,13 @@ public class TaskService {
                 return;
             }*/
 
-            String chainTaskId = iexecHubService.initializeTask(task.getChainDealId(), task.getTaskIndex());
-            if (chainTaskId != null && !chainTaskId.isEmpty()) {
+            String chainTaskId = "";
+            try {
+                chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (!chainTaskId.isEmpty()) {
                 task.setChainTaskId(chainTaskId);
                 updateTaskStatusAndSave(task, INITIALIZED);
                 replicatesService.createEmptyReplicateList(chainTaskId);
@@ -253,7 +258,13 @@ public class TaskService {
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, FINALIZING);
-            if (iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId())) {
+            boolean isFinalized = false;
+            try {
+                isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (isFinalized) {
                 updateTaskStatusAndSave(task, FINALIZED);
                 updateFromFinalizedToCompleted(task);
             } else {
