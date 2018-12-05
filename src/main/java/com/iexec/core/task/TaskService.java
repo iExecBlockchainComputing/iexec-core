@@ -113,13 +113,13 @@ public class TaskService {
                 received2Initialized(task);
                 break;
             case INITIALIZED:
-                created2Running(task);
+                initialized2Running(task);
                 break;
             case RUNNING:
                 running2ConsensusReached(task);
                 break;
             case CONSENSUS_REACHED:
-                consensusReached2AtLeastOneReveal(task);
+                consensusReached2AtLeastOneReveal2UploadRequested(task);
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
@@ -128,11 +128,7 @@ public class TaskService {
                 resultUploading2Uploaded(task);
                 break;
             case RESULT_UPLOADED:
-                tryUpdateFromResultUploadedToFinalize(task);
-                break;
-            case COMPLETED:
-                break;
-            case ERROR:
+                updateResultUploaded2Finalized(task);
                 break;
         }
     }
@@ -166,7 +162,7 @@ public class TaskService {
         }
     }
 
-    private void created2Running(Task task) {
+    private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getTrust();
@@ -199,7 +195,7 @@ public class TaskService {
         }
     }
 
-    private void consensusReached2AtLeastOneReveal(Task task) {
+    private void consensusReached2AtLeastOneReveal2UploadRequested(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(CONSENSUS_REACHED);
         boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
@@ -224,7 +220,7 @@ public class TaskService {
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
-            tryUpdateFromResultUploadedToFinalize(task);
+            updateResultUploaded2Finalized(task);
         } else if (replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
                 replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
@@ -246,7 +242,7 @@ public class TaskService {
         }
     }
 
-    private void tryUpdateFromResultUploadedToFinalize(Task task) {
+    private void updateResultUploaded2Finalized(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADED);
         boolean condition2 = iexecHubService.canFinalize(task.getChainTaskId());
 
@@ -264,11 +260,6 @@ public class TaskService {
     private void updateFromFinalizedToCompleted(Task task) {
         if (task.getCurrentStatus().equals(FINALIZED)) {
             updateTaskStatusAndSave(task, COMPLETED);
-
-            String chainTaskId = task.getChainTaskId();
-            for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
-                workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
-            }
 
             applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
         }
