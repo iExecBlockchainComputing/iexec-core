@@ -177,7 +177,12 @@ public class TaskService {
     private void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
 
-        ChainTask chainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!optional.isPresent()){
+            return;
+        }
+        ChainTask chainTask = optional.get();
+
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();

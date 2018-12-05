@@ -12,6 +12,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tuples.generated.Tuple4;
 
 import java.math.BigInteger;
+import java.util.Optional;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
@@ -32,14 +33,8 @@ public class IexecHubService {
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
     }
 
-    public ChainContribution getContribution(String chainTaskId, String workerWalletAddress) {
-        Tuple4<BigInteger, byte[], byte[], String> contributionTuple = null;
-        try {
-            contributionTuple = iexecHub.viewContributionABILegacy(BytesUtils.stringToBytes(chainTaskId), workerWalletAddress).send();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return ChainContribution.tuple2Contribution(contributionTuple);
+    public Optional<ChainContribution> getContribution(String chainTaskId, String workerWalletAddress) {
+        return ChainUtils.getChainContribution(iexecHub, chainTaskId, workerWalletAddress);
     }
 
     public boolean checkContributionStatusMultipleTimes(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
@@ -58,27 +53,30 @@ public class IexecHubService {
         }
         tryIndex++;
 
-        ChainContribution onChainContribution = getContribution(chainTaskId, walletAddress);
-        if (onChainContribution != null) {
-            ChainContributionStatus onChainStatus = onChainContribution.getStatus();
-            switch (statusToCheck) {
-                case CONTRIBUTED:
-                    if (onChainStatus.equals(UNSET)) { // should wait
-                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
-                    } else {
-                        // has at least contributed
-                        return onChainStatus.equals(CONTRIBUTED) || onChainStatus.equals(REVEALED);
-                    }
-                case REVEALED:
-                    if (onChainStatus.equals(CONTRIBUTED)) { // should wait
-                        return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
-                    } else {
-                        // has at least revealed
-                        return onChainStatus.equals(REVEALED);
-                    }
-                default:
-                    break;
-            }
+        Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
+        if (!optional.isPresent()){
+            return false;
+        }
+
+        ChainContribution chainContribution = optional.get();
+        ChainContributionStatus chainStatus = chainContribution.getStatus();
+        switch (statusToCheck) {
+            case CONTRIBUTED:
+                if (chainStatus.equals(UNSET)) { // should wait
+                    return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                } else {
+                    // has at least contributed
+                    return chainStatus.equals(CONTRIBUTED) || chainStatus.equals(REVEALED);
+                }
+            case REVEALED:
+                if (chainStatus.equals(CONTRIBUTED)) { // should wait
+                    return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                } else {
+                    // has at least revealed
+                    return chainStatus.equals(REVEALED);
+                }
+            default:
+                break;
         }
         return false;
     }
@@ -101,17 +99,16 @@ public class IexecHubService {
         return null;
     }
 
-    public ChainTask getChainTask(String chainTaskId) {
-        try {
-            return ChainTask.tuple2ChainTask(iexecHub.viewTaskABILegacy(BytesUtils.stringToBytes(chainTaskId)).send());
-        } catch (Exception e) {
-            log.error("Failed to view chainTask [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
-        }
-        return null;
+    public Optional<ChainTask> getChainTask(String chainTaskId) {
+        return ChainUtils.getChainTask(iexecHub, chainTaskId);
     }
 
     public boolean canFinalize(String chainTaskId) {
-        ChainTask chainTask = getChainTask(chainTaskId);
+        Optional<ChainTask> optional = getChainTask(chainTaskId);
+        if (!optional.isPresent()){
+            return false;
+        }
+        ChainTask chainTask = optional.get();
 
         boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
         boolean isConsensusDeadlineInFuture = now() < chainTask.getConsensusDeadline();
