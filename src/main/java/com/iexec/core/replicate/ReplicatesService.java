@@ -4,7 +4,6 @@ import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.task.Task;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,7 +11,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -119,24 +117,6 @@ public class ReplicatesService {
         return nbValidReplicates < trust;
     }
 
-    //TODO: Remove it (been replaced with workerService.canAcceptMoreWork)
-    public List<Replicate> getRunningReplicatesOfWorker(List<Task> runningTasks, String walletAddress) {
-        List<Replicate> workerActiveReplicates = new ArrayList<>();
-        for (Task task : runningTasks) {
-            for (Replicate replicate : getReplicates(task.getChainTaskId())) {
-
-                boolean isReplicateFromWorker = replicate.getWalletAddress().equals(walletAddress);
-                boolean isReplicateInCorrectStatus = (replicate.getCurrentStatus().equals(ReplicateStatus.CREATED) ||
-                        replicate.getCurrentStatus().equals(ReplicateStatus.RUNNING));
-
-                if (isReplicateFromWorker && isReplicateInCorrectStatus) {
-                    workerActiveReplicates.add(replicate);
-                }
-            }
-        }
-        return workerActiveReplicates;
-    }
-
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
     public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
@@ -149,39 +129,40 @@ public class ReplicatesService {
         }
 
         Optional<Replicate> optionalReplicate = optionalReplicates.get().getReplicateOfWorker(walletAddress);
-        if (optionalReplicate.isPresent()) {
-            Replicate replicate = optionalReplicate.get();
-            ReplicateStatus currentStatus = replicate.getCurrentStatus();
+        if (!optionalReplicate.isPresent()) {
+            log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
+            return;
+        }
 
-            // check valid transition
-            if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
-                log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
-                                "currentStatus:{}, newStatus:{}]",
+        Replicate replicate = optionalReplicate.get();
+        ReplicateStatus currentStatus = replicate.getCurrentStatus();
+
+        // check valid transition
+        if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
+            log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
+                            "currentStatus:{}, newStatus:{}]",
+                    chainTaskId, walletAddress, currentStatus, newStatus);
+            return;
+        }
+
+        // TODO: code to check here
+        ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
+        if (wishedChainStatus != null) {
+            if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
+                handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
+            } else {
+                log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
                         chainTaskId, walletAddress, currentStatus, newStatus);
                 return;
             }
-
-            // TODO: code to check here
-            ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
-            if (wishedChainStatus != null) {
-                if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
-                    handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
-                } else {
-                    log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
-                            chainTaskId, walletAddress, currentStatus, newStatus);
-                    return;
-                }
-            }
-
-            replicate.updateStatus(newStatus);
-            log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
-                    walletAddress, currentStatus, newStatus);
-            replicatesRepository.save(optionalReplicates.get());
-            applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
-            return;
-
         }
-        log.warn("No replicate found for status update [chainTaskId:{}, walletAddress:{}, status:{}]", chainTaskId, walletAddress, newStatus);
+
+        replicate.updateStatus(newStatus);
+        replicatesRepository.save(optionalReplicates.get());
+        log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
+                walletAddress, currentStatus, newStatus);
+        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
+
     }
 
     private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
