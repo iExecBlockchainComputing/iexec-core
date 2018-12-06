@@ -8,11 +8,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple4;
 
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainUtils.getWeb3j;
@@ -24,6 +28,7 @@ import static com.iexec.core.utils.DateTimeUtils.sleep;
 public class IexecHubService {
 
     private final IexecHubABILegacy iexecHub;
+    private final ThreadPoolExecutor executor;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
@@ -31,6 +36,7 @@ public class IexecHubService {
         Credentials credentials = credentialsService.getCredentials();
         Web3j web3j = getWeb3j(chainConfig.getPrivateChainAddress());
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     }
 
     public Optional<ChainContribution> getContribution(String chainTaskId, String workerWalletAddress) {
@@ -54,7 +60,7 @@ public class IexecHubService {
         tryIndex++;
 
         Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
-        if (!optional.isPresent()){
+        if (!optional.isPresent()) {
             return false;
         }
 
@@ -81,31 +87,37 @@ public class IexecHubService {
         return false;
     }
 
-    public String initializeTask(String chainDealId, int taskIndex){
-        log.info("Transaction initializeTask started [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
-        try {
-            TransactionReceipt initializeReceipt = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex)).send();
-            if (!iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
-                IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
-                String chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
-                log.info("Transaction initializeTask completed [chainTaskId:{}, chainDealId:{}, taskIndex:{}]",
-                        chainTaskId, chainDealId, taskIndex);
-                return chainTaskId;
-            }
-        } catch (Exception e) {
-            log.error("Transaction initializeTask failed [chainDealId:{}, taskIndex:{}]",
-                    chainDealId, taskIndex);
-        }
-        return null;
-    }
-
     public Optional<ChainTask> getChainTask(String chainTaskId) {
         return ChainUtils.getChainTask(iexecHub, chainTaskId);
     }
 
+    public String initialize(String chainDealId, int taskIndex) throws ExecutionException, InterruptedException {
+        log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
+        return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
+    }
+
+    private String sendInitializeTransaction(String chainDealId, int taskIndex) {
+        String chainTaskId = "";
+        try {
+            RemoteCall<TransactionReceipt> initializeCall = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex));
+            log.info("Sent initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+            TransactionReceipt initializeReceipt = initializeCall.send();
+            if (!iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
+                IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
+                chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
+                log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}]",
+                        chainTaskId, chainDealId, taskIndex);
+            }
+        } catch (Exception e) {
+            log.error("Failed initialize [chainDealId:{}, taskIndex:{}]",
+                    chainDealId, taskIndex);
+        }
+        return chainTaskId;
+    }
+
     public boolean canFinalize(String chainTaskId) {
         Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (!optional.isPresent()){
+        if (!optional.isPresent()) {
             return false;
         }
         ChainTask chainTask = optional.get();
@@ -117,31 +129,37 @@ public class IexecHubService {
 
         boolean ret = isChainTaskStatusRevealing && isConsensusDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
-            log.info("All the conditions are valid for the finalization to happen [chainTaskId:{}]", chainTaskId);
+            log.info("Finalizable [chainTaskId:{}]", chainTaskId);
         } else {
-            log.warn("One or more conditions are not met for the finalization to happen [chainTaskId:{}, " +
+            log.warn("Can't finalize [chainTaskId:{}, " +
                             "isChainTaskStatusRevealing:{}, isConsensusDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
                     isChainTaskStatusRevealing, isConsensusDeadlineInFuture, hasEnoughRevealors);
         }
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result) {
+    public boolean finalizeTask(String chainTaskId, String result) throws ExecutionException, InterruptedException {
+        log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
+        return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
+    }
+
+    private boolean sendFinalizeTransaction(String chainTaskId, String result) {
         try {
-            log.info("Trying Finalize task on-chain [chainTaskId:{}, result:{}]", chainTaskId, result);
-            TransactionReceipt receipt = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
-                    BytesUtils.stringToBytes(result)).send();
-            if (!iexecHub.getTaskFinalizeEvents(receipt).isEmpty()) {
-                log.info("Finalize on-chain succeeded [chainTaskId:{}, result:{}]", chainTaskId, result);
+            RemoteCall<TransactionReceipt> finalizeCall = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
+                    BytesUtils.stringToBytes(result));
+            log.info("Sent finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
+            TransactionReceipt finalizeReceipt = finalizeCall.send();
+            if (!iexecHub.getTaskFinalizeEvents(finalizeReceipt).isEmpty()) {
+                log.info("Finalized [chainTaskId:{}, result:{}]", chainTaskId, result);
                 return true;
             }
         } catch (Exception e) {
-            log.error("Finalize on-chain failed [chainTaskId:{}, result:{}]", chainTaskId, result);
+            log.error("Failed finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
         }
         return false;
     }
 
-    public IexecHubABILegacy getIexecHub() {
-        return iexecHub;
+    private long getWaitingTransactionCount() {
+        return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 }
