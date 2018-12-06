@@ -1,5 +1,6 @@
 package com.iexec.core.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+@Slf4j
 public class JwtTokenFilter extends GenericFilterBean {
 
     private JwtTokenProvider jwtTokenProvider;
@@ -32,9 +34,8 @@ public class JwtTokenFilter extends GenericFilterBean {
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         } catch (Exception ex) {
-            HttpServletResponse res = (HttpServletResponse) response;
-            res.sendError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
-            return;
+            log.warn("Unauthorized token: " + token);
+            ((HttpServletResponse)response).sendError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
         }
 
         chain.doFilter(request, response);

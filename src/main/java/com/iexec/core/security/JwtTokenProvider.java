@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 
@@ -24,16 +25,15 @@ public class JwtTokenProvider {
     @Value("${security.jwt.token.secret-key:secret-key}")
     private String secretKey;
 
-    @Value("${security.jwt.token.expire-length:3600000}")
-    private long validityInMilliseconds = 3600000; // 1h
+    // @Value("${security.jwt.token.expire-length:3600000}")
+    private long validityInMilliseconds = 1000 * 60 * 60; // 1h
 
     @PostConstruct
     protected void init() {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
 
-    // TODO: need to have an endpoint to create a token to use
-    public String createToken(String username) {
+    public String createToken(String walletAddress) {
 
         //Claims claims = Jwts.claims().setSubject(username);
         // claims.put("auth", roles.stream().map(s -> new SimpleGrantedAuthority(s.getAuthority())).filter(Objects::nonNull).collect(Collectors.toList()));
@@ -43,7 +43,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 // .setClaims(claims)//
-                .setSubject(username)
+                .setSubject(walletAddress)
                 .setIssuedAt(now)
                 .setExpiration(validity)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
@@ -51,19 +51,16 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        // UserDetails userDetails = myUserDetails.loadUserByUsername(getUsername(token));
-        UserDetails userDetails = org.springframework.security.core.userdetails.User//
-                .withUsername("Michel")
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-        // return new AnonymousAuthenticationToken();
+        if (token != null) {
+            String walletAddress = getUsername(token);
+            if (walletAddress != null) {
+                return new UsernamePasswordAuthenticationToken(walletAddress,  null, new ArrayList<>());
+            }
+        }
+        return null;
     }
 
-    public String getUsername(String token) {
+    private String getUsername(String token) {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
     }
 

@@ -3,10 +3,11 @@ package com.iexec.core.worker;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerConfigurationModel;
-import com.iexec.common.security.Authorization;
+import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
+import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,15 +33,18 @@ public class WorkerController {
     private ChainConfig chainConfig;
     private CredentialsService credentialsService;
     private JwtTokenProvider jwtTokenProvider;
+    private ChallengeService challengeService;
 
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
                             CredentialsService credentialsService,
-                            JwtTokenProvider jwtTokenProvider) {
+                            JwtTokenProvider jwtTokenProvider,
+                            ChallengeService challengeService) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.challengeService = challengeService;
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
@@ -51,19 +55,27 @@ public class WorkerController {
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
+    @RequestMapping(method = RequestMethod.GET, path = "/workers/challenge")
+    public ResponseEntity getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
+        String challenge = challengeService.getChallenge(walletAddress);
+        return ok(challenge);
+    }
+
+
     @RequestMapping(method = RequestMethod.POST, path = "/workers/login")
     public ResponseEntity getToken(@RequestParam(name = "walletAddress") String walletAddress,
-                                   @RequestBody Authorization authorization) {
+                                   @RequestBody Signature signature) {
 
         String token = "";
-        byte[] hashTocheck = Hash.sha3(BytesUtils.stringToBytes(walletAddress));
+        String challenge = challengeService.getChallenge(walletAddress);
+        byte[] hashTocheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
 
         // check that the public address of the signer can be found
         for (int i = 0; i < 4; i++) {
             BigInteger publicKey = Sign.recoverFromSignature((byte) i,
                     new ECDSASignature(
-                            new BigInteger(1, authorization.getSignR()),
-                            new BigInteger(1, authorization.getSignS())),
+                            new BigInteger(1, signature.getSignR()),
+                            new BigInteger(1, signature.getSignS())),
                     hashTocheck);
 
             if (publicKey != null) {
@@ -75,7 +87,7 @@ public class WorkerController {
             }
         }
 
-        return token.isEmpty() ? new ResponseEntity(HttpStatus.UNAUTHORIZED): ok(token);
+        return token.isEmpty() ? new ResponseEntity(HttpStatus.UNAUTHORIZED) : ok(token);
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/register")
