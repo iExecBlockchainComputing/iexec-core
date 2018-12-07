@@ -12,7 +12,7 @@ spring:
 detector:
   workerlost.period: 30000
   resultuploadtimeout.period: 30000
-
+  dealwatcherreplay.period: 60000
 
 
 

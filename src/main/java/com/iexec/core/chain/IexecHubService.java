@@ -1,6 +1,8 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
+import com.iexec.common.contract.generated.App;
+import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -8,8 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import rx.Observable;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -19,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
-import static com.iexec.common.chain.ChainUtils.getWeb3j;
 import static com.iexec.core.utils.DateTimeUtils.now;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 
@@ -28,14 +32,21 @@ import static com.iexec.core.utils.DateTimeUtils.sleep;
 public class IexecHubService {
 
     private final IexecHubABILegacy iexecHub;
+    private final IexecClerkABILegacy iexecClerk;
     private final ThreadPoolExecutor executor;
+    private final Credentials credentials;
+    private final Web3j web3j;
+    private ChainConfig chainConfig;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
+                           Web3jService web3jService,
                            ChainConfig chainConfig) {
-        Credentials credentials = credentialsService.getCredentials();
-        Web3j web3j = getWeb3j(chainConfig.getPrivateChainAddress());
+        this.chainConfig = chainConfig;
+        this.credentials = credentialsService.getCredentials();
+        this.web3j = web3jService.getWeb3j();
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
+        this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     }
 
@@ -85,10 +96,6 @@ public class IexecHubService {
                 break;
         }
         return false;
-    }
-
-    public Optional<ChainTask> getChainTask(String chainTaskId) {
-        return ChainUtils.getChainTask(iexecHub, chainTaskId);
     }
 
     public String initialize(String chainDealId, int taskIndex) throws ExecutionException, InterruptedException {
@@ -162,4 +169,35 @@ public class IexecHubService {
     private long getWaitingTransactionCount() {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
+
+    public Optional<ChainDeal> getChainDeal(String chainDealId) {
+        return ChainUtils.getChainDeal(iexecClerk, chainDealId);
+    }
+
+    public Optional<ChainTask> getChainTask(String chainTaskId) {
+        return ChainUtils.getChainTask(iexecHub, chainTaskId);
+    }
+
+    public Optional<App> getChainApp(String chainAppId) {
+        App app = ChainUtils.loadDappContract(credentials, web3j, chainAppId);
+        if (app != null) {
+            return Optional.of(app);
+        }
+        return Optional.empty();
+    }
+
+    Observable<DealEvent> getDealEventObservable(BigInteger from, BigInteger to) {
+        DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
+        DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
+        if (to != null) {
+            toBlock = DefaultBlockParameter.valueOf(to);
+        }
+        return iexecClerk.schedulerNoticeEventObservable(fromBlock, toBlock).map(schedulerNotice -> {
+            if (schedulerNotice.workerpool.equals(chainConfig.getPoolAddress())) {
+                return new DealEvent(schedulerNotice);
+            }
+            return null;// returns empty?
+        });
+    }
+
 }
