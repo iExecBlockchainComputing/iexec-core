@@ -49,7 +49,7 @@ public class DealWatcherServiceTests {
                 .build();
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(from, null)).thenReturn(Observable.just(dealEvent));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -74,7 +74,7 @@ public class DealWatcherServiceTests {
                 .build();
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(from, null)).thenReturn(Observable.just(dealEvent1, dealEvent2));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1, dealEvent2));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -95,7 +95,7 @@ public class DealWatcherServiceTests {
                 .build();
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(any(), any())).thenReturn(Observable.just(dealEvent1));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 

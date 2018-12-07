@@ -186,6 +186,10 @@ public class IexecHubService {
         return Optional.empty();
     }
 
+    Observable<DealEvent> getDealEventObservableToLatest(BigInteger from) {
+        return getDealEventObservable(from, null);
+    }
+
     Observable<DealEvent> getDealEventObservable(BigInteger from, BigInteger to) {
         DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
         DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;

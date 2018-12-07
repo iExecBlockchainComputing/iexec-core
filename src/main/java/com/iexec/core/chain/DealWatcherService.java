@@ -42,38 +42,36 @@ public class DealWatcherService {
 
     @PostConstruct
     void run() {
-        this.subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
+        subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }
 
     Subscription subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
-        return subscribeToDealEventInRange(from, null);
+        log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
+        return iexecHubService.getDealEventObservableToLatest(from)
+                .subscribe(this::onDealEvent);
     }
 
-    Subscription subscribeToDealEventInRange(BigInteger from, BigInteger to) {
-        log.info("Watcher DealEvent started [from:{}, to:{}]", from, (to == null) ? "latest" : to);
-        return iexecHubService.getDealEventObservable(from, to)
-                .subscribe(dealEvent -> {
-                    log.info("Received deal [dealId:{}, block:{}]", dealEvent.getChainDealId(), dealEvent.getBlockNumber());
-                    this.onDealEvent(dealEvent.getChainDealId());
-                    if (configurationService.getLastSeenBlockWithDeal().intValue() < dealEvent.getBlockNumber().intValue()) {
-                        configurationService.setLastSeenBlockWithDeal(dealEvent.getBlockNumber());
-                    }
-                });
+    private void onDealEvent(DealEvent dealEvent) {
+        log.info("Received deal [dealId:{}, block:{}]", dealEvent.getChainDealId(), dealEvent.getBlockNumber());
+        this.handleDeal(dealEvent.getChainDealId());
+        if (configurationService.getLastSeenBlockWithDeal().intValue() < dealEvent.getBlockNumber().intValue()) {
+            configurationService.setLastSeenBlockWithDeal(dealEvent.getBlockNumber());
+        }
     }
 
-    private void onDealEvent(String chainDealId) {
+    private void handleDeal(String chainDealId) {
+        Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainDealId);
+        if (!optionalChainDeal.isPresent()) {
+            return;
+        }
+        ChainDeal chainDeal = optionalChainDeal.get();
+        Optional<App> optionalchainApp = iexecHubService.getChainApp(chainDeal.getDappPointer());
+        if (!optionalchainApp.isPresent()) {
+            return;
+        }
+        App chainApp = optionalchainApp.get();
+
         try {
-            Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainDealId);
-            if (!optionalChainDeal.isPresent()) {
-                return;
-            }
-            ChainDeal chainDeal = optionalChainDeal.get();
-            Optional<App> optionalchainApp = iexecHubService.getChainApp(chainDeal.getDappPointer());
-            if (!optionalchainApp.isPresent()) {
-                return;
-            }
-            App chainApp = optionalchainApp.get();
-
             String dockerImage = ChainHelpers.getDockerImage(chainApp);
             ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
 
@@ -103,6 +101,12 @@ public class DealWatcherService {
             this.dealEventSubscriptionReplay = subscribeToDealEventInRange(configurationService.getFromReplay(), configurationService.getLastSeenBlockWithDeal());
             configurationService.setFromReplay(configurationService.getLastSeenBlockWithDeal());
         }
+    }
+
+    private Subscription subscribeToDealEventInRange(BigInteger from, BigInteger to) {
+        log.info("Replay Watcher DealEvent started [from:{}, to:{}]", from, (to == null) ? "latest" : to);
+        return iexecHubService.getDealEventObservable(from, to)
+                .subscribe(this::onDealEvent);
     }
 
 }
