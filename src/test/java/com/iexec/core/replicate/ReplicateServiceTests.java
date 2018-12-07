@@ -291,9 +291,9 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
-        when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(ChainContribution.builder()
+        when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
                 .resultHash("hash")
-                .build());
+                .build()));
 
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
 

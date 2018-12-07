@@ -20,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
@@ -107,12 +108,12 @@ public class TaskServiceTests {
     // Tests on received2Initialized transition
 
     @Test
-    public void shouldUpdateReceived2Initialized() {
+    public void shouldUpdateReceived2Initialized() throws ExecutionException, InterruptedException {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
         task.changeStatus(TaskStatus.RECEIVED);
         task.setChainTaskId("");
 
-        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -124,11 +125,11 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldUpdateReceived2InitializedFailed() {
+    public void shouldUpdateReceived2InitializedFailed() throws ExecutionException, InterruptedException {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
         task.changeStatus(RECEIVED);
 
-        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn("");
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("");
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -136,11 +137,11 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() {
+    public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() throws ExecutionException, InterruptedException {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RECEIVED);
 
-        when(iexecHubService.initializeTask(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -184,10 +185,10 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RUNNING);
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(ChainTask.builder()
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
-                .build());
+                .build()));
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -201,10 +202,10 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(ChainTask.builder()
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
-                .build());
+                .build()));
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
 
@@ -217,10 +218,10 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RUNNING);
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(ChainTask.builder()
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.UNSET)
                 .winnerCounter(2)
-                .build());
+                .build()));
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
 
@@ -233,10 +234,10 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RUNNING);
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(ChainTask.builder()
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
-                .build());
+                .build()));
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
         when(taskRepository.save(task)).thenReturn(task);
 
@@ -305,7 +306,7 @@ public class TaskServiceTests {
     // Test on resultUploading2Uploaded2Finalizing2Finalized
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
+    public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() throws ExecutionException, InterruptedException { //one worker uploaded
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -326,7 +327,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
+    public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() throws ExecutionException, InterruptedException { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -388,10 +389,8 @@ public class TaskServiceTests {
 
         when(taskRepository.findByChainTaskId("chainTaskId")).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(task);
-
-        ChainContribution onChainContribution = new ChainContribution();
-        onChainContribution.setStatus(ChainContributionStatus.UNSET);
-        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(onChainContribution);
+        ChainContribution chainContribution = ChainContribution.builder().status(ChainContributionStatus.UNSET).build();
+        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(Optional.of(chainContribution));
 
 
         Runnable runnable1 = () -> {
@@ -406,7 +405,7 @@ public class TaskServiceTests {
 
         Runnable runnable2 = () -> {
             sleep(500L);
-            onChainContribution.setStatus(ChainContributionStatus.CONTRIBUTED);
+            chainContribution.setStatus(ChainContributionStatus.CONTRIBUTED);
             sleep(500L);
             // assertThat(task.getReplicate("0x1").get().getCurrentStatus()).isEqualTo(ReplicateStatus.CONTRIBUTED);
         };

@@ -166,10 +166,14 @@ public class ReplicatesService {
     }
 
     private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
-        ChainContribution onChainContribution = iexecHubService.getContribution(chainTaskId, walletAddress);
+        Optional<ChainContribution> optional = iexecHubService.getContribution(chainTaskId, walletAddress);
+        if (!optional.isPresent()){
+            return;
+        }
+        ChainContribution chainContribution = optional.get();
         switch (wishedChainStatus) {
             case CONTRIBUTED:
-                replicate.setContributionHash(onChainContribution.getResultHash());
+                replicate.setContributionHash(chainContribution.getResultHash());
                 break;
             case REVEALED:
                 break;
