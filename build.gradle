@@ -61,6 +61,7 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-websocket"
     compile "org.springframework.retry:spring-retry"
     compile "org.springframework.boot:spring-boot-starter-aop"
+    compile "org.springframework.boot:spring-boot-starter-security"
 
     testCompile "org.springframework.boot:spring-boot-starter-test"
 
@@ -75,6 +76,15 @@ dependencies {
     // package cloud
     springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
     libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
+
+    // jason web token
+    compile "io.jsonwebtoken:jjwt:0.7.0"
+
+    // apache commons
+    compile "org.apache.commons:commons-lang3:3.8.1"
+
+    // expiring map
+    compile "net.jodah:expiringmap:0.5.8"
 }
 
 jacoco {
