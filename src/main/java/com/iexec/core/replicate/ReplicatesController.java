@@ -22,12 +22,13 @@ public class ReplicatesController {
 
     @RequestMapping(method = RequestMethod.POST, path = "/replicates/{chainTaskId}/updateStatus")
     public ResponseEntity updateReplicateStatus(@PathVariable(name = "chainTaskId") String chainTaskId,
-                                                @RequestParam(name = "walletAddress") String walletAddress,
                                                 @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
                                                 @RequestHeader("Authorization") String bearerToken) throws Exception {
 
         String token = jwtTokenProvider.resolveToken(bearerToken);
-        if (token != null && jwtTokenProvider.validateToken(token, walletAddress)) {
+        if (token != null && jwtTokenProvider.validateToken(token)) {
+            String walletAddress = jwtTokenProvider.getWalletAddress(token);
+
             log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                     chainTaskId, replicateStatus, walletAddress);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
