@@ -28,6 +28,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALING, REVEALED);
         addTransition(REVEALING, REVEAL_FAILED);
         addTransition(REVEALED, RESULT_UPLOADING);
+        addTransition(REVEALED, COMPLETED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED);
         addTransition(RESULT_UPLOADING, ERROR);
