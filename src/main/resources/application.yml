@@ -10,10 +10,10 @@ spring:
 
 # all in milliseconds
 detector:
-  workerlost.period: 30000
-  resultuploadtimeout.period: 30000
-  dealwatcherreplay.period: 60000
-
+  workerlost.period: 30000           # 30 s
+  resultuploadtimeout.period: 30000  # 30 s
+  dealwatcherreplay.period: 60000    # 1 min
+  revealtimeout.period: 300000       # 5 min
 
 
 wallet:
