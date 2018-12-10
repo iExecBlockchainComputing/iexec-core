@@ -33,7 +33,7 @@ public class JwtTokenProvider {
         Date now = new Date();
 
         return Jwts.builder()
-                .setIssuer(walletAddress)
+                .setAudience(walletAddress)
                 .setIssuedAt(now)
                 .setSubject(challengeService.getChallenge(walletAddress))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
@@ -60,7 +60,7 @@ public class JwtTokenProvider {
             Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
 
             // check the content of the challenge
-            String walletAddress = claims.getIssuer();
+            String walletAddress = claims.getAudience();
             boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
 
             return tokenExpiryDate.after(now) && isChallengeCorrect;
@@ -73,6 +73,6 @@ public class JwtTokenProvider {
     public String getWalletAddress(String token) {
         return Jwts.parser()
                 .setSigningKey(secretKey)
-                .parseClaimsJws(token).getBody().getIssuer();
+                .parseClaimsJws(token).getBody().getAudience();
     }
 }
