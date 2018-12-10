@@ -27,7 +27,7 @@ public class ReplicatesController {
                                                 @RequestHeader("Authorization") String bearerToken) throws Exception {
 
         String token = jwtTokenProvider.resolveToken(bearerToken);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
+        if (token != null && jwtTokenProvider.validateToken(token, walletAddress)) {
             log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                     chainTaskId, replicateStatus, walletAddress);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);

@@ -1,18 +1,14 @@
 package com.iexec.core.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 
@@ -20,10 +16,13 @@ import java.util.Date;
 @Slf4j
 public class JwtTokenProvider {
 
-    @Value("${security.jwt.token.secret-key:secret-key}")
+    private ChallengeService challengeService;
     private String secretKey;
 
-    private long validityInMilliseconds = 1000L * 60 * 60; // 1h
+    public JwtTokenProvider(ChallengeService challengeService) {
+        this.challengeService = challengeService;
+        this.secretKey = RandomStringUtils.randomAlphanumeric(10);
+    }
 
     @PostConstruct
     protected void init() {
@@ -32,12 +31,11 @@ public class JwtTokenProvider {
 
     public String createToken(String walletAddress) {
         Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
 
         return Jwts.builder()
                 .setSubject(walletAddress)
                 .setIssuedAt(now)
-                .setExpiration(validity)
+                .setSubject(challengeService.getChallenge(walletAddress))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -49,10 +47,21 @@ public class JwtTokenProvider {
         return null;
     }
 
-    public boolean validateToken(String token) {
+    public boolean validateToken(String token, String walletAddress) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
-            return true;
+            Claims claims = Jwts.parser()
+                    .setSigningKey(secretKey)
+                    .parseClaimsJws(token).getBody();
+
+            // check the expiration date
+            Date now = new Date();
+            long validityInMilliseconds = 1000L * 60 * 60; // 1h
+            Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
+
+            // check the content of the challenge
+            boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
+
+            return tokenExpiryDate.after(now) && isChallengeCorrect;
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("Expired or invalid JWT token [exception:{}]", e.getMessage());
         }
