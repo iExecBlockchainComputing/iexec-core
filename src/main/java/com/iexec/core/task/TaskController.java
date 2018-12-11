@@ -87,7 +87,7 @@ public class TaskController {
                 .currentStatus(task.getCurrentStatus())
                 .dateStatusList(task.getDateStatusList())
                 .replicates(replicatesList.getReplicates())
-                .trust(task.getTrust())
+                .trust(task.getNumWorkersNeeded())
                 .uploadingWorkerWalletAddress(task.getUploadingWorkerWalletAddress())
                 .consensus(task.getConsensus())
                 .build()

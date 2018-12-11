@@ -383,7 +383,7 @@ public class TaskServiceTests {
                 .chainTaskId("chainTaskId")
                 .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
-                .trust(2)
+                .numWorkersNeeded(2)
                 .dateStatusList(dateStatusList)
                 .build();
 
@@ -450,7 +450,7 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
-    // Two replicates in COMPUTED BUT trust = 2, so the task should not be able to move directly from
+    // Two replicates in COMPUTED BUT numWorkersNeeded = 2, so the task should not be able to move directly from
     // INITIALIZED to COMPUTED
     @Test
     public void shouldNotUpdateToRunningCase2() {
@@ -580,7 +580,7 @@ public class TaskServiceTests {
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded())).thenReturn(false);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
@@ -603,7 +603,7 @@ public class TaskServiceTests {
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(true);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded())).thenReturn(true);
 
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
                 Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));

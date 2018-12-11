@@ -49,11 +49,11 @@ public class TaskService {
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
-            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, numWorkersNeeded:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
             return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust)));
         }
-        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, numWorkersNeeded:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
         return Optional.empty();
     }
@@ -98,7 +98,7 @@ public class TaskService {
             String chainTaskId = task.getChainTaskId();
 
             if (!replicatesService.hasWorkerAlreadyContributed(chainTaskId, walletAddress) &&
-                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getTrust())) {
+                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded())) {
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
                 return replicatesService.getReplicate(chainTaskId, walletAddress);
@@ -171,7 +171,7 @@ public class TaskService {
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getTrust();
+        boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getNumWorkersNeeded();
         boolean condition3 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2 && condition3) {
