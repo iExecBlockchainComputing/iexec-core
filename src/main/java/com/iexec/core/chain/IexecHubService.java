@@ -170,20 +170,17 @@ public class IexecHubService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-    public Optional<ChainDeal> getChainDeal(String chainDealId) {
-        return ChainUtils.getChainDeal(iexecClerk, chainDealId);
+    Optional<ChainDeal> getChainDeal(String chainDealId) {
+        return ChainUtils.getChainDeal(credentials, web3j, iexecHub.getContractAddress(), chainDealId);
     }
 
     public Optional<ChainTask> getChainTask(String chainTaskId) {
         return ChainUtils.getChainTask(iexecHub, chainTaskId);
     }
 
-    public Optional<App> getChainApp(String chainAppId) {
-        App app = ChainUtils.loadDappContract(credentials, web3j, chainAppId);
-        if (app != null) {
-            return Optional.of(app);
-        }
-        return Optional.empty();
+    Optional<ChainApp> getChainApp(String address) {
+        App app = ChainUtils.loadDappContract(credentials, web3j, address);
+        return ChainUtils.getChainApp(app);
     }
 
     Observable<DealEvent> getDealEventObservableToLatest(BigInteger from) {
