@@ -67,11 +67,6 @@ public class DealWatcherService {
             return;
         }
         ChainDeal chainDeal = optionalChainDeal.get();
-        Optional<ChainApp> optionalchainApp = iexecHubService.getChainApp(chainDeal.getDappPointer());
-        if (!optionalchainApp.isPresent()) {
-            return;
-        }
-        ChainApp chainApp = optionalchainApp.get();
 
         try {
             int startBag = chainDeal.getBotFirst().intValue();
@@ -79,7 +74,7 @@ public class DealWatcherService {
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        chainApp.getParams().getUri(), chainDeal.getParams().get(taskIndex), chainDeal.getTrust().intValue());
+                        chainDeal.getChainApp().getParams().getUri(), chainDeal.getParams().get(taskIndex), chainDeal.getTrust().intValue());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {
