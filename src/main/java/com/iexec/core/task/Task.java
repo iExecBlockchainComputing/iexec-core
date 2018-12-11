@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -33,6 +34,7 @@ public class Task {
     private int trust;
     private String uploadingWorkerWalletAddress;
     private String consensus;
+    private Date revealDeadline;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;

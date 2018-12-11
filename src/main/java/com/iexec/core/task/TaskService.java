@@ -18,6 +18,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -195,6 +196,9 @@ public class TaskService {
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
         if (isTaskInRunningStatus && isChainTaskRevealing  && offChainWinnersEqualsOnChainWinners) {
+
+            // change the the revealDeadline and consensus of the task from the chainTask info
+            task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
