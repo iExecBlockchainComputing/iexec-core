@@ -25,6 +25,8 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
         addTransition(CONTRIBUTE_FAILED, ABORT_CONSENSUS_REACHED);
         addTransition(CONTRIBUTED, REVEALING);
+        addTransition(CONTRIBUTED, REVEAL_TIMEOUT);
+        addTransition(REVEALING, REVEAL_TIMEOUT);
         addTransition(REVEALING, REVEALED);
         addTransition(REVEALING, REVEAL_FAILED);
         addTransition(REVEALED, RESULT_UPLOADING);

@@ -204,4 +204,17 @@ public class IexecHubService {
         });
     }
 
+    public boolean reOpen(String chainTaskId) {
+        try {
+            TransactionReceipt receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
+            if (!iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
+                log.info("Task reopened [chainTaskId:{}]", chainTaskId);
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("Problem when reopening the task [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
+        }
+        return false;
+    }
+
 }
