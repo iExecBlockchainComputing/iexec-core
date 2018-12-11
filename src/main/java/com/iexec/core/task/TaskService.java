@@ -49,11 +49,11 @@ public class TaskService {
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
-            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, numWorkersNeeded:{}]",
+            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
             return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust)));
         }
-        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, numWorkersNeeded:{}]",
+        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
         return Optional.empty();
     }

@@ -31,28 +31,35 @@ public class Task {
     private String commandLine;
     private TaskStatus currentStatus;
     private List<TaskStatusChange> dateStatusList;
+    private int trust;
     private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private Date revealDeadline;
 
-    public Task(String dappName, String commandLine, int numWorkersNeeded) {
+    public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;
         this.dappName = dappName;
         this.commandLine = commandLine;
-        this.numWorkersNeeded = numWorkersNeeded;
+        this.trust = trust;
         this.dateStatusList = new ArrayList<>();
         this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
         this.currentStatus = TaskStatus.RECEIVED;
+
+        // the number of workers needed should satisfy is:
+        // 2**n > trust - 1
+        // a 20% additional number of workers is taken for safety
+        // a max(1, value) is used to cover hedge cases (low values to have at least one worker)
+        this.numWorkersNeeded = Math.max(1, (int) Math.ceil((Math.log(trust - 1d) / Math.log(2) * 1.20) / 1.0));
     }
 
-    public Task(String dappName, String commandLine, int numWorkersNeeded, String chainTaskId) {
-        this(dappName, commandLine, numWorkersNeeded);
+    public Task(String dappName, String commandLine, int trust, String chainTaskId) {
+        this(dappName, commandLine, trust);
         this.chainTaskId = chainTaskId;
     }
 
-    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int numWorkersNeeded) {
-        this(dappName, commandLine, numWorkersNeeded);
+    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust) {
+        this(dappName, commandLine, trust);
         this.chainDealId = chainDealId;
         this.taskIndex = taskIndex;
         this.chainTaskId = "";

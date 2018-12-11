@@ -1,9 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ChainApp;
 import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.chain.ChainUtils;
-import com.iexec.common.contract.generated.App;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -17,7 +14,6 @@ import rx.Subscription;
 
 import javax.annotation.PostConstruct;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Slf4j
@@ -72,15 +68,11 @@ public class DealWatcherService {
             int startBag = chainDeal.getBotFirst().intValue();
             int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
 
-            // the number of workers needed should satisfy is:
-            // 2**n > trust - 1
-            // a 20% additional number of workers is taken for safety
-            int trust = chainDeal.getTrust().intValue();
-            int numWorkersNeeded = (int) Math.ceil((Math.log(trust - 1d) / Math.log(2) * 1.20) / 1.0);
-
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        chainDeal.getChainApp().getParams().getUri(), chainDeal.getParams().get(taskIndex), numWorkersNeeded);
+                        chainDeal.getChainApp().getParams().getUri(),
+                        chainDeal.getParams().get(taskIndex),
+                        chainDeal.getTrust().intValue());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {
