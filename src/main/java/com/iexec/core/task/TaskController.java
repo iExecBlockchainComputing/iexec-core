@@ -81,13 +81,17 @@ public class TaskController {
     private Optional<TaskModel> createTaskModel(Task task,
                                                 ReplicatesList replicatesList) {
         return Optional.of(TaskModel.builder()
+                .id(task.getId())
+                .version(task.getVersion())
                 .chainTaskId(task.getChainTaskId())
                 .dappType(task.getDappType())
+                .dappName(task.getDappName())
                 .commandLine(task.getCommandLine())
                 .currentStatus(task.getCurrentStatus())
                 .dateStatusList(task.getDateStatusList())
                 .replicates(replicatesList.getReplicates())
                 .trust(task.getTrust())
+                .numWorkersNeeded(task.getNumWorkersNeeded())
                 .uploadingWorkerWalletAddress(task.getUploadingWorkerWalletAddress())
                 .consensus(task.getConsensus())
                 .build()

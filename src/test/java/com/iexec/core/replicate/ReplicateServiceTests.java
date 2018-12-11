@@ -261,7 +261,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2, replicate3));
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        // trust strictly bigger than the number of running replicates
+        // numWorkersNeeded strictly bigger than the number of running replicates
         boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2);
         assertThat(res).isTrue();
     }
@@ -277,7 +277,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2));
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        // trust equals to the number of running replicates
+        // numWorkersNeeded equals to the number of running replicates
         boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1);
         assertThat(res).isFalse();
     }

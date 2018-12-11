@@ -1,9 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ChainApp;
 import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.chain.ChainUtils;
-import com.iexec.common.contract.generated.App;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -17,7 +14,6 @@ import rx.Subscription;
 
 import javax.annotation.PostConstruct;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Slf4j
@@ -74,7 +70,9 @@ public class DealWatcherService {
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        chainDeal.getChainApp().getParams().getUri(), chainDeal.getParams().get(taskIndex), chainDeal.getTrust().intValue());
+                        chainDeal.getChainApp().getParams().getUri(),
+                        chainDeal.getParams().get(taskIndex),
+                        chainDeal.getTrust().intValue());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {

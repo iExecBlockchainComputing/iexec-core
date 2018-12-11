@@ -37,7 +37,6 @@ public class TaskServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
 
-
     @Mock
     private TaskRepository taskRepository;
 
@@ -153,7 +152,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateInitialized2Running() { // 1 RUNNING out of 2
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
 
         when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
@@ -383,7 +382,7 @@ public class TaskServiceTests {
                 .chainTaskId("chainTaskId")
                 .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
-                .trust(2)
+                .numWorkersNeeded(2)
                 .dateStatusList(dateStatusList)
                 .build();
 
@@ -430,7 +429,7 @@ public class TaskServiceTests {
     // 2 replicates in RUNNING and and 2 in COMPUTED
     @Test
     public void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 4, CHAIN_TASK_ID);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 8, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(4);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
@@ -450,11 +449,11 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
-    // Two replicates in COMPUTED BUT trust = 2, so the task should not be able to move directly from
+    // Two replicates in COMPUTED BUT numWorkersNeeded = 2, so the task should not be able to move directly from
     // INITIALIZED to COMPUTED
     @Test
     public void shouldNotUpdateToRunningCase2() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
@@ -466,7 +465,7 @@ public class TaskServiceTests {
     // at least one UPLOADED
     @Test
     public void shouldUpdateFromUploadingResultToResultUploaded() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
         task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
@@ -480,7 +479,7 @@ public class TaskServiceTests {
     // No worker in UPLOADED
     @Test
     public void shouldNotUpdateToResultUploaded() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
         task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
@@ -550,7 +549,7 @@ public class TaskServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
@@ -572,7 +571,7 @@ public class TaskServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
@@ -580,7 +579,7 @@ public class TaskServiceTests {
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded())).thenReturn(false);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
@@ -595,7 +594,7 @@ public class TaskServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
@@ -603,7 +602,7 @@ public class TaskServiceTests {
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getTrust())).thenReturn(true);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded())).thenReturn(true);
 
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
                 Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));

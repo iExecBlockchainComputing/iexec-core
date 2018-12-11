@@ -32,6 +32,7 @@ public class TaskModel {
     private List<TaskStatusChange> dateStatusList;
     private List<Replicate> replicates;
     private int trust;
+    private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
     private String consensus;
 
