@@ -1,6 +1,8 @@
 package com.iexec.core.chain;
 
+import com.iexec.common.chain.ChainApp;
 import com.iexec.common.chain.ChainDeal;
+import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.contract.generated.App;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
@@ -65,16 +67,8 @@ public class DealWatcherService {
             return;
         }
         ChainDeal chainDeal = optionalChainDeal.get();
-        Optional<App> optionalchainApp = iexecHubService.getChainApp(chainDeal.getDappPointer());
-        if (!optionalchainApp.isPresent()) {
-            return;
-        }
-        App chainApp = optionalchainApp.get();
 
         try {
-            String dockerImage = ChainHelpers.getDockerImage(chainApp);
-            ArrayList<String> dealParams = ChainHelpers.getChainDealParams(chainDeal);
-
             int startBag = chainDeal.getBotFirst().intValue();
             int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
 
@@ -86,7 +80,7 @@ public class DealWatcherService {
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        dockerImage, dealParams.get(taskIndex), numWorkersNeeded);
+                        chainDeal.getChainApp().getParams().getUri(), chainDeal.getParams().get(taskIndex), numWorkersNeeded);
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {

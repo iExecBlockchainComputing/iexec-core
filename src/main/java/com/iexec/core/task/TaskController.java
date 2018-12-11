@@ -73,7 +73,7 @@ public class TaskController {
         ContributionAuthorization authorization = signatureService.createAuthorization(
                 workerWalletAddress, task.getChainTaskId(), workerEnclaveAddress);
 
-        return createAvailableReplicateModel(task, authorization).
+        return Optional.of(authorization).
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
@@ -98,9 +98,6 @@ public class TaskController {
                                                                             ContributionAuthorization contribAuth) {
         return Optional.of(AvailableReplicateModel.builder()
                 .contributionAuthorization(contribAuth)
-                .dappType(task.getDappType())
-                .dappName(task.getDappName())
-                .cmd(task.getCommandLine())
                 .build()
         );
     }
