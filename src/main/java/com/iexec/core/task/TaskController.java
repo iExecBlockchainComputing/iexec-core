@@ -1,11 +1,11 @@
 package com.iexec.core.task;
 
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.replicate.AvailableReplicateModel;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
 
 @Slf4j
@@ -23,13 +22,16 @@ public class TaskController {
     private TaskService taskService;
     private SignatureService signatureService;
     private ReplicatesService replicatesService;
+    private JwtTokenProvider jwtTokenProvider;
 
     public TaskController(TaskService taskService,
                           SignatureService signatureService,
-                          ReplicatesService replicatesService) {
+                          ReplicatesService replicatesService,
+                          JwtTokenProvider jwtTokenProvider) {
         this.taskService = taskService;
         this.signatureService = signatureService;
         this.replicatesService = replicatesService;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @GetMapping("/tasks/{chainTaskId}")
@@ -41,7 +43,7 @@ public class TaskController {
         Task task = optionalTask.get();
 
         Optional<ReplicatesList> optionalReplicates = replicatesService.getReplicatesList(chainTaskId);
-        if(!optionalReplicates.isPresent()){
+        if (!optionalReplicates.isPresent()) {
             return createTaskModel(task, new ReplicatesList()).
                     <ResponseEntity>map(ResponseEntity::ok).
                     orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
@@ -53,8 +55,13 @@ public class TaskController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
-    public ResponseEntity getAvailableReplicate(@RequestParam(name = "workerWalletAddress") String workerWalletAddress,
+    public ResponseEntity getAvailableReplicate(@RequestHeader("Authorization") String bearerToken,
                                                 @RequestParam(name = "workerEnclaveAddress") String workerEnclaveAddress) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
         // get available replicate
         Optional<Replicate> optional = taskService.getAvailableReplicate(workerWalletAddress);
         if (!optional.isPresent()) {
@@ -98,12 +105,5 @@ public class TaskController {
         );
     }
 
-    private Optional<AvailableReplicateModel> createAvailableReplicateModel(Task task,
-                                                                            ContributionAuthorization contribAuth) {
-        return Optional.of(AvailableReplicateModel.builder()
-                .contributionAuthorization(contribAuth)
-                .build()
-        );
-    }
 }
 
