@@ -75,4 +75,12 @@ public class JwtTokenProvider {
                 .setSigningKey(secretKey)
                 .parseClaimsJws(token).getBody().getAudience();
     }
+
+    public String getWalletAddressFromBearerToken(String bearerToken) {
+        String token = resolveToken(bearerToken);
+        if (token != null && validateToken(token)) {
+            return getWalletAddress(token);
+        }
+        return "";
+    }
 }

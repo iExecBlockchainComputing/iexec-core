@@ -45,8 +45,13 @@ public class WorkerController {
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
-    public ResponseEntity ping(@RequestParam(name = "walletAddress") String walletAddress) {
-        Optional<Worker> optional = workerService.updateLastAlive(walletAddress);
+    public ResponseEntity ping(@RequestHeader("Authorization") String bearerToken) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
+        Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
         return optional.
                 <ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
@@ -66,8 +71,8 @@ public class WorkerController {
         String challenge = challengeService.getChallenge(walletAddress);
         byte[] hashTocheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
 
-        if(SignatureUtils.doesSignatureMatchesAddress(signature.getSignR(), signature.getSignS(),
-                BytesUtils.bytesToString(hashTocheck), walletAddress)){
+        if (SignatureUtils.doesSignatureMatchesAddress(signature.getSignR(), signature.getSignS(),
+                BytesUtils.bytesToString(hashTocheck), walletAddress)) {
             String token = jwtTokenProvider.createToken(walletAddress);
             return ok(token);
         }
@@ -76,11 +81,16 @@ public class WorkerController {
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/register")
-    public ResponseEntity registerWorker(@RequestBody WorkerConfigurationModel model) {
+    public ResponseEntity registerWorker(@RequestHeader("Authorization") String bearerToken,
+                                         @RequestBody WorkerConfigurationModel model) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
 
         Worker worker = Worker.builder()
                 .name(model.getName())
-                .walletAddress(model.getWalletAddress())
+                .walletAddress(workerWalletAddress)
                 .os(model.getOs())
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
