@@ -130,17 +130,17 @@ public class IexecHubService {
         ChainTask chainTask = optional.get();
 
         boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean isConsensusDeadlineInFuture = now() < chainTask.getConsensusDeadline();
+        boolean isFinalDeadlineInFuture = now() < chainTask.getFinalDeadline();
         boolean hasEnoughRevealors = (chainTask.getRevealCounter() == chainTask.getWinnerCounter())
                 || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now());
 
-        boolean ret = isChainTaskStatusRevealing && isConsensusDeadlineInFuture && hasEnoughRevealors;
+        boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
             log.info("Finalizable [chainTaskId:{}]", chainTaskId);
         } else {
             log.warn("Can't finalize [chainTaskId:{}, " +
-                            "isChainTaskStatusRevealing:{}, isConsensusDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
-                    isChainTaskStatusRevealing, isConsensusDeadlineInFuture, hasEnoughRevealors);
+                            "isChainTaskStatusRevealing:{}, isFinalDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
+                    isChainTaskStatusRevealing, isFinalDeadlineInFuture, hasEnoughRevealors);
         }
         return ret;
     }
