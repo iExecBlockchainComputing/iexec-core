@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-class Result {
+public class Result {
 
     private String chainTaskId;
     private String image;
