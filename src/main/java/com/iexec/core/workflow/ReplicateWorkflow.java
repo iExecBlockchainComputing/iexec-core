@@ -45,7 +45,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private void addTransitionToAllStatus(ReplicateStatus status) {
         addTransition(CREATED, status);
+        addTransition(APP_DOWNLOADING, status);
+        addTransition(APP_DOWNLOADED, status);
+        addTransition(APP_DOWNLOAD_FAILED, status);
         addTransition(RUNNING, status);
+        addTransition(COMPUTING, status);
         addTransition(COMPUTED, status);
         addTransition(CONTRIBUTING, status);
         addTransition(CONTRIBUTED, status);
