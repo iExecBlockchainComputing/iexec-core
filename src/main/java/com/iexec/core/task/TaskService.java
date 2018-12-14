@@ -184,7 +184,7 @@ public class TaskService {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()){
+        if (!optional.isPresent()) {
             return;
         }
         ChainTask chainTask = optional.get();
@@ -195,7 +195,7 @@ public class TaskService {
         int offChainWinners = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
-        if (isTaskInRunningStatus && isChainTaskRevealing  && offChainWinnersEqualsOnChainWinners) {
+        if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
 
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
