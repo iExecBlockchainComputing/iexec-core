@@ -33,22 +33,28 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALED, COMPLETED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED);
-        addTransition(RESULT_UPLOADING, ERROR);
         addTransition(RESULT_UPLOADED, COMPLETED);
-        addTransition(COMPUTED, ERROR);
+
+        // from any status to WORKER_LOST or ERROR
+        addTransitionToAllStatus(WORKER_LOST);
+        addTransitionToAllStatus(ERROR);
 
         // cases after error
         addTransition(ERROR, ABORT_CONSENSUS_REACHED);
+    }
 
-        // from any status to WORKER_LOST
-        addTransition(CREATED, WORKER_LOST);
-        addTransition(RUNNING, WORKER_LOST);
-        addTransition(COMPUTED, WORKER_LOST);
-        addTransition(CONTRIBUTED, WORKER_LOST);
-        addTransition(REVEALED, WORKER_LOST);
-        addTransition(RESULT_UPLOADING, WORKER_LOST);
-        addTransition(RESULT_UPLOADED, WORKER_LOST);
-        addTransition(RESULT_UPLOAD_REQUEST_FAILED, WORKER_LOST);
+    private void addTransitionToAllStatus(ReplicateStatus status) {
+        addTransition(CREATED, status);
+        addTransition(RUNNING, status);
+        addTransition(COMPUTED, status);
+        addTransition(CONTRIBUTING, status);
+        addTransition(CONTRIBUTED, status);
+        addTransition(CONTRIBUTE_FAILED, status);
+        addTransition(REVEALING, status);
+        addTransition(REVEALED, status);
+        addTransition(RESULT_UPLOADING, status);
+        addTransition(RESULT_UPLOADED, status);
+        addTransition(RESULT_UPLOAD_REQUEST_FAILED, status);
     }
 
     public static synchronized ReplicateWorkflow getInstance() {
