@@ -66,6 +66,10 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(status);
     }
 
+    public List<Task> findByCurrentStatus(List<TaskStatus> statusList) {
+        return taskRepository.findByCurrentStatus(statusList);
+    }
+
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
@@ -108,7 +112,7 @@ public class TaskService {
         return Optional.empty();
     }
 
-    void tryToMoveTaskToNextStatus(Task task) {
+    public void tryToMoveTaskToNextStatus(Task task) {
         switch (task.getCurrentStatus()) {
             case RECEIVED:
                 received2Initialized(task);
