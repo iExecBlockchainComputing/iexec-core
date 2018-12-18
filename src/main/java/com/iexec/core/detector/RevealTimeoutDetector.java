@@ -8,6 +8,7 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import static com.iexec.core.task.TaskStatus.RESULT_UPLOADED;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
 
 @Slf4j
+@Service
 public class RevealTimeoutDetector implements Detector {
 
     private TaskService taskService;
