@@ -1,6 +1,5 @@
 package com.iexec.core.detector;
 
-import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -25,14 +24,11 @@ import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
 public class RevealTimeoutDetector implements Detector {
 
     private TaskService taskService;
-    private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
 
     public RevealTimeoutDetector(TaskService taskService,
-                                 IexecHubService iexecHubService,
                                  ReplicatesService replicatesService) {
         this.taskService = taskService;
-        this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
     }
 
@@ -68,6 +64,7 @@ public class RevealTimeoutDetector implements Detector {
 
     private void detectReOpenCase() {
         for (Task task : taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)) {
+            log.info("Task with consensus reached: " + task.getChainTaskId());
             Date now = new Date();
             if (now.after(task.getRevealDeadline())) {
 
@@ -79,8 +76,7 @@ public class RevealTimeoutDetector implements Detector {
                     }
                 }
 
-                // reopen the task
-                iexecHubService.reOpen(task.getChainTaskId());
+                taskService.reOpenTask(task);
             }
         }
     }

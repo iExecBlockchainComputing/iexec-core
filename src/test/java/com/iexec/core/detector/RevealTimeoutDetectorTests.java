@@ -87,8 +87,8 @@ public class RevealTimeoutDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.REVEAL_TIMEOUT);
 
-        Mockito.verify(iexecHubService, Mockito.times(1))
-                .reOpen(CHAIN_TASK_ID);
+        Mockito.verify(taskService, Mockito.times(1))
+                .reOpenTask(task);
     }
 
     @Test
