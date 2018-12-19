@@ -138,6 +138,12 @@ public class TaskService {
         }
     }
 
+    public void reOpenTask(Task task) {
+        if (iexecHubService.reOpen(task.getChainTaskId())) {
+            updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
+        }
+    }
+
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus);
