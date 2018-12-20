@@ -1,29 +1,42 @@
 package com.iexec.core.result;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.gridfs.GridFsOperations;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-@Slf4j
 @Service
 public class ResultService {
 
-    private ResultRepository resultRepository;
+    private static final String RESULT_FILENAME_PREFIX = "iexec-result-";
 
-    public ResultService(ResultRepository resultRepository) {
-        this.resultRepository = resultRepository;
+    private GridFsOperations gridOperations;
+
+    public ResultService(GridFsOperations gridOperations) {
+        this.gridOperations = gridOperations;
     }
 
-    Result addResult(Result result) {
-        Result savedResult = resultRepository.save(result);
-        log.info("Result saved in repo [chainTaskId:{}]", savedResult.getChainTaskId());
-        return savedResult;
+    String addResult(Result result, byte[] data) {
+        InputStream inputStream = new ByteArrayInputStream(data);
+        String resultFileName = getResultFilename(result.getChainTaskId());
+        gridOperations.store(inputStream, resultFileName, result);
+        return resultFileName;
     }
 
-    List<Result> getResultByChainTaskId(String chainTaskId) {
-        return resultRepository.findByChainTaskId(chainTaskId);
+    byte[] getResultByChainTaskId(String chainTaskId) throws IOException {
+        String resultFileName = getResultFilename(chainTaskId);
+        GridFsResource[] resources = gridOperations.getResources(resultFileName);
+        if (resources.length == 0) {
+            return new byte[0];
+        }
+        InputStream result = resources[0].getInputStream();
+        return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-
+    static String getResultFilename(String chainTaskId) {
+        return RESULT_FILENAME_PREFIX + chainTaskId;
+    }
 }

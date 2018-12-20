@@ -15,7 +15,6 @@ public class Result {
     private String image;
     private String cmd;
     private String stdout;
-    private byte[] zip;
     private String deterministHash;
 
 }
