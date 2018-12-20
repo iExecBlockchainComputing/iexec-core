@@ -82,6 +82,7 @@ dependencies {
 
     // apache commons
     compile "org.apache.commons:commons-lang3:3.8.1"
+    compile "commons-io:commons-io:2.6"
 
     // expiring map
     compile "net.jodah:expiringmap:0.5.8"

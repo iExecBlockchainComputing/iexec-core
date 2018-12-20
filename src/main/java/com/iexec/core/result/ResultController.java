@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.io.IOException;
 
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -21,26 +21,22 @@ public class ResultController {
 
     @PostMapping("/results")
     public ResponseEntity addResult(@RequestBody ResultModel model) {
-        Result result = resultService.addResult(
+        String filename = resultService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
                         .cmd(model.getCmd())
-                        .zip(model.getZip())
                         .deterministHash(model.getDeterministHash())
-                        .build());
-        return ok(result.getChainTaskId());
+                        .build(),
+                model.getZip());
+        return ok(filename);
     }
 
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
-    public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId) {
-        List<Result> results = resultService.getResultByChainTaskId(chainTaskId);
-        byte[] zip = null;
-        if (!results.isEmpty() && results.get(0) != null) {
-            zip = results.get(0).getZip();
-        }
+    public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId) throws IOException {
+        byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=iexec-result-" + chainTaskId)
+                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId))
                 .body(zip);
     }
 
