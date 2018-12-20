@@ -32,8 +32,8 @@ public class ResultService {
         if (resources.length == 0) {
             return new byte[0];
         }
-        InputStream test = resources[0].getInputStream();
-        return org.apache.commons.io.IOUtils.toByteArray(test);
+        InputStream result = resources[0].getInputStream();
+        return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
     static String getResultFilename(String chainTaskId) {
