@@ -107,16 +107,18 @@ public class TaskServiceTests {
     // Tests on received2Initialized transition
 
     @Test
-    public void shouldUpdateReceived2Initialized() throws ExecutionException, InterruptedException {
+    public void shouldUpdateReceived2Initializing2Initialized() throws ExecutionException, InterruptedException {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
         task.changeStatus(TaskStatus.RECEIVED);
         task.setChainTaskId("");
 
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
 
         // test that double call doesn't change anything
         taskService.tryToMoveTaskToNextStatus(task);
@@ -124,9 +126,24 @@ public class TaskServiceTests {
     }
 
     @Test
+    public void shouldNotUpdateReceived2Initializing() throws ExecutionException, InterruptedException {
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
+        task.changeStatus(TaskStatus.RECEIVED);
+        task.setChainTaskId("");
+
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    @Test
     public void shouldUpdateReceived2InitializedFailed() throws ExecutionException, InterruptedException {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2);
         task.changeStatus(RECEIVED);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
 
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("");
         when(taskRepository.save(task)).thenReturn(task);
@@ -311,6 +328,7 @@ public class TaskServiceTests {
 
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any())).thenReturn(true);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -326,12 +344,28 @@ public class TaskServiceTests {
     }
 
     @Test
+    public void shouldUpdateResultUploading2UploadedButNot2Finalizing() throws ExecutionException, InterruptedException { //one worker uploaded
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(RESULT_UPLOADING);
+
+        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
+        assertThat(task.getCurrentStatus()).isNotEqualTo(FINALIZING);
+    }
+
+    @Test
     public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() throws ExecutionException, InterruptedException { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any())).thenReturn(false);
 
         taskService.tryToMoveTaskToNextStatus(task);

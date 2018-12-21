@@ -112,8 +112,8 @@ public class IexecHubService {
             if (!iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
                 IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
                 chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
-                log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}]",
-                        chainTaskId, chainDealId, taskIndex);
+                log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
+                        chainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
             }
         } catch (Exception e) {
             log.error("Failed initialize [chainDealId:{}, taskIndex:{}]",
@@ -157,7 +157,7 @@ public class IexecHubService {
             log.info("Sent finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
             TransactionReceipt finalizeReceipt = finalizeCall.send();
             if (!iexecHub.getTaskFinalizeEvents(finalizeReceipt).isEmpty()) {
-                log.info("Finalized [chainTaskId:{}, result:{}]", chainTaskId, result);
+                log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, finalizeReceipt.getGasUsed());
                 return true;
             }
         } catch (Exception e) {
@@ -205,13 +205,17 @@ public class IexecHubService {
         try {
             TransactionReceipt receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
             if (!iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
-                log.info("Task reopened [chainTaskId:{}]", chainTaskId);
+                log.info("Task reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
                 return true;
             }
         } catch (Exception e) {
             log.error("Problem when reopening the task [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
         }
         return false;
+    }
+
+    public boolean hasEnoughGas() {
+        return ChainUtils.hasEnoughGas(web3j, credentials.getAddress());
     }
 
 }

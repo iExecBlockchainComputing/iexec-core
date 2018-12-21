@@ -162,7 +162,12 @@ public class TaskService {
                 return;
             }*/
 
+            if (!iexecHubService.hasEnoughGas()) {
+                return;
+            }
+
             String chainTaskId = "";
+            updateTaskStatusAndSave(task, INITIALIZING);
             try {
                 chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
             } catch (ExecutionException | InterruptedException e) {
@@ -194,7 +199,7 @@ public class TaskService {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()){
+        if (!optional.isPresent()) {
             return;
         }
         ChainTask chainTask = optional.get();
@@ -205,7 +210,7 @@ public class TaskService {
         int offChainWinners = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
-        if (isTaskInRunningStatus && isChainTaskRevealing  && offChainWinnersEqualsOnChainWinners) {
+        if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
 
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
@@ -271,6 +276,9 @@ public class TaskService {
         boolean condition2 = iexecHubService.canFinalize(task.getChainTaskId());
 
         if (condition1 && condition2) {
+            if (!iexecHubService.hasEnoughGas()) {
+                return;
+            }
             updateTaskStatusAndSave(task, FINALIZING);
             boolean isFinalized = false;
             try {
