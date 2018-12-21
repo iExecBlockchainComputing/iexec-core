@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 
@@ -33,13 +34,13 @@ public class ResultUploadTimeoutDetector implements Detector {
     public void detect() {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 1 min.
-        for (Task task : taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOAD_REQUESTED)) {
+        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING))) {
             String chainTaskId = task.getChainTaskId();
 
             Optional<Replicate> optional = replicatesService.getReplicate(chainTaskId, task.getUploadingWorkerWalletAddress());
             if(optional.isPresent()){
                 Replicate replicate = optional.get();
-                boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 1));
+                boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
 
                 if (startUploadLongAgo) {
                     replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),

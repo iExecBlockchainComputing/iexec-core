@@ -33,6 +33,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALED, COMPLETED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
         addTransition(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED);
+        addTransition(WORKER_LOST, RESULT_UPLOAD_REQUEST_FAILED);
         addTransition(RESULT_UPLOADED, COMPLETED);
 
         // from any status to WORKER_LOST or ERROR
