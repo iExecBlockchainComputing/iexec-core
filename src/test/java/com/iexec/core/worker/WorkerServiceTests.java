@@ -6,10 +6,7 @@ import org.mockito.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,7 +102,6 @@ public class WorkerServiceTests {
         diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
         assertThat(diffInSeconds).isEqualTo(0);
     }
-
 
     @Test
     public void shouldNotFindWorkerForUpdateLastAlive() {
@@ -232,5 +228,113 @@ public class WorkerServiceTests {
         Worker worker = removedWorker.get();
         assertThat(worker.getChainTaskIds().size()).isEqualTo(2);
         assertThat(worker.getChainTaskIds()).isEqualTo(listIds);
+    }
+
+    @Test
+    public void shouldGetLostWorkers() {
+
+        List<Worker> allWorkers = getDummyWorkers(3);
+        List<Worker> lostWorkers = allWorkers.subList(1, 3);
+        when(workerRepository.findByLastAliveDateBefore(Mockito.any())).thenReturn(lostWorkers);
+
+        List<Worker> claimedLostWorkers = workerService.getLostWorkers();
+
+        // check findByLastAliveDateBefore was called with a date of one minute ago
+        ArgumentCaptor<Date> argument = ArgumentCaptor.forClass(Date.class);
+        Mockito.verify(workerRepository).findByLastAliveDateBefore(argument.capture());
+        long diff = (new Date()).getTime() - argument.getValue().getTime();
+        long diffInMinutes = TimeUnit.MILLISECONDS.toMinutes(diff);
+        assertThat(diffInMinutes).isEqualTo(1);
+
+        // check the claimedLostWorkers are actually the lostWorkers
+        assertThat(claimedLostWorkers.size()).isEqualTo(2);
+        assertThat(claimedLostWorkers).isEqualTo(lostWorkers);
+    }
+
+    @Test
+    public void shouldNotFindLostWorkers() {
+
+        when(workerRepository.findByLastAliveDateBefore(Mockito.any())).thenReturn(Collections.emptyList());
+
+        assertThat(workerService.getLostWorkers()).isEmpty();
+    }
+
+    @Test
+    public void shouldGetAliveWorkers() {
+
+        List<Worker> allWorkers = getDummyWorkers(3);
+        List<Worker> aliveWorkers = allWorkers.subList(0, 1);
+        when(workerRepository.findByLastAliveDateAfter(Mockito.any())).thenReturn(aliveWorkers);
+
+        List<Worker> claimedAliveWorkers = workerService.getAliveWorkers();
+
+        // check findByLastAliveDateAfter was called with a date of one minute ago
+        ArgumentCaptor<Date> argument = ArgumentCaptor.forClass(Date.class);
+        Mockito.verify(workerRepository).findByLastAliveDateAfter(argument.capture());
+        long diff = (new Date()).getTime() - argument.getValue().getTime();
+        long diffInMinutes = TimeUnit.MILLISECONDS.toMinutes(diff);
+        assertThat(diffInMinutes).isEqualTo(1);
+
+        // check the claimedAliveWorkers are actually the aliveWorkers
+        assertThat(claimedAliveWorkers.size()).isEqualTo(1);
+        assertThat(claimedAliveWorkers).isEqualTo(aliveWorkers);
+    }
+
+    @Test
+    public void shouldNotFindAliveWorkers() {
+
+        when(workerRepository.findByLastAliveDateAfter(Mockito.any())).thenReturn(Collections.emptyList());
+
+        assertThat(workerService.getAliveWorkers()).isEmpty();
+    }
+
+    @Test
+    public void shouldAcceptMoreWorks() {
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        List<String> chainTaskIds = Arrays.asList("task1", "task2");
+
+        Worker worker = getDummyWorker(walletAddress, 3, chainTaskIds);
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.canAcceptMoreWorks(walletAddress)).isEqualTo(true);
+    }
+
+    @Test
+    public void shouldNotAcceptMoreWorksSinceWorkerNotFound() {
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+
+        when(workerRepository.findByWalletAddress(Mockito.any())).thenReturn(Optional.empty());
+
+        boolean canAccept = workerService.canAcceptMoreWorks(walletAddress);
+        assertThat(canAccept).isEqualTo(false);
+    }
+
+    @Test
+    public void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        List<String> chainTaskIds = Arrays.asList("task1", "task2");
+
+        Worker worker = getDummyWorker(walletAddress, 2, chainTaskIds);
+        when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.canAcceptMoreWorks(walletAddress)).isEqualTo(false);
+    }
+
+    List<Worker> getDummyWorkers(int n) {
+
+        List<Worker> dummyWorkers = new ArrayList<>();
+
+        for (int i=0; i<n; i++) {
+            dummyWorkers.add(Worker.builder().id(Integer.toString(i)).build());
+        }
+        return dummyWorkers;
+    }
+
+    Worker getDummyWorker(String walletAddress, int cpuNb, List<String> chainTaskIds) {
+        return Worker.builder()
+                .walletAddress(walletAddress)
+                .cpuNb(cpuNb)
+                .chainTaskIds(chainTaskIds)
+                .build();
     }
 }
