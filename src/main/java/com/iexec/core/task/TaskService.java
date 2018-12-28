@@ -149,8 +149,10 @@ public class TaskService {
 
             updateTaskStatusAndSave(task, TaskStatus.REOPENING);
             boolean isReopened = iexecHubService.reOpen(task.getChainTaskId());
-            
+
             if (isReopened) {
+                task.setConsensus(null);
+                task.setRevealDeadline(new Date(0));
                 updateTaskStatusAndSave(task, TaskStatus.REOPENED);
                 updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
             } else {
