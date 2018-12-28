@@ -290,10 +290,21 @@ public class TaskService {
     }
 
     private void updateResultUploaded2Finalized(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADED);
-        boolean condition2 = iexecHubService.canFinalize(task.getChainTaskId());
+        boolean isTaskInResultUploaded = task.getCurrentStatus().equals(RESULT_UPLOADED);
+        boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
-        if (condition1 && condition2) {
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!optional.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = optional.get();
+
+        int onChainReveal = chainTask.getRevealCounter();
+        int offChainReveal = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)
+                + replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
+        boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
+
+        if (isTaskInResultUploaded && canFinalize && offChainRevealEqualsOnChainReveal) {
             if (!iexecHubService.hasEnoughGas()) {
                 return;
             }

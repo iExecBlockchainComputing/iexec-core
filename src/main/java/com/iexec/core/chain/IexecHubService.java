@@ -136,7 +136,7 @@ public class IexecHubService {
 
         boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
-            log.info("Finalizable [chainTaskId:{}]", chainTaskId);
+            log.info("Finalizable onchain [chainTaskId:{}]", chainTaskId);
         } else {
             log.warn("Can't finalize [chainTaskId:{}, " +
                             "isChainTaskStatusRevealing:{}, isFinalDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
@@ -181,7 +181,7 @@ public class IexecHubService {
         boolean check = isChainTaskStatusRevealing && isBeforeFinalDeadline && isAfterRevealDeadline
                 && revealCounterEqualsZero;
         if (check) {
-            log.info("Reopenable [chainTaskId:{}]", chainTaskId);
+            log.info("Reopenable onchain [chainTaskId:{}]", chainTaskId);
         } else {
             log.warn("Can't reopen [chainTaskId:{}, " +
                             "isChainTaskStatusRevealing:{}, isBeforeFinalDeadline:{}, " +

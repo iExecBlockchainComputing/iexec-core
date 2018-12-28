@@ -325,9 +325,11 @@ public class TaskServiceTests {
     public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() throws ExecutionException, InterruptedException { //one worker uploaded
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
 
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any())).thenReturn(true);
 
@@ -362,9 +364,11 @@ public class TaskServiceTests {
     public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() throws ExecutionException, InterruptedException { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
 
         when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any())).thenReturn(false);
 
