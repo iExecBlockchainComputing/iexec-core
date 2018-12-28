@@ -300,8 +300,8 @@ public class TaskService {
         ChainTask chainTask = optional.get();
 
         int onChainReveal = chainTask.getRevealCounter();
-        int offChainReveal = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)
-                + replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
+        int offChainReveal = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED, ReplicateStatus.REVEALED);
+                //+ replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (isTaskInResultUploaded && canFinalize && offChainRevealEqualsOnChainReveal) {
