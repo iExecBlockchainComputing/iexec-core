@@ -36,6 +36,7 @@ public class Task {
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private Date revealDeadline;
+    private Date finalDeadline;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;

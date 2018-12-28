@@ -183,16 +183,20 @@ public class TaskService {
             if (!iexecHubService.hasEnoughGas()) {
                 return;
             }
-
-            String chainTaskId = "";
             updateTaskStatusAndSave(task, INITIALIZING);
-            try {
-                chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+
+            String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
             if (!chainTaskId.isEmpty()) {
+                Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
+                if (!optional.isPresent()) {
+                    return;
+                }
+                ChainTask chainTask = optional.get();
+
                 task.setChainTaskId(chainTaskId);
+                task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
+                //TODO Put other fields?
+
                 updateTaskStatusAndSave(task, INITIALIZED);
                 replicatesService.createEmptyReplicateList(chainTaskId);
             } else {
@@ -309,12 +313,8 @@ public class TaskService {
                 return;
             }
             updateTaskStatusAndSave(task, FINALIZING);
-            boolean isFinalized = false;
-            try {
-                isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+            boolean isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+
             if (isFinalized) {
                 updateTaskStatusAndSave(task, FINALIZED);
                 updateFromFinalizedToCompleted(task);
