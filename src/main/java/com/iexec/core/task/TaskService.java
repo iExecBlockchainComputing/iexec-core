@@ -139,9 +139,25 @@ public class TaskService {
     }
 
     public void reOpenTask(Task task) {
-        if (iexecHubService.reOpen(task.getChainTaskId())) {
-            updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
+        boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
+        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+
+        if (canReopen) {
+            if (!hasEnoughGas) {
+                return;
+            }
+
+            updateTaskStatusAndSave(task, TaskStatus.REOPENING);
+            boolean isReopened = iexecHubService.reOpen(task.getChainTaskId());
+            
+            if (isReopened) {
+                updateTaskStatusAndSave(task, TaskStatus.REOPENED);
+                updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
+            } else {
+                updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
+            }
         }
+
     }
 
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
