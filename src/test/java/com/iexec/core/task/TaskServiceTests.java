@@ -111,7 +111,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
-        when(iexecHubService.getChainTask("")).thenReturn(Optional.of(ChainTask.builder().build()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
