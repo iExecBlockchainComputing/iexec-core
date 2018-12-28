@@ -2,6 +2,7 @@ package com.iexec.core.task;
 
 public enum TaskStatus {
     RECEIVED,
+    INITIALIZING,
     INITIALIZED,
     INITIALIZE_FAILED,
     RUNNING,

@@ -89,7 +89,8 @@ public class ResultUploadTimeoutDetectorTests {
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
         task.setDateStatusList(Arrays.asList(change1, change2, change3));
 
-        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOAD_REQUESTED)).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING)))
+                .thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate1));
 
         // trying to detect any timeout
