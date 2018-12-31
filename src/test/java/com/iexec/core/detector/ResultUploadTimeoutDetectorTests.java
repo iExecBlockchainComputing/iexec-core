@@ -73,9 +73,9 @@ public class ResultUploadTimeoutDetectorTests {
     @Test
     public void shouldDetectOneReplicateStartedUploadLongAgo(){
         // the latest status change from the replicate is very new so it is not timed out.
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
-        Date threeMinutesAgo = addMinutesToDate(new Date(), -3);
-        Date fourMinutesAgo = addMinutesToDate(new Date(), -4);
+        Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
+        Date threeMinutesAgo = addMinutesToDate(new Date(), -4);
+        Date fourMinutesAgo = addMinutesToDate(new Date(), -5);
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);

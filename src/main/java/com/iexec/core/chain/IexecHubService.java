@@ -136,7 +136,7 @@ public class IexecHubService {
 
         boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
-            log.info("Finalizable [chainTaskId:{}]", chainTaskId);
+            log.info("Finalizable onchain [chainTaskId:{}]", chainTaskId);
         } else {
             log.warn("Can't finalize [chainTaskId:{}, " +
                             "isChainTaskStatusRevealing:{}, isFinalDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
@@ -162,6 +162,54 @@ public class IexecHubService {
             }
         } catch (Exception e) {
             log.error("Failed finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
+        }
+        return false;
+    }
+
+    public boolean canReopen(String chainTaskId) {
+        Optional<ChainTask> optional = getChainTask(chainTaskId);
+        if (!optional.isPresent()) {
+            return false;
+        }
+        ChainTask chainTask = optional.get();
+
+        boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean isBeforeFinalDeadline = now() < chainTask.getFinalDeadline();
+        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= now();
+        boolean revealCounterEqualsZero = chainTask.getRevealCounter() == 0;
+
+        boolean check = isChainTaskStatusRevealing && isBeforeFinalDeadline && isAfterRevealDeadline
+                && revealCounterEqualsZero;
+        if (check) {
+            log.info("Reopenable onchain [chainTaskId:{}]", chainTaskId);
+        } else {
+            log.warn("Can't reopen [chainTaskId:{}, " +
+                            "isChainTaskStatusRevealing:{}, isBeforeFinalDeadline:{}, " +
+                            "isAfterRevealDeadline:{}, revealCounterEqualsZero:{}]", chainTaskId,
+                    isChainTaskStatusRevealing, isBeforeFinalDeadline, isAfterRevealDeadline, revealCounterEqualsZero);
+        }
+        return check;
+    }
+
+    public boolean reOpen(String chainTaskId) {
+        log.info("Requested  reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
+        try {
+            return CompletableFuture.supplyAsync(() -> sendReopenTransaction(chainTaskId), executor).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean sendReopenTransaction(String chainTaskId) {
+        try {
+            TransactionReceipt receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
+            if (!iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
+                log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
         }
         return false;
     }
@@ -199,19 +247,6 @@ public class IexecHubService {
             }
             return null;// returns empty?
         });
-    }
-
-    public boolean reOpen(String chainTaskId) {
-        try {
-            TransactionReceipt receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
-            if (!iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
-                log.info("Task reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-                return true;
-            }
-        } catch (Exception e) {
-            log.error("Problem when reopening the task [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
-        }
-        return false;
     }
 
     public boolean hasEnoughGas() {
