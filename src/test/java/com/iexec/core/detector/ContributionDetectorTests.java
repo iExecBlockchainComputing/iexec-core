@@ -1,5 +1,6 @@
 package com.iexec.core.detector;
 
+import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
@@ -20,11 +21,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.core.utils.DateTimeUtils.now;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ContributionTimeoutDetectorTests {
+public class ContributionDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
@@ -37,8 +39,11 @@ public class ContributionTimeoutDetectorTests {
     @Mock
     private WorkerService workerService;
 
+    @Mock
+    private IexecHubService iexecHubService;
+
     @InjectMocks
-    private ContributionTimeoutDetector contributionTimeoutDetector;
+    private ContributionDetector contributionDetector;
 
     @Before
     public void init() {
@@ -48,7 +53,7 @@ public class ContributionTimeoutDetectorTests {
     @Test
     public void shouldNotDetectAnyContributionTimeout() {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.emptyList());
-        contributionTimeoutDetector.detect();
+        contributionDetector.detectContributionTimeout();
 
         Mockito.verify(workerService, Mockito.times(0))
                 .removeChainTaskIdFromWorker(any(), any());
@@ -70,7 +75,7 @@ public class ContributionTimeoutDetectorTests {
         task.setContributionDeadline(oneMinuteAfterNow);
 
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
-        contributionTimeoutDetector.detect();
+        contributionDetector.detectContributionTimeout();
 
         Mockito.verify(workerService, Mockito.times(0))
                 .removeChainTaskIdFromWorker(any(), any());
@@ -100,7 +105,7 @@ public class ContributionTimeoutDetectorTests {
 
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1, replicate2));
-        contributionTimeoutDetector.detect();
+        contributionDetector.detectContributionTimeout();
 
         Mockito.verify(workerService, Mockito.times(2))
                 .removeChainTaskIdFromWorker(any(), any());
@@ -109,6 +114,64 @@ public class ContributionTimeoutDetectorTests {
                 .updateReplicateStatus(any(), any(), any());
 
         Mockito.verify(taskService, Mockito.times(1))
+                .tryToMoveTaskToNextStatus(any());
+    }
+
+
+    @Test
+    public void shouldDetectUnNotifiedContributed() {
+        Task task = mock(Task.class);
+        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
+        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+
+        Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
+        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
+        contributionDetector.detectUnNotifiedContributed();
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(any(), any(), any());
+        Mockito.verify(taskService, Mockito.times(1))
+                .tryToMoveTaskToNextStatus(any());
+    }
+
+    @Test
+    public void shouldNotDetectUnNotifiedContributedIfNotContributed() {
+        Task task = mock(Task.class);
+        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
+        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+
+        Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
+        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(false);
+        contributionDetector.detectUnNotifiedContributed();
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(any(), any(), any());
+        Mockito.verify(taskService, Mockito.times(0))
+                .tryToMoveTaskToNextStatus(any());
+    }
+
+    @Test
+    public void shouldNotYetDetectUnNotifiedContributedIfContributingPeriodTooShort() {
+        Task task = mock(Task.class);
+        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
+        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+
+        Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(false);
+
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
+        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
+        contributionDetector.detectUnNotifiedContributed();
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(any(), any(), any());
+        Mockito.verify(taskService, Mockito.times(0))
                 .tryToMoveTaskToNextStatus(any());
     }
 

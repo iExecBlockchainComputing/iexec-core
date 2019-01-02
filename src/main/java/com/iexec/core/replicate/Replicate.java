@@ -61,7 +61,7 @@ public class Replicate {
         this.credibility = credibility + 1;
     }
 
-    boolean containsContributedStatus() {
+    public boolean containsContributedStatus() {
         for (ReplicateStatusChange replicateStatusChange: this.getStatusChangeList()){
             if (replicateStatusChange.getStatus().equals(CONTRIBUTED)){
                 return true;
