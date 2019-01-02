@@ -8,13 +8,11 @@ import org.junit.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ReplicateServiceTests {
@@ -251,6 +249,7 @@ public class ReplicateServiceTests {
 
     @Test
     public void shouldNeedMoreReplicates(){
+        final Date timeRef = new Date(60000);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING);
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
@@ -262,12 +261,34 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // numWorkersNeeded strictly bigger than the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2);
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, timeRef);
+        assertThat(res).isTrue();
+    }
+
+    @Test
+    public void shouldNeedMoreReplicates2(){
+        Date timeRef = new Date(60000);
+        Replicate runningReplicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        runningReplicate.updateStatus(ReplicateStatus.RUNNING);
+        Replicate notRespondingReplicate1 = mock(Replicate.class);
+        when(notRespondingReplicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(notRespondingReplicate1.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
+        Replicate notRespondingReplicate2 = mock(Replicate.class);
+        when(notRespondingReplicate2.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(notRespondingReplicate2.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
+
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(runningReplicate, notRespondingReplicate1, notRespondingReplicate2));
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        // numWorkersNeeded strictly bigger than the number of running replicates
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, timeRef);
         assertThat(res).isTrue();
     }
 
     @Test
     public void shouldNotNeedMoreReplicates(){
+        final Date timeRef = new Date(60000);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING);
 
@@ -278,7 +299,7 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // numWorkersNeeded equals to the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1);
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1, timeRef);
         assertThat(res).isFalse();
     }
 
@@ -360,5 +381,8 @@ public class ReplicateServiceTests {
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
                 .publishEvent(any());
     }
+
+
+
 }
 

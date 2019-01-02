@@ -72,7 +72,8 @@ public class DealWatcherService {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
                         chainDeal.getChainApp().getParams().getUri(),
                         chainDeal.getParams().get(taskIndex),
-                        chainDeal.getTrust().intValue());
+                        chainDeal.getTrust().intValue(),
+                        chainDeal.getChainCategory().getMaxExecutionTime());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {
