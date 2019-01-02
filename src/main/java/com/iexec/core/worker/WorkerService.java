@@ -87,16 +87,17 @@ public class WorkerService {
         if (!optionalWorker.isPresent()){
             return false;
         }
-        Worker worker = optionalWorker.get();
 
+        Worker worker = optionalWorker.get();
         int workerCpuNb = worker.getCpuNb();
         int runningReplicateNb = worker.getChainTaskIds().size();
-        if (runningReplicateNb <= workerCpuNb) {
-            return true;
+
+        if (runningReplicateNb >= workerCpuNb) {
+            log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerCpuNb:{}]",
+                    walletAddress, runningReplicateNb, workerCpuNb);
+            return false;
         }
 
-        log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerCpuNb:{}]",
-                walletAddress, runningReplicateNb, workerCpuNb);
-        return false;
+        return true;
     }
 }
