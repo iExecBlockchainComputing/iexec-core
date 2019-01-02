@@ -121,17 +121,18 @@ public class ContributionDetectorTests {
     @Test
     public void shouldDetectUnNotifiedContributed() {
         Task task = mock(Task.class);
-        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
+        when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
 
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
+        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
         contributionDetector.detectUnNotifiedContributed();
 
-        Mockito.verify(replicatesService, Mockito.times(1))
+        Mockito.verify(replicatesService, Mockito.times(2))//CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any());
         Mockito.verify(taskService, Mockito.times(1))
                 .tryToMoveTaskToNextStatus(any());
@@ -140,13 +141,13 @@ public class ContributionDetectorTests {
     @Test
     public void shouldNotDetectUnNotifiedContributedIfNotContributed() {
         Task task = mock(Task.class);
-        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
 
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
+        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(false);
         contributionDetector.detectUnNotifiedContributed();
 
@@ -159,10 +160,10 @@ public class ContributionDetectorTests {
     @Test
     public void shouldNotYetDetectUnNotifiedContributedIfContributingPeriodTooShort() {
         Task task = mock(Task.class);
-        when(task.getContributionDeadline()).thenReturn(new Date(now() + 60000));
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate1 = mock(Replicate.class);
+        when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(false);
 
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));

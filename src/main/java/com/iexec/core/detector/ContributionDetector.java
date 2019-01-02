@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -14,9 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTION_TIMEOUT;
+import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
@@ -73,14 +74,20 @@ public class ContributionDetector implements Detector {
                 if (replicate.isContributingPeriodTooLong(task.getTimeRef()) &&
                         iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
                                 replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)){
-                    //TODO : Will result to a bad workflow transition for now
-                    replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), CONTRIBUTED);
+                    updateReplicateStatuses(task.getChainTaskId(), replicate);
                     isTaskNeedUpdate = true;
                 }
             }
             if (isTaskNeedUpdate){
                 taskService.tryToMoveTaskToNextStatus(task);
             }
+        }
+    }
+
+    private void updateReplicateStatuses(String chainTaskId, Replicate replicate) {
+        List<ReplicateStatus> statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
+        for (ReplicateStatus statusToUpdate: statusesToUpdate){
+            replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(), statusToUpdate);
         }
     }
 
