@@ -7,7 +7,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+
+import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
 
 @Data
 @NoArgsConstructor
@@ -56,5 +59,29 @@ public class Replicate {
 
     public void setCredibility(int credibility) {
         this.credibility = credibility + 1;
+    }
+
+    boolean containsContributedStatus() {
+        for (ReplicateStatusChange replicateStatusChange: this.getStatusChangeList()){
+            if (replicateStatusChange.getStatus().equals(CONTRIBUTED)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean isCreatedLongAgo(Date timeRef) {
+        Date creationDate = this.getStatusChangeList().get(0).getDate();
+        Date twoPeriodsAfterCreationDate = new Date(creationDate.getTime() + 2 * timeRef.getTime());
+        Date now = new Date();
+
+        return now.after(twoPeriodsAfterCreationDate);
+    }
+
+    public boolean isContributingPeriodTooLong(Date timeRef) {
+        if (this.containsContributedStatus()) {
+            return false;
+        }
+        return this.isCreatedLongAgo(timeRef);
     }
 }

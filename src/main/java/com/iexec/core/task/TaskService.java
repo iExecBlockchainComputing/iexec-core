@@ -48,11 +48,11 @@ public class TaskService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust) {
+    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, Date timeRef) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
             log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
-            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust)));
+            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust, timeRef)));
         }
         log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
@@ -101,9 +101,8 @@ public class TaskService {
 
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
-
             if (!replicatesService.hasWorkerAlreadyContributed(chainTaskId, walletAddress) &&
-                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded())) {
+                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded(), task.getTimeRef())) {
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
                 return replicatesService.getReplicate(chainTaskId, walletAddress);

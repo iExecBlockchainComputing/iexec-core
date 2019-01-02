@@ -12,6 +12,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -106,11 +107,12 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean moreReplicatesNeeded(String chainTaskId, int trust) {
+    public boolean moreReplicatesNeeded(String chainTaskId, int trust, Date timeRef) {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             if (!(replicate.getCurrentStatus().equals(ReplicateStatus.ERROR)
-                    || replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST))) {
+                    || replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)
+                    || replicate.isContributingPeriodTooLong(timeRef))) {
                 nbValidReplicates++;
             }
         }
@@ -167,7 +169,7 @@ public class ReplicatesService {
 
     private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
         Optional<ChainContribution> optional = iexecHubService.getContribution(chainTaskId, walletAddress);
-        if (!optional.isPresent()){
+        if (!optional.isPresent()) {
             return;
         }
         ChainContribution chainContribution = optional.get();
