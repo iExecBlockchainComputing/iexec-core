@@ -7,6 +7,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
+import com.iexec.core.task.event.ContributionTimeoutEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
@@ -119,9 +120,11 @@ public class TaskService {
                 break;
             case INITIALIZED:
                 initialized2Running(task);
+                initializedOrRunning2ContributionTimeout(task);
                 break;
             case RUNNING:
                 running2ConsensusReached(task);
+                initializedOrRunning2ContributionTimeout(task);
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
@@ -183,16 +186,21 @@ public class TaskService {
             if (!iexecHubService.hasEnoughGas()) {
                 return;
             }
-
-            String chainTaskId = "";
             updateTaskStatusAndSave(task, INITIALIZING);
-            try {
-                chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+
+            String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
             if (!chainTaskId.isEmpty()) {
+                Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
+                if (!optional.isPresent()) {
+                    return;
+                }
+                ChainTask chainTask = optional.get();
+
                 task.setChainTaskId(chainTaskId);
+                task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
+                task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
+                //TODO Put other fields?
+
                 updateTaskStatusAndSave(task, INITIALIZED);
                 replicatesService.createEmptyReplicateList(chainTaskId);
             } else {
@@ -238,6 +246,27 @@ public class TaskService {
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .consensus(task.getConsensus())
+                    .build());
+        }
+    }
+
+    private void initializedOrRunning2ContributionTimeout(Task task) {
+        boolean isInitializedOrRunningTask = task.getCurrentStatus().equals(INITIALIZED) ||
+                task.getCurrentStatus().equals(RUNNING);
+        boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
+
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!optional.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = optional.get();
+
+        boolean isChainTaskActive = chainTask.getStatus() != null && chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
+
+        if (isInitializedOrRunningTask && isChainTaskActive && isNowAfterContributionDeadline) {
+            updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
+            applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
+                    .chainTaskId(task.getChainTaskId())
                     .build());
         }
     }
@@ -309,12 +338,8 @@ public class TaskService {
                 return;
             }
             updateTaskStatusAndSave(task, FINALIZING);
-            boolean isFinalized = false;
-            try {
-                isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+            boolean isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+
             if (isFinalized) {
                 updateTaskStatusAndSave(task, FINALIZED);
                 updateFromFinalizedToCompleted(task);

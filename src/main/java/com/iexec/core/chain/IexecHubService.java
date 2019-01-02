@@ -98,9 +98,14 @@ public class IexecHubService {
         return false;
     }
 
-    public String initialize(String chainDealId, int taskIndex) throws ExecutionException, InterruptedException {
+    public String initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
-        return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
+        try {
+            return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     private String sendInitializeTransaction(String chainDealId, int taskIndex) {
@@ -145,9 +150,14 @@ public class IexecHubService {
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result) throws ExecutionException, InterruptedException {
+    public boolean finalizeTask(String chainTaskId, String result){
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
-        return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
+        try {
+            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private boolean sendFinalizeTransaction(String chainTaskId, String result) {
@@ -218,7 +228,7 @@ public class IexecHubService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-    Optional<ChainDeal> getChainDeal(String chainDealId) {
+    public Optional<ChainDeal> getChainDeal(String chainDealId) {
         return ChainUtils.getChainDeal(credentials, web3j, iexecHub.getContractAddress(), chainDealId);
     }
 

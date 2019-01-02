@@ -1,16 +1,15 @@
 package com.iexec.core.task;
 
-import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.chain.ChainTask;
-import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.common.chain.*;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.utils.DateTimeUtils;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import org.apache.commons.lang3.time.DateUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -114,6 +113,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -193,6 +193,96 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(RUNNING);
     }
+
+    // initializedOrRunning2ContributionTimeout
+
+    @Test
+    public void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
+        Date now = new Date();
+        Date timeoutInFuture = DateTimeUtils.addMinutesToDate(now, 1);
+
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZED);
+        task.setContributionDeadline(timeoutInFuture);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInFuture.getTime())
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getCurrentStatus()).isNotEqualTo(CONTRIBUTION_TIMEOUT);
+    }
+
+    @Test
+    public void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceChainTaskIsntActive() {
+        Date now = new Date();
+        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZED);
+        task.setContributionDeadline(timeoutInPast);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInPast.getTime())
+                .status(ChainTaskStatus.REVEALING)
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getCurrentStatus()).isNotEqualTo(CONTRIBUTION_TIMEOUT);
+    }
+
+    @Test
+    public void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
+        Date now = new Date();
+        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(CONTRIBUTION_TIMEOUT);
+        task.setContributionDeadline(timeoutInPast);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInPast.getTime())
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        Mockito.verify(applicationEventPublisher, Mockito.times(0))
+                .publishEvent(any());
+    }
+
+
+    @Test
+    public void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
+        Date now = new Date();
+        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZED);
+        task.setContributionDeadline(timeoutInPast);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInPast.getTime())
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+
+        taskService.tryToMoveTaskToNextStatus(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
+    }
+
+
+
 
     // Tests on running2ConsensusReached transition
 

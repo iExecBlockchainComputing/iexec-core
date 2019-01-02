@@ -7,10 +7,7 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
-import com.iexec.core.task.event.ConsensusReachedEvent;
-import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.event.TaskCompletedEvent;
-import com.iexec.core.task.event.TaskCreatedEvent;
+import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -39,6 +36,7 @@ public class TaskListeners {
         this.workerService = workerService;
     }
 
+
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
         Task task = event.getTask();
@@ -47,25 +45,22 @@ public class TaskListeners {
         taskExecutorEngine.updateTask(task);
     }
 
-    // when a task is finalized, all workers need to be informed
-    // the task should also be removed from the executor
     @EventListener
-    public void onTaskCompletedEvent(TaskCompletedEvent event) {
-        Task task = event.getTask();
-        String chainTaskId = task.getChainTaskId();
-        log.info("Received TaskCompletedEvent [chainTaskId:{}] ", chainTaskId);
+    public void onTaskContributionTimeout(ContributionTimeoutEvent event) {
+        String chainTaskId = event.getChainTaskId();
+        log.info("Received ContributionTimeoutEvent [chainTaskId:{}] ", chainTaskId);
 
-        taskExecutorEngine.removeTaskExecutor(task);
+        List<String> workerAddresses = new ArrayList<>();
+        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+            workerAddresses.add(replicate.getWalletAddress());
+        }
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
-                .taskNotificationType(TaskNotificationType.COMPLETED)
-                .workersAddress(Collections.emptyList())
+                .workersAddress(workerAddresses)
+                .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT)
                 .build());
-
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
-            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
-        }
+        log.info("NotifyAbortContributionTimeout completed[workerAddresses:{}]", workerAddresses);
     }
 
     @EventListener
@@ -117,4 +112,26 @@ public class TaskListeners {
                 .build());
         log.info("NotifyUploadingWorker completed[uploadingWorkerWallet={}]", workerWallet);
     }
+
+    // when a task is finalized, all workers need to be informed
+    // the task should also be removed from the executor
+    @EventListener
+    public void onTaskCompletedEvent(TaskCompletedEvent event) {
+        Task task = event.getTask();
+        String chainTaskId = task.getChainTaskId();
+        log.info("Received TaskCompletedEvent [chainTaskId:{}] ", chainTaskId);
+
+        taskExecutorEngine.removeTaskExecutor(task);
+
+        notificationService.sendTaskNotification(TaskNotification.builder()
+                .chainTaskId(chainTaskId)
+                .taskNotificationType(TaskNotificationType.COMPLETED)
+                .workersAddress(Collections.emptyList())
+                .build());
+
+        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
+        }
+    }
+
 }
