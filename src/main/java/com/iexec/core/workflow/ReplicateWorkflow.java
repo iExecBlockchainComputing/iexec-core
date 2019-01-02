@@ -23,7 +23,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         addTransition(CONTRIBUTING, CONTRIBUTED);
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
+
+        addTransitionFromStatusBeforeContributedToGivenStatus(CONTRIBUTION_TIMEOUT);
+        addTransition(CONTRIBUTION_TIMEOUT, ABORT_CONTRIBUTION_TIMEOUT);
         addTransition(CONTRIBUTE_FAILED, ABORT_CONSENSUS_REACHED);
+
         addTransition(CONTRIBUTED, REVEALING);
         addTransition(CONTRIBUTED, REVEAL_TIMEOUT);
         addTransition(REVEALING, REVEAL_TIMEOUT);
@@ -44,12 +48,25 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(ERROR, ABORT_CONSENSUS_REACHED);
     }
 
-    private void addTransitionToAllStatus(ReplicateStatus status) {
+    private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus status) {
         addTransition(CREATED, status);
+        addTransition(RUNNING, status);
         addTransition(APP_DOWNLOADING, status);
         addTransition(APP_DOWNLOADED, status);
         addTransition(APP_DOWNLOAD_FAILED, status);
+        addTransition(COMPUTING, status);
+        addTransition(COMPUTED, status);
+        addTransition(CONTRIBUTING, status);
+        addTransition(CONTRIBUTED, status);
+        addTransition(CONTRIBUTE_FAILED, status);
+    }
+
+    private void addTransitionToAllStatus(ReplicateStatus status) {
+        addTransition(CREATED, status);
         addTransition(RUNNING, status);
+        addTransition(APP_DOWNLOADING, status);
+        addTransition(APP_DOWNLOADED, status);
+        addTransition(APP_DOWNLOAD_FAILED, status);
         addTransition(COMPUTING, status);
         addTransition(COMPUTED, status);
         addTransition(CONTRIBUTING, status);
