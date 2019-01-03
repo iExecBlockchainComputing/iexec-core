@@ -49,7 +49,7 @@ public class ContributionDetector implements Detector {
 
     void detectContributionTimeout() {
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            boolean isTaskNeedUpdate = false;
+            boolean doesTaskNeedUpdate = false;
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {
                 log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
@@ -57,9 +57,9 @@ public class ContributionDetector implements Detector {
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     workerService.removeChainTaskIdFromWorker(task.getChainTaskId(), replicate.getWalletAddress());
                     replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), CONTRIBUTION_TIMEOUT);
-                    isTaskNeedUpdate = true;
+                    doesTaskNeedUpdate = true;
                 }
-                if (isTaskNeedUpdate){
+                if (doesTaskNeedUpdate){
                     taskService.tryToMoveTaskToNextStatus(task);
                 }
             }
