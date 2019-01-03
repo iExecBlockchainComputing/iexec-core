@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -31,7 +32,8 @@ public class WorkerLostDetector implements Detector {
                 replicatesService.getReplicate(chainTaskId, workerWallet).ifPresent(replicate -> {
                     if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
                         workerService.removeChainTaskIdFromWorker(chainTaskId, workerWallet);
-                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet, ReplicateStatus.WORKER_LOST);
+                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet,
+                                ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
                     }
                 });
             }

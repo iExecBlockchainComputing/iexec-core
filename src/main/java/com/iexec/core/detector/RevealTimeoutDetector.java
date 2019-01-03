@@ -1,5 +1,6 @@
 package com.iexec.core.detector;
 
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -53,7 +54,8 @@ public class RevealTimeoutDetector implements Detector {
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
                             replicate.getCurrentStatus().equals(CONTRIBUTED)) {
-                        replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), REVEAL_TIMEOUT);
+                        replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
+                                REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
                     }
                 }
                 log.info("Task with a reveal timeout found [chainTaskId:{}]", task.getChainTaskId());
@@ -72,7 +74,8 @@ public class RevealTimeoutDetector implements Detector {
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
                             replicate.getCurrentStatus().equals(CONTRIBUTED)) {
-                        replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), REVEAL_TIMEOUT);
+                        replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
+                                REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
                     }
                 }
 

@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -20,6 +21,7 @@ import java.util.Date;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 public class RevealTimeoutDetectorTests {
@@ -54,7 +56,7 @@ public class RevealTimeoutDetectorTests {
                 .getReplicates(Mockito.any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(Mockito.any(), Mockito.any(), Mockito.any());
+                .updateReplicateStatus(any(), any(), any(), any());
 
         Mockito.verify(iexecHubService, Mockito.times(0))
                 .reOpen(Mockito.any());
@@ -70,10 +72,10 @@ public class RevealTimeoutDetectorTests {
         task.setRevealDeadline(twoMinutesAgo);
 
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.REVEALING);
+        replicate1.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.REVEALING);
+        replicate2.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
 
         when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
@@ -82,10 +84,12 @@ public class RevealTimeoutDetectorTests {
         revealTimeoutDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.REVEAL_TIMEOUT);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.REVEAL_TIMEOUT);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
+                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
 
         Mockito.verify(taskService, Mockito.times(1))
                 .reOpenTask(task);
@@ -100,10 +104,10 @@ public class RevealTimeoutDetectorTests {
         task.setRevealDeadline(twoMinutesInFuture);
 
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.REVEALING);
+        replicate1.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.REVEALING);
+        replicate2.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
 
         when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
@@ -112,7 +116,7 @@ public class RevealTimeoutDetectorTests {
         revealTimeoutDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any());
 
         Mockito.verify(iexecHubService, Mockito.times(0))
                 .reOpen(Mockito.any());
