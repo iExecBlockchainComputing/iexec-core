@@ -61,13 +61,17 @@ public class Replicate {
         this.credibility = credibility + 1;
     }
 
-    boolean containsContributedStatus() {
+    public boolean containsStatus(ReplicateStatus replicateStatus) {
         for (ReplicateStatusChange replicateStatusChange: this.getStatusChangeList()){
-            if (replicateStatusChange.getStatus().equals(CONTRIBUTED)){
+            if (replicateStatusChange.getStatus().equals(replicateStatus)){
                 return true;
             }
         }
         return false;
+    }
+
+    public boolean containsContributedStatus() {
+        return containsStatus(CONTRIBUTED);
     }
 
     boolean isCreatedLongAgo(Date timeRef) {

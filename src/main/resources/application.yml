@@ -14,7 +14,7 @@ detector:
   resultuploadtimeout.period: 30000  # 30 s
   dealwatcherreplay.period: 60000    # 1 min
   revealtimeout.period: ${REVEAL_TIMEOUT_PERIOD:300000}       # 5 min
-  contributetimeout.period: 300000
+  contribute.period: 300000
   unstartedtx.period: 300000          # 5 min
 
 
