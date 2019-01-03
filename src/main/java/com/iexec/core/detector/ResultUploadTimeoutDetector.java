@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -44,7 +45,7 @@ public class ResultUploadTimeoutDetector implements Detector {
 
                 if (startUploadLongAgo) {
                     replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                            ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED);
+                            ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 }
             }
         }

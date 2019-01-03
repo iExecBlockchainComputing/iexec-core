@@ -3,6 +3,8 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
@@ -11,10 +13,8 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
@@ -85,7 +85,7 @@ public class ReplicatesService {
         return getReplicate(chainTaskId, walletAddress).isPresent();
     }
 
-    public int getNbReplicatesWithStatus(String chainTaskId, ReplicateStatus... listStatus) {
+    public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
         int nbReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             for (ReplicateStatus status : listStatus) {
@@ -95,6 +95,21 @@ public class ReplicatesService {
             }
         }
         return nbReplicates;
+    }
+
+    public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
+        Set<String> addressReplicates = new HashSet<>();
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            List<ReplicateStatus> listReplicateStatus = replicate.getStatusChangeList().stream()
+                    .map(ReplicateStatusChange::getStatus)
+                    .collect(Collectors.toList());
+            for (ReplicateStatus status : listStatus) {
+                if (listReplicateStatus.contains(status)) {
+                    addressReplicates.add(replicate.getWalletAddress());
+                }
+            }
+        }
+        return addressReplicates.size();
     }
 
     public Optional<Replicate> getReplicateWithRevealStatus(String chainTaskId) {
@@ -121,7 +136,10 @@ public class ReplicatesService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
-    public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusModifier modifier) {
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
@@ -159,7 +177,7 @@ public class ReplicatesService {
             }
         }
 
-        replicate.updateStatus(newStatus);
+        replicate.updateStatus(newStatus, modifier);
         replicatesRepository.save(optionalReplicates.get());
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus);
