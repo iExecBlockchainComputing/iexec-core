@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -210,8 +209,8 @@ public class TaskService {
 
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getNumWorkersNeeded();
+        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getNumWorkersNeeded();
         boolean condition3 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2 && condition3) {
@@ -232,7 +231,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
+        int offChainWinners = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
         if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
@@ -272,7 +271,7 @@ public class TaskService {
 
     private void consensusReached2AtLeastOneReveal2UploadRequested(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(CONSENSUS_REACHED);
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, AT_LEAST_ONE_REVEALED);
@@ -282,7 +281,7 @@ public class TaskService {
 
     private void uploadRequested2UploadingResult(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADING);
@@ -291,13 +290,13 @@ public class TaskService {
 
     private void resultUploading2Uploaded(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
-        boolean condition2 = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             updateResultUploaded2Finalized(task);
-        } else if (replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
-                replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
+        } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
+                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
             requestUpload(task);
         }
@@ -328,8 +327,8 @@ public class TaskService {
         ChainTask chainTask = optional.get();
 
         int onChainReveal = chainTask.getRevealCounter();
-        int offChainReveal = replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED, ReplicateStatus.REVEALED);
-                //+ replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
+        int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
+                //+ replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (isTaskInResultUploaded && canFinalize && offChainRevealEqualsOnChainReveal) {

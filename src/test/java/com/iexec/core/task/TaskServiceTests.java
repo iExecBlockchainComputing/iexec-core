@@ -9,7 +9,6 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.utils.DateTimeUtils;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import org.apache.commons.lang3.time.DateUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -173,8 +172,8 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -186,8 +185,8 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(0);
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -296,7 +295,7 @@ public class TaskServiceTests {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -313,7 +312,7 @@ public class TaskServiceTests {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -329,7 +328,7 @@ public class TaskServiceTests {
                 .status(ChainTaskStatus.UNSET)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -345,7 +344,7 @@ public class TaskServiceTests {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -361,7 +360,7 @@ public class TaskServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.REVEALED);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
         when(taskRepository.save(task)).thenReturn(task);
         when(replicatesService.getReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -380,7 +379,7 @@ public class TaskServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.REVEALED);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
 
         taskService.tryToMoveTaskToNextStatus(task);
@@ -392,7 +391,7 @@ public class TaskServiceTests {
     public void shouldUpdateFromUploadRequestedToUploadingResult() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.setCurrentStatus(RESULT_UPLOAD_REQUESTED);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(1);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOADING);
@@ -402,7 +401,7 @@ public class TaskServiceTests {
     public void shouldUpdateFromUploadRequestedToUploadingResultSinceNoWorkerUploading() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOAD_REQUESTED);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(0);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
@@ -418,10 +417,10 @@ public class TaskServiceTests {
         task.changeStatus(RESULT_UPLOADING);
 
         ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
-        //when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        //when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
 
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -444,7 +443,7 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
 
@@ -460,8 +459,8 @@ public class TaskServiceTests {
         task.changeStatus(RESULT_UPLOADING);
         ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
 
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -485,9 +484,9 @@ public class TaskServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.REVEALED);
 
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED)).thenReturn(1);
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
         when(replicatesService.getReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -552,8 +551,8 @@ public class TaskServiceTests {
     public void shouldUpdateTaskToRunningFromWorkersInRunning() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(3);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(3);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
@@ -564,8 +563,8 @@ public class TaskServiceTests {
     public void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 8, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(4);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(4);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
@@ -575,8 +574,8 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 4, CHAIN_TASK_ID);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(0);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
@@ -587,8 +586,8 @@ public class TaskServiceTests {
     @Test
     public void shouldNotUpdateToRunningCase2() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
-        when(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
@@ -603,7 +602,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOADED);
@@ -617,7 +616,7 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.RESULT_UPLOAD_REQUESTED);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
 
-        when(replicatesService.getNbReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);

@@ -182,9 +182,9 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        assertThat(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING)).isEqualTo(2);
-        assertThat(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).isEqualTo(1);
-        assertThat(replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.CONTRIBUTED)).isEqualTo(0);
+        assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING)).isEqualTo(2);
+        assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).isEqualTo(1);
+        assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.CONTRIBUTED)).isEqualTo(0);
     }
 
     @Test
@@ -205,13 +205,13 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        int shouldBe2 = replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED, ReplicateStatus.CONTRIBUTED);
+        int shouldBe2 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED, ReplicateStatus.CONTRIBUTED);
         assertThat(shouldBe2).isEqualTo(2);
 
-        int shouldBe3 = replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED);
+        int shouldBe3 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED);
         assertThat(shouldBe3).isEqualTo(3);
 
-        int shouldBe4 = replicatesService.getNbReplicatesWithStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED,
+        int shouldBe4 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED,
                 ReplicateStatus.CONTRIBUTED);
         assertThat(shouldBe4).isEqualTo(4);
 
