@@ -85,11 +85,11 @@ public class RevealTimeoutDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
+                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
+                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
 
         Mockito.verify(taskService, Mockito.times(1))
                 .reOpenTask(task);

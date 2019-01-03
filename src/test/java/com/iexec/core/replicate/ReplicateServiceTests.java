@@ -254,7 +254,7 @@ public class ReplicateServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
         Replicate replicate3 = new Replicate(WALLET_WORKER_3, CHAIN_TASK_ID);
         replicate3.updateStatus(ReplicateStatus.ERROR, ReplicateStatusModifier.WORKER);
 
@@ -294,7 +294,7 @@ public class ReplicateServiceTests {
         replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
 
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2));
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));

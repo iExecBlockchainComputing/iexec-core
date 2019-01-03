@@ -70,7 +70,7 @@ public class WorkerLostDetectorTests {
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(1))
@@ -90,7 +90,7 @@ public class WorkerLostDetectorTests {
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
-        replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+        replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
@@ -98,7 +98,7 @@ public class WorkerLostDetectorTests {
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(0))

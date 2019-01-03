@@ -33,7 +33,7 @@ public class WorkerLostDetector implements Detector {
                     if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
                         workerService.removeChainTaskIdFromWorker(chainTaskId, workerWallet);
                         replicatesService.updateReplicateStatus(chainTaskId, workerWallet,
-                                ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.SCHEDULER);
+                                ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 });
             }

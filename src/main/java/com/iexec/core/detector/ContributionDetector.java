@@ -58,7 +58,7 @@ public class ContributionDetector implements Detector {
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     workerService.removeChainTaskIdFromWorker(task.getChainTaskId(), replicate.getWalletAddress());
                     replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                            CONTRIBUTION_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
+                            CONTRIBUTION_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     doesTaskNeedUpdate = true;
                 }
                 if (doesTaskNeedUpdate){
@@ -90,7 +90,7 @@ public class ContributionDetector implements Detector {
         List<ReplicateStatus> statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
         for (ReplicateStatus statusToUpdate: statusesToUpdate){
             replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                    statusToUpdate, ReplicateStatusModifier.SCHEDULER);
+                    statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
         }
     }
 

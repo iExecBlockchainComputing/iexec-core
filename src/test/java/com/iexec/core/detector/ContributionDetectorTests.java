@@ -97,7 +97,7 @@ public class ContributionDetectorTests {
         task.setContributionDeadline(oneMinuteBeforeNow);
 
         Replicate replicate1 = new Replicate("0x1", CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.CREATED, ReplicateStatusModifier.SCHEDULER);
+        replicate1.updateStatus(ReplicateStatus.CREATED, ReplicateStatusModifier.POOL_MANAGER);
 
         Replicate replicate2 = new Replicate("0x2", CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);

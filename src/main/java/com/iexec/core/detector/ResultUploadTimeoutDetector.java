@@ -45,7 +45,7 @@ public class ResultUploadTimeoutDetector implements Detector {
 
                 if (startUploadLongAgo) {
                     replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                            ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.SCHEDULER);
+                            ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 }
             }
         }

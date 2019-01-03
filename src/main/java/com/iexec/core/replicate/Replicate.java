@@ -29,7 +29,7 @@ public class Replicate {
         this.walletAddress = walletAddress;
         this.statusChangeList = new ArrayList<>();
         // a new replicate should only be create by the scheduler
-        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED, ReplicateStatusModifier.SCHEDULER));
+        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED, ReplicateStatusModifier.POOL_MANAGER));
         this.contributionHash = "";
     }
 

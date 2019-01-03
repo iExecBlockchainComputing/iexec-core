@@ -55,7 +55,7 @@ public class RevealTimeoutDetector implements Detector {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
                             replicate.getCurrentStatus().equals(CONTRIBUTED)) {
                         replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                                REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
+                                REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 }
                 log.info("Task with a reveal timeout found [chainTaskId:{}]", task.getChainTaskId());
@@ -75,7 +75,7 @@ public class RevealTimeoutDetector implements Detector {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
                             replicate.getCurrentStatus().equals(CONTRIBUTED)) {
                         replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                                REVEAL_TIMEOUT, ReplicateStatusModifier.SCHEDULER);
+                                REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 }
 
