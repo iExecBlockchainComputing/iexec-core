@@ -1,7 +1,11 @@
 package com.iexec.core.task;
 
-import com.iexec.common.chain.*;
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
@@ -106,7 +110,7 @@ public class TaskServiceTests {
     // Tests on received2Initialized transition
 
     @Test
-    public void shouldUpdateReceived2Initializing2Initialized() throws ExecutionException, InterruptedException {
+    public void shouldUpdateReceived2Initializing2Initialized() {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
         task.changeStatus(TaskStatus.RECEIVED);
         task.setChainTaskId("");
@@ -126,7 +130,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReceived2Initializing() throws ExecutionException, InterruptedException {
+    public void shouldNotUpdateReceived2Initializing() {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
         task.changeStatus(TaskStatus.RECEIVED);
         task.setChainTaskId("");
@@ -140,7 +144,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldUpdateReceived2InitializedFailed() throws ExecutionException, InterruptedException {
+    public void shouldUpdateReceived2InitializedFailed() {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
         task.changeStatus(RECEIVED);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -153,7 +157,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() throws ExecutionException, InterruptedException {
+    public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RECEIVED);
 
@@ -282,8 +286,6 @@ public class TaskServiceTests {
     }
 
 
-
-
     // Tests on running2ConsensusReached transition
 
     @Test
@@ -358,7 +360,7 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.REVEALED);
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
         when(taskRepository.save(task)).thenReturn(task);
@@ -377,7 +379,7 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.REVEALED);
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
@@ -412,7 +414,7 @@ public class TaskServiceTests {
     // Test on resultUploading2Uploaded2Finalizing2Finalized
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() throws ExecutionException, InterruptedException { //one worker uploaded
+    public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -439,7 +441,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldUpdateResultUploading2UploadedButNot2Finalizing() throws ExecutionException, InterruptedException { //one worker uploaded
+    public void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -454,7 +456,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() throws ExecutionException, InterruptedException { //one worker uploaded && finalize FAIL
+    public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
         ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
@@ -482,7 +484,7 @@ public class TaskServiceTests {
         task.changeStatus(RESULT_UPLOADING);
 
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.REVEALED);
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(0);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED)).thenReturn(1);
@@ -498,13 +500,12 @@ public class TaskServiceTests {
     }
 
 
-
     @Test
     public void shouldWaitUpdateReplicateStatusFromUnsetToContributed() {
         List<Replicate> replicates = new ArrayList<>();
         replicates.add(new Replicate("0x1", "chainTaskId"));
 
-        replicates.get(0).updateStatus(ReplicateStatus.COMPUTED);
+        replicates.get(0).updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         List<TaskStatusChange> dateStatusList = new ArrayList<>();
         dateStatusList.add(new TaskStatusChange(TaskStatus.RUNNING));

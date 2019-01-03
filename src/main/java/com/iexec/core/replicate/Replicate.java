@@ -3,6 +3,7 @@ package com.iexec.core.replicate;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -27,7 +28,8 @@ public class Replicate {
         this.chainTaskId = chainTaskId;
         this.walletAddress = walletAddress;
         this.statusChangeList = new ArrayList<>();
-        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED));
+        // a new replicate should only be create by the scheduler
+        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED, ReplicateStatusModifier.POOL_MANAGER));
         this.contributionHash = "";
     }
 
@@ -41,8 +43,8 @@ public class Replicate {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
 
-    public boolean updateStatus(ReplicateStatus newStatus) {
-        return statusChangeList.add(new ReplicateStatusChange(newStatus));
+    public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
+        return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier));
     }
 
     public String getContributionHash() {

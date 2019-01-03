@@ -4,6 +4,7 @@ import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
@@ -135,7 +136,10 @@ public class ReplicatesService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
-    public void updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus) {
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusModifier modifier) {
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
@@ -173,7 +177,7 @@ public class ReplicatesService {
             }
         }
 
-        replicate.updateStatus(newStatus);
+        replicate.updateStatus(newStatus, modifier);
         replicatesRepository.save(optionalReplicates.get());
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus);

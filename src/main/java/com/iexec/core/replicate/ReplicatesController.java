@@ -1,6 +1,7 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class ReplicatesController {
 
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                 chainTaskId, replicateStatus, walletAddress);
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus);
+        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER);
         return ResponseEntity.ok().build();
     }
 }

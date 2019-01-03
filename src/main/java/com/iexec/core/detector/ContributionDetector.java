@@ -2,6 +2,7 @@ package com.iexec.core.detector;
 
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -56,7 +57,8 @@ public class ContributionDetector implements Detector {
                 // update all replicates status attached to this task
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     workerService.removeChainTaskIdFromWorker(task.getChainTaskId(), replicate.getWalletAddress());
-                    replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), CONTRIBUTION_TIMEOUT);
+                    replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
+                            CONTRIBUTION_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     doesTaskNeedUpdate = true;
                 }
                 if (doesTaskNeedUpdate){
@@ -87,7 +89,8 @@ public class ContributionDetector implements Detector {
     private void updateReplicateStatuses(String chainTaskId, Replicate replicate) {
         List<ReplicateStatus> statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
         for (ReplicateStatus statusToUpdate: statusesToUpdate){
-            replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(), statusToUpdate);
+            replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+                    statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
         }
     }
 
