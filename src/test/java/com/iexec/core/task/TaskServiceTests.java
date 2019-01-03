@@ -104,6 +104,63 @@ public class TaskServiceTests {
         assertThat(saved).isEqualTo(Optional.empty());
     }
 
+    @Test
+    public void shouldFindByCurrentStatus() {
+        TaskStatus status = TaskStatus.INITIALIZED;
+
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        task.changeStatus(status);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(task);
+
+        when(taskRepository.findByCurrentStatus(status)).thenReturn(taskList);
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+
+        assertThat(foundTasks).isEqualTo(taskList);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(status);
+    }
+
+    @Test
+    public void shouldNotFindByCurrentStatus() {
+        TaskStatus status = TaskStatus.INITIALIZED;
+        when(taskRepository.findByCurrentStatus(status)).thenReturn(Collections.emptyList());
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+
+        assertThat(foundTasks).isEmpty();
+    }
+
+    @Test
+    public void shouldFindByCurrentStatusList() {
+        TaskStatus status = TaskStatus.INITIALIZED;
+        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        task.changeStatus(status);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(task);
+
+        when(taskRepository.findByCurrentStatus(statusList)).thenReturn(taskList);
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
+
+        assertThat(foundTasks).isEqualTo(taskList);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isIn(statusList);
+    }
+
+    @Test
+    public void shouldNotFindByCurrentStatusList() {
+        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+        when(taskRepository.findByCurrentStatus(statusList)).thenReturn(Collections.emptyList());
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
+
+        assertThat(foundTasks).isEmpty();
+    }
+
     // Tests on received2Initialized transition
 
     @Test
@@ -690,6 +747,7 @@ public class TaskServiceTests {
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), runningTask1.getTimeRef())).thenReturn(true);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
