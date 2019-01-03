@@ -1,6 +1,7 @@
 package com.iexec.core.task;
 
 import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
@@ -55,8 +56,7 @@ public class TaskController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
-    public ResponseEntity getAvailableReplicate(@RequestHeader("Authorization") String bearerToken,
-                                                @RequestParam(name = "workerEnclaveAddress") String workerEnclaveAddress) {
+    public ResponseEntity getAvailableReplicate(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
@@ -78,7 +78,7 @@ public class TaskController {
 
         // generate contribution authorization
         ContributionAuthorization authorization = signatureService.createAuthorization(
-                workerWalletAddress, task.getChainTaskId(), workerEnclaveAddress);
+                workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
 
         return Optional.of(authorization).
                 <ResponseEntity>map(ResponseEntity::ok)

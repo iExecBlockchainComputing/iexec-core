@@ -26,6 +26,7 @@ public class Task {
     private String chainDealId;
     private int taskIndex;
     private Date timeRef;
+    private String tag;
     private String chainTaskId;
     private DappType dappType;
     private String dappName;
@@ -61,11 +62,12 @@ public class Task {
         this.chainTaskId = chainTaskId;
     }
 
-    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust, Date timeRef) {
+    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust, Date timeRef, String tag) {
         this(dappName, commandLine, trust);
         this.chainDealId = chainDealId;
         this.taskIndex = taskIndex;
         this.timeRef = timeRef;
+        this.tag = tag;
         this.chainTaskId = "";
     }
 

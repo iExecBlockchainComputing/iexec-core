@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -48,11 +47,11 @@ public class TaskService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, Date timeRef) {
+    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, Date timeRef, String tag) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
             log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
-            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust, timeRef)));
+            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust, timeRef, tag)));
         }
         log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
