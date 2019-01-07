@@ -53,7 +53,7 @@ public class TaskService {
                     chainDealId, taskIndex, imageName, commandLine, trust);
             return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust, timeRef)));
         }
-        log.error("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+        log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
         return Optional.empty();
     }
