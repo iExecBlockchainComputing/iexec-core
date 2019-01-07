@@ -122,7 +122,7 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean moreReplicatesNeeded(String chainTaskId, int trust, Date timeRef) {
+    public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, Date timeRef) {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             //TODO think: When do we really need more replicates?
@@ -132,7 +132,7 @@ public class ReplicatesService {
                 nbValidReplicates++;
             }
         }
-        return nbValidReplicates < trust;
+        return nbValidReplicates < nbWorkersNeeded;
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
