@@ -256,7 +256,7 @@ public class ReplicateServiceTests {
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
         Replicate replicate3 = new Replicate(WALLET_WORKER_3, CHAIN_TASK_ID);
-        replicate3.updateStatus(ReplicateStatus.ERROR, ReplicateStatusModifier.WORKER);
+        replicate3.updateStatus(ReplicateStatus.CANT_CONTRIBUTE, ReplicateStatusModifier.WORKER);
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2, replicate3));
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));

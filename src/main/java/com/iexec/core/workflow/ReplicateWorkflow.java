@@ -19,15 +19,22 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(APP_DOWNLOADED, COMPUTING);
         addTransition(APP_DOWNLOAD_FAILED, COMPUTING);
         addTransition(COMPUTING, COMPUTED);
+        addTransition(COMPUTED, CANT_CONTRIBUTE);
+        addTransition(COMPUTED, OUT_OF_GAS);
         addTransition(COMPUTED, CONTRIBUTING);
 
         addTransition(CONTRIBUTING, CONTRIBUTED);
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
 
         addTransitionFromStatusBeforeContributedToGivenStatus(CONTRIBUTION_TIMEOUT);
+        addTransitionFromStatusBeforeContributedToGivenStatus(ABORT_CONSENSUS_REACHED);
         addTransition(CONTRIBUTION_TIMEOUT, ABORT_CONTRIBUTION_TIMEOUT);
         addTransition(CONTRIBUTE_FAILED, ABORT_CONSENSUS_REACHED);
+        addTransition(CANT_CONTRIBUTE, ABORT_CONSENSUS_REACHED);
+        addTransition(OUT_OF_GAS, ABORT_CONSENSUS_REACHED);
 
+        addTransition(CONTRIBUTED, CANT_REVEAL);
+        addTransition(CONTRIBUTED, OUT_OF_GAS);
         addTransition(CONTRIBUTED, REVEALING);
         addTransition(CONTRIBUTED, REVEAL_TIMEOUT);
         addTransition(REVEALING, REVEAL_TIMEOUT);
@@ -44,8 +51,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransitionToAllStatus(WORKER_LOST);
         addTransitionToAllStatus(ERROR);
 
-        // cases after error
-        addTransition(ERROR, ABORT_CONSENSUS_REACHED);
+
     }
 
     private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus status) {
