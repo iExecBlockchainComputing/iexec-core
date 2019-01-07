@@ -303,7 +303,6 @@ public class ReplicateServiceTests {
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
-        // replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
@@ -315,7 +314,6 @@ public class ReplicateServiceTests {
 
         Optional<Replicate> optional = replicatesService.getReplicateWithRevealStatus(CHAIN_TASK_ID);
         assertThat(optional.isPresent()).isFalse();
-        // assertThat(optional).isEqualTo(Optional.of(replicate));
     }
 
     @Test
