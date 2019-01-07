@@ -125,7 +125,8 @@ public class ReplicatesService {
     public boolean moreReplicatesNeeded(String chainTaskId, int trust, Date timeRef) {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (!(replicate.getCurrentStatus().equals(ReplicateStatus.ERROR)
+            //TODO think: When do we really need more replicates?
+            if (!(replicate.getCurrentStatus().equals(ReplicateStatus.CANT_CONTRIBUTE)
                     || replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)
                     || replicate.isContributingPeriodTooLong(timeRef))) {
                 nbValidReplicates++;

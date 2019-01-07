@@ -8,6 +8,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
+import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -31,17 +32,20 @@ public class WorkerController {
     private CredentialsService credentialsService;
     private JwtTokenProvider jwtTokenProvider;
     private ChallengeService challengeService;
+    private WorkerConfiguration workerConfiguration;
 
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
                             CredentialsService credentialsService,
                             JwtTokenProvider jwtTokenProvider,
-                            ChallengeService challengeService) {
+                            ChallengeService challengeService,
+                            WorkerConfiguration workerConfiguration) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.challengeService = challengeService;
+        this.workerConfiguration = workerConfiguration;
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/workers/ping")
@@ -109,6 +113,7 @@ public class WorkerController {
                 .iexecHubAddress(chainConfig.getHubAddress())
                 .workerPoolAddress(chainConfig.getPoolAddress())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
+                .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .build();
 
         return ok(config);
