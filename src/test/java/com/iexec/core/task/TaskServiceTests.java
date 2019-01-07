@@ -22,7 +22,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
@@ -107,66 +106,204 @@ public class TaskServiceTests {
         assertThat(saved).isEqualTo(Optional.empty());
     }
 
-    // Tests on received2Initialized transition
-
     @Test
-    public void shouldUpdateReceived2Initializing2Initialized() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
-        task.changeStatus(TaskStatus.RECEIVED);
-        task.setChainTaskId("");
+    public void shouldFindByCurrentStatus() {
+        TaskStatus status = TaskStatus.INITIALIZED;
 
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
-        when(taskRepository.save(task)).thenReturn(task);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        task.changeStatus(status);
 
-        taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(task);
 
-        // test that double call doesn't change anything
-        taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        when(taskRepository.findByCurrentStatus(status)).thenReturn(taskList);
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+
+        assertThat(foundTasks).isEqualTo(taskList);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(status);
     }
 
     @Test
-    public void shouldNotUpdateReceived2Initializing() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
-        task.changeStatus(TaskStatus.RECEIVED);
-        task.setChainTaskId("");
+    public void shouldNotFindByCurrentStatus() {
+        TaskStatus status = TaskStatus.INITIALIZED;
+        when(taskRepository.findByCurrentStatus(status)).thenReturn(Collections.emptyList());
 
+        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+
+        assertThat(foundTasks).isEmpty();
+    }
+
+    @Test
+    public void shouldFindByCurrentStatusList() {
+        TaskStatus status = TaskStatus.INITIALIZED;
+        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        task.changeStatus(status);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(task);
+
+        when(taskRepository.findByCurrentStatus(statusList)).thenReturn(taskList);
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
+
+        assertThat(foundTasks).isEqualTo(taskList);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isIn(statusList);
+    }
+
+    @Test
+    public void shouldNotFindByCurrentStatusList() {
+        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+        when(taskRepository.findByCurrentStatus(statusList)).thenReturn(Collections.emptyList());
+
+        List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
+
+        assertThat(foundTasks).isEmpty();
+    }
+
+    // Tests on reopenTask
+
+    @Test
+    public void shouldNotReopenTaskSinceCannotReopenOnchain(){
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(FINALIZE_FAILED);
+
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
+
+        taskService.reOpenTask(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZE_FAILED);
+    };
+
+    @Test
+    public void shouldNotReopenTaskSinceNotEnoughGas(){
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(FINALIZE_FAILED);
+
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+
+        taskService.reOpenTask(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZE_FAILED);
+    };
+    
+    @Test
+    public void shouldUpdate2ReopenFailed(){
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(FINALIZE_FAILED);
+
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(false);
+
+        taskService.reOpenTask(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(REOPEN_FAILED);
+    };
+    
+    @Test
+    public void shouldReopenTask(){
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(FINALIZE_FAILED);
+
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.reOpenTask(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    };
+
+    // Tests on received2Initialized transition
+
+    @Test
+    public void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNull() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, null);
+        task.changeStatus(RECEIVED);
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
 
     @Test
-    public void shouldUpdateReceived2InitializedFailed() {
+    public void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(RECEIVED);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    // not sure if a "shouldNotUpdateReceived2InitializingSinceCurrentStatusIsNotReceived" test
+    // is required
+
+    @Test
+    public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, "");
+        task.changeStatus(RECEIVED);
+
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+    
+    @Test
+    public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
         task.changeStatus(RECEIVED);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        task.setChainTaskId("");
 
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("");
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("");
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZE_FAILED);
     }
-
+    
     @Test
-    public void shouldNotUpdateReceived2InitializedSinceChainTaskIdNotEmpty() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+    public void shouldNotUpdateInitializing2InitailizedSinceNoChainTaskReturned() {
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
         task.changeStatus(RECEIVED);
+        task.setChainTaskId("");
 
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
         taskService.tryToMoveTaskToNextStatus(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
-        assertThat(task.getCurrentStatus()).isNotEqualTo(INITIALIZED);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
+    }
+    
+    @Test
+    public void shouldUpdateReceived2Initializing2Initialized() {
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId("");
+
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+
+        // test that double call doesn't change anything
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     // Tests on initialized2Running transition
@@ -185,7 +322,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNOTUpdateInitialized2RunningSinceNoRunningReplicates() { // 0 RUNNING or COMPUTED
+    public void shouldNotUpdateInitialized2RunningSinceNoRunningOrComputedReplicates() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(INITIALIZED);
 
@@ -196,6 +333,19 @@ public class TaskServiceTests {
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(RUNNING);
+    }
+
+    @Test
+    public void shouldNotUpdateInitialized2RunningSinceComputedIsMoreThanNeeded() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZED);
+
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(4);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     // initializedOrRunning2ContributionTimeout
@@ -319,6 +469,17 @@ public class TaskServiceTests {
 
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
+
+    @Test
+    public void shouldNotUpdateRunning2ConsensusReachedSinceCannotGetChainTask() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
+        task.changeStatus(RUNNING);
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
     @Test
@@ -622,6 +783,24 @@ public class TaskServiceTests {
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.RESULT_UPLOADED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(TaskStatus.COMPLETED);
+    }
+
+    @Test
+    public void shouldNotUpdateFromResultUploadedToFinalizingSinceNotEnoughGas() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        task.changeStatus(RUNNING);
+        task.changeStatus(RESULT_UPLOAD_REQUESTED);
+        task.changeStatus(RESULT_UPLOADING);
+        task.changeStatus(RESULT_UPLOADED);
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+
+        when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
     }
 
     // Tests on the getAvailableReplicate method
