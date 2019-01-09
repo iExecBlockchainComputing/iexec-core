@@ -3,10 +3,16 @@ package com.iexec.core.task;
 
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Optional;
 
+import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.core.utils.DateTimeUtils.now;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TaskTests {
 
@@ -92,6 +98,34 @@ public class TaskTests {
         latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RUNNING);
+    }
+
+    @Test
+    public void shouldReturnTrueWhenConsensusReachedSinceAWhile(){
+        Date timeRef = new Date(60);
+        Task task = new Task();
+        task.setTimeRef(timeRef);
+        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
+                .status(CONSENSUS_REACHED)
+                .date(new Date(now() - 2 * timeRef.getTime()))
+                .build();
+        task.setDateStatusList(Arrays.asList(taskStatusChange));
+
+        assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isTrue();
+    }
+
+    @Test
+    public void shouldReturnFalseWhenConsensusReachedSinceNotLong(){
+        Date timeRef = new Date(60);
+        Task task = new Task();
+        task.setTimeRef(timeRef);
+        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
+                .status(CONSENSUS_REACHED)
+                .date(new Date(now() - 10))
+                .build();
+        task.setDateStatusList(Arrays.asList(taskStatusChange));
+
+        assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isFalse();
     }
 
 }
