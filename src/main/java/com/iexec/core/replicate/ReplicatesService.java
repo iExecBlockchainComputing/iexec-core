@@ -6,6 +6,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,13 +27,16 @@ public class ReplicatesService {
     private ReplicatesRepository replicatesRepository;
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
+    private Web3jService web3jService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
-                             ApplicationEventPublisher applicationEventPublisher) {
+                             ApplicationEventPublisher applicationEventPublisher,
+                             Web3jService web3jService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.web3jService = web3jService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -135,11 +139,20 @@ public class ReplicatesService {
         return nbValidReplicates < nbWorkersNeeded;
     }
 
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusModifier modifier) {
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, 0, modifier);
+    }
+
+
     // in case the task has been modified between reading and writing it, it is retried up to 10 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
+                                      long blockNumber,
                                       ReplicateStatusModifier modifier) {
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
@@ -166,16 +179,15 @@ public class ReplicatesService {
             return;
         }
 
-        // TODO: code to check here
+        // check that the blockNumber is already available for the scheduler
+        if( !web3jService.isBlockNumberAvailable(blockNumber)) {
+            log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
+            return;
+        }
+
         ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
         if (wishedChainStatus != null) {
-            if (iexecHubService.checkContributionStatusMultipleTimes(chainTaskId, walletAddress, wishedChainStatus)) {
-                handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
-            } else {
-                log.error("UpdateReplicateStatus failed (bad blockchain status) [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]",
-                        chainTaskId, walletAddress, currentStatus, newStatus);
-                return;
-            }
+            handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
         }
 
         replicate.updateStatus(newStatus, modifier);

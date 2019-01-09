@@ -77,11 +77,11 @@ public class DealWatcherServiceTests {
     public void shouldUpdateLastSeenBlockWhenOneDeal() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        DealEvent dealEvent = DealEvent
+        Optional<DealEvent> dealEvent = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId")
                 .blockNumber(blockOfDeal)
-                .build();
+                .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
@@ -135,17 +135,17 @@ public class DealWatcherServiceTests {
     public void shouldUpdateLastSeenBlockTwiceWhenTwoDeals() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
-        DealEvent dealEvent1 = DealEvent
+        Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId1")
                 .blockNumber(blockOfDeal1)
-                .build();
+                .build());
         BigInteger blockOfDeal2 = BigInteger.valueOf(5);
-        DealEvent dealEvent2 = DealEvent
+        Optional<DealEvent> dealEvent2 = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId2")
                 .blockNumber(blockOfDeal2)
-                .build();
+                .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1, dealEvent2));
@@ -162,11 +162,11 @@ public class DealWatcherServiceTests {
     public void shouldNOtUpdateLastSeenBlockWhenReceivingOldMissedDeal() {
         BigInteger from = BigInteger.valueOf(5);
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
-        DealEvent dealEvent1 = DealEvent
+        Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId1")
                 .blockNumber(blockOfDeal1)
-                .build();
+                .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1));
@@ -180,11 +180,11 @@ public class DealWatcherServiceTests {
     @Test
     public void shouldReplayAllEventInRange() {
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
-        DealEvent dealEvent1 = DealEvent
+        Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId1")
                 .blockNumber(blockOfDeal1)
-                .build();
+                .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
@@ -199,11 +199,11 @@ public class DealWatcherServiceTests {
     @Test
     public void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
-        DealEvent dealEvent1 = DealEvent
+        Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()
                 .chainDealId("chainDealId1")
                 .blockNumber(blockOfDeal1)
-                .build();
+                .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
