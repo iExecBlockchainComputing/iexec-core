@@ -253,6 +253,17 @@ public class TaskServiceTests {
         taskService.tryToMoveTaskToNextStatus(task);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
+
+    @Test
+    public void shouldNotUpdateReceived2InitializingSinceCantInitialize() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, "");
+        task.changeStatus(RECEIVED);
+
+        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
+
+        taskService.tryToMoveTaskToNextStatus(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
     
     @Test
     public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
@@ -260,6 +271,7 @@ public class TaskServiceTests {
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
+        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("");
@@ -274,6 +286,7 @@ public class TaskServiceTests {
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
+        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
@@ -289,6 +302,7 @@ public class TaskServiceTests {
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
+        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);

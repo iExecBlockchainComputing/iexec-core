@@ -176,10 +176,9 @@ public class TaskService {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
         if (isChainTaskIdEmpty && isCurrentStatusReceived) {
-            /*TODO ?
-            if (!iexecHubService.canInitializeTask(task.getChainDealId(), task.getTaskIndex())){
+            if (!iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex())){
                 return;
-            }*/
+            }
 
             if (!iexecHubService.hasEnoughGas()) {
                 return;
