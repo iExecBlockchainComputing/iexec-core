@@ -9,6 +9,9 @@ import org.springframework.data.annotation.Version;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+
+import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 
 @Getter
 @Setter
@@ -77,5 +80,27 @@ public class Task {
     @JsonIgnore
     public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
+    }
+
+    public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
+        Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
+        if (!consensusReachedDate.isPresent()){
+            return false;
+        }
+        System.out.println(consensusReachedDate.get());
+        System.out.println(timeRef.getTime());
+        Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.timeRef.getTime());
+        Date now = new Date();
+
+        return now.after(onePeriodAfterConsensusReachedDate);
+    }
+
+    public Optional<Date> getDateOfStatus(TaskStatus taskStatus) {
+        for (TaskStatusChange taskStatusChange : this.dateStatusList) {
+            if (taskStatusChange.getStatus().equals(taskStatus)) {
+                return Optional.of(taskStatusChange.getDate());
+            }
+        }
+        return Optional.empty();
     }
 }
