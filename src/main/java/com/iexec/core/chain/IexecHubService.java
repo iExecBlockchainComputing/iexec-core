@@ -83,6 +83,12 @@ public class IexecHubService {
         return false;
     }
 
+    public boolean canInitialize(String chainDealId, int taskIndex) {
+        String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
+        Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
+        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
+    }
+
     public String initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
         try {
@@ -226,26 +232,26 @@ public class IexecHubService {
         return ChainUtils.getChainApp(app);
     }
 
-    Observable<DealEvent> getDealEventObservableToLatest(BigInteger from) {
+    Observable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
         return getDealEventObservable(from, null);
     }
 
-    Observable<DealEvent> getDealEventObservable(BigInteger from, BigInteger to) {
+    Observable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
         DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
         DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
         return iexecClerk.schedulerNoticeEventObservable(fromBlock, toBlock).map(schedulerNotice -> {
-            if (schedulerNotice.workerpool.equals(chainConfig.getPoolAddress())) {
-                return new DealEvent(schedulerNotice);
+
+            if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
+                return Optional.of(new DealEvent(schedulerNotice));
             }
-            return null;// returns empty?
+            return Optional.empty();
         });
     }
 
     public boolean hasEnoughGas() {
         return ChainUtils.hasEnoughGas(web3j, credentials.getAddress());
     }
-
 }
