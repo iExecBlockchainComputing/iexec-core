@@ -74,7 +74,7 @@ public class ContributionDetector implements Detector {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 //check if a worker has contributed on-chain but hasn't notified off-chain
                 if (replicate.isContributingPeriodTooLong(task.getTimeRef()) &&
-                        iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+                        iexecHubService.checkContributionStatus(task.getChainTaskId(),
                                 replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)){
                     updateReplicateStatuses(task.getChainTaskId(), replicate);
                     doesTaskNeedUpdate = true;

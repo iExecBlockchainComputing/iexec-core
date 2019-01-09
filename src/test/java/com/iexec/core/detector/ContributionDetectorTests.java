@@ -128,7 +128,7 @@ public class ContributionDetectorTests {
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
         contributionDetector.detectUnNotifiedContributed();
 
         Mockito.verify(replicatesService, Mockito.times(2))//CONTRIBUTING & CONTRIBUTED
@@ -147,7 +147,7 @@ public class ContributionDetectorTests {
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(false);
         contributionDetector.detectUnNotifiedContributed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
@@ -166,7 +166,7 @@ public class ContributionDetectorTests {
         when(replicate1.isContributingPeriodTooLong(any())).thenReturn(false);
 
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
         contributionDetector.detectUnNotifiedContributed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
