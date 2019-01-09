@@ -60,7 +60,7 @@ public class RevealDetector implements Detector {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 boolean revealButDontNotify = !replicate.containsStatus(REVEALED) &&
                         task.isConsensusReachedSinceMultiplePeriods(1) &&
-                        iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+                        iexecHubService.checkContributionStatus(task.getChainTaskId(),
                                 replicate.getWalletAddress(), ChainContributionStatus.REVEALED);
                 if (revealButDontNotify) {
                     replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),

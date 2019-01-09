@@ -136,7 +136,7 @@ public class RevealDetectorTests {
 
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+        when(iexecHubService.checkContributionStatus(task.getChainTaskId(),
                 WALLET_WORKER_1, ChainContributionStatus.REVEALED)).thenReturn(true);
 
         revealDetector.detectUnNotifiedRevealed();
@@ -162,7 +162,7 @@ public class RevealDetectorTests {
 
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+        when(iexecHubService.checkContributionStatus(task.getChainTaskId(),
                 WALLET_WORKER_1, ChainContributionStatus.REVEALED)).thenReturn(true);
 
         revealDetector.detectUnNotifiedRevealed();
@@ -188,7 +188,7 @@ public class RevealDetectorTests {
 
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+        when(iexecHubService.checkContributionStatus(task.getChainTaskId(),
                 WALLET_WORKER_1, ChainContributionStatus.REVEALED)).thenReturn(false);
 
         revealDetector.detectUnNotifiedRevealed();
@@ -214,7 +214,7 @@ public class RevealDetectorTests {
 
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1));
-        when(iexecHubService.checkContributionStatusMultipleTimes(task.getChainTaskId(),
+        when(iexecHubService.checkContributionStatus(task.getChainTaskId(),
                 WALLET_WORKER_1, ChainContributionStatus.REVEALED)).thenReturn(true);
 
         revealDetector.detectUnNotifiedRevealed();
