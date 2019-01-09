@@ -1,5 +1,8 @@
 package com.iexec.core.task;
 
+import java.util.Arrays;
+import java.util.List;
+
 public enum TaskStatus {
     RECEIVED,
     INITIALIZING,
@@ -21,5 +24,15 @@ public enum TaskStatus {
     FINALIZE_FAILED,
     COMPLETED,
     ERROR;
+
+    public static List<TaskStatus> getWaitingRevealStatuses() {
+        return Arrays.asList(
+                CONSENSUS_REACHED,
+                AT_LEAST_ONE_REVEALED,
+                RESULT_UPLOAD_REQUESTED,
+                RESULT_UPLOADING,
+                RESULT_UPLOADED
+        );
+    }
 
 }

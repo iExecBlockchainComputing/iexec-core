@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
+import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 
 @Data
 @NoArgsConstructor
@@ -64,8 +65,8 @@ public class Replicate {
     }
 
     public boolean containsStatus(ReplicateStatus replicateStatus) {
-        for (ReplicateStatusChange replicateStatusChange: this.getStatusChangeList()){
-            if (replicateStatusChange.getStatus().equals(replicateStatus)){
+        for (ReplicateStatusChange replicateStatusChange : this.getStatusChangeList()) {
+            if (replicateStatusChange.getStatus().equals(replicateStatus)) {
                 return true;
             }
         }
