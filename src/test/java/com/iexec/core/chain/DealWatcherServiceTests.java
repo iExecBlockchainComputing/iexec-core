@@ -50,10 +50,10 @@ public class DealWatcherServiceTests {
     public void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceBotSizeIsZero() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        DealEvent dealEvent = DealEvent.builder()
+        Optional<DealEvent> dealEvent = Optional.of(DealEvent.builder()
                 .chainDealId("chainDealId")
                 .blockNumber(blockOfDeal)
-                .build();
+                .build());
 
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
@@ -61,7 +61,7 @@ public class DealWatcherServiceTests {
                 .build();
 
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
-        when(iexecHubService.getChainDeal(dealEvent.getChainDealId())).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         // when(taskService.addTask(any(), any(), any(), any(), any(), any())).thenReturn(Optional.empty());
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
@@ -113,13 +113,13 @@ public class DealWatcherServiceTests {
 
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        DealEvent dealEvent = DealEvent.builder()
+        Optional<DealEvent> dealEvent = Optional.of(DealEvent.builder()
                 .chainDealId("chainDealId")
                 .blockNumber(blockOfDeal)
-                .build();
+                .build());
 
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
-        when(iexecHubService.getChainDeal(dealEvent.getChainDealId())).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), any())).thenReturn(Optional.of(new Task()));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
