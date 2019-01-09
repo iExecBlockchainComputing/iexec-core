@@ -176,13 +176,14 @@ public class TaskService {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
         if (isChainTaskIdEmpty && isCurrentStatusReceived) {
-            if (!iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex())){
+
+            boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
+            boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+
+            if (!canInitialize || !hasEnoughGas){
                 return;
             }
 
-            if (!iexecHubService.hasEnoughGas()) {
-                return;
-            }
             updateTaskStatusAndSave(task, INITIALIZING);
 
             String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
