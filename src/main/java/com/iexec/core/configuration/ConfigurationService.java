@@ -1,5 +1,6 @@
 package com.iexec.core.configuration;
 
+import com.iexec.core.chain.ChainConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -10,9 +11,12 @@ import java.math.BigInteger;
 public class ConfigurationService {
 
     private ConfigurationRepository configurationRepository;
+    private ChainConfig chainConfig;
 
-    public ConfigurationService(ConfigurationRepository configurationRepository) {
+    public ConfigurationService(ConfigurationRepository configurationRepository,
+                                ChainConfig chainConfig) {
         this.configurationRepository = configurationRepository;
+        this.chainConfig = chainConfig;
     }
 
     private Configuration getConfiguration() {
@@ -23,8 +27,8 @@ public class ConfigurationService {
             configuration = configurationRepository.save(
                     Configuration
                             .builder()
-                            .lastSeenBlockWithDeal(BigInteger.ZERO)
-                            .fromReplay(BigInteger.ZERO)
+                            .lastSeenBlockWithDeal(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
+                            .fromReplay(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
                             .build());
         }
         return configuration;

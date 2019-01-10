@@ -47,7 +47,7 @@ public class DealWatcherService {
     Subscription subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
         log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
         return iexecHubService.getDealEventObservableToLatest(from)
-                .subscribe(this::onDealEvent);
+                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
 
     private void onDealEvent(DealEvent dealEvent) {
@@ -102,7 +102,7 @@ public class DealWatcherService {
     private Subscription subscribeToDealEventInRange(BigInteger from, BigInteger to) {
         log.info("Replay Watcher DealEvent started [from:{}, to:{}]", from, (to == null) ? "latest" : to);
         return iexecHubService.getDealEventObservable(from, to)
-                .subscribe(this::onDealEvent);
+                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
 
 }

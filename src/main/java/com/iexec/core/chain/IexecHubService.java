@@ -25,7 +25,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.now;
-import static com.iexec.core.utils.DateTimeUtils.sleep;
 
 @Slf4j
 @Service
@@ -54,21 +53,7 @@ public class IexecHubService {
         return ChainUtils.getChainContribution(iexecHub, chainTaskId, workerWalletAddress);
     }
 
-    public boolean checkContributionStatusMultipleTimes(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
-        return checkContributionStatusRecursivelyWithDelay(chainTaskId, walletAddress, statusToCheck);
-    }
-
-    private boolean checkContributionStatusRecursivelyWithDelay(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
-        return sleep(500) && checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, 0);
-    }
-
-    private boolean checkContributionStatusRecursively(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck, int tryIndex) {
-        int MAX_RETRY = 3;
-
-        if (tryIndex >= MAX_RETRY) {
-            return false;
-        }
-        tryIndex++;
+    public boolean checkContributionStatus(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
 
         Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
@@ -79,15 +64,15 @@ public class IexecHubService {
         ChainContributionStatus chainStatus = chainContribution.getStatus();
         switch (statusToCheck) {
             case CONTRIBUTED:
-                if (chainStatus.equals(UNSET)) { // should wait
-                    return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                if (chainStatus.equals(UNSET)) {
+                    return false;
                 } else {
                     // has at least contributed
                     return chainStatus.equals(CONTRIBUTED) || chainStatus.equals(REVEALED);
                 }
             case REVEALED:
-                if (chainStatus.equals(CONTRIBUTED)) { // should wait
-                    return checkContributionStatusRecursively(chainTaskId, walletAddress, statusToCheck, tryIndex);
+                if (chainStatus.equals(CONTRIBUTED)) {
+                    return false;
                 } else {
                     // has at least revealed
                     return chainStatus.equals(REVEALED);
@@ -96,6 +81,12 @@ public class IexecHubService {
                 break;
         }
         return false;
+    }
+
+    public boolean canInitialize(String chainDealId, int taskIndex) {
+        String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
+        Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
+        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
     }
 
     public String initialize(String chainDealId, int taskIndex) {
@@ -150,7 +141,7 @@ public class IexecHubService {
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result){
+    public boolean finalizeTask(String chainTaskId, String result) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
@@ -241,26 +232,26 @@ public class IexecHubService {
         return ChainUtils.getChainApp(app);
     }
 
-    Observable<DealEvent> getDealEventObservableToLatest(BigInteger from) {
+    Observable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
         return getDealEventObservable(from, null);
     }
 
-    Observable<DealEvent> getDealEventObservable(BigInteger from, BigInteger to) {
+    Observable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
         DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
         DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
         return iexecClerk.schedulerNoticeEventObservable(fromBlock, toBlock).map(schedulerNotice -> {
-            if (schedulerNotice.workerpool.equals(chainConfig.getPoolAddress())) {
-                return new DealEvent(schedulerNotice);
+
+            if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
+                return Optional.of(new DealEvent(schedulerNotice));
             }
-            return null;// returns empty?
+            return Optional.empty();
         });
     }
 
     public boolean hasEnoughGas() {
         return ChainUtils.hasEnoughGas(web3j, credentials.getAddress());
     }
-
 }

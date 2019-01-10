@@ -14,6 +14,7 @@ detector:
   resultuploadtimeout.period: 30000  # 30 s
   dealwatcherreplay.period: 60000    # 1 min
   revealtimeout.period: ${REVEAL_TIMEOUT_PERIOD:300000}       # 5 min
+  reveal.unnotified.period: 60000       # 1 min
   contribute.period: 300000
   unstartedtx.period: 300000          # 5 min
 
@@ -27,6 +28,10 @@ chain:
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
   hubAddress: ${IEXEC_HUB_ADDRESS:0x5df493e91aE066541C13d9a071137e850a56d609}
   poolAddress: ${POOL_ADDRESS:0x46f18edc77700277192ee6f8a4f0c0b889c845ca}
+  startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
 
 tee:
   enclaveChallenge: "0x3cb738d98d7a70e81e81b0811fae2452bca049bc"
+
+workers:
+  askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
