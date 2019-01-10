@@ -10,6 +10,7 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -21,6 +22,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Optional;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -118,10 +120,14 @@ public class DealWatcherServiceTests {
                 .blockNumber(blockOfDeal)
                 .build());
 
+        Task task = new Task();
+
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
-        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), any())).thenReturn(Optional.of(new Task()));
+        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), any())).thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
+
+        ArgumentCaptor<TaskCreatedEvent> argumentCaptor = ArgumentCaptor.forClass(TaskCreatedEvent.class);
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -129,6 +135,10 @@ public class DealWatcherServiceTests {
                 .setLastSeenBlockWithDeal(blockOfDeal);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(Mockito.any(TaskCreatedEvent.class));
+
+        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        .publishEvent(argumentCaptor.capture());
+        assertThat(argumentCaptor.getValue()).isEqualTo(new TaskCreatedEvent(task));
     }
 
     @Test
