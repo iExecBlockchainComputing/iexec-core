@@ -28,7 +28,7 @@ public class ConfigurationService {
                     Configuration
                             .builder()
                             .lastSeenBlockWithDeal(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
-                            .fromReplay(BigInteger.ZERO)
+                            .fromReplay(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
                             .build());
         }
         return configuration;
