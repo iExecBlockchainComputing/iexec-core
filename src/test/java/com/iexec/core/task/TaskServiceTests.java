@@ -38,6 +38,7 @@ public class TaskServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final Date timeRef = new Date(60000);
+    private final String noSgxTag = "0x0";
 
     @Mock
     private TaskRepository taskRepository;
@@ -84,25 +85,25 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         when(taskRepository.save(any())).thenReturn(task);
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, "0x0");
         assertThat(saved).isPresent();
         assertThat(saved).isEqualTo(Optional.of(task));
     }
 
     @Test
     public void shouldNotAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         ArrayList<Task> list = new ArrayList<>();
         list.add(task);
 
         when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(list);
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, "0x0");
         assertThat(saved).isEqualTo(Optional.empty());
     }
 
@@ -110,7 +111,7 @@ public class TaskServiceTests {
     public void shouldFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(status);
 
         List<Task> taskList = new ArrayList<>();
@@ -139,7 +140,7 @@ public class TaskServiceTests {
         TaskStatus status = TaskStatus.INITIALIZED;
         List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(status);
 
         List<Task> taskList = new ArrayList<>();
@@ -267,7 +268,7 @@ public class TaskServiceTests {
     
     @Test
     public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
@@ -282,7 +283,7 @@ public class TaskServiceTests {
     
     @Test
     public void shouldNotUpdateInitializing2InitailizedSinceNoChainTaskReturned() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
@@ -298,7 +299,7 @@ public class TaskServiceTests {
     
     @Test
     public void shouldUpdateReceived2Initializing2Initialized() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId("");
 
