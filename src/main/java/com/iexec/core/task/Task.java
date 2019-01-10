@@ -87,8 +87,6 @@ public class Task {
         if (!consensusReachedDate.isPresent()){
             return false;
         }
-        System.out.println(consensusReachedDate.get());
-        System.out.println(timeRef.getTime());
         Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.timeRef.getTime());
         Date now = new Date();
 
