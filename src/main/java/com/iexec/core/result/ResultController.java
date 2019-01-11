@@ -2,6 +2,7 @@ package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,11 @@ public class ResultController {
                         .deterministHash(model.getDeterministHash())
                         .build(),
                 model.getZip());
+
+        if (filename.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
         return ok(filename);
     }
 
