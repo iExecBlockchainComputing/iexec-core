@@ -1,6 +1,7 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainDeal;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -64,6 +65,7 @@ public class DealWatcherService {
         }
         ChainDeal chainDeal = optionalChainDeal.get();
 
+
         try {
             int startBag = chainDeal.getBotFirst().intValue();
             int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
@@ -73,7 +75,8 @@ public class DealWatcherService {
                         chainDeal.getChainApp().getParams().getUri(),
                         chainDeal.getParams().get(taskIndex),
                         chainDeal.getTrust().intValue(),
-                        chainDeal.getChainCategory().getMaxExecutionTime());
+                        chainDeal.getChainCategory().getMaxExecutionTime(),
+                        chainDeal.getTag());
                 optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
             }
         } catch (Exception e) {

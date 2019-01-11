@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
 
 import static org.junit.Assert.assertEquals;
@@ -45,9 +46,10 @@ public class SignatureServiceTests {
         String enclaveWallet = "0x9a43BB008b7A657e1936ebf5d8e28e5c5E021596";
         String privateKey = "0x2a46e8c1535792f6689b10d5c882c9363910c30751ec193ae71ec71630077909";
         when(credentialsService.getCredentials()).thenReturn(Credentials.create(privateKey));
+        ReflectionTestUtils.setField(signatureService, "enclaveChallenge", enclaveWallet);
 
         // creation
-        ContributionAuthorization auth = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveWallet);
+        ContributionAuthorization auth = signatureService.createAuthorization(workerWallet, chainTaskid, true);
 
         // check
         ContributionAuthorization expected = ContributionAuthorization.builder()
