@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +43,7 @@ public class ContributionDetectorTests {
     @Mock
     private IexecHubService iexecHubService;
 
+    @Spy
     @InjectMocks
     private ContributionDetector contributionDetector;
 
@@ -54,8 +56,8 @@ public class ContributionDetectorTests {
     public void shouldRunDetectors() {
         contributionDetector.detect();
 
-        Mockito.verify(taskService, Mockito.atLeast(2))
-            .findByCurrentStatus(Mockito.anyList());
+        Mockito.verify(contributionDetector, Mockito.atLeast(1)).detectContributionTimeout();
+        Mockito.verify(contributionDetector, Mockito.atLeast(1)).detectUnNotifiedContributed();
     } 
 
     @Test
