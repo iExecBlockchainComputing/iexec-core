@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,6 +49,14 @@ public class ContributionDetectorTests {
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
+
+    @Test
+    public void shouldRunDetectors() {
+        contributionDetector.detect();
+
+        Mockito.verify(taskService, Mockito.atLeast(2))
+            .findByCurrentStatus(Mockito.anyList());
+    } 
 
     @Test
     public void shouldNotDetectAnyContributionTimeout() {
