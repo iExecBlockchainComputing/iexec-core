@@ -23,6 +23,7 @@ public class ResultService {
         if (result.getChainTaskId() == null) {
             return "";
         }
+
         InputStream inputStream = new ByteArrayInputStream(data);
         String resultFileName = getResultFilename(result.getChainTaskId());
         gridOperations.store(inputStream, resultFileName, result);
