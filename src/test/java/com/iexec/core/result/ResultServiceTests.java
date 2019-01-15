@@ -77,14 +77,10 @@ public class ResultServiceTests {
     }
 
     @Test
-    public void shouldGetEmptyArraySinceNoResultWithChainTaskId() {
+    public void shouldGetEmptyArraySinceNoResultWithChainTaskId() throws IOException {
         when(gridFsOperations.getResources(STUB_FILENAME)).thenReturn(new GridFsResource[0]);
 
-        try {
-            byte[] result = resultService.getResultByChainTaskId(CHAIN_TASK_ID);
-            assertThat(result).isEmpty();
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+        byte[] result = resultService.getResultByChainTaskId(CHAIN_TASK_ID);
+        assertThat(result).isEmpty();
     }
 } 
