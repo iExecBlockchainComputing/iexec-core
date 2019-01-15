@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Map;
@@ -61,7 +62,7 @@ public class Eip712ChallengeService {
         return eip712ChallengeString;
     }
 
-    Eip712Challenge generateEip712Challenge() {
+    Eip712Challenge generateEip712Challenge() throws IOException {
         challengeId++;
         String challenge = generateRandomHexToken();
 
@@ -70,14 +71,12 @@ public class Eip712ChallengeService {
                 .version("1")
                 .chainId(17L)
                 .build();
-        String primaryType = "Challenge";
         Message message = Message.builder()
                 .challenge(challenge)
                 .build();
 
         Eip712Challenge eip712Challenge = Eip712Challenge.builder()
                 .domain(domain)
-                .primaryType(primaryType)
                 .message(message)
                 .build();
 
@@ -92,10 +91,12 @@ public class Eip712ChallengeService {
 
 
     void invalidateChallenge(String eip712ChallengeString) {
-        for (Map.Entry<Integer, String> entry : challengeMap.entrySet()){
-            if (entry.getValue().equals(eip712ChallengeString)){
+        for (Map.Entry<Integer, String> entry : challengeMap.entrySet()) {
+            if (entry.getValue().equals(eip712ChallengeString)) {
                 challengeMap.remove(entry.getKey());
             }
         }
     }
+
+
 }

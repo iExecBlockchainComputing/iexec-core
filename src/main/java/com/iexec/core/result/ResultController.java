@@ -47,7 +47,7 @@ public class ResultController {
     }
 
     @GetMapping(value = "/results/challenge")
-    public ResponseEntity<Eip712Challenge> getChallenge() {
+    public ResponseEntity<Eip712Challenge> getChallenge() throws IOException {
         Eip712Challenge eip712Challenge = eip712ChallengeService.generateEip712Challenge();
         return ResponseEntity.ok(eip712Challenge);
     }
