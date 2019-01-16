@@ -11,7 +11,6 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 
 @Configuration
 @EnableWebSocketMessageBroker
-@EnableScheduling
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
