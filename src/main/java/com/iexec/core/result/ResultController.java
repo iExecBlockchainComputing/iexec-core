@@ -49,7 +49,7 @@ public class ResultController {
     }
 
     @GetMapping(value = "/results/challenge")
-    public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId){
+    public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId) {
         Eip712Challenge eip712Challenge = eip712ChallengeService.generateEip712Challenge(chainId);
         return ResponseEntity.ok(eip712Challenge);
     }

@@ -20,8 +20,6 @@ public class Eip712Challenge {
     private Message message;
 
     public Eip712Challenge(String challenge, long chainId) {
-        chainId = 17;
-
         List<TypeParam> domainTypeParams = Arrays.asList(
                 new TypeParam("name", "string"),
                 new TypeParam("version", "string"),

@@ -60,7 +60,7 @@ public class ResultService {
     boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
-        if (challengeSignature.length()< 130){
+        if (challengeSignature.length() < 130) {
             log.error("Eip712ChallengeString has a bad signature format [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
@@ -69,7 +69,7 @@ public class ResultService {
         String r = challengeSignature.substring(0, 64);
 
         //ONE: check if eip712Challenge is in eip712Challenge map
-        if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)){
+        if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)) {
             log.error("Eip712ChallengeString provided doesn't match any challenge [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
@@ -90,13 +90,13 @@ public class ResultService {
         //THREE: check if requester (or beneficiary if set) equals address provided
         Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
 
-        if (!chainTask.isPresent()){
+        if (!chainTask.isPresent()) {
             log.error("Failed to get ChainTask [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
 
         Optional<ChainDeal> chainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
-        if (!chainDeal.isPresent()){
+        if (!chainDeal.isPresent()) {
             log.error("Failed to get ChainDeal [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
@@ -120,8 +120,6 @@ public class ResultService {
 
         return true;
     }
-
-
 
 
 }
