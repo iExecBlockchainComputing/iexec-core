@@ -10,8 +10,8 @@ import lombok.*;
 @Setter
 public class Domain {
 
-    public String name;
-    public String version;
-    public Long chainId;
+    private String name;
+    private String version;
+    private long chainId;
 
 }

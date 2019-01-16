@@ -11,5 +11,5 @@ import lombok.*;
 @Setter
 public class Message {
 
-    public String challenge;
+    private String challenge;
 }

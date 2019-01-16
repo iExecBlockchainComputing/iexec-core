@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ChallengeService {
 
-    // Map <WorkerWalletAdress, Challenge>
+    // Map <WorkerWalletAdress, challenge>
     // this map will automatically delete entries older than one hour, ExpiringMap is thread-safe
     private ExpiringMap<String, String> challengeMap;
 

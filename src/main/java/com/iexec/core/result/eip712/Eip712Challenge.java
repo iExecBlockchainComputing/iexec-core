@@ -1,60 +1,57 @@
 package com.iexec.core.result.eip712;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.*;
+import lombok.Data;
+import lombok.Getter;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
-@Setter
 public class Eip712Challenge {
 
-
-    private static final String TYPES = "{\n" +
-            "        \"EIP712Domain\": [\n" +
-            "            {\n" +
-            "                \"name\": \"name\",\n" +
-            "                \"type\": \"string\"\n" +
-            "            },\n" +
-            "            {\n" +
-            "                \"name\": \"version\",\n" +
-            "                \"type\": \"string\"\n" +
-            "            },\n" +
-            "            {\n" +
-            "                \"name\": \"chainId\",\n" +
-            "                \"type\": \"uint256\"\n" +
-            "            }\n" +
-            "        ],\n" +
-            "        \"Challenge\": [\n" +
-            "            {\n" +
-            "                \"name\": \"challenge\",\n" +
-            "                \"type\": \"string\"\n" +
-            "            }\n" +
-            "        ]\n" +
-            "    }";
+    private static final String DOMAIN_NAME = "iExec Result Repository";
+    private static final String DOMAIN_VERSION = "1";
     private static final String PRIMARY_TYPE = "Challenge";
 
-    public Object types;
-    public Domain domain;
-    public String primaryType;
-    public Message message;
+    private Types types;
+    private Domain domain;
+    private String primaryType;
+    private Message message;
 
-    public Object getTypes() {
-        try {
-            return new ObjectMapper().readValue(TYPES, Object.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public Eip712Challenge(String challenge, long chainId) {
+        chainId = 17;
+
+        List<TypeParam> domainTypeParams = Arrays.asList(
+                new TypeParam("name", "string"),
+                new TypeParam("version", "string"),
+                new TypeParam("chainId", "uint256")
+        );
+
+        List<TypeParam> challengeTypeParams = Arrays.asList(
+                new TypeParam("challenge", "string")
+        );
+
+
+        Types types = Types.builder()
+                .domainTypeParams(domainTypeParams)
+                .challengeTypeParams(challengeTypeParams).build();
+
+        Domain domain = Domain.builder()
+                .name(DOMAIN_NAME)
+                .version(DOMAIN_VERSION)
+                .chainId(chainId)
+                .build();
+        Message message = Message.builder()
+                .challenge(challenge)
+                .build();
+
+        this.types = types;
+        this.domain = domain;
+        this.message = message;
+        this.primaryType = PRIMARY_TYPE;
     }
 
-    public String getPrimaryType() {
-        return PRIMARY_TYPE;
-    }
 }
 
 
