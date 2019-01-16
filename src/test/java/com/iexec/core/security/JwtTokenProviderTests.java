@@ -60,7 +60,7 @@ public class JwtTokenProviderTests {
         
         jwtTokenProvider.init();
         String token = jwtTokenProvider.createToken(WALLET_WORKER);
-        boolean isValidToken = jwtTokenProvider.validateToken(token);
+        boolean isValidToken = jwtTokenProvider.isValidToken(token);
 
         assertThat(isValidToken).isTrue();
     }
@@ -71,7 +71,7 @@ public class JwtTokenProviderTests {
         
         jwtTokenProvider.init();
         String token = jwtTokenProvider.createToken(WALLET_WORKER);
-        boolean isValidToken = jwtTokenProvider.validateToken(token);
+        boolean isValidToken = jwtTokenProvider.isValidToken(token);
 
         assertThat(isValidToken).isFalse();
     }
@@ -82,7 +82,7 @@ public class JwtTokenProviderTests {
 
         jwtTokenProvider.init();
         jwtTokenProvider.createToken(WALLET_WORKER);
-        boolean isValidToken = jwtTokenProvider.validateToken("non.valid.token");
+        boolean isValidToken = jwtTokenProvider.isValidToken("non.valid.token");
 
         assertThat(isValidToken).isFalse();
     }
