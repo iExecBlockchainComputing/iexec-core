@@ -1,7 +1,10 @@
 package com.iexec.core.result;
 
 import com.iexec.common.utils.HashUtils;
-import com.iexec.core.result.eip712.*;
+import com.iexec.core.result.eip712.Domain;
+import com.iexec.core.result.eip712.Eip712Challenge;
+import com.iexec.core.result.eip712.Message;
+import com.iexec.core.result.eip712.Types;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
@@ -10,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Map;
@@ -31,7 +33,7 @@ public class Eip712ChallengeService {
         challengeId = 0;
     }
 
-    private static String generateRandomHexToken() {
+    private static String generateRandomToken() {
         SecureRandom secureRandom = new SecureRandom();
         byte[] token = new byte[32];
         secureRandom.nextBytes(token);
@@ -49,7 +51,7 @@ public class Eip712ChallengeService {
                 Numeric.hexStringToByteArray(messageHash))).equals(Numeric.toHexString(Numeric.hexStringToByteArray(
                 "0x1901" + Numeric.cleanHexPrefix(domainSeparator) + Numeric.cleanHexPrefix(messageHash)))));*/
 
-        return HashUtils.concatenateAndHash("0x1901", domainSeparator , messageHash);
+        return HashUtils.concatenateAndHash("0x1901", domainSeparator, messageHash);
     }
 
     String getDomainSeparator(Eip712Challenge eip712Challenge) {
@@ -72,16 +74,16 @@ public class Eip712ChallengeService {
         Message message = eip712Challenge.getMessage();
 
         String messageTypesParams = Types.typeParamsToString(eip712Challenge.getTypes().getChallengeTypeParams());
-        String messageType = eip712Challenge.getPrimaryType()+"(" + messageTypesParams + ")";//Challenge(string challenge)
+        String messageType = eip712Challenge.getPrimaryType() + "(" + messageTypesParams + ")";//Challenge(string challenge)
         String messageTypeHash = Numeric.toHexString(Hash.sha3(messageType.getBytes()));
         String challengeMessage = Numeric.toHexString(Hash.sha3(message.getChallenge().getBytes()));
 
         return HashUtils.concatenateAndHash(messageTypeHash, challengeMessage);
     }
 
-    Eip712Challenge generateEip712Challenge() throws IOException {
+    Eip712Challenge generateEip712Challenge() {
         //TODO change 17 to dynamic chain
-        Eip712Challenge eip712Challenge = new Eip712Challenge(generateRandomHexToken(), 17);
+        Eip712Challenge eip712Challenge = new Eip712Challenge(generateRandomToken(), 17);
         this.saveEip712ChallengeString(getEip712ChallengeString(eip712Challenge));
         return eip712Challenge;
     }

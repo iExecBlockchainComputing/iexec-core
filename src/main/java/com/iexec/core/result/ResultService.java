@@ -61,10 +61,13 @@ public class ResultService {
     boolean isAuthorizedToGetResult(String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
+        if (challengeSignature.length()< 130){
+            log.error("Eip712ChallengeString has a bad signature format [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
+            return false;
+        }
         String v = challengeSignature.substring(128, 130);
         String s = challengeSignature.substring(64, 128);
         String r = challengeSignature.substring(0, 64);
-
 
         //ONE: check if eip712Challenge is in eip712Challenge map
         if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)){

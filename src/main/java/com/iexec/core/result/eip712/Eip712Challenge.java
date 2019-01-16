@@ -28,14 +28,11 @@ public class Eip712Challenge {
                 new TypeParam("chainId", "uint256")
         );
 
-        List<TypeParam> challengeTypeParams = Arrays.asList(
+        List<TypeParam> messageTypeParams = Arrays.asList(
                 new TypeParam("challenge", "string")
         );
-
-
-        Types types = Types.builder()
-                .domainTypeParams(domainTypeParams)
-                .challengeTypeParams(challengeTypeParams).build();
+        
+        Types types = new Types(domainTypeParams, messageTypeParams);
 
         Domain domain = Domain.builder()
                 .name(DOMAIN_NAME)
