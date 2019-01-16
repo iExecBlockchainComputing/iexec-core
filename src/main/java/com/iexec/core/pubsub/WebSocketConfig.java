@@ -24,7 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic")
-                .setHeartbeatValue(new long[]{10000, 20000})
+                .setHeartbeatValue(new long[]{5000, 5000})
                 .setTaskScheduler(this.messageBrokerTaskScheduler);
     }
 
