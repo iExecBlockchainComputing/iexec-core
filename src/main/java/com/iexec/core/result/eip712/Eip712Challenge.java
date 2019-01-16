@@ -31,7 +31,7 @@ public class Eip712Challenge {
         List<TypeParam> messageTypeParams = Arrays.asList(
                 new TypeParam("challenge", "string")
         );
-        
+
         Types types = new Types(domainTypeParams, messageTypeParams);
 
         Domain domain = Domain.builder()

@@ -2,7 +2,6 @@ package com.iexec.core.result;
 
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainTask;
-import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
@@ -58,7 +57,7 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean isAuthorizedToGetResult(String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
+    boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
         if (challengeSignature.length()< 130){
@@ -84,8 +83,11 @@ public class ResultService {
             return false;
         }
 
+        /*
+         * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
+         * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
+         */
         //THREE: check if requester (or beneficiary if set) equals address provided
-        //TODO: We're just reading data but we shouldn't use iExecHub with scheduler credentials (+ its a scheduler service)
         Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
 
         if (!chainTask.isPresent()){

@@ -49,17 +49,18 @@ public class ResultController {
     }
 
     @GetMapping(value = "/results/challenge")
-    public ResponseEntity<Eip712Challenge> getChallenge() throws IOException {
-        Eip712Challenge eip712Challenge = eip712ChallengeService.generateEip712Challenge();
+    public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId){
+        Eip712Challenge eip712Challenge = eip712ChallengeService.generateEip712Challenge(chainId);
         return ResponseEntity.ok(eip712Challenge);
     }
 
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
+                                            @RequestParam(name = "chainId") Integer chainId,
                                             @RequestParam(name = "challenge") String eipChallengeString,
                                             @RequestParam(name = "challengeSignature") String challengeSignature,
                                             @RequestParam(name = "walletAddress") String walletAddress) throws IOException {
-        if (!resultService.isAuthorizedToGetResult(chainTaskId, eipChallengeString, challengeSignature, walletAddress)) {
+        if (!resultService.isAuthorizedToGetResult(chainId, chainTaskId, eipChallengeString, challengeSignature, walletAddress)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 

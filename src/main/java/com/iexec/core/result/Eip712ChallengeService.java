@@ -81,9 +81,8 @@ public class Eip712ChallengeService {
         return HashUtils.concatenateAndHash(messageTypeHash, challengeMessage);
     }
 
-    Eip712Challenge generateEip712Challenge() {
-        //TODO change 17 to dynamic chain
-        Eip712Challenge eip712Challenge = new Eip712Challenge(generateRandomToken(), 17);
+    Eip712Challenge generateEip712Challenge(Integer chainId) {
+        Eip712Challenge eip712Challenge = new Eip712Challenge(generateRandomToken(), chainId);
         this.saveEip712ChallengeString(getEip712ChallengeString(eip712Challenge));
         return eip712Challenge;
     }
