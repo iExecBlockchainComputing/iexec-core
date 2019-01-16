@@ -38,7 +38,6 @@ public class Eip712Challenge {
             "    }";
     private static final String PRIMARY_TYPE = "Challenge";
 
-
     public Object types;
     public Domain domain;
     public String primaryType;

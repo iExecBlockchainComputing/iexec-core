@@ -7,9 +7,11 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.mongodb.gridfs.GridFsOperations;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
+import org.web3j.utils.Numeric;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -56,19 +58,26 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean isAuthorizedToGetResult(String chainTaskId, String eip712ChallengeString, Signature signature) {
+    boolean isAuthorizedToGetResult(String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
+        challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
+
+        String v = challengeSignature.substring(128, 130);
+        String s = challengeSignature.substring(64, 128);
+        String r = challengeSignature.substring(0, 64);
+
+
         //ONE: check if eip712Challenge is in eip712Challenge map
         if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)){
-            log.error("Eip712ChallengeString provided doesn't match any challenge [chainTaskId:{}, downloadRequester:{}]", chainTaskId, signature.getWorkerWallet());
+            log.error("Eip712ChallengeString provided doesn't match any challenge [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
 
         //TWO: check if ecrecover on eip712Challenge & signature match address
-        if (!SignatureUtils.doesSignatureMatchesAddress(signature.getSignR(), signature.getSignS(),
-                eip712ChallengeString, signature.getWorkerWallet())) {
+        if (!SignatureUtils.doesSignatureMatchesAddress(BytesUtils.stringToBytes(r), BytesUtils.stringToBytes(s),
+                eip712ChallengeString, StringUtils.lowerCase(walletAddress))) {
             log.error("Signature provided doesn't match walletAddress [chainTaskId:{}, " +
                             "downloadRequester:{}, sign.r:{}, sign.s:{}, eip712ChallengeString:{}]",
-                    chainTaskId, signature.getWorkerWallet(), signature.getSignR(), signature.getSignS(), eip712ChallengeString);
+                    chainTaskId, walletAddress, r, s, eip712ChallengeString);
             return false;
         }
 
@@ -77,30 +86,30 @@ public class ResultService {
         Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
 
         if (!chainTask.isPresent()){
-            log.error("Failed to get ChainTask [chainTaskId:{}, downloadRequester:{}]", chainTaskId, signature.getWorkerWallet());
+            log.error("Failed to get ChainTask [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
 
         Optional<ChainDeal> chainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
         if (!chainDeal.isPresent()){
-            log.error("Failed to get ChainDeal [chainTaskId:{}, downloadRequester:{}]", chainTaskId, signature.getWorkerWallet());
+            log.error("Failed to get ChainDeal [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
 
         String requester = chainDeal.get().getRequester();
         String beneficiary = chainDeal.get().getBeneficiary();
 
-        if (!beneficiary.equals(BytesUtils.EMPTY_ADDRESS) && !signature.getWorkerWallet().equalsIgnoreCase(beneficiary)) {
+        if (!beneficiary.equals(BytesUtils.EMPTY_ADDRESS) && !walletAddress.equalsIgnoreCase(beneficiary)) {
             log.error("Set beneficiary doesn't match downloadRequester [chainTaskId:{}, downloadRequester:{}," +
                             "requester:{}, beneficiary:{}]",
-                    chainTaskId, signature.getWorkerWallet(), requester, beneficiary);
+                    chainTaskId, walletAddress, requester, beneficiary);
             return false;
         }
 
-        if (!signature.getWorkerWallet().equalsIgnoreCase(requester)) {
+        if (!walletAddress.equalsIgnoreCase(requester)) {
             log.error("Set requester doesn't match downloadRequester [chainTaskId:{}, downloadRequester:{}," +
                             "requester:{}, beneficiary:{}]",
-                    chainTaskId, signature.getWorkerWallet(), requester, beneficiary);
+                    chainTaskId, walletAddress, requester, beneficiary);
             return false;
         }
 
