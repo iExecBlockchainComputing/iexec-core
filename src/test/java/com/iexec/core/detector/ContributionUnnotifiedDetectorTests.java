@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Date;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +56,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);

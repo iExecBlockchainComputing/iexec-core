@@ -131,9 +131,10 @@ public class ReplicatesService {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             //TODO think: When do we really need more replicates?
-            if (!(replicate.getCurrentStatus().equals(ReplicateStatus.CANT_CONTRIBUTE)
-                    || replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)
-                    || replicate.isContributingPeriodTooLong(timeRef))) {
+            boolean isReplicateSuccessfullSoFar = ReplicateStatus.getSuccessStatuses().contains(replicate.getCurrentStatus());
+            boolean hasReplicateContributedLongAgo = replicate.isContributingPeriodTooLong(timeRef);
+
+            if (isReplicateSuccessfullSoFar && !hasReplicateContributedLongAgo) {
                 nbValidReplicates++;
             }
         }

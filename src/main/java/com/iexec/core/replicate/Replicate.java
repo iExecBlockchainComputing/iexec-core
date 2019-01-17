@@ -85,6 +85,14 @@ public class Replicate {
         return now.after(twoPeriodsAfterCreationDate);
     }
 
+    public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, Date timeRef) {
+        Date creationDate = this.getStatusChangeList().get(0).getDate();
+        Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * timeRef.getTime());
+        Date now = new Date();
+
+        return now.after(numberPeriodsAfterCreationDate);
+    }
+
     public boolean isContributingPeriodTooLong(Date timeRef) {
         if (this.containsContributedStatus()) {
             return false;
