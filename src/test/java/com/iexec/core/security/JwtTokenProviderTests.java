@@ -117,7 +117,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void shouldThrowJwtExceptionSinceNotValidBearerToken() {
+    public void shouldNotGetWalletAddressSinceNotValidBearerToken() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
 
         jwtTokenProvider.init();
