@@ -13,9 +13,10 @@ detector:
   workerlost.period: 30000           # 30 s
   resultuploadtimeout.period: 30000  # 30 s
   dealwatcherreplay.period: 60000    # 1 min
-  revealtimeout.period: ${REVEAL_TIMEOUT_PERIOD:300000}       # 5 min
+  reveal.timeout.period: ${REVEAL_TIMEOUT_PERIOD:60000}       # 1 min
   reveal.unnotified.period: 60000       # 1 min
-  contribute.period: 300000
+  contribution.unnotified.period: 120000           # 2 min
+  contribution.timeout.period: 120000           # 2 min
   unstartedtx.period: 300000          # 5 min
 
 

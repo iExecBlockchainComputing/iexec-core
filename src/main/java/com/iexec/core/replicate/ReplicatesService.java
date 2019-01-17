@@ -11,6 +11,7 @@ import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
@@ -196,6 +197,17 @@ public class ReplicatesService {
                 walletAddress, currentStatus, newStatus);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
 
+    }
+
+    @Recover
+    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+                                      String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      long blockNumber,
+                                      ReplicateStatusModifier modifier) {
+        log.error("Maximum number of tries reached [exception:{}]", exception.getMessage());
+        exception.printStackTrace();
     }
 
     private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
