@@ -1,8 +1,6 @@
 package com.iexec.core.detector;
 
-import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -18,28 +16,24 @@ import java.util.Date;
 import java.util.List;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADED;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
 
 @Slf4j
 @Service
-public class RevealDetector implements Detector {
+public class RevealTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
-    private IexecHubService iexecHubService;
 
-    public RevealDetector(TaskService taskService,
-                          ReplicatesService replicatesService,
-                          IexecHubService iexecHubService) {
+    public RevealTimeoutDetector(TaskService taskService,
+                                 ReplicatesService replicatesService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.iexecHubService = iexecHubService;
     }
 
-    @Scheduled(fixedRateString = "${detector.revealtimeout.period}")
+    @Scheduled(fixedRateString = "${detector.reveal.timeout.period}")
     @Override
     public void detect() {
         log.info("Trying to detect reveal timeout");
@@ -49,29 +43,6 @@ public class RevealDetector implements Detector {
 
         // in case there is at least one reveal, the others may time out and the task continues
         detectSingleRevealTimeout();
-    }
-
-    @Scheduled(fixedRateString = "${detector.reveal.unnotified.period}")
-    void detectUnNotifiedRevealed() {
-        log.info("Trying to detectUnNotifiedRevealed");
-        //check if a worker has revealed on-chain but hasn't notified off-chain
-        for (Task task : taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())) {
-            boolean taskUpdateRequired = false;
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                boolean revealButDontNotify = !replicate.containsStatus(REVEALED) &&
-                        task.isConsensusReachedSinceMultiplePeriods(1) &&
-                        iexecHubService.checkContributionStatus(task.getChainTaskId(),
-                                replicate.getWalletAddress(), ChainContributionStatus.REVEALED);
-                if (revealButDontNotify) {
-                    replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                            REVEALED, ReplicateStatusModifier.POOL_MANAGER);
-                    taskUpdateRequired = true;
-                }
-            }
-            if (taskUpdateRequired) {
-                taskService.tryToMoveTaskToNextStatus(task);
-            }
-        }
     }
 
     private void detectSingleRevealTimeout() {
@@ -113,6 +84,4 @@ public class RevealDetector implements Detector {
             }
         }
     }
-
-
 }
