@@ -1,25 +1,11 @@
 package com.iexec.core.result;
 
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.common.utils.HashUtils;
 import com.iexec.common.utils.SignatureUtils;
-import com.iexec.core.result.eip712.Domain;
-import com.iexec.core.result.eip712.Eip712Challenge;
-import com.iexec.core.result.eip712.Message;
-import com.iexec.core.result.eip712.Types;
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.expiringmap.ExpirationPolicy;
-import net.jodah.expiringmap.ExpiringMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
-
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -32,7 +18,16 @@ public class AuthorizationService {
         this.challengeService = challengeService;
     }
 
-    boolean isAuthorizationValid(String eip712ChallengeString, String challengeSignature, String walletAddress) {
+    boolean isAuthorizationValid(Authorization authorization) {
+        if (authorization == null) {
+            log.error("Authorization should not be null [authorization:{}]", authorization);
+            return false;
+        }
+
+        String eip712ChallengeString=authorization.getChallenge();
+        String challengeSignature=authorization.getChallengeSignature();
+        String walletAddress=authorization.getWalletAddress();
+
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
         if (challengeSignature.length() < 130) {
@@ -60,6 +55,15 @@ public class AuthorizationService {
         return true;
     }
 
-
+    Authorization getAuthorizationFromToken(String token) {
+        String[] parts = token.split("_");
+        if (parts.length == 3){
+            return Authorization.builder()
+                    .challenge(parts[0])
+                    .challengeSignature(parts[1])
+                    .walletAddress(parts[2]).build();
+        }
+        return null;
+    }
 
 }

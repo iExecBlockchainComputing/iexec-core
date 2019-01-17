@@ -61,22 +61,14 @@ public class ResultController {
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
                                             @RequestHeader("Authorization") String token,
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
+        Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        //TODO check split
-        String[] parts = token.split("_");
-        String eipChallengeString = parts[0];
-        String challengeSignature = parts[2];
-        String walletAddress = parts[3];
-
-        if (!authorizationService.isAuthorizationValid(eipChallengeString, challengeSignature, walletAddress)) {
+        if (!(authorizationService.isAuthorizationValid(auth) &&
+                resultService.canGetResult(chainId, chainTaskId, auth.getWalletAddress()))) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 
-        if (!resultService.canGetResult(chainId, chainTaskId, walletAddress)) {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
-        }
-
-        challengeService.invalidateEip712ChallengeString(eipChallengeString);
+        challengeService.invalidateEip712ChallengeString(auth.getChallengeSignature());
 
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
