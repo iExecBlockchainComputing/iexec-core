@@ -1,6 +1,7 @@
 package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
+import com.iexec.core.result.eip712.Eip712AuthenticationModel;
 import com.iexec.core.result.eip712.Eip712Challenge;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -54,17 +55,15 @@ public class ResultController {
         return ResponseEntity.ok(eip712Challenge);
     }
 
-    @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
+    @PostMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
-                                            @RequestParam(name = "chainId") Integer chainId,
-                                            @RequestParam(name = "challenge") String eipChallengeString,
-                                            @RequestParam(name = "challengeSignature") String challengeSignature,
-                                            @RequestParam(name = "walletAddress") String walletAddress) throws IOException {
-        if (!resultService.isAuthorizedToGetResult(chainId, chainTaskId, eipChallengeString, challengeSignature, walletAddress)) {
+                                            @RequestBody Eip712AuthenticationModel auth) throws IOException {
+        if (!resultService.isAuthorizedToGetResult(chainTaskId, auth)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 
-        eip712ChallengeService.invalidateEip712ChallengeString(eipChallengeString);
+        String eip712ChallengeString = eip712ChallengeService.getEip712ChallengeString(auth.getEip712Challenge());
+        eip712ChallengeService.invalidateEip712ChallengeString(eip712ChallengeString);
 
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()

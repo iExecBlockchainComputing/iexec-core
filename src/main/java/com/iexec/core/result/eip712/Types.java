@@ -20,9 +20,9 @@ public class Types {
 
     public static String typeParamsToString(List<TypeParam> typeParams) {
         StringBuilder s = new StringBuilder();
-        for (int i = 0; i < typeParams.size(); i++) {
-            s.append(typeParams.get(i).getType()).append(" ").append(typeParams.get(i).getName());
-            if (i <= typeParams.size() - 2) {
+        for (TypeParam typeParam : typeParams) {
+            s.append(typeParam.getType()).append(" ").append(typeParam.getName());
+            if (typeParams.indexOf(typeParam) <= typeParams.size() - 2) {
                 s.append(",");
             }
         }

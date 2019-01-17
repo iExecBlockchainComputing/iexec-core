@@ -1,5 +1,6 @@
 package com.iexec.core.result.eip712;
 
+import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 

@@ -5,6 +5,7 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.result.eip712.Eip712AuthenticationModel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.mongodb.gridfs.GridFsOperations;
@@ -57,7 +58,13 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
+    boolean isAuthorizedToGetResult(String chainTaskId, Eip712AuthenticationModel auth) {
+
+        String challengeString = eip712ChallengeService.getEip712ChallengeString(auth.getEip712Challenge());
+        String challengeSignature = auth.getEip712ChallengeSignature();
+        String walletAddress = auth.getWalletAddress();
+        long chainId = auth.getEip712Challenge().getDomain().getChainId();
+
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
         if (challengeSignature.length() < 130) {
@@ -69,17 +76,17 @@ public class ResultService {
         String r = challengeSignature.substring(0, 64);
 
         //ONE: check if eip712Challenge is in eip712Challenge map
-        if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)) {
+        if (!eip712ChallengeService.containsEip712ChallengeString(challengeString)) {
             log.error("Eip712ChallengeString provided doesn't match any challenge [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
             return false;
         }
 
         //TWO: check if ecrecover on eip712Challenge & signature match address
         if (!SignatureUtils.doesSignatureMatchesAddress(BytesUtils.stringToBytes(r), BytesUtils.stringToBytes(s),
-                eip712ChallengeString, StringUtils.lowerCase(walletAddress))) {
+                challengeString, StringUtils.lowerCase(walletAddress))) {
             log.error("Signature provided doesn't match walletAddress [chainTaskId:{}, " +
-                            "downloadRequester:{}, sign.r:{}, sign.s:{}, eip712ChallengeString:{}]",
-                    chainTaskId, walletAddress, r, s, eip712ChallengeString);
+                            "downloadRequester:{}, sign.r:{}, sign.s:{}, challengeString:{}]",
+                    chainTaskId, walletAddress, r, s, challengeString);
             return false;
         }
 
