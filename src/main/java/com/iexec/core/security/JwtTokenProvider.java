@@ -47,7 +47,7 @@ public class JwtTokenProvider {
         return null;
     }
 
-    public boolean validateToken(String token) {
+    public boolean isValidToken(String token) {
 
         try {
             Claims claims = Jwts.parser()
@@ -78,7 +78,7 @@ public class JwtTokenProvider {
 
     public String getWalletAddressFromBearerToken(String bearerToken) {
         String token = resolveToken(bearerToken);
-        if (token != null && validateToken(token)) {
+        if (token != null && isValidToken(token)) {
             return getWalletAddress(token);
         }
         return "";

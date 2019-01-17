@@ -16,11 +16,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,6 +43,7 @@ public class ContributionDetectorTests {
     @Mock
     private IexecHubService iexecHubService;
 
+    @Spy
     @InjectMocks
     private ContributionDetector contributionDetector;
 
@@ -48,6 +51,14 @@ public class ContributionDetectorTests {
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
+
+    @Test
+    public void shouldRunDetectors() {
+        contributionDetector.detect();
+
+        Mockito.verify(contributionDetector, Mockito.atLeast(1)).detectContributionTimeout();
+        Mockito.verify(contributionDetector, Mockito.atLeast(1)).detectUnNotifiedContributed();
+    } 
 
     @Test
     public void shouldNotDetectAnyContributionTimeout() {
