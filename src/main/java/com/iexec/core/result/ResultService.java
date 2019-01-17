@@ -24,15 +24,12 @@ public class ResultService {
     private static final String RESULT_FILENAME_PREFIX = "iexec-result-";
 
     private GridFsOperations gridOperations;
-    private Eip712ChallengeService eip712ChallengeService;
     private IexecHubService iexecHubService;
 
 
     public ResultService(GridFsOperations gridOperations,
-                         Eip712ChallengeService eip712ChallengeService,
                          IexecHubService iexecHubService) {
         this.gridOperations = gridOperations;
-        this.eip712ChallengeService = eip712ChallengeService;
         this.iexecHubService = iexecHubService;
     }
 
@@ -57,32 +54,7 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String eip712ChallengeString, String challengeSignature, String walletAddress) {
-        challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
-
-        if (challengeSignature.length() < 130) {
-            log.error("Eip712ChallengeString has a bad signature format [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
-            return false;
-        }
-        String v = challengeSignature.substring(128, 130);
-        String s = challengeSignature.substring(64, 128);
-        String r = challengeSignature.substring(0, 64);
-
-        //ONE: check if eip712Challenge is in eip712Challenge map
-        if (!eip712ChallengeService.containsEip712ChallengeString(eip712ChallengeString)) {
-            log.error("Eip712ChallengeString provided doesn't match any challenge [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
-            return false;
-        }
-
-        //TWO: check if ecrecover on eip712Challenge & signature match address
-        if (!SignatureUtils.doesSignatureMatchesAddress(BytesUtils.stringToBytes(r), BytesUtils.stringToBytes(s),
-                eip712ChallengeString, StringUtils.lowerCase(walletAddress))) {
-            log.error("Signature provided doesn't match walletAddress [chainTaskId:{}, " +
-                            "downloadRequester:{}, sign.r:{}, sign.s:{}, eip712ChallengeString:{}]",
-                    chainTaskId, walletAddress, r, s, eip712ChallengeString);
-            return false;
-        }
-
+    boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String walletAddress) {
         /*
          * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
          * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
@@ -120,6 +92,5 @@ public class ResultService {
 
         return true;
     }
-
 
 }

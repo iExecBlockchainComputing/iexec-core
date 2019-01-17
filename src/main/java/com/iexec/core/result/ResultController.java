@@ -16,12 +16,12 @@ import static org.springframework.http.ResponseEntity.ok;
 public class ResultController {
 
     private ResultService resultService;
-    private Eip712ChallengeService eip712ChallengeService;
+    private Eip712ChallengeService challengeService;
 
     public ResultController(ResultService resultService,
-                            Eip712ChallengeService eip712ChallengeService) {
+                            Eip712ChallengeService challengeService) {
         this.resultService = resultService;
-        this.eip712ChallengeService = eip712ChallengeService;
+        this.challengeService = challengeService;
     }
 
     @PostMapping("/results")
@@ -50,21 +50,30 @@ public class ResultController {
 
     @GetMapping(value = "/results/challenge")
     public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId) {
-        Eip712Challenge eip712Challenge = eip712ChallengeService.generateEip712Challenge(chainId);
+        Eip712Challenge eip712Challenge = challengeService.generateEip712Challenge(chainId);
         return ResponseEntity.ok(eip712Challenge);
     }
 
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
-                                            @RequestParam(name = "chainId") Integer chainId,
-                                            @RequestParam(name = "challenge") String eipChallengeString,
-                                            @RequestParam(name = "challengeSignature") String challengeSignature,
-                                            @RequestParam(name = "walletAddress") String walletAddress) throws IOException {
-        if (!resultService.isAuthorizedToGetResult(chainId, chainTaskId, eipChallengeString, challengeSignature, walletAddress)) {
+                                            @RequestHeader("Authorization") String token,
+                                            @RequestParam(name = "chainId") Integer chainId) throws IOException {
+
+        //TODO check split
+        String[] parts = token.split("_");
+        String eipChallengeString = parts[0];
+        String challengeSignature = parts[2];
+        String walletAddress = parts[3];
+
+        if (!challengeService.isAuthorizationValid(eipChallengeString, challengeSignature, walletAddress)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 
-        eip712ChallengeService.invalidateEip712ChallengeString(eipChallengeString);
+        if (!resultService.isAuthorizedToGetResult(chainId, chainTaskId, walletAddress)) {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
+
+        challengeService.invalidateEip712ChallengeString(eipChallengeString);
 
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
