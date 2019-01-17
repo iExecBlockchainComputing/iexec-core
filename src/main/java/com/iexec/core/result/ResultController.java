@@ -68,7 +68,7 @@ public class ResultController {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 
-        challengeService.invalidateEip712ChallengeString(auth.getChallengeSignature());
+        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
 
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
