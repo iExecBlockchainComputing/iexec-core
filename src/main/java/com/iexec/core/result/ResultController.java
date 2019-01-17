@@ -17,11 +17,14 @@ public class ResultController {
 
     private ResultService resultService;
     private Eip712ChallengeService challengeService;
+    private AuthorizationService authorizationService;
 
     public ResultController(ResultService resultService,
-                            Eip712ChallengeService challengeService) {
+                            Eip712ChallengeService challengeService,
+                            AuthorizationService authorizationService) {
         this.resultService = resultService;
         this.challengeService = challengeService;
+        this.authorizationService = authorizationService;
     }
 
     @PostMapping("/results")
@@ -65,11 +68,11 @@ public class ResultController {
         String challengeSignature = parts[2];
         String walletAddress = parts[3];
 
-        if (!challengeService.isAuthorizationValid(eipChallengeString, challengeSignature, walletAddress)) {
+        if (!authorizationService.isAuthorizationValid(eipChallengeString, challengeSignature, walletAddress)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 
-        if (!resultService.isAuthorizedToGetResult(chainId, chainTaskId, walletAddress)) {
+        if (!resultService.canGetResult(chainId, chainTaskId, walletAddress)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
 

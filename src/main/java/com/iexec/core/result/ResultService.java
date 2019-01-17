@@ -54,7 +54,7 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean isAuthorizedToGetResult(Integer chainId, String chainTaskId, String walletAddress) {
+    boolean canGetResult(Integer chainId, String chainTaskId, String walletAddress) {
         /*
          * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
          * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
