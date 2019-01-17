@@ -1,5 +1,6 @@
 package com.iexec.core.configuration;
 
+import com.iexec.core.chain.ChainConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -18,6 +19,9 @@ public class ConfigurationServiceTests {
 
     @Mock
     private ConfigurationRepository configurationRepository;
+
+    @Mock
+    private ChainConfig chainConfig;
 
     @InjectMocks
     private ConfigurationService configurationService;
@@ -48,6 +52,7 @@ public class ConfigurationServiceTests {
 
         when(configurationRepository.count()).thenReturn((long) 0);
         when(configurationRepository.save(any())).thenReturn(configuration);
+        when(chainConfig.getStartBlockNumber()).thenReturn(0L);
 
         BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
 
@@ -93,6 +98,7 @@ public class ConfigurationServiceTests {
 
         when(configurationRepository.count()).thenReturn((long) 0);
         when(configurationRepository.save(any())).thenReturn(configuration);
+        when(chainConfig.getStartBlockNumber()).thenReturn(0L);
 
         BigInteger fromReplay = configurationService.getFromReplay();
 
