@@ -20,22 +20,15 @@ public class ConfigurationService {
     }
 
     private Configuration getConfiguration() {
-        Configuration configuration;
-        if (configurationRepository.count() > 0) {
-            configuration = configurationRepository.findAll().get(0);
-        } else {
-            configuration = configurationRepository.save(
-                    Configuration
-                            .builder()
-                            .lastSeenBlockWithDeal(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
-                            .fromReplay(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
-                            .build());
-        }
-        return configuration;
-    }
+        if (configurationRepository.count() > 0)
+            return configurationRepository.findAll().get(0);
 
-    private void saveConfiguration(Configuration configuration) {
-        configurationRepository.save(configuration);
+        return configurationRepository.save(
+            Configuration
+                    .builder()
+                    .lastSeenBlockWithDeal(BigInteger.ZERO)
+                    .fromReplay(BigInteger.ZERO)
+                    .build());
     }
 
     public BigInteger getLastSeenBlockWithDeal() {
@@ -45,7 +38,7 @@ public class ConfigurationService {
     public void setLastSeenBlockWithDeal(BigInteger lastBlockNumber) {
         Configuration configuration = this.getConfiguration();
         configuration.setLastSeenBlockWithDeal(lastBlockNumber);
-        saveConfiguration(configuration);
+        configurationRepository.save(configuration);
     }
 
     public BigInteger getFromReplay() {
@@ -55,7 +48,7 @@ public class ConfigurationService {
     public void setFromReplay(BigInteger fromReplay) {
         Configuration configuration = this.getConfiguration();
         configuration.setFromReplay(fromReplay);
-        saveConfiguration(configuration);
+        configurationRepository.save(configuration);
     }
 
 }
