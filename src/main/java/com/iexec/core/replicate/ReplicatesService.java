@@ -86,7 +86,7 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean hasWorkerAlreadyContributed(String chainTaskId, String walletAddress) {
+    public boolean hasWorkerAlreadyParticipated(String chainTaskId, String walletAddress) {
         return getReplicate(chainTaskId, walletAddress).isPresent();
     }
 
