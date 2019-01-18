@@ -26,12 +26,12 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CONTRIBUTING, CONTRIBUTED);
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
 
-        addTransitionFromStatusBeforeContributedToGivenStatus(CONTRIBUTION_TIMEOUT);
-        addTransitionFromStatusBeforeContributedToGivenStatus(ABORT_CONSENSUS_REACHED);
-        addTransition(CONTRIBUTION_TIMEOUT, ABORT_CONTRIBUTION_TIMEOUT);
-        addTransition(CONTRIBUTE_FAILED, ABORT_CONSENSUS_REACHED);
-        addTransition(CANT_CONTRIBUTE, ABORT_CONSENSUS_REACHED);
-        addTransition(OUT_OF_GAS, ABORT_CONSENSUS_REACHED);
+        addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
+        addTransition(CONTRIBUTED, ABORTED_ON_CONTRIBUTION_TIMEOUT);
+        addTransition(OUT_OF_GAS, ABORTED_ON_CONTRIBUTION_TIMEOUT);
+        addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
+        addTransition(CONTRIBUTED, ABORTED_ON_CONSENSUS_REACHED);
+        addTransition(OUT_OF_GAS, ABORTED_ON_CONSENSUS_REACHED);
 
         addTransition(CONTRIBUTED, CANT_REVEAL);
         addTransition(CONTRIBUTED, OUT_OF_GAS);
@@ -54,17 +54,17 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     }
 
-    private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus status) {
-        addTransition(CREATED, status);
-        addTransition(RUNNING, status);
-        addTransition(APP_DOWNLOADING, status);
-        addTransition(APP_DOWNLOADED, status);
-        addTransition(APP_DOWNLOAD_FAILED, status);
-        addTransition(COMPUTING, status);
-        addTransition(COMPUTED, status);
-        addTransition(CONTRIBUTING, status);
-        addTransition(CONTRIBUTED, status);
-        addTransition(CONTRIBUTE_FAILED, status);
+    public static synchronized ReplicateWorkflow getInstance() {
+        if (instance == null) {
+            instance = new ReplicateWorkflow();
+        }
+        return instance;
+    }
+
+    private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus to) {
+        for (ReplicateStatus from : getStatusesBeforeContributed()) {
+            addTransition(from, to);
+        }
     }
 
     private void addTransitionToAllStatus(ReplicateStatus status) {
@@ -83,12 +83,5 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADING, status);
         addTransition(RESULT_UPLOADED, status);
         addTransition(RESULT_UPLOAD_REQUEST_FAILED, status);
-    }
-
-    public static synchronized ReplicateWorkflow getInstance() {
-        if (instance == null) {
-            instance = new ReplicateWorkflow();
-        }
-        return instance;
     }
 }
