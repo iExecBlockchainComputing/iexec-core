@@ -34,10 +34,10 @@ public class AuthorizationService {
             log.error("Eip712ChallengeString has a bad signature format [downloadRequester:{}]", walletAddress);
             return false;
         }
-        String v = challengeSignature.substring(128, 130);
-        String s = challengeSignature.substring(64, 128);
         String r = challengeSignature.substring(0, 64);
-
+        String s = challengeSignature.substring(64, 128);
+        String v = challengeSignature.substring(128, 130);
+        
         //ONE: check if eip712Challenge is in eip712Challenge map
         if (!challengeService.containsEip712ChallengeString(eip712ChallengeString)) {
             log.error("Eip712ChallengeString provided doesn't match any challenge [downloadRequester:{}]", walletAddress);
@@ -56,6 +56,10 @@ public class AuthorizationService {
     }
 
     Authorization getAuthorizationFromToken(String token) {
+        if (token == null) {
+            return null;
+        }
+
         String[] parts = token.split("_");
         if (parts.length == 3){
             return Authorization.builder()
@@ -63,6 +67,7 @@ public class AuthorizationService {
                     .challengeSignature(parts[1])
                     .walletAddress(parts[2]).build();
         }
+
         return null;
     }
 

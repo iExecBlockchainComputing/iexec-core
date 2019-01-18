@@ -28,7 +28,25 @@ public class ResultController {
     }
 
     @PostMapping("/results")
-    public ResponseEntity addResult(@RequestBody ResultModel model) {
+    public ResponseEntity<String> addResult(
+            @RequestHeader("Authorization") String token,
+            @RequestBody ResultModel model) {
+
+        if (model == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
+        }                                
+
+        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+
+        if (!authorizationService.isAuthorizationValid(auth)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
+        boolean canUploadResult = resultService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
+        if (!canUploadResult) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
         String filename = resultService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
@@ -37,7 +55,39 @@ public class ResultController {
                         .deterministHash(model.getDeterministHash())
                         .build(),
                 model.getZip());
+
+        if (filename.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
+        }
+
+        log.info("Result uploaded successfully [chainTaskId:{}, uploadRequester:{}]",
+                model.getChainTaskId(), auth.getWalletAddress());
+
         return ok(filename);
+    }
+
+    // this is to be confirmed
+    @RequestMapping(method=RequestMethod.HEAD, path="/result/{chainTaskId}")
+    public ResponseEntity<String> checkIfResultHasBeenUploaded(
+            @PathVariable(name="chainTaskId") String chainTaskId,
+            @RequestHeader("Authorization") String token) {
+
+        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+
+        if (!authorizationService.isAuthorizationValid(auth)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
+        if (chainTaskId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
+        }
+
+        boolean isResultInDatabase = resultService.isResultInDatabase(chainTaskId);
+        if (!isResultInDatabase) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
+        }
+        
+        return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
     }
 
     /*
