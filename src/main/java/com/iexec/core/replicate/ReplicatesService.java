@@ -131,9 +131,11 @@ public class ReplicatesService {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             //TODO think: When do we really need more replicates?
-            if (!(replicate.getCurrentStatus().equals(ReplicateStatus.CANT_CONTRIBUTE)
-                    || replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)
-                    || replicate.isContributingPeriodTooLong(timeRef))) {
+            boolean isReplicateSuccessfullSoFar = ReplicateStatus.getSuccessStatuses().contains(replicate.getCurrentStatus());
+            boolean doesContributionTakesTooLong = !replicate.containsContributedStatus() &&
+                    replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef);
+
+            if (isReplicateSuccessfullSoFar && !doesContributionTakesTooLong) {
                 nbValidReplicates++;
             }
         }
@@ -193,10 +195,15 @@ public class ReplicatesService {
 
         replicate.updateStatus(newStatus, modifier);
         replicatesRepository.save(optionalReplicates.get());
+
+        // if replicate is not busy anymore, it can notify it
+        if(!replicate.isBusyComputing()) {
+            applicationEventPublisher.publishEvent(new ReplicateComputedEvent(replicate));
+        }
+
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
-
     }
 
     @Recover

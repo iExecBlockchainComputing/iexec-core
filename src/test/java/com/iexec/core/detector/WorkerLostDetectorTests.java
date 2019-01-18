@@ -4,8 +4,6 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -57,7 +55,7 @@ public class WorkerLostDetectorTests {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .lastAliveDate(twoMinutesAgo)
-                .chainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
+                .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
 
 
@@ -85,7 +83,7 @@ public class WorkerLostDetectorTests {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .lastAliveDate(twoMinutesAgo)
-                .chainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
+                .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);

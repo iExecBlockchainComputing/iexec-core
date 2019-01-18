@@ -14,6 +14,7 @@ import java.util.*;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -351,10 +352,10 @@ public class ReplicateServiceTests {
         Replicate runningReplicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         runningReplicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
         Replicate notRespondingReplicate1 = mock(Replicate.class);
-        when(notRespondingReplicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(notRespondingReplicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
         when(notRespondingReplicate1.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
         Replicate notRespondingReplicate2 = mock(Replicate.class);
-        when(notRespondingReplicate2.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(notRespondingReplicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
         when(notRespondingReplicate2.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
 
 
@@ -402,9 +403,10 @@ public class ReplicateServiceTests {
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
 
@@ -486,9 +488,10 @@ public class ReplicateServiceTests {
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 
@@ -510,9 +513,10 @@ public class ReplicateServiceTests {
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 }

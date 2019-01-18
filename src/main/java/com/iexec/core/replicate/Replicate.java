@@ -77,18 +77,16 @@ public class Replicate {
         return containsStatus(CONTRIBUTED);
     }
 
-    boolean isCreatedLongAgo(Date timeRef) {
+    public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, Date timeRef) {
         Date creationDate = this.getStatusChangeList().get(0).getDate();
-        Date twoPeriodsAfterCreationDate = new Date(creationDate.getTime() + 2 * timeRef.getTime());
+        Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * timeRef.getTime());
         Date now = new Date();
 
-        return now.after(twoPeriodsAfterCreationDate);
+        return now.after(numberPeriodsAfterCreationDate);
     }
 
-    public boolean isContributingPeriodTooLong(Date timeRef) {
-        if (this.containsContributedStatus()) {
-            return false;
-        }
-        return this.isCreatedLongAgo(timeRef);
+    public boolean isBusyComputing() {
+        return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
+
 }

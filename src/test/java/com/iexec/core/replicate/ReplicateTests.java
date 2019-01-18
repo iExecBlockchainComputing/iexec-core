@@ -93,7 +93,7 @@ public class ReplicateTests {
         oldCreationDate.setDate(new Date(now.getTime() - 3 * timeRef.getTime()));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedLongAgo(timeRef)).isTrue();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isTrue();
     }
 
     @Test
@@ -105,57 +105,33 @@ public class ReplicateTests {
         oldCreationDate.setDate(new Date(now.getTime() - timeRef.getTime()));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedLongAgo(timeRef)).isFalse();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isFalse();
     }
 
     @Test
-    public void shouldReturnTrueForIsContributingPeriodTooLong(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
+    public void shouldBeBusyComputing() {
+        Replicate replicate = new Replicate("worker", "taskId");
+        assertThat(replicate.isBusyComputing()).isTrue();
+        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isTrue();
+        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isTrue();
+        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADED, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isTrue();
+        replicate.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isTrue();
 
-        when(replicate.containsContributedStatus()).thenReturn(false);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(true);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isTrue();
+        replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
+        replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
+        replicate.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
+        replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
+        replicate.updateStatus(ReplicateStatus.COMPLETED, ReplicateStatusModifier.WORKER);
+        assertThat(replicate.isBusyComputing()).isFalse();
     }
-
-
-    @Test
-    public void shouldReturnFalseIfContributed1(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(true);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(false);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
-    }
-
-    @Test
-    public void shouldReturnFalseIfContributed2(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(true);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(true);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
-    }
-
-
-    @Test
-    public void shouldReturnFalseIfNotContributedButStillHaveTime(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(false);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(false);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
-    }
-
 }

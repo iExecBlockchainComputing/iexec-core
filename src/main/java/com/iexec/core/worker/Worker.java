@@ -21,19 +21,27 @@ public class Worker {
     private String os;
     private String cpu;
     private int cpuNb;
-    private List<String> chainTaskIds;
+    private List<String> participatingChainTaskIds;
+    private List<String> computingChainTaskIds;
 
     private Date lastAliveDate;
 
     public Worker() {
-        chainTaskIds = new ArrayList<>();
+        participatingChainTaskIds = new ArrayList<>();
+        computingChainTaskIds = new ArrayList<>();
     }
 
     void addChainTaskId(String chainTaskId) {
-        chainTaskIds.add(chainTaskId);
+        participatingChainTaskIds.add(chainTaskId);
+        computingChainTaskIds.add(chainTaskId);
     }
 
     void removeChainTaskId(String chainTaskId) {
-        chainTaskIds.remove(chainTaskId);
+        participatingChainTaskIds.remove(chainTaskId);
+        computingChainTaskIds.remove(chainTaskId);
+    }
+
+    void removeComputedChainTaskId(String chainTaskId) {
+        computingChainTaskIds.remove(chainTaskId);
     }
 }
