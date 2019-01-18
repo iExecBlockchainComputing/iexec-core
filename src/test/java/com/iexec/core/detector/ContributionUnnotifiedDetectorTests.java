@@ -75,7 +75,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(true);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(false);
@@ -94,7 +94,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isContributingPeriodTooLong(any())).thenReturn(false);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(false);
 
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);

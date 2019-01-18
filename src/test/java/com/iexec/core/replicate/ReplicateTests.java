@@ -93,7 +93,7 @@ public class ReplicateTests {
         oldCreationDate.setDate(new Date(now.getTime() - 3 * timeRef.getTime()));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedLongAgo(timeRef)).isTrue();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isTrue();
     }
 
     @Test
@@ -105,57 +105,7 @@ public class ReplicateTests {
         oldCreationDate.setDate(new Date(now.getTime() - timeRef.getTime()));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedLongAgo(timeRef)).isFalse();
-    }
-
-    @Test
-    public void shouldReturnTrueForIsContributingPeriodTooLong(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(false);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(true);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isTrue();
-    }
-
-
-    @Test
-    public void shouldReturnFalseIfContributed1(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(true);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(false);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
-    }
-
-    @Test
-    public void shouldReturnFalseIfContributed2(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(true);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(true);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
-    }
-
-
-    @Test
-    public void shouldReturnFalseIfNotContributedButStillHaveTime(){
-        final Date timeRef = new Date(60000);
-        Replicate replicate = mock(Replicate.class);
-
-        when(replicate.containsContributedStatus()).thenReturn(false);
-        when(replicate.isCreatedLongAgo(timeRef)).thenReturn(false);
-
-        when(replicate.isContributingPeriodTooLong(timeRef)).thenCallRealMethod();
-        assertThat(replicate.isContributingPeriodTooLong(timeRef)).isFalse();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isFalse();
     }
 
     @Test

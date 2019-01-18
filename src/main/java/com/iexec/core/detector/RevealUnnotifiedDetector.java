@@ -37,14 +37,15 @@ public class RevealUnnotifiedDetector implements Detector {
         //check if a worker has revealed on-chain but hasn't notified off-chain
         for (Task task : taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())) {
             boolean taskUpdateRequired = false;
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
+            String taskId = task.getChainTaskId();
+            for (Replicate replicate : replicatesService.getReplicates(taskId)) {
                 boolean isStatusRevealedOffChain = replicate.containsStatus(REVEALED);
-                boolean isStatusRevealedOnChain = iexecHubService.checkContributionStatus(task.getChainTaskId(),
-                        replicate.getWalletAddress(), ChainContributionStatus.REVEALED);
                 boolean isConsensusReachedLongAgo = task.isConsensusReachedSinceMultiplePeriods(1);
+                String wallet = replicate.getWalletAddress();
 
-                if (!isStatusRevealedOffChain && isStatusRevealedOnChain && isConsensusReachedLongAgo) {
-                    replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
+                if (!isStatusRevealedOffChain && isConsensusReachedLongAgo &&
+                        iexecHubService.checkContributionStatus(taskId, wallet, ChainContributionStatus.REVEALED)) {
+                    replicatesService.updateReplicateStatus(taskId, wallet,
                             REVEALED, ReplicateStatusModifier.POOL_MANAGER);
                     taskUpdateRequired = true;
                 }
