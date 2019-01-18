@@ -402,9 +402,10 @@ public class ReplicateServiceTests {
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
 
@@ -486,9 +487,10 @@ public class ReplicateServiceTests {
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 
@@ -510,9 +512,10 @@ public class ReplicateServiceTests {
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+        Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 }

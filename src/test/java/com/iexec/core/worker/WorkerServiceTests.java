@@ -136,9 +136,6 @@ public class WorkerServiceTests {
     public void shouldAddTaskIdToWorker(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        List<String> listIds = new ArrayList<>();
-        listIds.add("task1");
-        listIds.add("task2");
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
@@ -147,7 +144,8 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .chainTaskIds(listIds)
+                .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
@@ -156,8 +154,10 @@ public class WorkerServiceTests {
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", walletAddress);
         assertThat(addedWorker.isPresent()).isTrue();
         Worker worker = addedWorker.get();
-        assertThat(worker.getChainTaskIds().size()).isEqualTo(3);
-        assertThat(worker.getChainTaskIds().get(2)).isEqualTo("task3");
+        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getParticipatingChainTaskIds().get(2)).isEqualTo("task3");
+        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getComputingChainTaskIds().get(2)).isEqualTo("task3");
     }
 
     @Test
@@ -171,9 +171,6 @@ public class WorkerServiceTests {
     public void shouldRemoveTaskIdFromWorker(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        List<String> listIds = new ArrayList<>();
-        listIds.add("task1");
-        listIds.add("task2");
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
@@ -182,7 +179,8 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .chainTaskIds(listIds)
+                .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
@@ -191,8 +189,10 @@ public class WorkerServiceTests {
         Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("task2", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
-        assertThat(worker.getChainTaskIds().size()).isEqualTo(1);
-        assertThat(worker.getChainTaskIds().get(0)).isEqualTo("task1");
+        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getParticipatingChainTaskIds().get(0)).isEqualTo("task1");
+        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task1");
     }
 
     @Test
@@ -206,9 +206,8 @@ public class WorkerServiceTests {
     public void shouldNotRemoveAnythingSinceTaskIdNotFound(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        List<String> listIds = new ArrayList<>();
-        listIds.add("task1");
-        listIds.add("task2");
+        List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        List<String> computingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .name(workerName)
@@ -217,7 +216,8 @@ public class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .lastAliveDate(new Date())
-                .chainTaskIds(listIds)
+                .participatingChainTaskIds(participatingIds)
+                .computingChainTaskIds(computingIds)
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
@@ -226,8 +226,98 @@ public class WorkerServiceTests {
         Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("dummyTaskId", walletAddress);
         assertThat(removedWorker.isPresent()).isTrue();
         Worker worker = removedWorker.get();
-        assertThat(worker.getChainTaskIds().size()).isEqualTo(2);
-        assertThat(worker.getChainTaskIds()).isEqualTo(listIds);
+        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
+
+        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getComputingChainTaskIds()).isEqualTo(computingIds);
+    }
+
+    @Test
+    public void shouldRemoveComputedChainTaskIdFromWorker(){
+        String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        List<String> computingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .participatingChainTaskIds(participatingIds)
+                .computingChainTaskIds(computingIds)
+                .build();
+
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", walletAddress);
+        assertThat(removedWorker.isPresent()).isTrue();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
+
+        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task2");
+    }
+
+    @Test
+    public void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
+        String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        List<String> computingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .participatingChainTaskIds(participatingIds)
+                .computingChainTaskIds(computingIds)
+                .build();
+
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", walletAddress);
+        assertThat(removedWorker.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
+        String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        List<String> computingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .participatingChainTaskIds(participatingIds)
+                .computingChainTaskIds(computingIds)
+                .build();
+
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("dummyTaskId", walletAddress);
+        assertThat(removedWorker.isPresent()).isTrue();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
+
+        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getComputingChainTaskIds()).isEqualTo(computingIds);
     }
 
     @Test
@@ -291,9 +381,11 @@ public class WorkerServiceTests {
     @Test
     public void shouldAcceptMoreWorks() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        List<String> chainTaskIds = Arrays.asList("task1", "task2");
 
-        Worker worker = getDummyWorker(walletAddress, 3, chainTaskIds);
+        Worker worker = getDummyWorker(walletAddress,
+                3,
+                Arrays.asList("task1", "task2", "task3", "task4", "task5"),
+                Arrays.asList("task1", "task3"));
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(worker));
 
         assertThat(workerService.canAcceptMoreWorks(walletAddress)).isTrue();
@@ -312,9 +404,11 @@ public class WorkerServiceTests {
     @Test
     public void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        List<String> chainTaskIds = Arrays.asList("task1", "task2");
 
-        Worker worker = getDummyWorker(walletAddress, 2, chainTaskIds);
+        Worker worker = getDummyWorker(walletAddress,
+                2,
+                Arrays.asList("task1", "task2", "task3", "task4"),
+                Arrays.asList("task1", "task3"));
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.of(worker));
 
         assertThat(workerService.canAcceptMoreWorks(walletAddress)).isFalse();
@@ -330,11 +424,12 @@ public class WorkerServiceTests {
         return dummyWorkers;
     }
 
-    Worker getDummyWorker(String walletAddress, int cpuNb, List<String> chainTaskIds) {
+    Worker getDummyWorker(String walletAddress, int cpuNb, List<String> participatingIds, List<String> computingIds) {
         return Worker.builder()
                 .walletAddress(walletAddress)
                 .cpuNb(cpuNb)
-                .chainTaskIds(chainTaskIds)
+                .participatingChainTaskIds(participatingIds)
+                .computingChainTaskIds(computingIds)
                 .build();
     }
 }

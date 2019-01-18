@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 
@@ -99,6 +100,8 @@ public class WorkerController {
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
                 .lastAliveDate(new Date())
+                .participatingChainTaskIds(new ArrayList<>())
+                .computingChainTaskIds(new ArrayList<>())
                 .build();
 
         Worker savedWorker = workerService.addWorker(worker);

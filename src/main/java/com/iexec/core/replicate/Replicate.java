@@ -99,4 +99,9 @@ public class Replicate {
         }
         return this.isCreatedLongAgo(timeRef);
     }
+
+    public boolean isBusyComputing() {
+        return ReplicateStatus.getStatusesBeforeComputed().contains(getCurrentStatus());
+    }
+
 }

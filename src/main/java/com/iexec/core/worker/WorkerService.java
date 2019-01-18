@@ -69,6 +69,17 @@ public class WorkerService {
         return Optional.empty();
     }
 
+    public Optional<Worker> removeComputedChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.removeComputedChainTaskId(chainTaskId);
+            log.info("Removed computed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+
 
     // worker is considered lost if it didn't ping for 1 minute
     public List<Worker> getLostWorkers() {
@@ -90,7 +101,7 @@ public class WorkerService {
 
         Worker worker = optionalWorker.get();
         int workerCpuNb = worker.getCpuNb();
-        int runningReplicateNb = worker.getChainTaskIds().size();
+        int runningReplicateNb = worker.getComputingChainTaskIds().size();
 
         if (runningReplicateNb >= workerCpuNb) {
             log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerCpuNb:{}]",

@@ -194,10 +194,15 @@ public class ReplicatesService {
 
         replicate.updateStatus(newStatus, modifier);
         replicatesRepository.save(optionalReplicates.get());
+
+        // if replicate is not busy anymore, it can notify it
+        if(!replicate.isBusyComputing()) {
+            applicationEventPublisher.publishEvent(new ReplicateComputedEvent(replicate));
+        }
+
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
-
     }
 
     @Recover
