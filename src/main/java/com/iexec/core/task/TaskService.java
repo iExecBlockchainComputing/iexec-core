@@ -100,7 +100,7 @@ public class TaskService {
 
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
-            if (!replicatesService.hasWorkerAlreadyContributed(chainTaskId, walletAddress) &&
+            if (!replicatesService.hasWorkerAlreadyParticipated(chainTaskId, walletAddress) &&
                     replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded(), task.getTimeRef())) {
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
