@@ -101,7 +101,7 @@ public class Replicate {
     }
 
     public boolean isBusyComputing() {
-        return ReplicateStatus.getStatusesBeforeComputed().contains(getCurrentStatus());
+        return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
 
 }
