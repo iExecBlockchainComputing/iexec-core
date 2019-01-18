@@ -21,7 +21,7 @@ import java.util.Date;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class ContributionTimeoutDetectorTests {
+public class ContributionTimeoutTaskDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
@@ -39,7 +39,7 @@ public class ContributionTimeoutDetectorTests {
 
     @Spy
     @InjectMocks
-    private ContributionTimeoutDetector contributionDetector;
+    private ContributionTimeoutTaskDetector contributionDetector;
 
     @Before
     public void init() {
@@ -93,21 +93,9 @@ public class ContributionTimeoutDetectorTests {
         task.changeStatus(TaskStatus.RUNNING);
         task.setContributionDeadline(oneMinuteBeforeNow);
 
-        Replicate replicate1 = new Replicate("0x1", CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.CREATED, ReplicateStatusModifier.POOL_MANAGER);
-
-        Replicate replicate2 = new Replicate("0x2", CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
-
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1, replicate2));
+
         contributionDetector.detect();
-
-        Mockito.verify(workerService, Mockito.times(2))
-                .removeChainTaskIdFromWorker(any(), any());
-
-        Mockito.verify(replicatesService, Mockito.times(2))
-                .updateReplicateStatus(any(), any(), any(), any());
 
         Mockito.verify(taskService, Mockito.times(1))
                 .tryToMoveTaskToNextStatus(any());
