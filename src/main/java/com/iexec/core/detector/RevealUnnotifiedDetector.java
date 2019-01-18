@@ -38,11 +38,12 @@ public class RevealUnnotifiedDetector implements Detector {
         for (Task task : taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())) {
             boolean taskUpdateRequired = false;
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                boolean revealButDontNotify = !replicate.containsStatus(REVEALED) &&
-                        task.isConsensusReachedSinceMultiplePeriods(1) &&
-                        iexecHubService.checkContributionStatus(task.getChainTaskId(),
-                                replicate.getWalletAddress(), ChainContributionStatus.REVEALED);
-                if (revealButDontNotify) {
+                boolean isStatusRevealedOffChain = replicate.containsStatus(REVEALED);
+                boolean isStatusRevealedOnChain = iexecHubService.checkContributionStatus(task.getChainTaskId(),
+                        replicate.getWalletAddress(), ChainContributionStatus.REVEALED);
+                boolean isConsensusReachedLongAgo = task.isConsensusReachedSinceMultiplePeriods(1);
+
+                if (!isStatusRevealedOffChain && isStatusRevealedOnChain && isConsensusReachedLongAgo) {
                     replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
                             REVEALED, ReplicateStatusModifier.POOL_MANAGER);
                     taskUpdateRequired = true;
