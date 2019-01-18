@@ -883,7 +883,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
@@ -905,7 +905,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
         when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), timeRef)).thenReturn(false);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
@@ -929,7 +929,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
         when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), runningTask1.getTimeRef())).thenReturn(true);
 
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
