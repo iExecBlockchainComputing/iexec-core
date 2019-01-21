@@ -132,6 +132,7 @@ public class TaskService {
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
+                consensusReached2Reopened(task);
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
@@ -145,30 +146,6 @@ public class TaskService {
         }
     }
 
-    public void reOpenTask(Task task) {
-        boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
-        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-
-        if (canReopen) {
-            if (!hasEnoughGas) {
-                return;
-            }
-
-            updateTaskStatusAndSave(task, TaskStatus.REOPENING);
-            boolean isReopened = iexecHubService.reOpen(task.getChainTaskId());
-
-            if (isReopened) {
-                task.setConsensus(null);
-                task.setRevealDeadline(new Date(0));
-                updateTaskStatusAndSave(task, TaskStatus.REOPENED);
-                updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
-            } else {
-                updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
-            }
-        }
-
-    }
-    
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus);
@@ -280,6 +257,37 @@ public class TaskService {
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, AT_LEAST_ONE_REVEALED);
             requestUpload(task);
+        }
+    }
+
+    public void consensusReached2Reopened(Task task) {
+        Date now = new Date();
+
+        boolean isConsensusReachedStatus = task.getCurrentStatus().equals(CONSENSUS_REACHED);
+        boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
+        boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
+
+        if (isConsensusReachedStatus && isAfterRevealDeadline && !hasAtLeastOneReveal) {
+            boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
+            boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+
+            if (canReopen) {
+                if (!hasEnoughGas) {
+                    return;
+                }
+
+                updateTaskStatusAndSave(task, TaskStatus.REOPENING);
+                boolean isReopened = iexecHubService.reOpen(task.getChainTaskId());
+
+                if (isReopened) {
+                    task.setConsensus(null);
+                    task.setRevealDeadline(new Date(0));
+                    updateTaskStatusAndSave(task, TaskStatus.REOPENED);
+                    updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
+                } else {
+                    updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
+                }
+            }
         }
     }
 
