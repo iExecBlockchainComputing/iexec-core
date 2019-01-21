@@ -36,7 +36,6 @@ public class RevealUnnotifiedDetector implements Detector {
         log.info("Trying to detectUnNotifiedRevealed");
         //check if a worker has revealed on-chain but hasn't notified off-chain
         for (Task task : taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())) {
-            boolean taskUpdateRequired = false;
             String taskId = task.getChainTaskId();
             for (Replicate replicate : replicatesService.getReplicates(taskId)) {
                 boolean isStatusRevealedOffChain = replicate.containsStatus(REVEALED);
@@ -47,11 +46,7 @@ public class RevealUnnotifiedDetector implements Detector {
                         iexecHubService.checkContributionStatus(taskId, wallet, ChainContributionStatus.REVEALED)) {
                     replicatesService.updateReplicateStatus(taskId, wallet,
                             REVEALED, ReplicateStatusModifier.POOL_MANAGER);
-                    taskUpdateRequired = true;
                 }
-            }
-            if (taskUpdateRequired) {
-                taskService.tryToMoveTaskToNextStatus(task);
             }
         }
     }
