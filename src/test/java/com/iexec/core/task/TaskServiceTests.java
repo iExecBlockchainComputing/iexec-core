@@ -237,7 +237,7 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RECEIVED);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
 
@@ -246,23 +246,23 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, "");
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RECEIVED);
 
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceCantInitialize() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, "");
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RECEIVED);
 
         when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
     
@@ -293,7 +293,7 @@ public class TaskServiceTests {
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
     }
     
@@ -309,7 +309,7 @@ public class TaskServiceTests {
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
@@ -317,7 +317,7 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
 
         // test that double call doesn't change anything
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
@@ -332,7 +332,7 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
@@ -345,7 +345,7 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(RUNNING);
     }
@@ -359,7 +359,7 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(4);
         when(taskRepository.save(task)).thenReturn(task);
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
@@ -381,7 +381,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(CONTRIBUTION_TIMEOUT);
     }
@@ -402,7 +402,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getCurrentStatus()).isNotEqualTo(CONTRIBUTION_TIMEOUT);
     }
@@ -423,7 +423,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
                 .publishEvent(any());
     }
@@ -445,7 +445,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
 
-        taskService.tryToMoveTaskToNextStatus(task);
+        taskService.tryToMoveTaskToNextStatus(CHAIN_TASK_ID);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
