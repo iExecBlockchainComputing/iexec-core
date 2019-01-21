@@ -47,15 +47,13 @@ public class ResultService {
         }
 
         // ContributionStatus of chainTask should be REVEALED
-        boolean isChainStatusSetToRevealed = iexecHubService.checkContributionStatus(chainTaskId,
+        boolean isChainContributionStatusSetToRevealed = iexecHubService.checkContributionStatus(chainTaskId,
                 walletAddress, ChainContributionStatus.REVEALED);
-        if (!isChainStatusSetToRevealed) {
+        if (!isChainContributionStatusSetToRevealed) {
             log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
-
-        // TODO check if the result to be added is the correct result for that task
 
         return true;
     }
