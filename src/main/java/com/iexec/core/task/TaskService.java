@@ -111,7 +111,7 @@ public class TaskService {
         return Optional.empty();
     }
 
-    void tryToMoveTaskToNextStatus(String chainTaskId) {
+    void tryUpgradeTaskStatus(String chainTaskId) {
         Optional<Task> optional = getTaskByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
             return;

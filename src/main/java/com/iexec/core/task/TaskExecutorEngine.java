@@ -29,7 +29,7 @@ public class TaskExecutorEngine {
         executorMap.putIfAbsent(chainTaskId, ThreadPoolExecutorUtils.singleThreadExecutorWithFixedSizeQueue(1));
 
         Executor executor = executorMap.get(chainTaskId);
-        executor.execute(() -> taskService.tryToMoveTaskToNextStatus(chainTaskId));
+        executor.execute(() -> taskService.tryUpgradeTaskStatus(chainTaskId));
     }
 
     public void removeTaskExecutor(Task task){
