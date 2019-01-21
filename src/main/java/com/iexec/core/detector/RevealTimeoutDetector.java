@@ -66,7 +66,7 @@ public class RevealTimeoutDetector implements Detector {
                 }
                 // end TODO
                 log.info("Task with a reveal timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskExecutorEngine.updateTask(task);
+                taskExecutorEngine.updateTask(task.getChainTaskId());
             }
         }
     }
