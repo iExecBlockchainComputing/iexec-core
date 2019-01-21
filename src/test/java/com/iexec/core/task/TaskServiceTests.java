@@ -164,61 +164,130 @@ public class TaskServiceTests {
         assertThat(foundTasks).isEmpty();
     }
 
-    // Tests on reopenTask
+    // Tests on consensusReached2Reopened transition
 
     @Test
-    public void shouldNotReopenTaskSinceCannotReopenOnchain() {
+    public void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
-        task.changeStatus(FINALIZE_FAILED);
 
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
-
-        taskService.reOpenTask(task);
-
-        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZE_FAILED);
-    }
-
-    @Test
-    public void shouldNotReopenTaskSinceNotEnoughGas() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
-        task.changeStatus(FINALIZE_FAILED);
-
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(false);
-
-        taskService.reOpenTask(task);
-
-        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZE_FAILED);
-    }
-
-    @Test
-    public void shouldUpdate2ReopenFailed() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
-        task.changeStatus(FINALIZE_FAILED);
-
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(false);
-
-        taskService.reOpenTask(task);
-
-        assertThat(task.getCurrentStatus()).isEqualTo(REOPEN_FAILED);
-    }
-
-    @Test
-    public void shouldReopenTask() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
-        task.changeStatus(FINALIZE_FAILED);
-
+        task.changeStatus(RECEIVED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
 
-        taskService.reOpenTask(task);
+        taskService.consensusReached2Reopened(task);
 
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    @Test
+    public void shouldNotUpgrade2ReopenedSinceNotAfterRevealDeadline() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() + 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+    }
+
+    @Test
+    public void shouldNotUpgrade2ReopenedSinceNotWeHaveSomeRevealed() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+    }
+
+    @Test
+    public void shouldNotUpgrade2ReopenedSinceCantReopenOnChain() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+    }
+
+    @Test
+    public void shouldNotUpgrade2ReopenedSinceNotEnoughtGas() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+    }
+
+
+    @Test
+    public void shouldNotUpgrade2ReopenedBut2ReopendedFailedSinceTxFailed() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(false);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(REOPEN_FAILED);
+    }
+
+    @Test
+    public void shouldUpgrade2Reopened() {
+        Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+
+        task.changeStatus(CONSENSUS_REACHED);
+        task.setRevealDeadline(new Date(new Date().getTime() - 10));
+        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
+        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+
+        taskService.consensusReached2Reopened(task);
+
+        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(CONSENSUS_REACHED);
+        assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(REOPENING);
+        assertThat(task.getDateStatusList().get(3).getStatus()).isEqualTo(REOPENED);
+        assertThat(task.getDateStatusList().get(4).getStatus()).isEqualTo(INITIALIZED);
     }
 
     // Tests on received2Initialized transition
