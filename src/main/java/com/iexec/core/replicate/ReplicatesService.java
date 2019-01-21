@@ -203,7 +203,7 @@ public class ReplicatesService {
 
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus);
-        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate));
+        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
     }
 
     @Recover
