@@ -2,6 +2,7 @@ package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.dapp.DappType;
+import com.iexec.common.utils.HashUtils;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -69,6 +70,7 @@ public class Task {
         this(dappName, commandLine, trust);
         this.chainDealId = chainDealId;
         this.taskIndex = taskIndex;
+        this.chainTaskId = HashUtils.concatenateAndHash(chainDealId, String.valueOf(taskIndex));
         this.timeRef = timeRef;
         this.tag = tag;
         this.chainTaskId = "";

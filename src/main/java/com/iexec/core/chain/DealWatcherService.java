@@ -1,7 +1,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -77,7 +76,7 @@ public class DealWatcherService {
                         chainDeal.getTrust().intValue(),
                         chainDeal.getChainCategory().getMaxExecutionTime(),
                         chainDeal.getTag());
-                optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task)));
+                optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
             }
         } catch (Exception e) {
             e.printStackTrace();

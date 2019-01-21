@@ -40,7 +40,6 @@ public class ContributionUnnotifiedDetector implements Detector {
     public void detect() {
         log.info("Trying to detect un-notified contributed");
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            boolean doesTaskNeedUpdate = false;
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 //check if a worker has contributed on-chain but hasn't notified off-chain
                 boolean hasReplicateContributedOffChain = replicate.containsContributedStatus();
@@ -49,11 +48,7 @@ public class ContributionUnnotifiedDetector implements Detector {
                 if (!hasReplicateContributedOffChain && isReplicateOld &&
                         iexecHubService.checkContributionStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate);
-                    doesTaskNeedUpdate = true;
                 }
-            }
-            if (doesTaskNeedUpdate) {
-                taskService.tryToMoveTaskToNextStatus(task);
             }
         }
     }

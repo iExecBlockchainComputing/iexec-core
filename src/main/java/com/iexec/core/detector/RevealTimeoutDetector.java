@@ -79,7 +79,6 @@ public class RevealTimeoutDetector implements Detector {
                                 REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 }
-
                 taskService.reOpenTask(task);
             }
         }
