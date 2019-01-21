@@ -124,7 +124,7 @@ public class DealWatcherServiceTests {
 
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new TaskCreatedEvent(task));
+        assertThat(argumentCaptor.getValue()).isEqualTo(new TaskCreatedEvent(task.getChainTaskId()));
     }
 
     @Test

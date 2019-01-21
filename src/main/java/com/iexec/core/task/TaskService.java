@@ -178,10 +178,9 @@ public class TaskService {
     }
 
     private void received2Initialized(Task task) {
-        boolean isChainTaskIdEmpty = task.getChainTaskId() != null && task.getChainTaskId().isEmpty();
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
-        if (isChainTaskIdEmpty && isCurrentStatusReceived) {
+        if (isCurrentStatusReceived) {
 
             boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
             boolean hasEnoughGas = iexecHubService.hasEnoughGas();
@@ -191,16 +190,15 @@ public class TaskService {
             }
 
             updateTaskStatusAndSave(task, INITIALIZING);
-
+            String existingChainTaskId = task.getChainTaskId();
             String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
-            if (!chainTaskId.isEmpty()) {
+            if (!chainTaskId.isEmpty() && chainTaskId.equalsIgnoreCase(existingChainTaskId)) {
                 Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
                 if (!optional.isPresent()) {
                     return;
                 }
                 ChainTask chainTask = optional.get();
 
-                task.setChainTaskId(chainTaskId);
                 task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
                 task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
                 //TODO Put other fields?

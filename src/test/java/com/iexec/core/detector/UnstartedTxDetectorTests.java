@@ -42,7 +42,7 @@ public class UnstartedTxDetectorTests {
         unstartedTxDetector.detect();
 
         Mockito.verify(taskExecutorEngine, Mockito.times(1))
-                .updateTask(task);
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -56,7 +56,7 @@ public class UnstartedTxDetectorTests {
         unstartedTxDetector.detect();
 
         Mockito.verify(taskExecutorEngine, Mockito.times(0))
-                .updateTask(task);
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class UnstartedTxDetectorTests {
         unstartedTxDetector.detect();
 
         Mockito.verify(taskExecutorEngine, Mockito.times(1))
-                .updateTask(task);
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -84,7 +84,7 @@ public class UnstartedTxDetectorTests {
         unstartedTxDetector.detect();
 
         Mockito.verify(taskExecutorEngine, Mockito.times(0))
-                .updateTask(task);
+                .updateTask(task.getChainTaskId());
     }
 
 
