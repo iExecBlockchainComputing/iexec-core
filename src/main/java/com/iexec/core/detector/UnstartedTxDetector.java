@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -14,9 +15,12 @@ import java.util.List;
 public class UnstartedTxDetector implements Detector {
 
     private TaskService taskService;
+    private TaskExecutorEngine taskExecutorEngine;
 
-    public UnstartedTxDetector(TaskService taskService) {
+    public UnstartedTxDetector(TaskService taskService,
+                               TaskExecutorEngine taskExecutorEngine) {
         this.taskService = taskService;
+        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${detector.unstartedtx.period}")
@@ -27,7 +31,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetFinalizingTasks) {
             log.info("UnstartedTxDetector should update RESULT_UPLOADED task to FINALIZING [chainTaskId:{}]",
                     task.getChainTaskId());
-            taskService.tryToMoveTaskToNextStatus(task);
+            taskExecutorEngine.updateTask(task);
         }
 
         //start initialize when needed
@@ -35,7 +39,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetInitializingTasks) {
             log.info("UnstartedTxDetector should update RECEIVED task to INITIALIZING [chainDealId:{}, taskIndex:{}]",
                     task.getChainDealId(), task.getTaskIndex());
-            taskService.tryToMoveTaskToNextStatus(task);
+            taskExecutorEngine.updateTask(task);
         }
     }
 }

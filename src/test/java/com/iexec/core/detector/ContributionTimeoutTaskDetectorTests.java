@@ -1,11 +1,9 @@
 package com.iexec.core.detector;
 
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.utils.DateTimeUtils;
@@ -29,13 +27,13 @@ public class ContributionTimeoutTaskDetectorTests {
     private TaskService taskService;
 
     @Mock
+    private TaskExecutorEngine taskExecutorEngine;
+
+    @Mock
     private ReplicatesService replicatesService;
 
     @Mock
     private WorkerService workerService;
-
-    @Mock
-    private IexecHubService iexecHubService;
 
     @Spy
     @InjectMocks
@@ -57,8 +55,8 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(any());
+        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+                .updateTask(any());
     }
 
     @Test
@@ -79,8 +77,8 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(any());
+        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+                .updateTask(any());
     }
 
 
@@ -97,7 +95,7 @@ public class ContributionTimeoutTaskDetectorTests {
 
         contributionDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1))
-                .tryToMoveTaskToNextStatus(any());
+        Mockito.verify(taskExecutorEngine, Mockito.times(1))
+                .updateTask(any());
     }
 }
