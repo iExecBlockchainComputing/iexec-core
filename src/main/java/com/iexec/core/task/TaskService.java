@@ -111,7 +111,13 @@ public class TaskService {
         return Optional.empty();
     }
 
-    public void tryToMoveTaskToNextStatus(Task task) {
+    void tryUpgradeTaskStatus(String chainTaskId) {
+        Optional<Task> optional = getTaskByChainTaskId(chainTaskId);
+        if (!optional.isPresent()) {
+            return;
+        }
+        Task task = optional.get();
+
         switch (task.getCurrentStatus()) {
             case RECEIVED:
                 received2Initialized(task);
@@ -162,7 +168,7 @@ public class TaskService {
         }
 
     }
-
+    
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus);
@@ -172,29 +178,27 @@ public class TaskService {
     }
 
     private void received2Initialized(Task task) {
-        boolean isChainTaskIdEmpty = task.getChainTaskId() != null && task.getChainTaskId().isEmpty();
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
-        if (isChainTaskIdEmpty && isCurrentStatusReceived) {
+        if (isCurrentStatusReceived) {
 
             boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
             boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
-            if (!canInitialize || !hasEnoughGas){
+            if (!canInitialize || !hasEnoughGas) {
                 return;
             }
 
             updateTaskStatusAndSave(task, INITIALIZING);
-
+            String existingChainTaskId = task.getChainTaskId();
             String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
-            if (!chainTaskId.isEmpty()) {
+            if (!chainTaskId.isEmpty() && chainTaskId.equalsIgnoreCase(existingChainTaskId)) {
                 Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
                 if (!optional.isPresent()) {
                     return;
                 }
                 ChainTask chainTask = optional.get();
 
-                task.setChainTaskId(chainTaskId);
                 task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
                 task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
                 //TODO Put other fields?
@@ -312,7 +316,7 @@ public class TaskService {
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
-            
+
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }
     }
@@ -329,7 +333,7 @@ public class TaskService {
 
         int onChainReveal = chainTask.getRevealCounter();
         int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
-                //+ replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
+        //+ replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (isTaskInResultUploaded && canFinalize && offChainRevealEqualsOnChainReveal) {

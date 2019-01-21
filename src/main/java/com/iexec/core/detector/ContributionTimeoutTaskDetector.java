@@ -32,7 +32,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {
                 log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskExecutorEngine.updateTask(task);
+                taskExecutorEngine.updateTask(task.getChainTaskId());
             }
         }
     }

@@ -31,7 +31,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetFinalizingTasks) {
             log.info("UnstartedTxDetector should update RESULT_UPLOADED task to FINALIZING [chainTaskId:{}]",
                     task.getChainTaskId());
-            taskExecutorEngine.updateTask(task);
+            taskExecutorEngine.updateTask(task.getChainTaskId());
         }
 
         //start initialize when needed
@@ -39,7 +39,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetInitializingTasks) {
             log.info("UnstartedTxDetector should update RECEIVED task to INITIALIZING [chainDealId:{}, taskIndex:{}]",
                     task.getChainDealId(), task.getTaskIndex());
-            taskExecutorEngine.updateTask(task);
+            taskExecutorEngine.updateTask(task.getChainTaskId());
         }
     }
 }
