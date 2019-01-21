@@ -56,19 +56,16 @@ public class AuthorizationService {
     }
 
     Authorization getAuthorizationFromToken(String token) {
-        if (token == null) {
+        if ((token == null) || (token.split("_").length != 3)) {
             return null;
         }
 
         String[] parts = token.split("_");
-        if (parts.length == 3){
-            return Authorization.builder()
-                    .challenge(parts[0])
-                    .challengeSignature(parts[1])
-                    .walletAddress(parts[2]).build();
-        }
-
-        return null;
+        return Authorization.builder()
+                .challenge(parts[0])
+                .challengeSignature(parts[1])
+                .walletAddress(parts[2])
+                .build();
     }
 
 }
