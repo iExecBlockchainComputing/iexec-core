@@ -167,7 +167,7 @@ public class TaskService {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus);
         Task savedTask = taskRepository.save(task);
-        log.info("UpdateTaskStatus suceeded [taskId:{}, currentStatus:{}, newStatus:{}]", task.getId(), currentStatus, newStatus);
+        log.info("UpdateTaskStatus suceeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
         return savedTask;
     }
 
