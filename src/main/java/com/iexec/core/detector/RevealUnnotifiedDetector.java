@@ -45,6 +45,8 @@ public class RevealUnnotifiedDetector implements Detector {
                 if (!isStatusRevealedOffChain && isConsensusReachedLongAgo &&
                         iexecHubService.checkContributionStatus(taskId, wallet, ChainContributionStatus.REVEALED)) {
                     replicatesService.updateReplicateStatus(taskId, wallet, REVEALED, ReplicateStatusModifier.POOL_MANAGER);
+                    replicatesService.updateReplicateStatus(taskId, wallet,
+                            REVEALED, ReplicateStatusModifier.POOL_MANAGER);
                 }
             }
         }

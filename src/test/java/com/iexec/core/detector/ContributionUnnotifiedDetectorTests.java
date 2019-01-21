@@ -6,6 +6,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.utils.DateTimeUtils;
@@ -32,9 +33,6 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Mock
     private ReplicatesService replicatesService;
-
-    @Mock
-    private WorkerService workerService;
 
     @Mock
     private IexecHubService iexecHubService;
@@ -64,8 +62,6 @@ public class ContributionUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(2))//CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
-        Mockito.verify(taskService, Mockito.times(1))
-                .tryToMoveTaskToNextStatus(any());
     }
 
     @Test
@@ -83,8 +79,6 @@ public class ContributionUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(any());
     }
 
     @Test
@@ -102,8 +96,6 @@ public class ContributionUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(any());
     }
 
 }

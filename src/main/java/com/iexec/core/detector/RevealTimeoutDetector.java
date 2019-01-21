@@ -4,6 +4,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +27,14 @@ public class RevealTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
+    private TaskExecutorEngine taskExecutorEngine;
 
     public RevealTimeoutDetector(TaskService taskService,
-                                 ReplicatesService replicatesService) {
+                                 ReplicatesService replicatesService,
+                                 TaskExecutorEngine taskExecutorEngine) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
+        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${detector.reveal.timeout.period}")
@@ -52,6 +56,7 @@ public class RevealTimeoutDetector implements Detector {
         for (Task task : tasks) {
             Date now = new Date();
             if (now.after(task.getRevealDeadline())) {
+                // TODO: Un-revealing workers should be notified to PLEASE_ABORT_ON_REVEAL_TIMEOUT elsewhere
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
                             replicate.getCurrentStatus().equals(CONTRIBUTED)) {
@@ -59,8 +64,9 @@ public class RevealTimeoutDetector implements Detector {
                                 REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 }
+                // end TODO
                 log.info("Task with a reveal timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskService.tryToMoveTaskToNextStatus(task);
+                taskExecutorEngine.updateTask(task);
             }
         }
     }
@@ -79,6 +85,7 @@ public class RevealTimeoutDetector implements Detector {
                                 REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
                 }
+                //TODO: We shouldn't call directly reOpenTask here but use taskExecutorEngine.updateTask(task);
                 taskService.reOpenTask(task);
             }
         }

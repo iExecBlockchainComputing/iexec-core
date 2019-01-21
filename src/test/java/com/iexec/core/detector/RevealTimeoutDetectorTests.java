@@ -7,6 +7,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import org.junit.Before;
@@ -34,6 +35,9 @@ public class RevealTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
+
+    @Mock
+    private TaskExecutorEngine taskExecutorEngine;
 
     @Mock
     private ReplicatesService replicatesService;
