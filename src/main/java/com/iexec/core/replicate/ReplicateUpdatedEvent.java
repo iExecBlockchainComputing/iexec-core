@@ -9,5 +9,5 @@ import lombok.*;
 @Setter
 public class ReplicateUpdatedEvent {
 
-    private Replicate replicate;
+    private String chainTaskId;
 }

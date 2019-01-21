@@ -406,7 +406,7 @@ public class ReplicateServiceTests {
         Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
 
@@ -491,7 +491,7 @@ public class ReplicateServiceTests {
         Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 
@@ -516,7 +516,7 @@ public class ReplicateServiceTests {
         Mockito.verify(applicationEventPublisher, Mockito.times(2))
                 .publishEvent(argumentCaptor.capture());
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate));
+        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 }

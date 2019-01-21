@@ -7,6 +7,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import org.junit.Before;
@@ -70,9 +71,6 @@ public class RevealUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(any(), any(), any(), any());
-
-        Mockito.verify(taskService, Mockito.times(1))
-                .tryToMoveTaskToNextStatus(Mockito.any());
     }
 
     @Test
@@ -96,9 +94,6 @@ public class RevealUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
-
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(Mockito.any());
     }
 
     @Test
@@ -122,9 +117,6 @@ public class RevealUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
-
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(Mockito.any());
     }
 
     @Test
@@ -148,8 +140,5 @@ public class RevealUnnotifiedDetectorTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
-
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(Mockito.any());
     }
 }

@@ -24,13 +24,12 @@ public class TaskExecutorEngine {
         executorMap = new ConcurrentHashMap<>();
     }
 
-    public void updateTask(Task task) {
-        String chainTaskId = task.getChainTaskId();
+    public void updateTask(String chainTaskId) {
 
         executorMap.putIfAbsent(chainTaskId, ThreadPoolExecutorUtils.singleThreadExecutorWithFixedSizeQueue(1));
 
         Executor executor = executorMap.get(chainTaskId);
-        executor.execute(() -> taskService.tryToMoveTaskToNextStatus(task));
+        executor.execute(() -> taskService.tryUpgradeTaskStatus(chainTaskId));
     }
 
     public void removeTaskExecutor(Task task){

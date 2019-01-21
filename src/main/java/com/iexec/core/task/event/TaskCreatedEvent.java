@@ -1,6 +1,5 @@
 package com.iexec.core.task.event;
 
-import com.iexec.core.task.Task;
 import lombok.*;
 
 @Data
@@ -10,5 +9,5 @@ import lombok.*;
 @Setter
 public class TaskCreatedEvent {
 
-    private Task task;
+    private String chainTaskId;
 }

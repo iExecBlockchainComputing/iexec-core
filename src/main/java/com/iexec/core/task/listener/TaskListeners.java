@@ -39,10 +39,8 @@ public class TaskListeners {
 
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
-        Task task = event.getTask();
-        log.info("Received TaskCreatedEvent [chainDealId:{}, taskIndex:{}] ",
-                task.getChainDealId(), task.getTaskIndex());
-        taskExecutorEngine.updateTask(task);
+        log.info("Received TaskCreatedEvent [chainTaskId:{}]", event.getChainTaskId());
+        taskExecutorEngine.updateTask(event.getChainTaskId());
     }
 
     @EventListener

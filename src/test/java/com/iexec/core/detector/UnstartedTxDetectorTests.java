@@ -1,6 +1,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,9 @@ public class UnstartedTxDetectorTests {
 
     @Mock
     private TaskService taskService;
+
+    @Mock
+    private TaskExecutorEngine taskExecutorEngine;
 
     @InjectMocks
     private UnstartedTxDetector unstartedTxDetector;
@@ -37,8 +41,8 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1))
-                .tryToMoveTaskToNextStatus(task);
+        Mockito.verify(taskExecutorEngine, Mockito.times(1))
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -51,8 +55,8 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(task);
+        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -65,8 +69,8 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1))
-                .tryToMoveTaskToNextStatus(task);
+        Mockito.verify(taskExecutorEngine, Mockito.times(1))
+                .updateTask(task.getChainTaskId());
     }
 
     @Test
@@ -79,8 +83,8 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .tryToMoveTaskToNextStatus(task);
+        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+                .updateTask(task.getChainTaskId());
     }
 
 
