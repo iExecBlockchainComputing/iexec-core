@@ -30,10 +30,6 @@ public class Web3jService {
     // blockNumber is different than 0 only for status the require a check on the blockchain, so the scheduler should
     // already have this block, otherwise it should wait for it until maxWaitingTime is reached (2 minutes)
     public boolean isBlockNumberAvailable(long blockNumber) {
-        if (blockNumber == 0) {
-            return true;
-        }
-
         long maxWaitingTime = 2 * 60 * 1000;
         final long startTime = System.currentTimeMillis();
         long duration = 0;
@@ -52,5 +48,4 @@ public class Web3jService {
 
         return false;
     }
-
 }
