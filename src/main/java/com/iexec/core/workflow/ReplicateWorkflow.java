@@ -76,6 +76,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(COMPUTING, status);
         addTransition(COMPUTED, status);
         addTransition(CONTRIBUTING, status);
+        addTransition(CANT_CONTRIBUTE, status);
         addTransition(CONTRIBUTED, status);
         addTransition(CONTRIBUTE_FAILED, status);
         addTransition(REVEALING, status);
@@ -83,5 +84,9 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADING, status);
         addTransition(RESULT_UPLOADED, status);
         addTransition(RESULT_UPLOAD_REQUEST_FAILED, status);
+        addTransition(COMPLETED, status);
+        addTransition(ABORTED_ON_CONTRIBUTION_TIMEOUT, status);
+        addTransition(ABORTED_ON_CONSENSUS_REACHED, status);
+        addTransition(OUT_OF_GAS, status);
     }
 }
