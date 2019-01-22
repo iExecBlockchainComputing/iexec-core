@@ -37,12 +37,10 @@ public class Web3jService {
         long maxWaitingTime = 2 * 60 * 1000;
         final long startTime = System.currentTimeMillis();
         long duration = 0;
-        boolean blockNumberReached = false;
-        while (!blockNumberReached && duration < maxWaitingTime) {
+        while (duration < maxWaitingTime) {
             try {
-                long currentBlock = getLatestBlockNumber();
-                if (blockNumber < currentBlock) {
-                    blockNumberReached = true;
+                if (blockNumber < getLatestBlockNumber()) {
+                    return true;
                 } else {
                     Thread.sleep(500);
                 }
@@ -52,7 +50,7 @@ public class Web3jService {
             duration = System.currentTimeMillis() - startTime;
         }
 
-        return blockNumberReached;
+        return false;
     }
 
 }
