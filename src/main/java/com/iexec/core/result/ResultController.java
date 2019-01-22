@@ -1,7 +1,7 @@
 package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
-import com.iexec.core.result.eip712.Eip712Challenge;
+import com.iexec.common.result.eip712.Eip712Challenge;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
