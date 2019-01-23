@@ -182,22 +182,21 @@ public class ReplicatesService {
             return;
         }
 
-        // check that the blockNumber is already available for the scheduler
-        if( !web3jService.isBlockNumberAvailable(blockNumber)) {
-            log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
-            return;
-        }
-
-        ChainContributionStatus wishedChainStatus = getChainStatus(newStatus);
-        if (wishedChainStatus != null) {
-            handleReplicateWithOnChainStatus(chainTaskId, walletAddress, replicate, wishedChainStatus);
+        if (isBlockchainStatus(newStatus)) {
+            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), blockNumber);
+            if (replicate == null) {
+                log.error("Failed to refresh replicate with onchain values [chainTaskId:{}, walletAddress:{}, " +
+                                "currentStatus:{}, newStatus:{}]",
+                        chainTaskId, walletAddress, currentStatus, newStatus);
+                return;
+            }
         }
 
         replicate.updateStatus(newStatus, modifier);
         replicatesRepository.save(optionalReplicates.get());
 
         // if replicate is not busy anymore, it can notify it
-        if(!replicate.isBusyComputing()) {
+        if (!replicate.isBusyComputing()) {
             applicationEventPublisher.publishEvent(new ReplicateComputedEvent(replicate));
         }
 
@@ -217,21 +216,39 @@ public class ReplicatesService {
         exception.printStackTrace();
     }
 
-    private void handleReplicateWithOnChainStatus(String chainTaskId, String walletAddress, Replicate replicate, ChainContributionStatus wishedChainStatus) {
-        Optional<ChainContribution> optional = iexecHubService.getContribution(chainTaskId, walletAddress);
+    private boolean isBlockchainStatus(ReplicateStatus newStatus) {
+        return getChainStatus(newStatus) != null;
+    }
+
+    private Replicate getOnChainRefreshedReplicate(Replicate replicate, ChainContributionStatus wishedChainStatus, long blockNumber) {
+        // check that the blockNumber is already available for the scheduler
+        if (!web3jService.isBlockNumberAvailable(blockNumber)) {
+            log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
+            return null;
+        }
+
+        if (wishedChainStatus != null) {//wishedChainStatus of blockchain type?
+            boolean isWishedStatusProvedOnChain = iexecHubService.checkContributionStatus(replicate.getChainTaskId(), replicate.getWalletAddress(), wishedChainStatus);
+            if (isWishedStatusProvedOnChain) {
+                return getReplicateWithBlockchainUpdates(replicate, wishedChainStatus);
+            } else {
+                log.error("Onchain status is different from wishedChainStatus (should wait?) [chainTaskId:{}, " +
+                        "blockNumber:{}, wishedChainStatus:{}]", replicate.getChainTaskId(), blockNumber, wishedChainStatus);
+            }
+        }
+        return null;
+    }
+
+    private Replicate getReplicateWithBlockchainUpdates(Replicate replicate, ChainContributionStatus wishedChainStatus) {
+        Optional<ChainContribution> optional = iexecHubService.getContribution(replicate.getChainTaskId(), replicate.getWalletAddress());
         if (!optional.isPresent()) {
-            return;
+            return replicate;
         }
         ChainContribution chainContribution = optional.get();
-        switch (wishedChainStatus) {
-            case CONTRIBUTED:
-                replicate.setContributionHash(chainContribution.getResultHash());
-                break;
-            case REVEALED:
-                break;
-            default:
-                break;
+        if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)){
+            replicate.setContributionHash(chainContribution.getResultHash());
         }
+        return replicate;
     }
 
 

@@ -480,6 +480,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
@@ -503,6 +504,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
         .resultHash("hash")
         .build()));
