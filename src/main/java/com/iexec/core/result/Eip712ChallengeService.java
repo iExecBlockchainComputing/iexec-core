@@ -3,6 +3,7 @@ package com.iexec.core.result;
 import com.iexec.common.utils.HashUtils;
 import com.iexec.common.result.eip712.Domain;
 import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.common.result.eip712.Eip712ChallengeUtils;
 import com.iexec.common.result.eip712.Message;
 import com.iexec.common.result.eip712.Types;
 import lombok.extern.slf4j.Slf4j;
