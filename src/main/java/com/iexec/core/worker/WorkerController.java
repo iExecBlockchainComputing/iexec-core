@@ -110,8 +110,9 @@ public class WorkerController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/workers/config")
-    public ResponseEntity getPublicConfiguration() {
+    public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
+                .chainId(chainConfig.getChainId())
                 .blockchainURL(chainConfig.getPublicChainAddress())
                 .iexecHubAddress(chainConfig.getHubAddress())
                 .workerPoolAddress(chainConfig.getPoolAddress())

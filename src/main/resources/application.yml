@@ -25,6 +25,7 @@ wallet:
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
 
 chain:
+  id: ${IEXEC_CHAIN_ID:17}
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
   hubAddress: ${IEXEC_HUB_ADDRESS:0x5df493e91aE066541C13d9a071137e850a56d609}
