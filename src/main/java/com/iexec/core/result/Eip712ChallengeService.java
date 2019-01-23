@@ -1,20 +1,13 @@
 package com.iexec.core.result;
 
-import com.iexec.common.utils.HashUtils;
-import com.iexec.common.result.eip712.Domain;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
-import com.iexec.common.result.eip712.Message;
-import com.iexec.common.result.eip712.Types;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.Hash;
-import org.web3j.utils.Numeric;
 
-import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
