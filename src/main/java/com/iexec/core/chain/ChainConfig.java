@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class ChainConfig {
 
+    @Value("${chain.id}")
+    private Integer chainId;
+
     @Value("${chain.privateAddress}")
     private String privateChainAddress;
 
