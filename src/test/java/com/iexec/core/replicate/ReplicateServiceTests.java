@@ -13,9 +13,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.*;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -462,6 +460,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(false);
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -473,7 +472,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotSetContributionHashSinceCannotGetContribution() {
+    public void shouldNotNotUpdateReplicateStatusSinceCannotGetContribution() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -484,16 +483,11 @@ public class ReplicateServiceTests {
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
-        ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
-
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(2))
-                .publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
-        assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
+        Mockito.verify(applicationEventPublisher, Mockito.times(0))
+                .publishEvent(any());
     }
 
     @Test

@@ -227,22 +227,21 @@ public class ReplicatesService {
             return null;
         }
 
-        if (wishedChainStatus != null) {//wishedChainStatus of blockchain type?
-            boolean isWishedStatusProvedOnChain = iexecHubService.checkContributionStatus(replicate.getChainTaskId(), replicate.getWalletAddress(), wishedChainStatus);
-            if (isWishedStatusProvedOnChain) {
-                return getReplicateWithBlockchainUpdates(replicate, wishedChainStatus);
-            } else {
-                log.error("Onchain status is different from wishedChainStatus (should wait?) [chainTaskId:{}, " +
-                        "blockNumber:{}, wishedChainStatus:{}]", replicate.getChainTaskId(), blockNumber, wishedChainStatus);
-            }
+        boolean isWishedStatusProvedOnChain = iexecHubService.checkContributionStatus(replicate.getChainTaskId(), replicate.getWalletAddress(), wishedChainStatus);
+        if (isWishedStatusProvedOnChain) {
+            return getReplicateWithBlockchainUpdates(replicate, wishedChainStatus);
+        } else {
+            log.error("Onchain status is different from wishedChainStatus (should wait?) [chainTaskId:{}, " +
+                    "blockNumber:{}, wishedChainStatus:{}]", replicate.getChainTaskId(), blockNumber, wishedChainStatus);
         }
+
         return null;
     }
 
     private Replicate getReplicateWithBlockchainUpdates(Replicate replicate, ChainContributionStatus wishedChainStatus) {
         Optional<ChainContribution> optional = iexecHubService.getContribution(replicate.getChainTaskId(), replicate.getWalletAddress());
         if (!optional.isPresent()) {
-            return replicate;
+            return null;
         }
         ChainContribution chainContribution = optional.get();
         if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)){
