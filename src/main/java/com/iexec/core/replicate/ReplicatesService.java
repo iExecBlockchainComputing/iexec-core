@@ -184,6 +184,12 @@ public class ReplicatesService {
 
         if (isBlockchainStatus(newStatus)) {
             replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), blockNumber);
+
+            if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
+                log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
+                        chainTaskId, walletAddress, newStatus, blockNumber);
+            }
+            
             if (replicate == null) {
                 log.error("Failed to refresh replicate with onchain values [chainTaskId:{}, walletAddress:{}, " +
                                 "currentStatus:{}, newStatus:{}]",
