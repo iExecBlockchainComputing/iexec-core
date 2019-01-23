@@ -36,8 +36,7 @@ public class Web3jService {
         while (duration < maxWaitingTime) {
             try {
                 long latestBlockNumber = getLatestBlockNumber();
-                if (blockNumber < latestBlockNumber) {
-                    log.info("Chain is synchronized [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
+                if (blockNumber <= latestBlockNumber) {
                     return true;
                 } else {
                     log.info("Chain is NOT synchronized yet [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
