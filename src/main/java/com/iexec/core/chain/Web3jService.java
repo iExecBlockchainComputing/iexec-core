@@ -30,20 +30,16 @@ public class Web3jService {
     // blockNumber is different than 0 only for status the require a check on the blockchain, so the scheduler should
     // already have this block, otherwise it should wait for it until maxWaitingTime is reached (2 minutes)
     public boolean isBlockNumberAvailable(long blockNumber) {
-        if (blockNumber == 0) {
-            return true;
-        }
-
         long maxWaitingTime = 2 * 60 * 1000;
         final long startTime = System.currentTimeMillis();
         long duration = 0;
-        boolean blockNumberReached = false;
-        while (!blockNumberReached && duration < maxWaitingTime) {
+        while (duration < maxWaitingTime) {
             try {
-                long currentBlock = getLatestBlockNumber();
-                if (blockNumber < currentBlock) {
-                    blockNumberReached = true;
+                long latestBlockNumber = getLatestBlockNumber();
+                if (blockNumber <= latestBlockNumber) {
+                    return true;
                 } else {
+                    log.info("Chain is NOT synchronized yet [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
                     Thread.sleep(500);
                 }
             } catch (IOException | InterruptedException e) {
@@ -52,7 +48,6 @@ public class Web3jService {
             duration = System.currentTimeMillis() - startTime;
         }
 
-        return blockNumberReached;
+        return false;
     }
-
 }
