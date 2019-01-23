@@ -174,8 +174,9 @@ public class ReplicatesService {
         Replicate replicate = optionalReplicate.get();
         ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
-        // check valid transition
-        if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
+        // check if it is a valid transition in case the modifier is the worker
+        if (modifier.equals(ReplicateStatusModifier.WORKER) &&
+                !ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
             log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
                             "currentStatus:{}, newStatus:{}]",
                     chainTaskId, walletAddress, currentStatus, newStatus);
