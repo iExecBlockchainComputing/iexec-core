@@ -35,9 +35,12 @@ public class Web3jService {
         long duration = 0;
         while (duration < maxWaitingTime) {
             try {
-                if (blockNumber < getLatestBlockNumber()) {
+                long latestBlockNumber = getLatestBlockNumber();
+                if (blockNumber < latestBlockNumber) {
+                    log.info("Chain is synchronized [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
                     return true;
                 } else {
+                    log.info("Chain is NOT synchronized yet [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
                     Thread.sleep(500);
                 }
             } catch (IOException | InterruptedException e) {
