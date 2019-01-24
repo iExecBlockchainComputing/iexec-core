@@ -150,8 +150,8 @@ public class ReplicatesService {
     }
 
 
-    // in case the task has been modified between reading and writing it, it is retried up to 10 times
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 10)
+    // in case the task has been modified between reading and writing it, it is retried up to 100 times
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
@@ -174,8 +174,9 @@ public class ReplicatesService {
         Replicate replicate = optionalReplicate.get();
         ReplicateStatus currentStatus = replicate.getCurrentStatus();
 
-        // check valid transition
-        if (!ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
+        // check if it is a valid transition in case the modifier is the worker
+        if (modifier.equals(ReplicateStatusModifier.WORKER) &&
+                !ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
             log.error("UpdateReplicateStatus failed (bad workflow transition) [chainTaskId:{}, walletAddress:{}, " +
                             "currentStatus:{}, newStatus:{}]",
                     chainTaskId, walletAddress, currentStatus, newStatus);
@@ -184,6 +185,12 @@ public class ReplicatesService {
 
         if (isBlockchainStatus(newStatus)) {
             replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), blockNumber);
+
+            if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
+                log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
+                        chainTaskId, walletAddress, newStatus, blockNumber);
+            }
+            
             if (replicate == null) {
                 log.error("Failed to refresh replicate with onchain values [chainTaskId:{}, walletAddress:{}, " +
                                 "currentStatus:{}, newStatus:{}]",
