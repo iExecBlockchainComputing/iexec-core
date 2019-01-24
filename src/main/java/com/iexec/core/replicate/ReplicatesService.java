@@ -2,6 +2,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -146,7 +147,7 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, 0, modifier);
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
     }
 
 
@@ -155,8 +156,10 @@ public class ReplicatesService {
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
-                                      long blockNumber,
-                                      ReplicateStatusModifier modifier) {
+                                      ReplicateStatusModifier modifier,
+                                      ChainReceipt chainReceipt) {
+
+        long blockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
@@ -199,7 +202,7 @@ public class ReplicatesService {
             }
         }
 
-        replicate.updateStatus(newStatus, modifier);
+        replicate.updateStatus(newStatus, modifier, chainReceipt);
         replicatesRepository.save(optionalReplicates.get());
 
         // if replicate is not busy anymore, it can notify it

@@ -1,6 +1,7 @@
 package com.iexec.core.replicate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -12,7 +13,6 @@ import java.util.Date;
 import java.util.List;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 
 @Data
 @NoArgsConstructor
@@ -46,6 +46,10 @@ public class Replicate {
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
         return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier));
+    }
+
+    public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier, ChainReceipt  chainReceipt) {
+        return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier, chainReceipt));
     }
 
     public String getContributionHash() {
