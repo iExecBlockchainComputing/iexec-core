@@ -1,16 +1,17 @@
 package com.iexec.core.result;
 
+import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
+
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsOperations;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
-import org.web3j.utils.Numeric;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,7 +38,36 @@ public class ResultService {
         return RESULT_FILENAME_PREFIX + chainTaskId;
     }
 
+    boolean canUploadResult(String chainTaskId, String walletAddress, byte[] zip) {
+        // check if result has been already uploaded
+        if (isResultInDatabase(chainTaskId)) {
+            log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
+                    chainTaskId, walletAddress);
+            return false;
+        }
+
+        // ContributionStatus of chainTask should be REVEALED
+        boolean isChainContributionStatusSetToRevealed = iexecHubService.checkContributionStatus(chainTaskId,
+                walletAddress, ChainContributionStatus.REVEALED);
+        if (!isChainContributionStatusSetToRevealed) {
+            log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
+                    chainTaskId, walletAddress);
+            return false;
+        }
+
+        return true;
+    }
+
+    boolean isResultInDatabase(String chainTaskId) {
+        Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
+        return gridOperations.findOne(query) != null;
+    }
+
     String addResult(Result result, byte[] data) {
+        if (result == null || result.getChainTaskId() == null) {
+            return "";
+        }
+
         InputStream inputStream = new ByteArrayInputStream(data);
         String resultFileName = getResultFilename(result.getChainTaskId());
         gridOperations.store(inputStream, resultFileName, result);
