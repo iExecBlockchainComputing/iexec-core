@@ -2,11 +2,11 @@
 
 ## Overview
 
-The goal of the core component is to monitor the chain to check if there is work to perform. In case there is, the core will orchestrate the work among the different workers that will participate in the computation.
+The goal of the core component is to monitor the chain to check if there is any work to perform. In case there is, the core will orchestrate the work among the different workers that will participate in the computation.
 
 ## Run an iexec-core
 
-Gradle is used to build the project. It can be built using the gradle wrapper included in the project with the following command:
+Gradle is used to build the project. It can be built using the gradle wrapper included in the project (so no need to have gradle installed on your machine) with the following command:
 ```
 ./gradlew build
 ```
@@ -16,7 +16,7 @@ They are several ways to run the project: with gradle and with docker. In both w
 ```
 ./gradlew bootRun
 ```
-In case you use gradle bootRun, please update the variables set in the application.yml.
+In case you use gradle to run the project, please update the variables set in the application.yml.
 
 ### With docker
 ```
