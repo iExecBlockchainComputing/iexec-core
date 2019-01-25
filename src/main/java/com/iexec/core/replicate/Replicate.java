@@ -40,9 +40,15 @@ public class Replicate {
     }
 
     @JsonIgnore
+    public ReplicateStatus getLastButOneStatus() {
+        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 2).getStatus();
+    }
+
+    @JsonIgnore
     private ReplicateStatusChange getLatestStatusChange() {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
+
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
         return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier));

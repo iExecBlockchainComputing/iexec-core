@@ -13,11 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
-import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
+import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
@@ -54,7 +54,13 @@ public class ContributionUnnotifiedDetector implements Detector {
     }
 
     private void updateReplicateStatuses(String chainTaskId, Replicate replicate) {
-        List<ReplicateStatus> statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
+        List<ReplicateStatus> statusesToUpdate;
+        if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
+            statusesToUpdate = getMissingStatuses(replicate.getLastButOneStatus(), CONTRIBUTED);
+        } else {
+            statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
+        }
+
         for (ReplicateStatus statusToUpdate : statusesToUpdate) {
             replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
                     statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
