@@ -32,8 +32,9 @@ docker run  -e MONGO_HOST=mongo \
 ```
 Some other variables are settable through docker. Please check the application.yml file.
 
-**Please note that the wallet used by the core should contain at least 0.1 ETH and some RLC to start**
+**Please note that the wallet used by the core should contain at least 0.1 ETH and some RLC to start**.
 Since the core will perform some transactions on the blockchain and handle some RLC, it needs both at start-up.
 
+## Documentation
 
-The scheduling logic is in the core. It is in charge of orchestrating the tasks.
+A more exhaustive documentation is available on [the official documentation of iExec](https://docs.iex.ec/)
