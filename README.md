@@ -4,19 +4,21 @@
 
 The goal of the core component is to monitor the chain to check if there is work to perform. In case there is, the core will orchestrate the work among the different workers that will participate in the computation.
 
-## Run it
+## Run an iexec-core
 
-Gradle is used to build the project. It can be built using the following command:
+Gradle is used to build the project. It can be built using the gradle wrapper included in the project with the following command:
 ```
-./gradle build
+./gradlew build
 ```
 They are several ways to run the project: with gradle and with docker. In both ways, there needs to be a running mongo instance as mongo is used to store data. Another pre-requisite is to have a wallet, the core component should be allowed to access it.
-1. Run it with gradle.
+
+### With gradle
 ```
-./gradle bootRun
+./gradlew bootRun
 ```
 In case you use gradle bootRun, please update the variables set in the application.yml.
-2. Run it with docker:
+
+### With docker
 ```
 docker run  -e MONGO_HOST=mongo \
             -e IEXEC_CORE_WALLET_PATH=#path_to_encrypted_wallet \
