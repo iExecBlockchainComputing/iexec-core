@@ -31,6 +31,11 @@ public class AuthorizationServiceTest {
     }
 
     @Test
+    public void isNotAuthorizedToGetResultSinceNullAuthorization() {
+        assertThat(authorizationService.isAuthorizationValid(null)).isFalse();
+    }
+
+    @Test
     public void isNotAuthorizedToGetResultSinceNoChallengeInMap() {
         when(eip712ChallengeService.containsEip712ChallengeString(challenge)).thenReturn(false);
         Authorization authorization = Authorization.builder()
@@ -72,5 +77,24 @@ public class AuthorizationServiceTest {
                 .walletAddress("0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")
                 .build();
         assertThat(authorizationService.isAuthorizationValid(authorization)).isFalse();
+    }
+
+    @Test
+    public void shouldNotGetAuthorizationFromTokenSinceNullToken() {
+        assertThat(authorizationService.getAuthorizationFromToken(null)).isNull();
+    }
+
+    @Test
+    public void shouldNotGetAuthorizationFromTokenSinceTokenNotValid() {
+        String token = "bad_token";
+
+        assertThat(authorizationService.getAuthorizationFromToken(token)).isNull();
+    }
+
+    @Test
+    public void shouldGetAuthorizationFromToken() {
+        String token = "not_bad_token";
+
+        assertThat(authorizationService.getAuthorizationFromToken(token)).isNotNull();
     }
 }

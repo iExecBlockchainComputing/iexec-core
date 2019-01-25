@@ -1,7 +1,7 @@
 package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
-import com.iexec.core.result.eip712.Eip712Challenge;
+import com.iexec.common.result.eip712.Eip712Challenge;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +28,21 @@ public class ResultController {
     }
 
     @PostMapping("/results")
-    public ResponseEntity addResult(@RequestBody ResultModel model) {
+    public ResponseEntity<String> addResult(
+            @RequestHeader("Authorization") String token,
+            @RequestBody ResultModel model) {
+
+        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+
+        boolean authorizedAndCanUploadResult = authorizationService.isAuthorizationValid(auth) && 
+                resultService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
+        
+        // TODO check if the result to be added is the correct result for that task
+        
+        if (!authorizedAndCanUploadResult) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
         String filename = resultService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
@@ -37,7 +51,38 @@ public class ResultController {
                         .deterministHash(model.getDeterministHash())
                         .build(),
                 model.getZip());
+
+        if (filename.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
+        }
+
+        log.info("Result uploaded successfully [chainTaskId:{}, uploadRequester:{}]",
+                model.getChainTaskId(), auth.getWalletAddress());
+
+        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+
         return ok(filename);
+    }
+
+    @RequestMapping(method=RequestMethod.HEAD, path="/results/{chainTaskId}")
+    public ResponseEntity<String> checkIfResultHasBeenUploaded(
+            @PathVariable(name="chainTaskId") String chainTaskId,
+            @RequestHeader("Authorization") String token) {
+
+        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+
+        if (!authorizationService.isAuthorizationValid(auth)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+
+        boolean isResultInDatabase = resultService.isResultInDatabase(chainTaskId);
+        if (!isResultInDatabase) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
+        }
+
+        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+        
+        return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
     }
 
     /*
