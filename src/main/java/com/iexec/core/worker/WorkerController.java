@@ -8,6 +8,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
+import com.iexec.core.configuration.SessionService;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -56,7 +57,7 @@ public class WorkerController {
 
         Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
         return optional.
-                <ResponseEntity>map(ResponseEntity::ok)
+                <ResponseEntity>map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
