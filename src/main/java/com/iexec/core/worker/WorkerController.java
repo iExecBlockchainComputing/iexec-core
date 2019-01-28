@@ -17,9 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
@@ -121,6 +119,16 @@ public class WorkerController {
                 .build();
 
         return ok(config);
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, path = "/workers/currenttasks")
+    public ResponseEntity<List<String>> getTasksInProgress(@RequestHeader("Authorization") String bearerToken) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ok(Collections.emptyList());
+        }
+        return ok(workerService.getChainTaskIds(workerWalletAddress));
     }
 
 
