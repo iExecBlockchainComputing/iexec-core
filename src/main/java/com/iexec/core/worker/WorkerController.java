@@ -127,7 +127,7 @@ public class WorkerController {
     public ResponseEntity<List<String>> getTasksInProgress(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ok(Collections.emptyList());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
         return ok(workerService.getChainTaskIds(workerWalletAddress));
     }
