@@ -63,7 +63,7 @@ public class WorkerService {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
-            return worker.getComputingChainTaskIds();
+            return worker.getParticipatingChainTaskIds();
         }
         return Collections.emptyList();
     }
