@@ -23,10 +23,12 @@ public class ReplicatesController {
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/replicates/{chainTaskId}/updateStatus")
-    public ResponseEntity<String> updateReplicateStatus(@PathVariable(name = "chainTaskId") String chainTaskId,
-                                                @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
-                                                @RequestParam(name = "chainReceipt", required = false) ChainReceipt chainReceipt,
-                                                @RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity<String> updateReplicateStatus(
+            @PathVariable(name = "chainTaskId") String chainTaskId,
+            @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestBody(required = false) ChainReceipt chainReceipt) {
+
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (walletAddress.isEmpty()) {
