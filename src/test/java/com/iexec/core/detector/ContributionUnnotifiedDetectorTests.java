@@ -60,7 +60,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
         contributionDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(2))//CONTRIBUTING & CONTRIBUTED
+        Mockito.verify(replicatesService, Mockito.times(3))//CAN_CONTRIBUTE & CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
     }
 

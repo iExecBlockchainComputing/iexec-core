@@ -1,5 +1,6 @@
 package com.iexec.core.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
 import lombok.*;
 
 @Data
@@ -10,4 +11,5 @@ import lombok.*;
 public class ReplicateUpdatedEvent {
 
     private String chainTaskId;
+    private ReplicateStatus newReplicateStatus;
 }

@@ -1,5 +1,7 @@
 package com.iexec.core.task.listener;
 
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.core.detector.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateComputedEvent;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
@@ -15,17 +17,29 @@ public class ReplicateListeners {
 
     private TaskExecutorEngine taskExecutorEngine;
     private WorkerService workerService;
+    private ContributionUnnotifiedDetector contributionUnnotifiedDetector;
+
 
     public ReplicateListeners(TaskExecutorEngine taskExecutorEngine,
-                              WorkerService workerService) {
+                              WorkerService workerService, ContributionUnnotifiedDetector contributionUnnotifiedDetector) {
         this.taskExecutorEngine = taskExecutorEngine;
         this.workerService = workerService;
+        this.contributionUnnotifiedDetector = contributionUnnotifiedDetector;
     }
 
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
         log.info("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
         taskExecutorEngine.updateTask(event.getChainTaskId());
+
+        /*
+         * A CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE status means this new worker have been authorized to contribute
+         * (but cant) while we had a consensus_reached onchain but not in database (meaning another didnt notified he had contributed).
+         * We should start a detector which will look for unnotified contributions and will upgrade task to consensus_reached
+         */
+        if (event.getNewReplicateStatus().equals(ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE)) {
+            contributionUnnotifiedDetector.detect();
+        }
     }
 
     @EventListener
