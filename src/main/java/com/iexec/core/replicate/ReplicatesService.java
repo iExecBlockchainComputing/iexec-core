@@ -147,7 +147,7 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, new ChainReceipt());
     }
 
 
@@ -200,7 +200,7 @@ public class ReplicatesService {
             }
         }
 
-        if (chainReceipt.getBlockNumber() == -1) {
+        if (chainReceipt.getBlockNumber() == 0) {
             chainReceipt = null;
         }
 
