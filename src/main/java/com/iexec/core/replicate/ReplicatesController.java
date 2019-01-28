@@ -22,12 +22,12 @@ public class ReplicatesController {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "/replicates/{chainTaskId}/updateStatus")
+    @PostMapping("/replicates/{chainTaskId}/updateStatus")
     public ResponseEntity<String> updateReplicateStatus(
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
             @RequestHeader("Authorization") String bearerToken,
-            @RequestBody(required = false) ChainReceipt chainReceipt) {
+            @RequestBody ChainReceipt chainReceipt) {
 
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
@@ -35,10 +35,8 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        long blockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
-
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}, blockNumber:{}]",
-                chainTaskId, replicateStatus, walletAddress, blockNumber);
+                chainTaskId, replicateStatus, walletAddress, chainReceipt.getBlockNumber());
 
         replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, chainReceipt);
         return ResponseEntity.ok().build();

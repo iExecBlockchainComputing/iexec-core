@@ -159,8 +159,6 @@ public class ReplicatesService {
                                       ReplicateStatusModifier modifier,
                                       ChainReceipt chainReceipt) {
 
-        long blockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
-
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
             log.warn("No replicate found for this chainTaskId for status update [chainTaskId:{}, walletAddress:{}, status:{}]",
@@ -187,11 +185,11 @@ public class ReplicatesService {
         }
 
         if (isBlockchainStatus(newStatus)) {
-            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), blockNumber);
+            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), chainReceipt.getBlockNumber());
 
             if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
                 log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
-                        chainTaskId, walletAddress, newStatus, blockNumber);
+                        chainTaskId, walletAddress, newStatus, chainReceipt.getBlockNumber());
             }
             
             if (replicate == null) {
@@ -200,6 +198,10 @@ public class ReplicatesService {
                         chainTaskId, walletAddress, currentStatus, newStatus);
                 return;
             }
+        }
+
+        if (chainReceipt.getBlockNumber() == -1) {
+            chainReceipt = null;
         }
 
         replicate.updateStatus(newStatus, modifier, chainReceipt);
