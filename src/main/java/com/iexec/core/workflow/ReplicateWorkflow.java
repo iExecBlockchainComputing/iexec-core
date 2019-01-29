@@ -19,9 +19,13 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(APP_DOWNLOADED, COMPUTING);
         addTransition(APP_DOWNLOAD_FAILED, COMPUTING);
         addTransition(COMPUTING, COMPUTED);
-        addTransition(COMPUTED, CANT_CONTRIBUTE);
+        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW);
+        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
+        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE);
+        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET);
         addTransition(COMPUTED, OUT_OF_GAS);
-        addTransition(COMPUTED, CONTRIBUTING);
+        addTransition(COMPUTED, CAN_CONTRIBUTE);
+        addTransition(CAN_CONTRIBUTE, CONTRIBUTING);
 
         addTransition(CONTRIBUTING, CONTRIBUTED);
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
@@ -76,7 +80,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(COMPUTING, status);
         addTransition(COMPUTED, status);
         addTransition(CONTRIBUTING, status);
-        addTransition(CANT_CONTRIBUTE, status);
+        addTransition(CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW, status);
+        addTransition(CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE, status);
+        addTransition(CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE, status);
+        addTransition(CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET, status);
+        addTransition(CAN_CONTRIBUTE, status);
         addTransition(CONTRIBUTED, status);
         addTransition(CONTRIBUTE_FAILED, status);
         addTransition(REVEALING, status);
