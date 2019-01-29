@@ -177,7 +177,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
@@ -189,12 +189,12 @@ public class TaskServiceTests {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
 
         task.changeStatus(CONSENSUS_REACHED);
-        task.setRevealDeadline(new Date(new Date().getTime() + 10));
+        task.setRevealDeadline(new Date(new Date().getTime() + 100));
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
@@ -211,7 +211,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
@@ -228,7 +228,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
@@ -245,7 +245,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
@@ -263,7 +263,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(false);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.empty());
 
         taskService.consensusReached2Reopened(task);
 
@@ -280,7 +280,7 @@ public class TaskServiceTests {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(true);
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.consensusReached2Reopened(task);
 
