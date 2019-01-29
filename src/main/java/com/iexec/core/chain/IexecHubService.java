@@ -102,29 +102,30 @@ public class IexecHubService {
     }
 
     private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
-        RemoteCall<TransactionReceipt> initializeCall = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex));
-        log.info("Sent initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
-        
-        TransactionReceipt initializeReceipt;
+        byte[] chainDealIdBytes = BytesUtils.stringToBytes(chainDealId);
+        BigInteger taskIndexBigInteger = BigInteger.valueOf(taskIndex);
+
+        TransactionReceipt receipt;
         try {
-            initializeReceipt = initializeCall.send();
+            receipt = iexecHub.initialize(chainDealIdBytes, taskIndexBigInteger).send();
         } catch (Exception e) {
-            log.error("Failed initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+            log.error("Failed initialize [chainDealId:{}, taskIndex:{}, error:{}]",
+                    chainDealId, taskIndex, e.getMessage());
             return Optional.empty();
         }
 
-        if (iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
+        if (iexecHub.getTaskInitializeEvents(receipt).isEmpty()) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
         }
 
-        IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
-        String chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
+        IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEventResponse = iexecHub.getTaskInitializeEvents(receipt).get(0);
+        String chainTaskId = BytesUtils.bytesToString(taskInitializedEventResponse.taskid);
 
         log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
-                chainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
+                chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
         
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskInitializedEvent.log, chainTaskId);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskInitializedEventResponse.log, chainTaskId);
         return Optional.of(Pair.of(chainTaskId, chainReceipt));
     }
 
