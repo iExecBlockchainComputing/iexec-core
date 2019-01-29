@@ -2,6 +2,7 @@ package com.iexec.core.task;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -12,6 +13,8 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.utils.DateTimeUtils;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -34,8 +37,6 @@ public class TaskServiceTests {
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
     private final static String CHAIN_DEAL_ID = "0xd82223e5feff6720792ffed1665e980da95e5d32b177332013eaba8edc07f31c";
-    private final static int CHAIN_TASK_INDEX = 0;
-    // CHAIN_TASK_ID = HashUtils.concatenateAndHash(CHAIN_DEAL_ID, String.valueOf(CHAIN_TASK_INDEX));
     private final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
 
     private final static String DAPP_NAME = "dappName";
@@ -331,12 +332,13 @@ public class TaskServiceTests {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
+        Pair<String, ChainReceipt> pair = Pair.of("dummy", null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn("dummy");
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZE_FAILED);
@@ -347,12 +349,13 @@ public class TaskServiceTests {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
+        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
         taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);
@@ -364,12 +367,13 @@ public class TaskServiceTests {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, timeRef, noSgxTag);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
+        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(CHAIN_TASK_ID);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
 
         taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);

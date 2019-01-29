@@ -1,5 +1,6 @@
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -13,6 +14,8 @@ import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -147,8 +150,12 @@ public class TaskService {
     }
 
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
+        return updateTaskStatusAndSave(task, newStatus, null);
+    }
+
+    private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
         TaskStatus currentStatus = task.getCurrentStatus();
-        task.changeStatus(newStatus);
+        task.changeStatus(newStatus, chainReceipt);
         Task savedTask = taskRepository.save(task);
         log.info("UpdateTaskStatus suceeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
         return savedTask;
@@ -157,35 +164,52 @@ public class TaskService {
     private void received2Initialized(Task task) {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
-        if (isCurrentStatusReceived) {
-
-            boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
-            boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-
-            if (!canInitialize || !hasEnoughGas) {
-                return;
-            }
-
-            updateTaskStatusAndSave(task, INITIALIZING);
-            String existingChainTaskId = task.getChainTaskId();
-            String chainTaskId = iexecHubService.initialize(task.getChainDealId(), task.getTaskIndex());
-            if (!chainTaskId.isEmpty() && chainTaskId.equalsIgnoreCase(existingChainTaskId)) {
-                Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
-                if (!optional.isPresent()) {
-                    return;
-                }
-                ChainTask chainTask = optional.get();
-
-                task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
-                task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
-                //TODO Put other fields?
-
-                updateTaskStatusAndSave(task, INITIALIZED);
-                replicatesService.createEmptyReplicateList(chainTaskId);
-            } else {
-                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-            }
+        if (!isCurrentStatusReceived) {
+            log.error("received2Initializing failed, current status is not RECEIVED [chainTaskId:{}, currentStatus:{}]",
+                    task.getChainTaskId(), task.getCurrentStatus());
+            return;
         }
+
+        boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
+        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+
+        if (!canInitialize || !hasEnoughGas) {
+            log.error("received2Initializing failed [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
+                    task.getChainTaskId(), canInitialize, hasEnoughGas);
+            return;
+        }
+
+        updateTaskStatusAndSave(task, INITIALIZING);
+
+        Optional<Pair<String, ChainReceipt>> optionalPair = iexecHubService.initialize(
+                    task.getChainDealId(), task.getTaskIndex());
+
+        if (!optionalPair.isPresent()) {
+            return;
+        }
+
+        String existingChainTaskId = task.getChainTaskId();
+        String chainTaskId = optionalPair.get().getLeft();
+        ChainReceipt chainReceipt = optionalPair.get().getRight();
+
+        if (chainTaskId.isEmpty() || !chainTaskId.equalsIgnoreCase(existingChainTaskId)) {
+            log.error("INITIALIZE_FAILED since got wrong chainTaskId [existingChainTaskId:{}, returnedChainTaskId:{}]",
+                    existingChainTaskId, chainTaskId);
+            updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+        }
+
+        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
+        if (!optional.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = optional.get();
+
+        task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
+        task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
+        //TODO Put other fields?
+
+        updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
+        replicatesService.createEmptyReplicateList(chainTaskId);
     }
 
     private void initialized2Running(Task task) {

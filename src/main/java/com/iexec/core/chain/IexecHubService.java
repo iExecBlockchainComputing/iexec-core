@@ -6,6 +6,8 @@ import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
@@ -89,33 +91,41 @@ public class IexecHubService {
         return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
     }
 
-    public String initialize(String chainDealId, int taskIndex) {
+    public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        return "";
+        return Optional.empty();
     }
 
-    private String sendInitializeTransaction(String chainDealId, int taskIndex) {
-        String chainTaskId = "";
+    private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
+        RemoteCall<TransactionReceipt> initializeCall = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex));
+        log.info("Sent initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+        
+        TransactionReceipt initializeReceipt;
         try {
-            RemoteCall<TransactionReceipt> initializeCall = iexecHub.initialize(BytesUtils.stringToBytes(chainDealId), BigInteger.valueOf(taskIndex));
-            log.info("Sent initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
-            TransactionReceipt initializeReceipt = initializeCall.send();
-            if (!iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
-                IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
-                chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
-                log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
-                        chainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
-            }
+            initializeReceipt = initializeCall.send();
         } catch (Exception e) {
-            log.error("Failed initialize [chainDealId:{}, taskIndex:{}]",
-                    chainDealId, taskIndex);
+            log.error("Failed initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+            return Optional.empty();
         }
-        return chainTaskId;
+
+        if (iexecHub.getTaskInitializeEvents(initializeReceipt).isEmpty()) {
+            log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+            return Optional.empty();
+        }
+
+        IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEvent = iexecHub.getTaskInitializeEvents(initializeReceipt).get(0);
+        String chainTaskId = BytesUtils.bytesToString(taskInitializedEvent.taskid);
+
+        log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
+                chainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
+        
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskInitializedEvent.log, chainTaskId);
+        return Optional.of(Pair.of(chainTaskId, chainReceipt));
     }
 
     public boolean canFinalize(String chainTaskId) {
