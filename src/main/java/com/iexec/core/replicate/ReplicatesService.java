@@ -200,7 +200,7 @@ public class ReplicatesService {
             }
         }
 
-        if (chainReceipt.getBlockNumber() == 0) {
+        if (chainReceipt.getBlockNumber() == 0 && chainReceipt.getTxHash().isEmpty()) {
             chainReceipt = null;
         }
 
