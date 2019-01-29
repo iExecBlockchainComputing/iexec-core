@@ -147,9 +147,8 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, new ChainReceipt());
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
     }
-
 
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
@@ -158,6 +157,8 @@ public class ReplicatesService {
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
                                       ChainReceipt chainReceipt) {
+
+        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
@@ -185,11 +186,11 @@ public class ReplicatesService {
         }
 
         if (isBlockchainStatus(newStatus)) {
-            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), chainReceipt.getBlockNumber());
+            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), receiptBlockNumber);
 
             if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
                 log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
-                        chainTaskId, walletAddress, newStatus, chainReceipt.getBlockNumber());
+                        chainTaskId, walletAddress, newStatus, receiptBlockNumber);
             }
             
             if (replicate == null) {
@@ -200,7 +201,9 @@ public class ReplicatesService {
             }
         }
 
-        if (chainReceipt.getBlockNumber() == 0 && chainReceipt.getTxHash().isEmpty()) {
+        // don't save receipt to db if no relevant info
+        if (chainReceipt != null && chainReceipt.getBlockNumber() == 0
+                && chainReceipt.getTxHash() == null) {
             chainReceipt = null;
         }
 
