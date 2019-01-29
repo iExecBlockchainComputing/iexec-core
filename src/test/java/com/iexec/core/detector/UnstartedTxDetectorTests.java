@@ -1,5 +1,6 @@
 package com.iexec.core.detector;
 
+import com.iexec.core.detector.task.UnstartedTxDetector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;

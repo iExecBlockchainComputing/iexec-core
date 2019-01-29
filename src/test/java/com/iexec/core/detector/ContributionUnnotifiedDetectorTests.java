@@ -1,23 +1,19 @@
 package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.utils.DateTimeUtils;
-import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
