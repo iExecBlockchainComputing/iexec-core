@@ -19,6 +19,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import rx.Observable;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -152,30 +153,41 @@ public class IexecHubService {
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result) {
+    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String result) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        return false;
+        return Optional.empty();
     }
 
-    private boolean sendFinalizeTransaction(String chainTaskId, String result) {
+    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String result) {
+        byte[] chainTaskIdBytes = BytesUtils.stringToBytes(chainTaskId);
+        byte[] resultBytes = BytesUtils.stringToBytes(result);
+
+        TransactionReceipt receipt;
         try {
-            RemoteCall<TransactionReceipt> finalizeCall = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
-                    BytesUtils.stringToBytes(result));
-            log.info("Sent finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
-            TransactionReceipt finalizeReceipt = finalizeCall.send();
-            if (!iexecHub.getTaskFinalizeEvents(finalizeReceipt).isEmpty()) {
-                log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, finalizeReceipt.getGasUsed());
-                return true;
-            }
+            receipt = iexecHub.finalize(chainTaskIdBytes, resultBytes).send();
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
+            log.error("Failed finalize [chainTaskId:{}, result:{}, error:{}]]", chainTaskId, result, e.getMessage());
+            return Optional.empty();
         }
-        return false;
+        
+        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = iexecHub.getTaskFinalizeEvents(receipt);
+
+        if (eventsList.isEmpty()) {
+            log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
+        }
+
+        log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, receipt.getGasUsed());
+
+        IexecHubABILegacy.TaskFinalizeEventResponse taskFinalizeEventResponse = eventsList.get(0);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskFinalizeEventResponse.log, chainTaskId);
+
+        return Optional.of(chainReceipt);
     }
 
     public boolean canReopen(String chainTaskId) {

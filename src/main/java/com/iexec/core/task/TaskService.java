@@ -165,7 +165,7 @@ public class TaskService {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
         if (!isCurrentStatusReceived) {
-            log.error("received2Initializing failed, current status is not RECEIVED [chainTaskId:{}, currentStatus:{}]",
+            log.error("Initialize failed [chainTaskId:{}, currentStatus:{}]",
                     task.getChainTaskId(), task.getCurrentStatus());
             return;
         }
@@ -174,7 +174,7 @@ public class TaskService {
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
         if (!canInitialize || !hasEnoughGas) {
-            log.error("received2Initializing failed [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
+            log.error("Initialize failed [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
                     task.getChainTaskId(), canInitialize, hasEnoughGas);
             return;
         }
@@ -193,7 +193,7 @@ public class TaskService {
         ChainReceipt chainReceipt = optionalPair.get().getRight();
 
         if (chainTaskId.isEmpty() || !chainTaskId.equalsIgnoreCase(existingChainTaskId)) {
-            log.error("INITIALIZE_FAILED since got wrong chainTaskId [existingChainTaskId:{}, returnedChainTaskId:{}]",
+            log.error("Initialize failed [existingChainTaskId:{}, returnedChainTaskId:{}]",
                     existingChainTaskId, chainTaskId);
             updateTaskStatusAndSave(task, INITIALIZE_FAILED);
         }
@@ -291,7 +291,7 @@ public class TaskService {
         boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (!isConsensusReachedStatus || !isAfterRevealDeadline || hasAtLeastOneReveal) {
-            log.error("consensusReached2Reopened failed [chainTaskId:{} isConsensusReachedStatus:{}, "
+            log.error("Reopen failed [chainTaskId:{} isConsensusReachedStatus:{}, "
                     + "isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
             task.getChainTaskId(), isConsensusReachedStatus, isAfterRevealDeadline, hasAtLeastOneReveal);
             return;
@@ -301,7 +301,7 @@ public class TaskService {
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
         if (!canReopen || !hasEnoughGas) {
-            log.error("cannot reopen task [chainTaskId:{}, canReopen:{}, hasEnoughGas]",
+            log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas]",
                     task.getChainTaskId(), canReopen, hasEnoughGas);
             return;
         }
@@ -373,20 +373,26 @@ public class TaskService {
         //+ replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
-        if (isTaskInResultUploaded && canFinalize && offChainRevealEqualsOnChainReveal) {
-            if (!iexecHubService.hasEnoughGas()) {
-                return;
-            }
-            updateTaskStatusAndSave(task, FINALIZING);
-            boolean isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
-
-            if (isFinalized) {
-                updateTaskStatusAndSave(task, FINALIZED);
-                updateFromFinalizedToCompleted(task);
-            } else {
-                updateTaskStatusAndSave(task, FINALIZE_FAILED);
-            }
+        if (!isTaskInResultUploaded || !canFinalize || !offChainRevealEqualsOnChainReveal) {
+            log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
+                    task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
+            return;
         }
+
+        if (!iexecHubService.hasEnoughGas()) {
+            return;
+        }
+
+        updateTaskStatusAndSave(task, FINALIZING);
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+
+        if (!optionalChainReceipt.isPresent()) {
+            updateTaskStatusAndSave(task, FINALIZE_FAILED);
+            return;
+        }
+
+        updateTaskStatusAndSave(task, FINALIZED, optionalChainReceipt.get());
+        updateFromFinalizedToCompleted(task);
     }
 
     private void updateFromFinalizedToCompleted(Task task) {

@@ -676,7 +676,7 @@ public class TaskServiceTests {
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any())).thenReturn(true);
+        when(iexecHubService.finalizeTask(any(), any())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
@@ -718,7 +718,7 @@ public class TaskServiceTests {
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any())).thenReturn(false);
+        when(iexecHubService.finalizeTask(any(), any())).thenReturn(Optional.empty());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
