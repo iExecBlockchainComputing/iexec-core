@@ -1,7 +1,7 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.core.detector.ContributionUnnotifiedDetector;
+import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateComputedEvent;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;

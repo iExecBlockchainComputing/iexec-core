@@ -1,5 +1,6 @@
-package com.iexec.core.detector;
+package com.iexec.core.detector.task;
 
+import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
