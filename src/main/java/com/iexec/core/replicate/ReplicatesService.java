@@ -2,6 +2,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -146,17 +147,18 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, 0, modifier);
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
     }
-
 
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
-                                      long blockNumber,
-                                      ReplicateStatusModifier modifier) {
+                                      ReplicateStatusModifier modifier,
+                                      ChainReceipt chainReceipt) {
+
+        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
 
         Optional<ReplicatesList> optionalReplicates = getReplicatesList(chainTaskId);
         if (!optionalReplicates.isPresent()) {
@@ -184,11 +186,11 @@ public class ReplicatesService {
         }
 
         if (isBlockchainStatus(newStatus)) {
-            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), blockNumber);
+            replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), receiptBlockNumber);
 
             if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
                 log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
-                        chainTaskId, walletAddress, newStatus, blockNumber);
+                        chainTaskId, walletAddress, newStatus, receiptBlockNumber);
             }
             
             if (replicate == null) {
@@ -199,7 +201,13 @@ public class ReplicatesService {
             }
         }
 
-        replicate.updateStatus(newStatus, modifier);
+        // don't save receipt to db if no relevant info
+        if (chainReceipt != null && chainReceipt.getBlockNumber() == 0
+                && chainReceipt.getTxHash() == null) {
+            chainReceipt = null;
+        }
+
+        replicate.updateStatus(newStatus, modifier, chainReceipt);
         replicatesRepository.save(optionalReplicates.get());
 
         // if replicate is not busy anymore, it can notify it
