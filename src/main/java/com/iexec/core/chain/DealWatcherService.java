@@ -1,6 +1,7 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainDeal;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -71,7 +72,7 @@ public class DealWatcherService {
 
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        chainDeal.getChainApp().getParams().getUri(),
+                        BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
                         chainDeal.getParams().get(taskIndex),
                         chainDeal.getTrust().intValue(),
                         chainDeal.getChainCategory().getMaxExecutionTime(),

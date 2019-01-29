@@ -82,11 +82,8 @@ public class DealWatcherServiceTests {
 
     @Test
     public void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
-        ChainAppParams chainAppParams = new ChainAppParams();
-        chainAppParams.setUri("uri");
-
         ChainApp chainApp = new ChainApp();
-        chainApp.setParams(chainAppParams);
+        chainApp.setUri("0x00");
 
         ChainCategory chainCategory = new ChainCategory();
 
