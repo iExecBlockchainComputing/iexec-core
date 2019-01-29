@@ -1,6 +1,6 @@
 package com.iexec.core.detector;
 
-import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
