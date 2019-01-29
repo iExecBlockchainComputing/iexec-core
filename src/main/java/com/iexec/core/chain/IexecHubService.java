@@ -203,27 +203,36 @@ public class IexecHubService {
         return check;
     }
 
-    public boolean reOpen(String chainTaskId) {
+    public Optional<ChainReceipt> reOpen(String chainTaskId) {
         log.info("Requested  reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendReopenTransaction(chainTaskId), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        return false;
+        return Optional.empty();
     }
 
-    private boolean sendReopenTransaction(String chainTaskId) {
+    private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
+        TransactionReceipt receipt;
         try {
-            TransactionReceipt receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
-            if (!iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
-                log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-                return true;
-            }
+            receipt = iexecHub.reopen(BytesUtils.stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
+            return Optional.empty();
         }
-        return false;
+
+        if (iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
+            log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
+        }
+
+        log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
+
+        IexecHubABILegacy.TaskReopenEventResponse taskReopenEventResponse = iexecHub.getTaskReopenEvents(receipt).get(0);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskReopenEventResponse.log, chainTaskId);
+
+        return Optional.of(chainReceipt);
     }
 
     private long getWaitingTransactionCount() {

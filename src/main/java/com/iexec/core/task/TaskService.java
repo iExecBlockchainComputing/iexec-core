@@ -223,7 +223,6 @@ public class TaskService {
         }
     }
 
-
     private void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
 
@@ -291,28 +290,34 @@ public class TaskService {
         boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
         boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
-        if (isConsensusReachedStatus && isAfterRevealDeadline && !hasAtLeastOneReveal) {
-            boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
-            boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-
-            if (canReopen) {
-                if (!hasEnoughGas) {
-                    return;
-                }
-
-                updateTaskStatusAndSave(task, TaskStatus.REOPENING);
-                boolean isReopened = iexecHubService.reOpen(task.getChainTaskId());
-
-                if (isReopened) {
-                    task.setConsensus(null);
-                    task.setRevealDeadline(new Date(0));
-                    updateTaskStatusAndSave(task, TaskStatus.REOPENED);
-                    updateTaskStatusAndSave(task, TaskStatus.INITIALIZED);
-                } else {
-                    updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
-                }
-            }
+        if (!isConsensusReachedStatus || !isAfterRevealDeadline || hasAtLeastOneReveal) {
+            log.error("consensusReached2Reopened failed [chainTaskId:{} isConsensusReachedStatus:{}, "
+                    + "isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
+            task.getChainTaskId(), isConsensusReachedStatus, isAfterRevealDeadline, hasAtLeastOneReveal);
+            return;
         }
+
+        boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
+        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+
+        if (!canReopen || !hasEnoughGas) {
+            log.error("cannot reopen task [chainTaskId:{}, canReopen:{}, hasEnoughGas]",
+                    task.getChainTaskId(), canReopen, hasEnoughGas);
+            return;
+        }
+
+        updateTaskStatusAndSave(task, TaskStatus.REOPENING);
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
+
+        if (!optionalChainReceipt.isPresent()) {
+            updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
+            return;
+        }
+
+        task.setConsensus(null);
+        task.setRevealDeadline(new Date(0));
+        updateTaskStatusAndSave(task, TaskStatus.REOPENED, optionalChainReceipt.get());
+        updateTaskStatusAndSave(task, TaskStatus.INITIALIZED, optionalChainReceipt.get());
     }
 
     private void uploadRequested2UploadingResult(Task task) {
