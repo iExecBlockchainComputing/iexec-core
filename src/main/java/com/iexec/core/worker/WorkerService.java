@@ -3,6 +3,7 @@ package com.iexec.core.worker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +57,15 @@ public class WorkerService {
             return Optional.of(workerRepository.save(worker));
         }
         return Optional.empty();
+    }
+
+    public List<String> getChainTaskIds(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            return worker.getParticipatingChainTaskIds();
+        }
+        return Collections.emptyList();
     }
 
     public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {

@@ -8,6 +8,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
+import com.iexec.core.configuration.SessionService;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -17,9 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
@@ -58,7 +57,7 @@ public class WorkerController {
 
         Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
         return optional.
-                <ResponseEntity>map(ResponseEntity::ok)
+                <ResponseEntity>map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
@@ -121,6 +120,16 @@ public class WorkerController {
                 .build();
 
         return ok(config);
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, path = "/workers/currenttasks")
+    public ResponseEntity<List<String>> getTasksInProgress(@RequestHeader("Authorization") String bearerToken) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+        return ok(workerService.getChainTaskIds(workerWalletAddress));
     }
 
 

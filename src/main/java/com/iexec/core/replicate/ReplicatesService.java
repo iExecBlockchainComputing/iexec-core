@@ -214,7 +214,7 @@ public class ReplicatesService {
 
         log.info("UpdateReplicateStatus succeeded [chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}, modifier:{}]", chainTaskId,
                 walletAddress, currentStatus, newStatus, modifier);
-        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId()));
+        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(), newStatus));
     }
 
     @Recover
