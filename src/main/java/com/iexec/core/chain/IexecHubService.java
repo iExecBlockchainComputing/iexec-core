@@ -14,7 +14,6 @@ import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import rx.Observable;
 
@@ -115,18 +114,18 @@ public class IexecHubService {
             return Optional.empty();
         }
 
-        if (iexecHub.getTaskInitializeEvents(receipt).isEmpty()) {
+        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = iexecHub.getTaskInitializeEvents(receipt);
+        if (eventsList.isEmpty()) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
         }
 
-        IexecHubABILegacy.TaskInitializeEventResponse taskInitializedEventResponse = iexecHub.getTaskInitializeEvents(receipt).get(0);
-        String chainTaskId = BytesUtils.bytesToString(taskInitializedEventResponse.taskid);
+        String chainTaskId = BytesUtils.bytesToString(eventsList.get(0).taskid);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
                 chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
-        
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskInitializedEventResponse.log, chainTaskId);
+
         return Optional.of(Pair.of(chainTaskId, chainReceipt));
     }
 
@@ -176,16 +175,13 @@ public class IexecHubService {
         }
         
         List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = iexecHub.getTaskFinalizeEvents(receipt);
-
         if (eventsList.isEmpty()) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
 
         log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, receipt.getGasUsed());
-
-        IexecHubABILegacy.TaskFinalizeEventResponse taskFinalizeEventResponse = eventsList.get(0);
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskFinalizeEventResponse.log, chainTaskId);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         return Optional.of(chainReceipt);
     }
@@ -234,15 +230,14 @@ public class IexecHubService {
             return Optional.empty();
         }
 
-        if (iexecHub.getTaskReopenEvents(receipt).isEmpty()) {
+        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = iexecHub.getTaskReopenEvents(receipt);
+        if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
 
         log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-
-        IexecHubABILegacy.TaskReopenEventResponse taskReopenEventResponse = iexecHub.getTaskReopenEvents(receipt).get(0);
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(taskReopenEventResponse.log, chainTaskId);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         return Optional.of(chainReceipt);
     }
