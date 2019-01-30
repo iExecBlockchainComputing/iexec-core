@@ -22,13 +22,13 @@ group = 'com.iexec.core'
 sourceCompatibility = 1.8
 
 def UNIQUE_ID = 'hostname -f'.execute().text.trim()
-def token = 'curl -XPOST --data name=${UNIQUE_ID} https://c770a93177c87a84c17cdfadc2f2a14f504988b89998083a:@packagecloud.io/install/repositories/iexec/common-new/tokens.text'.execute().text.trim()
+def token = 'curl -XPOST --data name=${UNIQUE_ID} https://58448eb9dc6e105c7a3f77c74880f451234251ea3eeae544:@packagecloud.io/install/repositories/iexec/common/tokens.text'.execute().text.trim()
 
 repositories {
     mavenCentral()
     jcenter()
     maven {
-        url "https://packagecloud.io/priv/${token}/iexec/common-new/maven2"
+        url "https://packagecloud.io/priv/${token}/iexec/common/maven2"
     }
 }
 
@@ -51,8 +51,8 @@ artifacts {
 
 dependencies {
     // iexec
-    compile "com.iexec.common:iexec-common-new:$iexecCommonVersion"
-    //compile files('../iexec-common-new/build/libs/iexec-common-new-3.0.0-SNAPSHOT.jar')
+    compile "com.iexec.common:iexec-common:$iexecCommonVersion"
+    //compile files('../iexec-common/build/libs/iexec-common-3.0.0-SNAPSHOT.jar')
 
     // spring
     compile "org.springframework.boot:spring-boot-starter"
