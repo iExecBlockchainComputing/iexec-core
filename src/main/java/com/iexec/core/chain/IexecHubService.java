@@ -141,28 +141,28 @@ public class IexecHubService {
         return ret;
     }
 
-    public boolean finalizeTask(String chainTaskId, String result) {
+    public boolean finalizeTask(String chainTaskId, String resultUri) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
-            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
+            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultUri), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return false;
     }
 
-    private boolean sendFinalizeTransaction(String chainTaskId, String result) {
+    private boolean sendFinalizeTransaction(String chainTaskId, String resultUri) {
         try {
             RemoteCall<TransactionReceipt> finalizeCall = iexecHub.finalize(BytesUtils.stringToBytes(chainTaskId),
-                    BytesUtils.stringToBytes(result));
-            log.info("Sent finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
+                    BytesUtils.stringToBytes(resultUri));
+            log.info("Sent finalize [chainTaskId:{}, resultUri:{}]", chainTaskId, resultUri);
             TransactionReceipt finalizeReceipt = finalizeCall.send();
             if (!iexecHub.getTaskFinalizeEvents(finalizeReceipt).isEmpty()) {
-                log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, finalizeReceipt.getGasUsed());
+                log.info("Finalized [chainTaskId:{}, resultUri:{}, gasUsed:{}]", chainTaskId, resultUri, finalizeReceipt.getGasUsed());
                 return true;
             }
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, result:{}]", chainTaskId, result);
+            log.error("Failed finalize [chainTaskId:{}, resultUri:{}]", chainTaskId, resultUri);
         }
         return false;
     }

@@ -13,6 +13,7 @@ import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -28,6 +29,15 @@ import static com.iexec.core.task.TaskStatus.*;
 @Slf4j
 @Service
 public class TaskService {
+
+    @Value("${resultRepository.protocol}")
+    private String resultRepositoryProtocol;
+
+    @Value("${resultRepository.ip}")
+    private String resultRepositoryIp;
+
+    @Value("${resultRepository.port}")
+    private String resultRepositoryPort;
 
     private TaskRepository taskRepository;
     private WorkerService workerService;
@@ -349,7 +359,8 @@ public class TaskService {
                 return;
             }
             updateTaskStatusAndSave(task, FINALIZING);
-            boolean isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+            String resultUri = resultRepositoryProtocol + "://" + resultRepositoryIp + ":" + resultRepositoryPort + "/results/" + task.getChainTaskId();
+            boolean isFinalized = iexecHubService.finalizeTask(task.getChainTaskId(), resultUri);
 
             if (isFinalized) {
                 updateTaskStatusAndSave(task, FINALIZED);
