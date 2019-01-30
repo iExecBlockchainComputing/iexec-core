@@ -291,9 +291,6 @@ public class TaskService {
         boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (!isConsensusReachedStatus || !isAfterRevealDeadline || hasAtLeastOneReveal) {
-            log.error("Reopen failed [chainTaskId:{} isConsensusReachedStatus:{}, "
-                    + "isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
-            task.getChainTaskId(), isConsensusReachedStatus, isAfterRevealDeadline, hasAtLeastOneReveal);
             return;
         }
 
