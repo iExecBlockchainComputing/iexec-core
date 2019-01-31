@@ -1,6 +1,7 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.dapp.DappType;
 import lombok.*;
@@ -77,8 +78,12 @@ public class Task {
     }
 
     public void changeStatus(TaskStatus status) {
+        changeStatus(status, null);
+    }
+
+    public void changeStatus(TaskStatus status, ChainReceipt chainReceipt) {
         setCurrentStatus(status);
-        this.getDateStatusList().add(new TaskStatusChange(status));
+        this.getDateStatusList().add(new TaskStatusChange(status, chainReceipt));
     }
 
     @JsonIgnore
