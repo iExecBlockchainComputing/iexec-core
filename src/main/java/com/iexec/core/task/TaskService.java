@@ -14,8 +14,8 @@ import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -28,9 +28,19 @@ import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.*;
 
+
 @Slf4j
 @Service
 public class TaskService {
+
+    @Value("${resultRepository.protocol}")
+    private String resultRepositoryProtocol;
+
+    @Value("${resultRepository.ip}")
+    private String resultRepositoryIp;
+
+    @Value("${resultRepository.port}")
+    private String resultRepositoryPort;
 
     private TaskRepository taskRepository;
     private WorkerService workerService;
@@ -182,7 +192,7 @@ public class TaskService {
         updateTaskStatusAndSave(task, INITIALIZING);
 
         Optional<Pair<String, ChainReceipt>> optionalPair = iexecHubService.initialize(
-                    task.getChainDealId(), task.getTaskIndex());
+                task.getChainDealId(), task.getTaskIndex());
 
         if (!optionalPair.isPresent()) {
             return;
@@ -381,7 +391,8 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), "GET /results/" + task.getChainTaskId());
+        String resultUri = resultRepositoryProtocol + "://" + resultRepositoryIp + ":" + resultRepositoryPort + "/results/" + task.getChainTaskId();
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), resultUri);
 
         if (!optionalChainReceipt.isPresent()) {
             updateTaskStatusAndSave(task, FINALIZE_FAILED);

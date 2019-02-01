@@ -18,6 +18,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import rx.Observable;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -152,25 +153,25 @@ public class IexecHubService {
         return ret;
     }
 
-    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String result) {
+    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultUri) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
-            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, result), executor).get();
+            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultUri), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return Optional.empty();
     }
 
-    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String result) {
+    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultUri) {
         byte[] chainTaskIdBytes = BytesUtils.stringToBytes(chainTaskId);
-        byte[] resultBytes = BytesUtils.stringToBytes(result);
+        byte[] resultUriBytes = resultUri.getBytes(StandardCharsets.UTF_8);
 
         TransactionReceipt receipt;
         try {
-            receipt = iexecHub.finalize(chainTaskIdBytes, resultBytes).send();
+            receipt = iexecHub.finalize(chainTaskIdBytes, resultUriBytes).send();
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, result:{}, error:{}]]", chainTaskId, result, e.getMessage());
+            log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
         
@@ -180,7 +181,7 @@ public class IexecHubService {
             return Optional.empty();
         }
 
-        log.info("Finalized [chainTaskId:{}, result:{}, gasUsed:{}]", chainTaskId, result, receipt.getGasUsed());
+        log.info("Finalized [chainTaskId:{}, resultUri:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
         ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         return Optional.of(chainReceipt);
