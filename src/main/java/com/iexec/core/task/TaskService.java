@@ -308,8 +308,6 @@ public class TaskService {
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
         if (!canReopen || !hasEnoughGas) {
-            log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas]",
-                    task.getChainTaskId(), canReopen, hasEnoughGas);
             return;
         }
 
@@ -317,6 +315,8 @@ public class TaskService {
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
 
         if (!optionalChainReceipt.isPresent()) {
+            log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas:{}]",
+                    task.getChainTaskId(), canReopen, hasEnoughGas);
             updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
             return;
         }
@@ -377,12 +377,9 @@ public class TaskService {
 
         int onChainReveal = chainTask.getRevealCounter();
         int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
-        //+ replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (!isTaskInResultUploaded || !canFinalize || !offChainRevealEqualsOnChainReveal) {
-            log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
-                    task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             return;
         }
 
@@ -395,6 +392,8 @@ public class TaskService {
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), resultUri);
 
         if (!optionalChainReceipt.isPresent()) {
+            log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
+                    task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             updateTaskStatusAndSave(task, FINALIZE_FAILED);
             return;
         }
