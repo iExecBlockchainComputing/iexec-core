@@ -42,5 +42,5 @@ workers:
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
-  port: ${server.port}
+  port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 
