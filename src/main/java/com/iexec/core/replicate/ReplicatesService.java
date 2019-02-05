@@ -19,15 +19,14 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
-import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
+import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
 public class ReplicatesService {
 
     private ReplicatesRepository replicatesRepository;
-    private IexecHubService iexecHubService;
+    private IexecHubService     iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
 
@@ -185,7 +184,7 @@ public class ReplicatesService {
             return;
         }
 
-        if (isBlockchainStatus(newStatus)) {
+        if (isSuccessBlockchainStatus(newStatus)) {
             replicate = getOnChainRefreshedReplicate(replicate, getChainStatus(newStatus), receiptBlockNumber);
 
             if (modifier.equals(ReplicateStatusModifier.POOL_MANAGER)) {
@@ -201,9 +200,14 @@ public class ReplicatesService {
             }
         }
 
+        // check that CONTRIBUTE_FAIL and REVEAL_FAIL are correct on-chain
+        if (isFailedBlockchainStatus(newStatus) &&
+                !isTaskStatusFailOnChain(replicate.getChainTaskId(), replicate.getWalletAddress(), receiptBlockNumber)) {
+            return;
+        }
+
         // don't save receipt to db if no relevant info
-        if (chainReceipt != null && chainReceipt.getBlockNumber() == 0
-                && chainReceipt.getTxHash() == null) {
+        if (chainReceipt != null && chainReceipt.getBlockNumber() == 0 && chainReceipt.getTxHash() == null) {
             chainReceipt = null;
         }
 
@@ -231,8 +235,12 @@ public class ReplicatesService {
         exception.printStackTrace();
     }
 
-    private boolean isBlockchainStatus(ReplicateStatus newStatus) {
+    private boolean isSuccessBlockchainStatus(ReplicateStatus newStatus) {
         return getChainStatus(newStatus) != null;
+    }
+
+    private boolean isFailedBlockchainStatus(ReplicateStatus status) {
+        return Arrays.asList(CONTRIBUTE_FAILED, REVEAL_FAILED).contains(status);
     }
 
     private Replicate getOnChainRefreshedReplicate(Replicate replicate, ChainContributionStatus wishedChainStatus, long blockNumber) {
@@ -242,7 +250,7 @@ public class ReplicatesService {
             return null;
         }
 
-        boolean isWishedStatusProvedOnChain = iexecHubService.checkContributionStatus(replicate.getChainTaskId(), replicate.getWalletAddress(), wishedChainStatus);
+        boolean isWishedStatusProvedOnChain = iexecHubService.doesWishedStatusMatchesOnChainStatus(replicate.getChainTaskId(), replicate.getWalletAddress(), wishedChainStatus);
         if (isWishedStatusProvedOnChain) {
             return getReplicateWithBlockchainUpdates(replicate, wishedChainStatus);
         } else {
@@ -258,6 +266,7 @@ public class ReplicatesService {
         if (!optional.isPresent()) {
             return null;
         }
+
         ChainContribution chainContribution = optional.get();
         if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)){
             replicate.setContributionHash(chainContribution.getResultHash());
@@ -265,5 +274,26 @@ public class ReplicatesService {
         return replicate;
     }
 
+    private boolean isTaskStatusFailOnChain(String chainTaskId, String walletAddress, long blockNumber) {
+        if (!web3jService.isBlockNumberAvailable(blockNumber)) {
+            log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
+            return false;
+        }
+
+        Optional<ChainContribution> optional = iexecHubService.getContribution(chainTaskId, walletAddress);
+        if (!optional.isPresent()) {
+            return false;
+        }
+
+        ChainContribution contribution = optional.get();
+        ChainContributionStatus chainStatus = contribution.getStatus();
+        if(!chainStatus.equals(ChainContributionStatus.CONTRIBUTED) && !chainStatus.equals(ChainContributionStatus.REVEALED)) {
+            return true;
+        } else {
+            log.warn("The onchain status od the contribution is not a failed one " +
+                    "[chainTaskId:{}, wallet:{}, blockNumber:{}, onChainStatus:{}]", chainStatus, walletAddress, blockNumber, chainStatus);
+            return false;
+        }
+    }
 
 }
