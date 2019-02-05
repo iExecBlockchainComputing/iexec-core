@@ -65,7 +65,7 @@ public class ResultServiceTest {
     @Test
     public void isNotAbleToUploadSinceChainStatusIsNotRevealed() {
         when(gridFsOperations.findOne(any())).thenReturn(null);
-        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
 
         assertThat(resultService.canUploadResult(chainTaskId, walletAddress, zip)).isFalse();
     }
@@ -73,7 +73,7 @@ public class ResultServiceTest {
     @Test
     public void isAbleToUpload() {
         when(gridFsOperations.findOne(any())).thenReturn(null);
-        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
 
         assertThat(resultService.canUploadResult(chainTaskId, walletAddress, zip)).isTrue();
     }

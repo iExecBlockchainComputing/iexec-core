@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -47,7 +46,7 @@ public class ContributionUnnotifiedDetector implements Detector {
                 boolean isReplicateOld = replicate.isCreatedMoreThanNPeriodsAgo(1, task.getTimeRef());
 
                 if (!hasReplicateContributedOffChain && isReplicateOld &&
-                        iexecHubService.checkContributionStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
+                        iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate);
                 }
             }
