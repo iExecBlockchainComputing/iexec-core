@@ -56,7 +56,7 @@ public class IexecHubService {
         return ChainUtils.getChainContribution(iexecHub, chainTaskId, workerWalletAddress);
     }
 
-    public boolean checkContributionStatus(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+    public boolean doesWishedStatusMatchesOnChainStatus(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
 
         Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
@@ -65,7 +65,7 @@ public class IexecHubService {
 
         ChainContribution chainContribution = optional.get();
         ChainContributionStatus chainStatus = chainContribution.getStatus();
-        switch (statusToCheck) {
+        switch (wishedStatus) {
             case CONTRIBUTED:
                 if (chainStatus.equals(UNSET)) {
                     return false;

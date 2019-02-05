@@ -53,7 +53,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         contributionDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(3))//CAN_CONTRIBUTE & CONTRIBUTING & CONTRIBUTED
@@ -70,7 +70,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
         contributionDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(0))
@@ -87,7 +87,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(false);
 
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
-        when(iexecHubService.checkContributionStatus(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         contributionDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(0))
