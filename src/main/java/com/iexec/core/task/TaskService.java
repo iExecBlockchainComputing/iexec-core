@@ -184,7 +184,7 @@ public class TaskService {
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
         if (!canInitialize || !hasEnoughGas) {
-            log.error("Initialize failed [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
+            log.error("Cant initialize [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
                     task.getChainTaskId(), canInitialize, hasEnoughGas);
             return;
         }
