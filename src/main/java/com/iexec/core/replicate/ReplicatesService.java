@@ -290,7 +290,7 @@ public class ReplicatesService {
         if(!chainStatus.equals(ChainContributionStatus.CONTRIBUTED) && !chainStatus.equals(ChainContributionStatus.REVEALED)) {
             return true;
         } else {
-            log.warn("The onchain status od the contribution is not a failed one " +
+            log.warn("The onchain status of the contribution is not a failed one " +
                     "[chainTaskId:{}, wallet:{}, blockNumber:{}, onChainStatus:{}]", chainStatus, walletAddress, blockNumber, chainStatus);
             return false;
         }
