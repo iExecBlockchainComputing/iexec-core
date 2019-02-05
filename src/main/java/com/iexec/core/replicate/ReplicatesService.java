@@ -254,8 +254,8 @@ public class ReplicatesService {
         if (isWishedStatusProvedOnChain) {
             return getReplicateWithBlockchainUpdates(replicate, wishedChainStatus);
         } else {
-            log.error("Onchain status is different from wishedChainStatus (should wait?) [chainTaskId:{}, " +
-                    "blockNumber:{}, wishedChainStatus:{}]", replicate.getChainTaskId(), blockNumber, wishedChainStatus);
+            log.error("Onchain status is different from wishedChainStatus (should wait?) [chainTaskId:{}, worker:{}, " +
+                    "blockNumber:{}, wishedChainStatus:{}]", replicate.getChainTaskId(), replicate.getWalletAddress(), blockNumber, wishedChainStatus);
         }
 
         return null;

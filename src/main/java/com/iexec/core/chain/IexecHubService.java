@@ -6,7 +6,6 @@ import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +18,7 @@ import rx.Observable;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -89,7 +89,8 @@ public class IexecHubService {
     public boolean canInitialize(String chainDealId, int taskIndex) {
         String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
         Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
-        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
+        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)
+                && new Date().getTime() < (chainTask.getContributionDeadline())).orElse(false);
     }
 
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
@@ -174,7 +175,7 @@ public class IexecHubService {
             log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
-        
+
         List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = iexecHub.getTaskFinalizeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
