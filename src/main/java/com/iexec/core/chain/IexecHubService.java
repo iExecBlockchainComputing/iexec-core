@@ -87,10 +87,37 @@ public class IexecHubService {
     }
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
+        boolean isTaskUnsetOnChain = isTaskUnsetOnChain(chainDealId, taskIndex);
+        boolean isBeforeContributionDeadline = isDateBeforeContributionDeadline(new Date(), chainDealId);
+        return isBeforeContributionDeadline && isTaskUnsetOnChain;
+    }
+
+    private boolean isTaskUnsetOnChain(String chainDealId, int taskIndex) {
         String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
         Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
-        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)
-                && new Date().getTime() < (chainTask.getContributionDeadline())).orElse(false);
+        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
+    }
+
+    private boolean isDateBeforeContributionDeadline(Date date, String chainDealId) {
+        Optional<ChainDeal> chainDeal = getChainDeal(chainDealId);
+        if (!chainDeal.isPresent()) {
+            return false;
+        }
+
+        long startTime = chainDeal.get().getStartTime().longValue() * 1000;
+        long timeRef = chainDeal.get().getChainCategory().getMaxExecutionTime().getTime() * 1000;
+        long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
+
+        return date.getTime() < startTime + timeRef * maxNbOfPeriods;
+    }
+
+    private long getMaxNbOfPeriodsForConsensus() {
+        try {
+            return iexecHub.CONSENSUS_DURATION_RATIO().send().longValue();
+        } catch (Exception e) {
+            log.error("Failed to getMaxNbOfPeriodsForConsensus");
+        }
+        return 0;
     }
 
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
