@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
 
+import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
 import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -515,5 +516,56 @@ public class ReplicateServiceTests {
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
         assertThat(argumentCaptor.getAllValues().get(1)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), REVEALED));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
+    }
+
+    @Test
+    public void shouldGet2OffChainReplicatesWithStatusContributed(){
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(2);
+    }
+
+    @Test
+    public void shouldGet1OffChainReplicatesWithStatusContributed(){
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldGet0OffChainReplicatesWithStatusContributed(){
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
     }
 }

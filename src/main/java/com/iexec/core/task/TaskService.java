@@ -245,7 +245,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
+        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
         if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
@@ -379,7 +379,7 @@ public class TaskService {
         ChainTask chainTask = optional.get();
 
         int onChainReveal = chainTask.getRevealCounter();
-        int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
+        int offChainReveal = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (!isTaskInResultUploaded || !canFinalize || !offChainRevealEqualsOnChainReveal) {
