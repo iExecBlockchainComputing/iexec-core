@@ -26,7 +26,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 public class ReplicatesService {
 
     private ReplicatesRepository replicatesRepository;
-    private IexecHubService     iexecHubService;
+    private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
 
@@ -117,6 +117,27 @@ public class ReplicatesService {
         return addressReplicates.size();
     }
 
+    public int getNbOffChainReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
+        return getNbReplicatesWithCurrentStatus(chainTaskId, status) +
+                getNbReplicatesWithGivenStatusJustBeforeWorkerLost(chainTaskId, status);
+    }
+
+    /*
+     * For status = CONTRIBUTED, a replicate will be counted when statuses = { CREATED, ..., CONTRIBUTED, WORKER_LOST }
+     * For status = REVEALED, a replicate will be counted when statuses = { CREATED, ..., REVEALED, WORKER_LOST }
+     */
+    private int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(String chainTaskId, ReplicateStatus status) {
+        int nbReplicates = 0;
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            int size = replicate.getStatusChangeList().size();
+            if (size >= 2 && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
+                    && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status)) {
+                nbReplicates++;
+            }
+        }
+        return nbReplicates;
+    }
+
     public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
         List<Replicate> revealReplicates = getReplicates(chainTaskId);
         Collections.shuffle(revealReplicates);
@@ -194,7 +215,7 @@ public class ReplicatesService {
                 log.warn("Replicate status set by the pool manager [chainTaskId:{}, walletAddress:{}, newStatus:{}, blockNumber:{}]",
                         chainTaskId, walletAddress, newStatus, receiptBlockNumber);
             }
-            
+
             if (replicate == null) {
                 log.error("Failed to refresh replicate with onchain values [chainTaskId:{}, walletAddress:{}, " +
                                 "currentStatus:{}, newStatus:{}]",
@@ -271,7 +292,7 @@ public class ReplicatesService {
         }
 
         ChainContribution chainContribution = optional.get();
-        if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)){
+        if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)) {
             replicate.setContributionHash(chainContribution.getResultHash());
         }
         return replicate;
@@ -290,7 +311,7 @@ public class ReplicatesService {
 
         ChainContribution contribution = optional.get();
         ChainContributionStatus chainStatus = contribution.getStatus();
-        if(!chainStatus.equals(ChainContributionStatus.CONTRIBUTED) && !chainStatus.equals(ChainContributionStatus.REVEALED)) {
+        if (!chainStatus.equals(ChainContributionStatus.CONTRIBUTED) && !chainStatus.equals(ChainContributionStatus.REVEALED)) {
             return true;
         } else {
             log.warn("The onchain status of the contribution is not a failed one " +
