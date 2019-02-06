@@ -328,11 +328,15 @@ public class TaskService {
     }
 
     private void uploadRequested2UploadingResult(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        boolean isThereAWorkerUploading = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
-        if (condition1 && condition2) {
-            updateTaskStatusAndSave(task, RESULT_UPLOADING);
+        if (isTaskInUploadRequested) {
+            if (isThereAWorkerUploading) {
+                updateTaskStatusAndSave(task, RESULT_UPLOADING);
+            } else {
+                requestUpload(task);
+            }
         }
     }
 
@@ -352,10 +356,9 @@ public class TaskService {
 
     private void requestUpload(Task task) {
 
-        Optional<Replicate> optionalReplicate = replicatesService.getReplicateWithRevealStatus(task.getChainTaskId());
+        Optional<Replicate> optionalReplicate = replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId());
         if (optionalReplicate.isPresent()) {
             Replicate replicate = optionalReplicate.get();
-
 
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
