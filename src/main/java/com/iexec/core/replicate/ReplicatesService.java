@@ -130,7 +130,7 @@ public class ReplicatesService {
         int nbReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             int size = replicate.getStatusChangeList().size();
-            if (replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
+            if (size >= 2 && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
                     && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status)) {
                 nbReplicates++;
             }
