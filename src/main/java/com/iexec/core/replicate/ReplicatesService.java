@@ -117,8 +117,11 @@ public class ReplicatesService {
         return addressReplicates.size();
     }
 
-    public Optional<Replicate> getReplicateWithRevealStatus(String chainTaskId) {
-        for (Replicate replicate : getReplicates(chainTaskId)) {
+    public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
+        List<Replicate> revealReplicates = getReplicates(chainTaskId);
+        Collections.shuffle(revealReplicates);
+
+        for (Replicate replicate : revealReplicates) {
             if (replicate.getCurrentStatus().equals(REVEALED)) {
                 return Optional.of(replicate);
             }
