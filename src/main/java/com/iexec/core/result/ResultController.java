@@ -96,12 +96,14 @@ public class ResultController {
                 .body(zip);
     }
 
+    @CrossOrigin
     @GetMapping(value = "/results/challenge")
     public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId) {
         Eip712Challenge eip712Challenge = challengeService.generateEip712Challenge(chainId);
         return ResponseEntity.ok(eip712Challenge);
     }
 
+    @CrossOrigin
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
                                             @RequestHeader("Authorization") String token,
