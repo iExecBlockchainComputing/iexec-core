@@ -95,6 +95,7 @@ public class Replicate {
         return now.after(numberPeriodsAfterCreationDate);
     }
 
+    @JsonIgnore
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
