@@ -6,7 +6,6 @@ import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +18,7 @@ import rx.Observable;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -56,7 +56,7 @@ public class IexecHubService {
         return ChainUtils.getChainContribution(iexecHub, chainTaskId, workerWalletAddress);
     }
 
-    public boolean checkContributionStatus(String chainTaskId, String walletAddress, ChainContributionStatus statusToCheck) {
+    public boolean doesWishedStatusMatchesOnChainStatus(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
 
         Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
@@ -65,7 +65,7 @@ public class IexecHubService {
 
         ChainContribution chainContribution = optional.get();
         ChainContributionStatus chainStatus = chainContribution.getStatus();
-        switch (statusToCheck) {
+        switch (wishedStatus) {
             case CONTRIBUTED:
                 if (chainStatus.equals(UNSET)) {
                     return false;
@@ -87,9 +87,37 @@ public class IexecHubService {
     }
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
+        boolean isTaskUnsetOnChain = isTaskUnsetOnChain(chainDealId, taskIndex);
+        boolean isBeforeContributionDeadline = isDateBeforeContributionDeadline(new Date(), chainDealId);
+        return isBeforeContributionDeadline && isTaskUnsetOnChain;
+    }
+
+    private boolean isTaskUnsetOnChain(String chainDealId, int taskIndex) {
         String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
         Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
         return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
+    }
+
+    private boolean isDateBeforeContributionDeadline(Date date, String chainDealId) {
+        Optional<ChainDeal> chainDeal = getChainDeal(chainDealId);
+        if (!chainDeal.isPresent()) {
+            return false;
+        }
+
+        long startTime = chainDeal.get().getStartTime().longValue() * 1000;
+        long timeRef = chainDeal.get().getChainCategory().getMaxExecutionTime().getTime() * 1000;
+        long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
+
+        return date.getTime() < startTime + timeRef * maxNbOfPeriods;
+    }
+
+    private long getMaxNbOfPeriodsForConsensus() {
+        try {
+            return iexecHub.CONSENSUS_DURATION_RATIO().send().longValue();
+        } catch (Exception e) {
+            log.error("Failed to getMaxNbOfPeriodsForConsensus");
+        }
+        return 0;
     }
 
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
@@ -184,7 +212,7 @@ public class IexecHubService {
             log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
-        
+
         List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = iexecHub.getTaskFinalizeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);

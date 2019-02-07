@@ -43,8 +43,9 @@ public class ResultUploadTimeoutDetector implements Detector {
             if(optional.isPresent()){
                 Replicate replicate = optional.get();
                 boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
+                boolean hasReplicateUploadAlreadyFailed = replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED);
 
-                if (startUploadLongAgo) {
+                if (startUploadLongAgo && !hasReplicateUploadAlreadyFailed) {
                     replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
                             ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 }

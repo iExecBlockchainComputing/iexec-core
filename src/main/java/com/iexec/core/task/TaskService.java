@@ -184,7 +184,7 @@ public class TaskService {
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
 
         if (!canInitialize || !hasEnoughGas) {
-            log.error("Initialize failed [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
+            log.error("Cant initialize [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
                     task.getChainTaskId(), canInitialize, hasEnoughGas);
             return;
         }
@@ -245,7 +245,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
+        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
         if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
@@ -328,17 +328,21 @@ public class TaskService {
     }
 
     private void uploadRequested2UploadingResult(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        boolean isThereAWorkerUploading = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
-        if (condition1 && condition2) {
-            updateTaskStatusAndSave(task, RESULT_UPLOADING);
+        if (isTaskInUploadRequested) {
+            if (isThereAWorkerUploading) {
+                updateTaskStatusAndSave(task, RESULT_UPLOADING);
+            } else {
+                requestUpload(task);
+            }
         }
     }
 
     private void resultUploading2Uploaded(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
@@ -352,10 +356,9 @@ public class TaskService {
 
     private void requestUpload(Task task) {
 
-        Optional<Replicate> optionalReplicate = replicatesService.getReplicateWithRevealStatus(task.getChainTaskId());
+        Optional<Replicate> optionalReplicate = replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId());
         if (optionalReplicate.isPresent()) {
             Replicate replicate = optionalReplicate.get();
-
 
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());

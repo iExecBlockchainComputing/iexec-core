@@ -44,7 +44,7 @@ public class RevealUnnotifiedDetector implements Detector {
                 String wallet = replicate.getWalletAddress();
 
                 if (!isStatusRevealedOffChain && isConsensusReachedLongAgo &&
-                        iexecHubService.checkContributionStatus(taskId, wallet, ChainContributionStatus.REVEALED)) {
+                        iexecHubService.doesWishedStatusMatchesOnChainStatus(taskId, wallet, ChainContributionStatus.REVEALED)) {
                     replicatesService.updateReplicateStatus(taskId, wallet, REVEALED, ReplicateStatusModifier.POOL_MANAGER);
                 }
             }

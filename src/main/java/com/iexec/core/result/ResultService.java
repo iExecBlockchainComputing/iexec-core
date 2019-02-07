@@ -7,7 +7,6 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsOperations;
@@ -48,7 +47,7 @@ public class ResultService {
         }
 
         // ContributionStatus of chainTask should be REVEALED
-        boolean isChainContributionStatusSetToRevealed = iexecHubService.checkContributionStatus(chainTaskId,
+        boolean isChainContributionStatusSetToRevealed = iexecHubService.doesWishedStatusMatchesOnChainStatus(chainTaskId,
                 walletAddress, ChainContributionStatus.REVEALED);
         if (!isChainContributionStatusSetToRevealed) {
             log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
