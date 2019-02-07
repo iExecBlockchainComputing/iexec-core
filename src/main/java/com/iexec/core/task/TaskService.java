@@ -342,7 +342,7 @@ public class TaskService {
 
     private void resultUploading2Uploaded(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        boolean condition2 = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
@@ -379,7 +379,7 @@ public class TaskService {
         ChainTask chainTask = optional.get();
 
         int onChainReveal = chainTask.getRevealCounter();
-        int offChainReveal = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
+        int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
         if (!isTaskInResultUploaded || !canFinalize || !offChainRevealEqualsOnChainReveal) {
