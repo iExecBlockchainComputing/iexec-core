@@ -121,6 +121,16 @@ public class IexecHubService {
             return Optional.empty();
         }
 
+        // if (eventsList.get(0).log != null) {
+        //     while (eventsList.get(0).log.getType() == "pending") {
+        //         eventsList = iexecHub.getTaskInitializeEvents(receipt);
+        //         if (eventsList.isEmpty()) {
+        //             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+        //             return Optional.empty();
+        //         }
+        //     }    
+        // }
+
         String chainTaskId = BytesUtils.bytesToString(eventsList.get(0).taskid);
         ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
