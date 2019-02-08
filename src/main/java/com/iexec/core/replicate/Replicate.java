@@ -95,7 +95,12 @@ public class Replicate {
         return now.after(numberPeriodsAfterCreationDate);
     }
 
-    @JsonIgnore
+    public boolean isLostAfterStatus(ReplicateStatus status) {
+        return getCurrentStatus() == ReplicateStatus.WORKER_LOST &&
+                getLastButOneStatus() == status;
+    }
+
+    // @JsonIgnore
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
