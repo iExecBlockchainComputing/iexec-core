@@ -85,6 +85,7 @@ public class ResultService {
     }
 
     boolean canGetResult(Integer chainId, String chainTaskId, String walletAddress) {
+        walletAddress = walletAddress.toLowerCase();
         /*
          * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
          * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
