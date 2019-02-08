@@ -100,7 +100,6 @@ public class Replicate {
                 getLastButOneStatus() == status;
     }
 
-    // @JsonIgnore
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
