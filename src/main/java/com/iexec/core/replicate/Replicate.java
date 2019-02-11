@@ -87,9 +87,9 @@ public class Replicate {
         return containsStatus(CONTRIBUTED);
     }
 
-    public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, Date timeRef) {
+    public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, long maxExecutionTime) {
         Date creationDate = this.getStatusChangeList().get(0).getDate();
-        Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * timeRef.getTime());
+        Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * maxExecutionTime);
         Date now = new Date();
 
         return now.after(numberPeriodsAfterCreationDate);

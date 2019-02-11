@@ -105,10 +105,10 @@ public class IexecHubService {
         }
 
         long startTime = chainDeal.get().getStartTime().longValue() * 1000;
-        long timeRef = chainDeal.get().getChainCategory().getMaxExecutionTime().getTime() * 1000;
+        long maxExecutionTime = chainDeal.get().getChainCategory().getMaxExecutionTime();
         long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
 
-        return date.getTime() < startTime + timeRef * maxNbOfPeriods;
+        return date.getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
     }
 
     private long getMaxNbOfPeriodsForConsensus() {

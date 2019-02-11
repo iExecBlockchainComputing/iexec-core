@@ -43,7 +43,7 @@ public class ContributionUnnotifiedDetector implements Detector {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 //check if a worker has contributed on-chain but hasn't notified off-chain
                 boolean hasReplicateContributedOffChain = replicate.containsContributedStatus();
-                boolean isReplicateOld = replicate.isCreatedMoreThanNPeriodsAgo(1, task.getTimeRef());
+                boolean isReplicateOld = replicate.isCreatedMoreThanNPeriodsAgo(1, task.getMaxExecutionTime());
 
                 if (!hasReplicateContributedOffChain && isReplicateOld &&
                         iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {

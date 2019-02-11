@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 public class DealWatcherServiceTests {
@@ -107,7 +108,7 @@ public class DealWatcherServiceTests {
 
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
-        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), any(), any())).thenReturn(Optional.of(task));
+        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any())).thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
         ArgumentCaptor<TaskCreatedEvent> argumentCaptor = ArgumentCaptor.forClass(TaskCreatedEvent.class);
