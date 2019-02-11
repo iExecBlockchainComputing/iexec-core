@@ -1,5 +1,6 @@
 package com.iexec.core.task;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.util.Date;
@@ -10,6 +11,7 @@ import com.iexec.common.chain.ChainReceipt;
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskStatusChange {
 
     private Date date;
