@@ -98,6 +98,7 @@ public class WorkerController {
                 .os(model.getOs())
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
+                .memorySize(model.getMemorySize())
                 .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())

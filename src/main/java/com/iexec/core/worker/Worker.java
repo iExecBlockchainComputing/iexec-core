@@ -21,6 +21,7 @@ public class Worker {
     private String os;
     private String cpu;
     private int cpuNb;
+    private int memorySize;
     private List<String> participatingChainTaskIds;
     private List<String> computingChainTaskIds;
 
