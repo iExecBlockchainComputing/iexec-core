@@ -330,7 +330,7 @@ public class ReplicateServiceTests {
 
     @Test
     public void shouldNeedMoreReplicates(){
-        final Date timeRef = new Date(60000);
+        final long maxExecutionTime = 60000;
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
@@ -342,20 +342,20 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // numWorkersNeeded strictly bigger than the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, timeRef);
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, maxExecutionTime);
         assertThat(res).isTrue();
     }
 
     @Test
     public void shouldNeedMoreReplicates2(){
-        Date timeRef = new Date(60000);
+        final long maxExecutionTime = 60000;
         Replicate runningReplicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         runningReplicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
         Replicate notRespondingReplicate1 = mock(Replicate.class);
-        when(notRespondingReplicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
+        when(notRespondingReplicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
         when(notRespondingReplicate1.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
         Replicate notRespondingReplicate2 = mock(Replicate.class);
-        when(notRespondingReplicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
+        when(notRespondingReplicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
         when(notRespondingReplicate2.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
 
 
@@ -363,13 +363,13 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // numWorkersNeeded strictly bigger than the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, timeRef);
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, maxExecutionTime);
         assertThat(res).isTrue();
     }
 
     @Test
     public void shouldNotNeedMoreReplicates(){
-        final Date timeRef = new Date(60000);
+        final long maxExecutionTime = 60000;
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
 
@@ -380,7 +380,7 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // numWorkersNeeded equals to the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1, timeRef);
+        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1, maxExecutionTime);
         assertThat(res).isFalse();
     }
 

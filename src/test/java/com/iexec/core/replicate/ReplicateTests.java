@@ -86,26 +86,26 @@ public class ReplicateTests {
 
     @Test
     public void shouldBeCreatedLongAgo(){
-        Date timeRef = new Date(60000);
+        final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
         ReplicateStatusChange oldCreationDate = replicate.getStatusChangeList().get(0);
-        oldCreationDate.setDate(new Date(now.getTime() - 3 * timeRef.getTime()));
+        oldCreationDate.setDate(new Date(now.getTime() - 3 * maxExecutionTime));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isTrue();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isTrue();
     }
 
     @Test
     public void shouldNotBeCreatedLongAgo(){
-        Date timeRef = new Date(60000);
+        final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
         ReplicateStatusChange oldCreationDate = replicate.getStatusChangeList().get(0);
-        oldCreationDate.setDate(new Date(now.getTime() - timeRef.getTime()));
+        oldCreationDate.setDate(new Date(now.getTime() - maxExecutionTime));
         replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
 
-        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef)).isFalse();
+        assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isFalse();
     }
 
     @Test

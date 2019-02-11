@@ -17,6 +17,7 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +51,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
@@ -67,7 +68,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(true);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
@@ -84,7 +85,7 @@ public class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getCurrentStatus()).thenReturn(ReplicateStatus.COMPUTED);
-        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), any())).thenReturn(false);
+        when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
 
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Collections.singletonList(replicate1));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);

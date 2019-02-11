@@ -151,13 +151,13 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, Date timeRef) {
+    public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, long maxExecutionTime) {
         int nbValidReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
             //TODO think: When do we really need more replicates?
             boolean isReplicateSuccessfullSoFar = ReplicateStatus.getSuccessStatuses().contains(replicate.getCurrentStatus());
             boolean doesContributionTakesTooLong = !replicate.containsContributedStatus() &&
-                    replicate.isCreatedMoreThanNPeriodsAgo(2, timeRef);
+                    replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime);
 
             if (isReplicateSuccessfullSoFar && !doesContributionTakesTooLong) {
                 nbValidReplicates++;

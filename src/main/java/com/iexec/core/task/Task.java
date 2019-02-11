@@ -31,7 +31,7 @@ public class Task {
 
     private String chainDealId;
     private int taskIndex;
-    private Date timeRef;
+    private long maxExecutionTime;
     private String tag;
     private String chainTaskId;
     private DappType dappType;
@@ -68,12 +68,12 @@ public class Task {
         this.chainTaskId = chainTaskId;
     }
 
-    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust, Date timeRef, String tag) {
+    public Task(String chainDealId, int taskIndex, String dappName, String commandLine, int trust, long maxExecutionTime, String tag) {
         this(dappName, commandLine, trust);
         this.chainDealId = chainDealId;
         this.taskIndex = taskIndex;
         this.chainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
-        this.timeRef = timeRef;
+        this.maxExecutionTime = maxExecutionTime;
         this.tag = tag;
     }
 
@@ -96,7 +96,7 @@ public class Task {
         if (!consensusReachedDate.isPresent()){
             return false;
         }
-        Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.timeRef.getTime());
+        Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.maxExecutionTime);
         Date now = new Date();
 
         return now.after(onePeriodAfterConsensusReachedDate);

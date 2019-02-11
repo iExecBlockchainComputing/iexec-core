@@ -5,14 +5,12 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static com.iexec.core.utils.DateTimeUtils.now;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TaskTests {
 
@@ -102,12 +100,12 @@ public class TaskTests {
 
     @Test
     public void shouldReturnTrueWhenConsensusReachedSinceAWhile(){
-        Date timeRef = new Date(60);
+        final long maxExecutionTime = 60;
         Task task = new Task();
-        task.setTimeRef(timeRef);
+        task.setMaxExecutionTime(maxExecutionTime);
         TaskStatusChange taskStatusChange = TaskStatusChange.builder()
                 .status(CONSENSUS_REACHED)
-                .date(new Date(now() - 2 * timeRef.getTime()))
+                .date(new Date(now() - 2 * maxExecutionTime))
                 .build();
         task.setDateStatusList(Arrays.asList(taskStatusChange));
 
@@ -116,9 +114,9 @@ public class TaskTests {
 
     @Test
     public void shouldReturnFalseWhenConsensusReachedSinceNotLong(){
-        Date timeRef = new Date(60);
+        final long maxExecutionTime = 60;
         Task task = new Task();
-        task.setTimeRef(timeRef);
+        task.setMaxExecutionTime(maxExecutionTime);
         TaskStatusChange taskStatusChange = TaskStatusChange.builder()
                 .status(CONSENSUS_REACHED)
                 .date(new Date(now() - 10))
