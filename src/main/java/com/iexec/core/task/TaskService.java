@@ -93,7 +93,7 @@ public class TaskService {
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<Replicate> getAvailableReplicate(String walletAddress) {
+    Optional<Replicate> getAvailableReplicate(long blockNumber, String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
@@ -113,7 +113,9 @@ public class TaskService {
 
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
-            if (!replicatesService.hasWorkerAlreadyParticipated(chainTaskId, walletAddress) &&
+            boolean blockNumberAvailable = task.getInitializationBlockNumber() == 0 || task.getInitializationBlockNumber() <= blockNumber;
+            if (blockNumberAvailable &&
+                    !replicatesService.hasWorkerAlreadyParticipated(chainTaskId, walletAddress) &&
                     replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded(), task.getMaxExecutionTime())) {
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
@@ -216,6 +218,10 @@ public class TaskService {
 
         task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
         task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
+        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
+        if (receiptBlockNumber != 0){
+            task.setInitializationBlockNumber(receiptBlockNumber);
+        }
         //TODO Put other fields?
 
         updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);

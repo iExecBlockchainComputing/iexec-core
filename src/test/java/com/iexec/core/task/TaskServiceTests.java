@@ -924,7 +924,7 @@ public class TaskServiceTests {
     public void shouldNotGetAnyReplicateSinceWorkerDoesntExist() {
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
@@ -941,7 +941,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(new ArrayList<>());
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
@@ -962,7 +962,7 @@ public class TaskServiceTests {
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
                 .thenReturn(Collections.singletonList(runningTask1));
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
@@ -985,7 +985,7 @@ public class TaskServiceTests {
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
@@ -1008,7 +1008,7 @@ public class TaskServiceTests {
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
         when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), maxExecutionTime)).thenReturn(false);
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
     }
 
@@ -1035,7 +1035,7 @@ public class TaskServiceTests {
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
                 Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
 
-        Optional<Replicate> optional = taskService.getAvailableReplicate(WALLET_WORKER_1);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
 
         assertThat(optional.isPresent()).isTrue();
 

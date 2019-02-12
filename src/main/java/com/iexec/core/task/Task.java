@@ -37,8 +37,8 @@ public class Task {
     private DappType dappType;
     private String dappName;
     private String commandLine;
+    private long initializationBlockNumber;
     private TaskStatus currentStatus;
-    private List<TaskStatusChange> dateStatusList;
     private int trust;
     private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
@@ -46,6 +46,7 @@ public class Task {
     private Date contributionDeadline;
     private Date revealDeadline;
     private Date finalDeadline;
+    private List<TaskStatusChange> dateStatusList;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;
