@@ -54,7 +54,9 @@ public class RevealTimeoutDetector implements Detector {
             if (now.after(task.getRevealDeadline())) {
                 for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                     if (replicate.getCurrentStatus().equals(REVEALING) ||
-                            replicate.getCurrentStatus().equals(CONTRIBUTED)) {
+                            replicate.getCurrentStatus().equals(CONTRIBUTED) ||
+                            replicate.isLostAfterStatus(REVEALING) ||
+                            replicate.isLostAfterStatus(CONTRIBUTED)) {
                         replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
                                 REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
                     }
