@@ -8,6 +8,7 @@ import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,15 +30,18 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
+    private ResultService resultService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
-                             Web3jService web3jService) {
+                             Web3jService web3jService,
+                             ResultService resultService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
+        this.resultService = resultService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -180,6 +184,10 @@ public class ReplicatesService {
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
                                       ChainReceipt chainReceipt) {
+
+        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !resultService.isResultInDatabase(chainTaskId)) {
+            return;
+        }
 
         long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
 

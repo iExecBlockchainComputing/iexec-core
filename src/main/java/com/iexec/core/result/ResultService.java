@@ -58,7 +58,7 @@ public class ResultService {
         return true;
     }
 
-    boolean isResultInDatabase(String chainTaskId) {
+    public boolean isResultInDatabase(String chainTaskId) {
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
