@@ -56,14 +56,15 @@ public class TaskController {
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
-    public ResponseEntity getAvailableReplicate(@RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity getAvailableReplicate(@RequestParam(name = "blockNumber") long blockNumber,
+                                                @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
         // get available replicate
-        Optional<Replicate> optional = taskService.getAvailableReplicate(workerWalletAddress);
+        Optional<Replicate> optional = taskService.getAvailableReplicate(blockNumber, workerWalletAddress);
         if (!optional.isPresent()) {
             return status(HttpStatus.NO_CONTENT).build();
         }
