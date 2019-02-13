@@ -1022,6 +1022,7 @@ public class TaskServiceTests {
                 .build();
 
         Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask1.setInitializationBlockNumber(10);
         runningTask1.setMaxExecutionTime(maxExecutionTime);
         runningTask1.changeStatus(RUNNING);
 
