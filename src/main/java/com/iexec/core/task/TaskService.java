@@ -113,7 +113,7 @@ public class TaskService {
 
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
-            boolean blockNumberAvailable = task.getInitializationBlockNumber() == 0 || task.getInitializationBlockNumber() <= blockNumber;
+            boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0 && task.getInitializationBlockNumber() <= blockNumber;
             if (blockNumberAvailable &&
                     !replicatesService.hasWorkerAlreadyParticipated(chainTaskId, walletAddress) &&
                     replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded(), task.getMaxExecutionTime())) {
