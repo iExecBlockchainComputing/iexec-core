@@ -4,12 +4,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
+import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class WorkerServiceTests {
@@ -431,5 +433,47 @@ public class WorkerServiceTests {
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
+    }
+
+
+    @Test
+    public void shouldGetSomeAvailableCpu() {
+
+        Worker worker1 = getDummyWorker("0x1",
+                4,
+                Arrays.asList("task1", "task2", "task3", "task4"),
+                Arrays.asList("task1", "task3"));//2 CPUs available
+
+        Worker worker2 = getDummyWorker("0x2",
+                4,
+                Arrays.asList("task1", "task2", "task3", "task4"),
+                Arrays.asList("task1"));//3 CPUs available
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
+
+        assertThat(workerService.getAvailableCpu()).isEqualTo(5);
+    }
+
+
+    @Test
+    public void shouldGetZeroAvailableCpuIfWorkerAlreadyFull() {
+
+        Worker worker1 = getDummyWorker("0x1",
+                4,
+                Arrays.asList("task1", "task2", "task3", "task4"),
+                Arrays.asList("task1", "task2", "task3", "task4"));
+
+        Worker worker2 = getDummyWorker("0x2",
+                4,
+                Arrays.asList("task1", "task2", "task3", "task4"),
+                Arrays.asList("task1", "task2", "task3", "task4"));
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
+
+        assertThat(workerService.getAvailableCpu()).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
+        assertThat(workerService.getAvailableCpu()).isEqualTo(0);
     }
 }

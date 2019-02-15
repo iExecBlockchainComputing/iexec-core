@@ -30,4 +30,10 @@ public class ChainConfig {
     @Value("${chain.startBlockNumber}")
     private long startBlockNumber;
 
+    @Value("${chain.gasPriceMultiplier}")
+    private float gasPriceMultiplier;
+
+    @Value("${chain.gasPriceCap}")
+    private long gasPriceCap;
+
 }

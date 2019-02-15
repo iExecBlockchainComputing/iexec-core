@@ -31,6 +31,8 @@ chain:
   hubAddress: ${IEXEC_HUB_ADDRESS:0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC}
   poolAddress: ${POOL_ADDRESS:0xc0c288EC5242E7f53F6594DC7BADF417b69631Ba}
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
+  gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
+  gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
 tee:
   enclaveChallenge: "0x3cb738d98d7a70e81e81b0811fae2452bca049bc"
