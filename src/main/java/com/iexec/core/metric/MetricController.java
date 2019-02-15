@@ -22,7 +22,7 @@ public class MetricController {
 
 
     @RequestMapping(method = RequestMethod.GET, path = "/metrics")
-    public ResponseEntity<PlatformMetric> getAvailableCpu() {
+    public ResponseEntity<PlatformMetric> getPlatformMetric() {
         return ok(metricService.getPlatformMetrics());
     }
 
