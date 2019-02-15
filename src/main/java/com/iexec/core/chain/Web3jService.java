@@ -4,9 +4,12 @@ import com.iexec.common.chain.ChainUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthBlock;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 @Slf4j
 @Service
@@ -22,9 +25,19 @@ public class Web3jService {
         return web3j;
     }
 
-    private long getLatestBlockNumber() throws IOException {
-        return web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock().getNumber().longValue();
+    EthBlock.Block getLatestBlock() throws IOException {
+        return web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
     }
+
+    long getLatestBlockNumber() throws IOException {
+        return getLatestBlock().getNumber().longValue();
+    }
+
+    EthBlock.Block getBlock(long blockNumber) throws IOException {
+        return web3j.ethGetBlockByNumber( DefaultBlockParameter.valueOf(BigInteger.valueOf(blockNumber)),
+                false).send().getBlock();
+    }
+
 
     // check that the blockNumber is already available for the scheduler
     // blockNumber is different than 0 only for status the require a check on the blockchain, so the scheduler should
