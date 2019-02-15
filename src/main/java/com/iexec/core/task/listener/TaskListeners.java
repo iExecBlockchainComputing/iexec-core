@@ -113,21 +113,13 @@ public class TaskListeners {
     }
 
     @EventListener
+    public void onResultUploadRequestTimeoutEvent(ResultUploadRequestTimeoutEvent event) {
+        // TODO
+    }
+
+    @EventListener
     public void onResultUploadTimeoutEvent(ResultUploadTimeoutEvent event) {
-        String chainTaskId = event.getChainTaskId();
-
-        List<String> workerAddresses = replicatesService.getReplicates(chainTaskId)
-                .stream()
-                .map(Replicate::getWalletAddress)
-                .collect(Collectors.toList());
-
-        notificationService.sendTaskNotification(TaskNotification.builder()
-                .chainTaskId(chainTaskId)
-                .workersAddress(workerAddresses)
-                .taskNotificationType(TaskNotificationType.RESULT_UPLOAD_TIMEOUT)
-                .build());
-        log.info("Notifed all task replicates: RESULT_UPLOAD_TIMEOUT [chainTaskId:{}, workerAddresses:{}]",
-                chainTaskId, workerAddresses);
+        // TODO
     }
 
     // when a task is finalized, all workers need to be informed

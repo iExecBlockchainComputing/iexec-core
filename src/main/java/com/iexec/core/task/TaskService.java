@@ -10,6 +10,7 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
 import com.iexec.core.task.event.ContributionTimeoutEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
+import com.iexec.core.task.event.ResultUploadRequestTimeoutEvent;
 import com.iexec.core.task.event.ResultUploadTimeoutEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
@@ -152,11 +153,11 @@ public class TaskService {
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
-                uploadRequested2UploadTimeout(task);
+                uploadRequested2UploadRequestTimeout(task);
                 break;
             case RESULT_UPLOADING:
                 resultUploading2Uploaded(task);
-                uploadRequested2UploadTimeout(task);
+                resultUploading2UploadTimeout(task);
                 break;
             case RESULT_UPLOADED:
                 updateResultUploaded2Finalized(task);
@@ -349,17 +350,15 @@ public class TaskService {
         }
     }
 
-    private void uploadRequested2UploadTimeout(Task task) {
-        boolean isTaskInUploadRequestedOrUploading = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED)
-                || task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
+    private void uploadRequested2UploadRequestTimeout(Task task) {
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
         boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
 
-        if (isTaskInUploadRequestedOrUploading && isNowAfterFinalDeadline) {
-            updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
-            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
+        if (isTaskInUploadRequested && isNowAfterFinalDeadline) {
+            updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUEST_TIMEOUT);
+            applicationEventPublisher.publishEvent(ResultUploadRequestTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
-
         }
     }
 
@@ -374,6 +373,19 @@ public class TaskService {
                 replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
             requestUpload(task);
+        }
+    }
+
+    private void resultUploading2UploadTimeout(Task task) {
+        boolean isTaskInResultUploading = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
+        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
+
+        if (isTaskInResultUploading && isNowAfterFinalDeadline) {
+            updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
+            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
+                    .chainTaskId(task.getChainTaskId())
+                    .build());
+
         }
     }
 
