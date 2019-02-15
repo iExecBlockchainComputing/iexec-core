@@ -16,6 +16,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import rx.Observable;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -35,8 +36,11 @@ public class IexecHubService {
 
     private final ThreadPoolExecutor executor;
     private final Credentials credentials;
+    private final Web3jService web3jService;
     private final Web3j web3j;
     private ChainConfig chainConfig;
+
+    private static final String INITIALIZING_PENDING_STATUS = "pending";
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
@@ -45,6 +49,7 @@ public class IexecHubService {
                            ) {
         this.chainConfig = chainConfig;
         this.credentials = credentialsService.getCredentials();
+        this.web3jService = web3jService;
         this.web3j = web3jService.getWeb3j();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     }
@@ -165,6 +170,14 @@ public class IexecHubService {
             return Optional.empty();
         }
 
+        // if the status is still pending, check regularly for a status update
+        if (eventsList.get(0).log != null &&
+                eventsList.get(0).log.getType().equals(INITIALIZING_PENDING_STATUS) &&
+                !checkPendingInitialization(chainDealId, taskIndexBigInteger)) {
+            log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+            return Optional.empty();
+        }
+
         String chainTaskId = BytesUtils.bytesToString(eventsList.get(0).taskid);
         ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
@@ -172,6 +185,41 @@ public class IexecHubService {
                 chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
 
         return Optional.of(Pair.of(chainTaskId, chainReceipt));
+    }
+
+    private boolean checkPendingInitialization(String chainDealId, BigInteger taskIndexBigInteger) {
+
+        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
+        long maxWaitingTime = 2 * 60 * 1000L; // 2min
+
+        // max waiting Time should be roughly the time of 10 blocks
+        try {
+            long latestBlockNumber = web3jService.getLatestBlockNumber();
+            BigInteger latestBlockTimestamp = web3jService.getLatestBlock().getTimestamp();
+            BigInteger tenBlocksAgoTimestamp = web3jService.getBlock(latestBlockNumber - 10).getTimestamp();
+
+            maxWaitingTime = latestBlockTimestamp.longValue() - tenBlocksAgoTimestamp.longValue();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        final long startTime = System.currentTimeMillis();
+        long duration = 0;
+        while (duration < maxWaitingTime) {
+            try {
+                Optional<ChainTask> optionalChainTask = ChainUtils.getChainTask(iexecHub, computedChainTaskId);
+                if (optionalChainTask.isPresent() && !optionalChainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
+                    return true;
+                }
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                log.error("Error in checking the latest block number");
+            }
+            duration = System.currentTimeMillis() - startTime;
+        }
+
+        return false;
     }
 
     public boolean canFinalize(String chainTaskId) {
