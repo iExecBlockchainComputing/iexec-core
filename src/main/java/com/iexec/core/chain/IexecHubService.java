@@ -16,6 +16,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import rx.Observable;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -37,6 +38,7 @@ public class IexecHubService {
     private final IexecClerkABILegacy iexecClerk;
     private final ThreadPoolExecutor executor;
     private final Credentials credentials;
+    private final Web3jService web3jService;
     private final Web3j web3j;
     private ChainConfig chainConfig;
 
@@ -48,6 +50,7 @@ public class IexecHubService {
                            ChainConfig chainConfig) {
         this.chainConfig = chainConfig;
         this.credentials = credentialsService.getCredentials();
+        this.web3jService = web3jService;
         this.web3j = web3jService.getWeb3j();
         this.iexecHub = ChainUtils.loadHubContract(credentials, web3j, chainConfig.getHubAddress());
         this.iexecClerk = ChainUtils.loadClerkContract(credentials, web3j, chainConfig.getHubAddress());
@@ -172,6 +175,19 @@ public class IexecHubService {
 
         String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
         long maxWaitingTime = 2 * 60 * 1000L; // 2min
+
+        // max waiting Time should be roughly the time of 10 blocks
+        try {
+            long latestBlockNumber = web3jService.getLatestBlockNumber();
+            BigInteger latestBlockTimestamp = web3jService.getLatestBlock().getTimestamp();
+            BigInteger tenBlocksAgoTimestamp = web3jService.getBlock(latestBlockNumber - 10).getTimestamp();
+
+            maxWaitingTime = latestBlockTimestamp.longValue() - tenBlocksAgoTimestamp.longValue();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         final long startTime = System.currentTimeMillis();
         long duration = 0;
         while (duration < maxWaitingTime) {
