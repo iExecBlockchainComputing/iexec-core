@@ -1,7 +1,7 @@
 package com.iexec.core.task.listener;
 
-import com.iexec.common.result.TaskNotification;
-import com.iexec.common.result.TaskNotificationType;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -115,17 +116,18 @@ public class TaskListeners {
     public void onResultUploadTimeoutEvent(ResultUploadTimeoutEvent event) {
         String chainTaskId = event.getChainTaskId();
 
-        List<String> workerAddresses = new ArrayList<>();
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
-            workerAddresses.add(replicate.getWalletAddress());
-        }
+        List<String> workerAddresses = replicatesService.getReplicates(chainTaskId)
+                .stream()
+                .map(Replicate::getWalletAddress)
+                .collect(Collectors.toList());
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
                 .workersAddress(workerAddresses)
                 .taskNotificationType(TaskNotificationType.RESULT_UPLOAD_TIMEOUT)
                 .build());
-        log.info("Notifed all workers to ABORT since RESULT_UPLOAD_TIMEOUT [workerAddresses:{}]", workerAddresses);
+        log.info("Notifed all task replicates: RESULT_UPLOAD_TIMEOUT [chainTaskId:{}, workerAddresses:{}]",
+                chainTaskId, workerAddresses);
     }
 
     // when a task is finalized, all workers need to be informed

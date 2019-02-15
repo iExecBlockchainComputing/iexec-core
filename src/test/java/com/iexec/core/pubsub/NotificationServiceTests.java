@@ -9,7 +9,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import com.iexec.common.result.TaskNotification;
+import com.iexec.common.notification.TaskNotification;
 
 public class NotificationServiceTests {
 
