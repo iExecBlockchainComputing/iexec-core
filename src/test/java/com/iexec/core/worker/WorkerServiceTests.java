@@ -450,7 +450,7 @@ public class WorkerServiceTests {
                 Arrays.asList("task1"));//3 CPUs available
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
 
-        assertThat(workerService.getAvailableCpu()).isEqualTo(5);
+        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);
     }
 
 
@@ -468,12 +468,12 @@ public class WorkerServiceTests {
                 Arrays.asList("task1", "task2", "task3", "task4"));
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
 
-        assertThat(workerService.getAvailableCpu()).isEqualTo(0);
+        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
     }
 
     @Test
     public void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
-        assertThat(workerService.getAvailableCpu()).isEqualTo(0);
+        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
     }
 }
