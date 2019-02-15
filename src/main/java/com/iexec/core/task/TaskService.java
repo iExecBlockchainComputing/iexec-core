@@ -151,6 +151,7 @@ public class TaskService {
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
+                // uploadRequested2UploadTimeout(task);
                 break;
             case RESULT_UPLOADING:
                 resultUploading2Uploaded(task);
@@ -343,6 +344,15 @@ public class TaskService {
             } else {
                 requestUpload(task);
             }
+        }
+    }
+
+    private void uploadRequested2UploadTimeout(Task task) {
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
+
+        if (isTaskInUploadRequested && isNowAfterFinalDeadline) {
+            updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
         }
     }
 

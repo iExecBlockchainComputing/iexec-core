@@ -111,6 +111,23 @@ public class TaskListeners {
         log.info("NotifyUploadingWorker completed[uploadingWorkerWallet={}]", workerWallet);
     }
 
+    @EventListener
+    public void onResultUploadTimeoutEvent(ResultUploadTimeoutEvent event) {
+        String chainTaskId = event.getChainTaskId();
+
+        List<String> workerAddresses = new ArrayList<>();
+        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+            workerAddresses.add(replicate.getWalletAddress());
+        }
+
+        notificationService.sendTaskNotification(TaskNotification.builder()
+                .chainTaskId(chainTaskId)
+                .workersAddress(workerAddresses)
+                .taskNotificationType(TaskNotificationType.RESULT_UPLOAD_TIMEOUT)
+                .build());
+        log.info("Notifed all workers to ABORT since RESULT_UPLOAD_TIMEOUT [workerAddresses:{}]", workerAddresses);
+    }
+
     // when a task is finalized, all workers need to be informed
     // the task should also be removed from the executor
     @EventListener
