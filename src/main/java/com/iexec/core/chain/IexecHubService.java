@@ -208,7 +208,7 @@ public class IexecHubService {
         long duration = 0;
         while (duration < maxWaitingTime) {
             try {
-                Optional<ChainTask> optionalChainTask = ChainUtils.getChainTask(iexecHub, computedChainTaskId);
+                Optional<ChainTask> optionalChainTask = ChainUtils.getChainTask(getHubContract(), computedChainTaskId);
                 if (optionalChainTask.isPresent() && !optionalChainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
                     return true;
                 }
