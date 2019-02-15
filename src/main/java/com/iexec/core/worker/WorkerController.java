@@ -133,5 +133,10 @@ public class WorkerController {
         return ok(workerService.getChainTaskIds(workerWalletAddress));
     }
 
+    @RequestMapping(method = RequestMethod.GET, path = "/workers/cpu")
+    public ResponseEntity<Integer> getAvailableCpu() {
+        return ok(workerService.getAvailableCpu());
+    }
+
 
 }
