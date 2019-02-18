@@ -121,4 +121,23 @@ public class WorkerService {
 
         return true;
     }
+
+    public int getAliveAvailableCpu() {
+        int availableCpus = 0;
+        for (Worker worker: getAliveWorkers()){
+            int workerCpuNb = worker.getCpuNb();
+            int computingReplicateNb = worker.getComputingChainTaskIds().size();
+            int availableCpu = workerCpuNb - computingReplicateNb;
+            availableCpus+= availableCpu;
+        }
+        return availableCpus;
+    }
+
+    public int getAliveTotalCpu() {
+        int totalCpus = 0;
+        for (Worker worker: getAliveWorkers()){
+            totalCpus+= worker.getCpuNb();
+        }
+        return totalCpus;
+    }
 }
