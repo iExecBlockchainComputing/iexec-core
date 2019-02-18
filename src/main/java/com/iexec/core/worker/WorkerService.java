@@ -122,7 +122,7 @@ public class WorkerService {
         return true;
     }
 
-    public int getAvailableCpu() {
+    public int getAliveAvailableCpu() {
         int availableCpus = 0;
         for (Worker worker: getAliveWorkers()){
             int workerCpuNb = worker.getCpuNb();
@@ -131,5 +131,13 @@ public class WorkerService {
             availableCpus+= availableCpu;
         }
         return availableCpus;
+    }
+
+    public int getAliveTotalCpu() {
+        int totalCpus = 0;
+        for (Worker worker: getAliveWorkers()){
+            totalCpus+= worker.getCpuNb();
+        }
+        return totalCpus;
     }
 }

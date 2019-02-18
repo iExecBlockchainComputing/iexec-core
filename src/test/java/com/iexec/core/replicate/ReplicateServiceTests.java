@@ -397,7 +397,7 @@ public class ReplicateServiceTests {
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
                 .resultHash(resultHash)
                 .build()));
-        when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
 
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
 
@@ -462,7 +462,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -480,7 +480,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
@@ -499,7 +499,7 @@ public class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(web3jService.isBlockNumberAvailable(anyLong())).thenReturn(true);
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         when(iexecHubService.getContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
         .resultHash("hash")

@@ -277,7 +277,7 @@ public class ReplicatesService {
 
     private Replicate getOnChainRefreshedReplicate(Replicate replicate, ChainContributionStatus wishedChainStatus, long blockNumber) {
         // check that the blockNumber is already available for the scheduler
-        if (!web3jService.isBlockNumberAvailable(blockNumber)) {
+        if (!web3jService.isBlockAvailable(blockNumber)) {
             log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
             return null;
         }
@@ -307,7 +307,7 @@ public class ReplicatesService {
     }
 
     private boolean isTaskStatusFailOnChain(String chainTaskId, String walletAddress, long blockNumber) {
-        if (!web3jService.isBlockNumberAvailable(blockNumber)) {
+        if (!web3jService.isBlockAvailable(blockNumber)) {
             log.error("This block number is not available, even after waiting for some time [blockNumber:{}]", blockNumber);
             return false;
         }
