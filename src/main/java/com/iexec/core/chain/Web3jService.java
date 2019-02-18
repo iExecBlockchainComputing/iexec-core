@@ -34,33 +34,29 @@ public class Web3jService {
     }
 
     EthBlock.Block getBlock(long blockNumber) throws IOException {
-        return web3j.ethGetBlockByNumber( DefaultBlockParameter.valueOf(BigInteger.valueOf(blockNumber)),
+        return web3j.ethGetBlockByNumber(DefaultBlockParameter.valueOf(BigInteger.valueOf(blockNumber)),
                 false).send().getBlock();
     }
 
-
-    // check that the blockNumber is already available for the scheduler
+    // check if the blockNumber is already available for the scheduler
     // blockNumber is different than 0 only for status the require a check on the blockchain, so the scheduler should
-    // already have this block, otherwise it should wait for it until maxWaitingTime is reached (2 minutes)
-    public boolean isBlockNumberAvailable(long blockNumber) {
-        long maxWaitingTime = 2 * 60 * 1000;
-        final long startTime = System.currentTimeMillis();
-        long duration = 0;
-        while (duration < maxWaitingTime) {
-            try {
-                long latestBlockNumber = getLatestBlockNumber();
-                if (blockNumber <= latestBlockNumber) {
+    // already have this block, otherwise it should wait for a maximum of 10 blocks.
+    public boolean isBlockAvailable(long blockNumber) {
+        try {
+            long maxBlockNumber = blockNumber + 10;
+            long currentBlockNumber = getLatestBlockNumber();
+            while (currentBlockNumber <= maxBlockNumber) {
+                if (blockNumber <= currentBlockNumber) {
                     return true;
                 } else {
-                    log.info("Chain is NOT synchronized yet [blockNumber:{}, latestBlockNumber:{}]", blockNumber, latestBlockNumber);
+                    log.warn("Chain is NOT synchronized yet [blockNumber:{}, currentBlockNumber:{}]", blockNumber, currentBlockNumber);
                     Thread.sleep(500);
                 }
-            } catch (IOException | InterruptedException e) {
-                log.error("Error in checking the latest block number");
+                currentBlockNumber = getLatestBlockNumber();
             }
-            duration = System.currentTimeMillis() - startTime;
+        } catch (IOException | InterruptedException e) {
+            log.error("Error in checking the latest block number [execption:{}]", e.getMessage());
         }
-
         return false;
     }
 }
