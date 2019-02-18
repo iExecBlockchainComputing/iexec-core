@@ -34,5 +34,4 @@ public enum TaskStatus {
                 RESULT_UPLOADED
         );
     }
-
 }
