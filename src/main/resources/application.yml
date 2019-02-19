@@ -40,9 +40,12 @@ tee:
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
 
-
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 
+dataRepository:
+  protocol: ${IEXEC_DATA_REPOSITORY_PROTOCOL:http}
+  ip: ${IEXEC_DATA_REPOSITORY_IP:localhost}
+  port: ${IEXEC_DATA_REPOSITORY_PORT:18090}
