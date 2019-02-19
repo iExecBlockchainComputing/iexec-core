@@ -6,17 +6,25 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.common.result.eip712.Eip712ChallengeUtils;
+import com.iexec.core.chain.ChainConfig;
+import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.ResultService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.web3j.crypto.ECKeyPair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,18 +39,24 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private RepositoriesConfiguration repositoriesConfiguration;
+    private ChainConfig chainConfig;
+    private ResultRepositoryConfiguration resultRepoConfig;
+    private CredentialsService credentialsService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             RepositoriesConfiguration repositoriesConfiguration) {
+                             ChainConfig chainConfig,
+                             ResultRepositoryConfiguration resultRepoConfig,
+                             CredentialsService credentialsService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.repositoriesConfiguration = repositoriesConfiguration;
+        this.chainConfig = chainConfig;
+        this.resultRepoConfig = resultRepoConfig;
+        this.credentialsService = credentialsService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -186,7 +200,7 @@ public class ReplicatesService {
                                       ReplicateStatusModifier modifier,
                                       ChainReceipt chainReceipt) {
 
-        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !isResultInDatabase(chainTaskId)) {
+        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
             return;
         }
 
@@ -329,12 +343,32 @@ public class ReplicatesService {
         }
     }
 
-    public boolean isResultInDatabase(String chainTaskId) {
+    public boolean hasResultBeenUploaded(String chainTaskId) {
         RestTemplate restTemplate = new RestTemplate();
-        String resultURI = repositoriesConfiguration.getResultRepositoryURL() + "/results/" + chainTaskId;
-        return restTemplate.getForEntity(resultURI, String.class)
+        String resultChallengeURI = resultRepoConfig.getResultRepositoryURL()
+                                  + "/results/challenge?chainId={id}";
+
+        // get the eip712 challenge
+        Eip712Challenge eip712Challenge = restTemplate.getForObject(resultChallengeURI,
+                Eip712Challenge.class, chainConfig.getChainId());
+
+        ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
+        String walletAddress = credentialsService.getCredentials().getAddress();
+
+        // sign the eip712 challenge and build authorization token
+        String authorizationToken = Eip712ChallengeUtils.buildAuthorizationToken(eip712Challenge,
+                walletAddress, ecKeyPair);
+
+        // add authorization token to http header
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, authorizationToken);
+        HttpEntity<String> entity = new HttpEntity<String>(headers);
+
+        String resultURI = resultRepoConfig.getResultRepositoryURL() + "/results/{chainTaskId}";
+
+        // HEAD resultRepoURL/resuts/chainTaskId
+        return restTemplate.exchange(resultURI, HttpMethod.HEAD, entity, String.class, chainTaskId)
                 .getStatusCode()
                 .is2xxSuccessful();
     }
-
 }

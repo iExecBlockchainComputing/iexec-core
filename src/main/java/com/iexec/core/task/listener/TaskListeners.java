@@ -1,7 +1,7 @@
 package com.iexec.core.task.listener;
 
-import com.iexec.common.result.TaskNotification;
-import com.iexec.common.result.TaskNotificationType;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
