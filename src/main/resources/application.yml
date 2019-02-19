@@ -40,9 +40,12 @@ tee:
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
 
-
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 
+sms:
+  protocol: ${IEXEC_SMS_PROTOCOL:http}
+  ip: ${IEXEC_SMS_IP:localhost}
+  port: ${IEXEC_SMS_PORT:5000}
