@@ -16,6 +16,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,18 +31,18 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private ResultService resultService;
+    private RepositoriesConfiguration repositoriesConfiguration;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             ResultService resultService) {
+                             RepositoriesConfiguration repositoriesConfiguration) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.resultService = resultService;
+        this.repositoriesConfiguration = repositoriesConfiguration;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -185,7 +186,7 @@ public class ReplicatesService {
                                       ReplicateStatusModifier modifier,
                                       ChainReceipt chainReceipt) {
 
-        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !resultService.isResultInDatabase(chainTaskId)) {
+        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !isResultInDatabase(chainTaskId)) {
             return;
         }
 
@@ -326,6 +327,14 @@ public class ReplicatesService {
                     "[chainTaskId:{}, wallet:{}, blockNumber:{}, onChainStatus:{}]", chainStatus, walletAddress, blockNumber, chainStatus);
             return false;
         }
+    }
+
+    public boolean isResultInDatabase(String chainTaskId) {
+        RestTemplate restTemplate = new RestTemplate();
+        String resultURI = repositoriesConfiguration.getResultRepositoryURL() + "/results/" + chainTaskId;
+        return restTemplate.getForEntity(resultURI, String.class)
+                .getStatusCode()
+                .is2xxSuccessful();
     }
 
 }
