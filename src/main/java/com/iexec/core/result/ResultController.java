@@ -34,11 +34,11 @@ public class ResultController {
 
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        boolean authorizedAndCanUploadResult = authorizationService.isAuthorizationValid(auth) && 
+        boolean authorizedAndCanUploadResult = authorizationService.isAuthorizationValid(auth) &&
                 resultService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
-        
+
         // TODO check if the result to be added is the correct result for that task
-        
+
         if (!authorizedAndCanUploadResult) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
@@ -64,9 +64,9 @@ public class ResultController {
         return ok(filename);
     }
 
-    @RequestMapping(method=RequestMethod.HEAD, path="/results/{chainTaskId}")
+    @RequestMapping(method = RequestMethod.HEAD, path = "/results/{chainTaskId}")
     public ResponseEntity<String> checkIfResultHasBeenUploaded(
-            @PathVariable(name="chainTaskId") String chainTaskId,
+            @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String token) {
 
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
@@ -81,7 +81,7 @@ public class ResultController {
         }
 
         challengeService.invalidateEip712ChallengeString(auth.getChallenge());
-        
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
     }
 
@@ -106,21 +106,27 @@ public class ResultController {
     @CrossOrigin
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
-                                            @RequestHeader("Authorization") String token,
+                                            @RequestHeader(name = "Authorization", required = false) String token,
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        if (!(authorizationService.isAuthorizationValid(auth) &&
-                resultService.canGetResult(chainId, chainTaskId, auth.getWalletAddress()))) {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        boolean isPublicResult = resultService.isPublicResult(chainTaskId, chainId);
+        boolean isOwnerOfResultAndAuthorized = auth != null
+                && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
+                && authorizationService.isAuthorizationValid(auth);
+
+        if (isOwnerOfResultAndAuthorized || isPublicResult) {
+            if (isOwnerOfResultAndAuthorized) {
+                challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+            }
+
+            byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId))
+                    .body(zip);
         }
 
-        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
-
-        byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
-        return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId))
-                .body(zip);
+        return new ResponseEntity(HttpStatus.UNAUTHORIZED);
     }
 
 }
