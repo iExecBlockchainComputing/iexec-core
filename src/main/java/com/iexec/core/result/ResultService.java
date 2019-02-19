@@ -5,7 +5,6 @@ import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -84,44 +83,42 @@ public class ResultService {
         return org.apache.commons.io.IOUtils.toByteArray(result);
     }
 
-    boolean canGetResult(Integer chainId, String chainTaskId, String walletAddress) {
-        walletAddress = walletAddress.toLowerCase();
-        /*
-         * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
-         * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
-         */
-        //THREE: check if requester (or beneficiary if set) equals address provided
-        Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
-
-        if (!chainTask.isPresent()) {
-            log.error("Failed to get ChainTask [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
+    /*
+     * TODO 1:  Use an iexecHubService loaded with ResultRepo credentials
+     * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
+     */
+    boolean isOwnerOfResult(Integer chainId, String chainTaskId, String downloaderAddress) {
+        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
+        if (!beneficiary.isPresent()) {
+            log.error("Failed to get beneficiary for isOwnerOfResult() method [chainTaskId:{}, downloaderAddress:{}]",
+                    chainTaskId, downloaderAddress);
             return false;
         }
-
-        Optional<ChainDeal> chainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
-        if (!chainDeal.isPresent()) {
-            log.error("Failed to get ChainDeal [chainTaskId:{}, downloadRequester:{}]", chainTaskId, walletAddress);
+        downloaderAddress = downloaderAddress.toLowerCase();
+        if (!downloaderAddress.equals(beneficiary.get())) {
+            log.error("Set beneficiary doesn't match downloaderAddress [chainTaskId:{}, downloaderAddress:{}, " +
+                    "beneficiary:{}]", chainTaskId, downloaderAddress, beneficiary.get());
             return false;
         }
-
-        String requester = chainDeal.get().getRequester();
-        String beneficiary = chainDeal.get().getBeneficiary();
-
-        if (!beneficiary.equals(BytesUtils.EMPTY_ADDRESS) && !walletAddress.equalsIgnoreCase(beneficiary)) {
-            log.error("Set beneficiary doesn't match downloadRequester [chainTaskId:{}, downloadRequester:{}," +
-                            "requester:{}, beneficiary:{}]",
-                    chainTaskId, walletAddress, requester, beneficiary);
-            return false;
-        }
-
-        if (!walletAddress.equalsIgnoreCase(requester)) {
-            log.error("Set requester doesn't match downloadRequester [chainTaskId:{}, downloadRequester:{}," +
-                            "requester:{}, beneficiary:{}]",
-                    chainTaskId, walletAddress, requester, beneficiary);
-            return false;
-        }
-
         return true;
+    }
+
+    boolean isPublicResult(String chainTaskId, Integer chainId) {
+        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
+        if (!beneficiary.isPresent()) {
+            log.error("Failed to get beneficiary for isPublicResult() method [chainTaskId:{}]", chainTaskId);
+            return false;
+        }
+        return beneficiary.get().equals(BytesUtils.EMPTY_ADDRESS);
+    }
+
+    private Optional<String> getBeneficiary(String chainTaskId, Integer chainId) {
+        Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
+        if (!chainTask.isPresent()) {
+            return Optional.empty();
+        }
+        Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
+        return optionalChainDeal.map(chainDeal -> chainDeal.getBeneficiary().toLowerCase());
     }
 
 }
