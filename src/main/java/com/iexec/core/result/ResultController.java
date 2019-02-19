@@ -111,12 +111,12 @@ public class ResultController {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
         boolean isPublicResult = resultService.isPublicResult(chainTaskId, chainId);
-        boolean isOwnerOfResultAndAuthorized = auth != null
+        boolean isAuthorizedOwnerOfResult = auth != null
                 && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
                 && authorizationService.isAuthorizationValid(auth);
 
-        if (isOwnerOfResultAndAuthorized || isPublicResult) {
-            if (isOwnerOfResultAndAuthorized) {
+        if (isAuthorizedOwnerOfResult || isPublicResult) {
+            if (isAuthorizedOwnerOfResult) {
                 challengeService.invalidateEip712ChallengeString(auth.getChallenge());
             }
 
