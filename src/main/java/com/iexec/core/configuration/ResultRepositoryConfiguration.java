@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class RepositoriesConfiguration {
+public class ResultRepositoryConfiguration {
 
     @Value("${resultRepository.protocol}")
     private String resultRepoProtocol;
@@ -21,20 +21,7 @@ public class RepositoriesConfiguration {
     @Value("${resultRepository.port}")
     private String resultRepoPort;
 
-    @Value("${dataRepository.protocol}")
-    private String dataRepoProtocol;
-
-    @Value("${dataRepository.ip}")
-    private String dataRepoIP;
-
-    @Value("${dataRepository.port}")
-    private String dataRepoPort;
-
     public String getResultRepositoryURL() {
         return resultRepoProtocol + "://" + resultRepoIP + ":" + resultRepoPort;
-    }
-
-    public String getDataRepositoryURL() {
-        return dataRepoProtocol + "://" + dataRepoIP + ":" + dataRepoPort;
     }
 }

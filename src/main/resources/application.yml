@@ -45,7 +45,7 @@ resultRepository:
   ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 
-dataRepository:
-  protocol: ${IEXEC_DATA_REPOSITORY_PROTOCOL:http}
-  ip: ${IEXEC_DATA_REPOSITORY_IP:localhost}
-  port: ${IEXEC_DATA_REPOSITORY_PORT:18090}
+sms:
+  protocol: ${IEXEC_SMS_PROTOCOL:http}
+  ip: ${IEXEC_SMS_IP:localhost}
+  port: ${IEXEC_SMS_PORT:18090}
