@@ -161,14 +161,14 @@ public class ResultServiceTest {
         String beneficiary = BytesUtils.EMPTY_ADDRESS;
         when(iexecHubService.getChainTask("0x1")).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
         when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().requester(requester).beneficiary(beneficiary).build()));
-        assertThat(resultService.canGetResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
     }
 
     @Test
     public void isNotAuthorizedToGetResultSinceCannotGetChainTask() {
         when(iexecHubService.getChainTask("0x1")).thenReturn(Optional.empty());
 
-        assertThat(resultService.canGetResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
     }
 
     @Test
@@ -176,33 +176,46 @@ public class ResultServiceTest {
         when(iexecHubService.getChainTask("0x1")).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
         when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.empty());
 
-        assertThat(resultService.canGetResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
     }
 
     @Test
-    public void isNotAuthorizedToGetResultSinceWalletAddressDifferentFromBeneficiary() {
-        String requester = "0xa";
+    public void isNotOwnerOfResultSinceWalletAddressDifferentFromBeneficiary() {
         String beneficiary = "0xb";
         when(iexecHubService.getChainTask("0x1")).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().requester(requester).beneficiary(beneficiary).build()));
-        assertThat(resultService.canGetResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
+        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
     }
 
     @Test
-    public void isNotAuthorizedToGetResultSinceWalletAddressShouldBeBeneficiaryWhenSet() {
-        String requester = "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E";
+    public void isNotOwnerOfResultSinceWalletAddressShouldBeBeneficiary() {
         String beneficiary = "0xb";
         when(iexecHubService.getChainTask("0x1")).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().requester(requester).beneficiary(beneficiary).build()));
-        assertThat(resultService.canGetResult(chainId, chainTaskId,"0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
+        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId,"0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isFalse();
     }
 
     @Test
-    public void isAuthorizedToGetResult() {
-        String requester = "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E";
+    public void isOwnerOfResult() {
+        String beneficiary = "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E";
+        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
+        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isTrue();
+    }
+
+    @Test
+    public void isPublicResult() {
         String beneficiary = BytesUtils.EMPTY_ADDRESS;
         when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().requester(requester).beneficiary(beneficiary).build()));
-        assertThat(resultService.canGetResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isTrue();
+        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        assertThat(resultService.isPublicResult(chainTaskId, chainId)).isTrue();
+    }
+
+    @Test
+    public void isNotPublicResult() {
+        String beneficiary = "0xb";
+        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
+        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        assertThat(resultService.isPublicResult(chainTaskId, chainId)).isFalse();
     }
 }
