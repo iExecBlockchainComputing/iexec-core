@@ -37,8 +37,8 @@ public class TaskServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final long maxExecutionTime = 60000;
-    private final static String NO_SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000000";
-    private final static String SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    private final static String NO_TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
     @Mock
     private TaskRepository taskRepository;
@@ -82,7 +82,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         when(taskRepository.save(any())).thenReturn(task);
@@ -93,7 +93,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         ArrayList<Task> list = new ArrayList<>();
@@ -108,7 +108,7 @@ public class TaskServiceTests {
     public void shouldFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(status);
 
         List<Task> taskList = new ArrayList<>();
@@ -136,7 +136,7 @@ public class TaskServiceTests {
     public void shouldFindByCurrentStatusList() {
         List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         List<Task> taskList = new ArrayList<>();
@@ -302,7 +302,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -320,7 +320,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceCantInitialize() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -338,7 +338,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of("dummy", null);
@@ -355,7 +355,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateInitializing2InitailizedSinceNoChainTaskReturned() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -373,7 +373,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateReceived2Initializing2Initialized() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -977,7 +977,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask1.changeStatus(RUNNING);
-        runningTask1.setTag(NO_SGX_TAG);
+        runningTask1.setTag(NO_TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
@@ -1000,7 +1000,7 @@ public class TaskServiceTests {
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask.changeStatus(RUNNING);
-        runningTask.setTag(NO_SGX_TAG);
+        runningTask.setTag(NO_TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
@@ -1026,7 +1026,7 @@ public class TaskServiceTests {
         runningTask.setInitializationBlockNumber(10);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
-        runningTask.setTag(NO_SGX_TAG);
+        runningTask.setTag(NO_TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
@@ -1049,12 +1049,12 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldSgxNeededTaskNotBeGivenToSGXDisabledWorker() {
+    public void shouldTeeNeededTaskNotBeGivenToTeeDisabledWorker() {
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
-                .sgxEnabled(false)
+                .teeEnabled(false)
                 .lastAliveDate(new Date())
                 .build();
 
@@ -1062,7 +1062,7 @@ public class TaskServiceTests {
         runningTask.setInitializationBlockNumber(10);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
-        runningTask.setTag(SGX_TAG);
+        runningTask.setTag(TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
@@ -1080,12 +1080,12 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldSgxNeededTaskBeGivenToSGXDisabledWorker() {
+    public void shouldTeeNeededTaskBeGivenToTeeDisabledWorker() {
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
-                .sgxEnabled(true)
+                .teeEnabled(true)
                 .lastAliveDate(new Date())
                 .build();
 
@@ -1093,7 +1093,7 @@ public class TaskServiceTests {
         runningTask.setInitializationBlockNumber(10);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
-        runningTask.setTag(SGX_TAG);
+        runningTask.setTag(TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))

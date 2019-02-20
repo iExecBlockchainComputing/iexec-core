@@ -48,7 +48,7 @@ public class TaskService {
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
 
-    private static final String SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    private static final String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
@@ -73,8 +73,8 @@ public class TaskService {
         return Optional.empty();
     }
 
-    public boolean doesTaskNeedSGX(Task task) {
-        return task.getTag().equals(SGX_TAG);
+    public boolean doesTaskNeedTEE(Task task) {
+        return task.getTag().equals(TEE_TAG);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -119,8 +119,8 @@ public class TaskService {
         }
 
         for (Task task : runningTasks) {
-            // skip the task if it needs SGX and the worker doesn't support it
-            if(doesTaskNeedSGX(task) && !worker.isSgxEnabled()) {
+            // skip the task if it needs TEE and the worker doesn't support it
+            if(doesTaskNeedTEE(task) && !worker.isTeeEnabled()) {
                 continue;
             }
 
