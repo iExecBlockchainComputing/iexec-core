@@ -201,6 +201,9 @@ public class ReplicatesService {
                                       ChainReceipt chainReceipt) {
 
         if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
+            log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
+                    + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
+                    chainTaskId, walletAddress);
             return;
         }
 
