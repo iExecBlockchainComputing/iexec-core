@@ -1,0 +1,49 @@
+version: '3.4'
+
+services:
+  chain:
+    image: iexechub/poco-chain:legacy-11a934b690bd4c020a90186bf6a10ecb47a2fe4d
+    container_name: chain
+    ports:
+      - 8545:8545
+
+  mongo:
+    image: mongo:4-xenial
+    container_name: mongo
+
+  core:
+    image: iexechub/iexec-core:3.0.0-alpha2
+    container_name: core
+    environment:
+    - MONGO_HOST=mongo
+    - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
+    - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
+    - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
+    volumes:
+      - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+    ports:
+    - 18090:18090
+    restart: on-failure
+    depends_on:
+      - mongo
+
+  mongo_ui:
+    image: mongo-express:0.49
+    container_name: mongo_ui
+    environment:
+    - ME_CONFIG_BASICAUTH_USERNAME=admin
+    - ME_CONFIG_BASICAUTH_PASSWORD=y0urpassw00rd
+    ports:
+    - 8081:8081
+    depends_on:
+      - mongo
+
+  sms:
+    image: iexechub/sms:latest
+    container_name: sms
+    environment:
+      - CLERK=0xDf62b3FddA0B2C9bc282f058eB80A270d80D25f2
+      - HUB=0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC
+      - GATEWAY=http://chain:8545
+    ports:
+      - 5000:5000
