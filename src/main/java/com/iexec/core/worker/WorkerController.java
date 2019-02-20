@@ -109,6 +109,7 @@ public class WorkerController {
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
                 .memorySize(model.getMemorySize())
+                .sgxEnabled(model.isSgxEnabled())
                 .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())

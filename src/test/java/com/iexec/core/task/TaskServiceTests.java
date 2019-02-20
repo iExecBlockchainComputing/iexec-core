@@ -22,7 +22,6 @@ import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
-import static org.assertj.core.api.Assertions.anyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -38,7 +37,8 @@ public class TaskServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final long maxExecutionTime = 60000;
-    private final String noSgxTag = "0x0";
+    private final static String NO_SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    private final static String SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
     @Mock
     private TaskRepository taskRepository;
@@ -82,7 +82,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         when(taskRepository.save(any())).thenReturn(task);
@@ -93,7 +93,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotAddTask() {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
 
         ArrayList<Task> list = new ArrayList<>();
@@ -108,7 +108,7 @@ public class TaskServiceTests {
     public void shouldFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(status);
 
         List<Task> taskList = new ArrayList<>();
@@ -134,11 +134,10 @@ public class TaskServiceTests {
 
     @Test
     public void shouldFindByCurrentStatusList() {
-        TaskStatus status = TaskStatus.INITIALIZED;
         List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
-        task.changeStatus(status);
+        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
+        task.changeStatus(TaskStatus.INITIALIZED);
 
         List<Task> taskList = new ArrayList<>();
         taskList.add(task);
@@ -303,7 +302,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -321,7 +320,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceCantInitialize() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -339,7 +338,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of("dummy", null);
@@ -356,7 +355,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldNotUpdateInitializing2InitailizedSinceNoChainTaskReturned() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -374,7 +373,7 @@ public class TaskServiceTests {
 
     @Test
     public void shouldUpdateReceived2Initializing2Initialized() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, noSgxTag);
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_SGX_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
@@ -978,6 +977,7 @@ public class TaskServiceTests {
 
         Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask1.changeStatus(RUNNING);
+        runningTask1.setTag(NO_SGX_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
@@ -998,15 +998,16 @@ public class TaskServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
-        runningTask1.changeStatus(RUNNING);
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(NO_SGX_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
-                .thenReturn(Collections.singletonList(runningTask1));
+                .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), maxExecutionTime)).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), maxExecutionTime)).thenReturn(false);
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
         assertThat(optional.isPresent()).isFalse();
@@ -1021,24 +1022,91 @@ public class TaskServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
-        runningTask1.setInitializationBlockNumber(10);
-        runningTask1.setMaxExecutionTime(maxExecutionTime);
-        runningTask1.changeStatus(RUNNING);
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setInitializationBlockNumber(10);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(NO_SGX_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
-                .thenReturn(Collections.singletonList(runningTask1));
+                .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask1.getNumWorkersNeeded(), runningTask1.getMaxExecutionTime())).thenReturn(true);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), runningTask.getMaxExecutionTime())).thenReturn(true);
 
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
                 Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
 
         Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
 
-        assertThat(optional.isPresent()).isTrue();
+        assertThat(optional).isPresent();
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(workerService, Mockito.times(1))
+                .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
+    }
+
+    @Test
+    public void shouldSgxNeededTaskNotBeGivenToSGXDisabledWorker() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .sgxEnabled(false)
+                .lastAliveDate(new Date())
+                .build();
+
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setInitializationBlockNumber(10);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(SGX_TAG);
+
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+                .thenReturn(Collections.singletonList(runningTask));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
+
+        assertThat(optional).isEmpty();
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(workerService, Mockito.times(0))
+                .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
+    }
+
+    @Test
+    public void shouldSgxNeededTaskBeGivenToSGXDisabledWorker() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .sgxEnabled(true)
+                .lastAliveDate(new Date())
+                .build();
+
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setInitializationBlockNumber(10);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(SGX_TAG);
+
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+                .thenReturn(Collections.singletonList(runningTask));
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), runningTask.getMaxExecutionTime())).thenReturn(true);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
+                Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
+
+        Optional<Replicate> optional = taskService.getAvailableReplicate(123, WALLET_WORKER_1);
+
+        assertThat(optional).isPresent();
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);

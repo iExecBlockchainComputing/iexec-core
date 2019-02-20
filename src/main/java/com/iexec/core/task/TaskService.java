@@ -48,6 +48,8 @@ public class TaskService {
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
 
+    private static final String SGX_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        IexecHubService iexecHubService,
@@ -69,6 +71,10 @@ public class TaskService {
         log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
         return Optional.empty();
+    }
+
+    public boolean doesTaskNeedSGX(Task task) {
+        return task.getTag().equals(SGX_TAG);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -99,6 +105,7 @@ public class TaskService {
         if (!optional.isPresent()) {
             return Optional.empty();
         }
+        Worker worker = optional.get();
 
         // return empty if there is no task to contribute
         List<Task> runningTasks = getAllRunningTasks();
@@ -112,6 +119,11 @@ public class TaskService {
         }
 
         for (Task task : runningTasks) {
+            // skip the task if it needs SGX and the worker doesn't support it
+            if(doesTaskNeedSGX(task) && !worker.isSgxEnabled()) {
+                continue;
+            }
+
             String chainTaskId = task.getChainTaskId();
             boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0 && task.getInitializationBlockNumber() <= blockNumber;
             if (blockNumberAvailable &&
@@ -219,7 +231,7 @@ public class TaskService {
         task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
         task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
         long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
-        if (receiptBlockNumber != 0){
+        if (receiptBlockNumber != 0) {
             task.setInitializationBlockNumber(receiptBlockNumber);
         }
         //TODO Put other fields?
