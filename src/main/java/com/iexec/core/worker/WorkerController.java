@@ -109,6 +109,7 @@ public class WorkerController {
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
                 .memorySize(model.getMemorySize())
+                .teeEnabled(model.isTeeEnabled())
                 .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())
