@@ -5,7 +5,6 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;

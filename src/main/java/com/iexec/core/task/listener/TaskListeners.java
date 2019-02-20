@@ -113,13 +113,9 @@ public class TaskListeners {
     }
 
     @EventListener
-    public void onResultUploadRequestTimeoutEvent(ResultUploadRequestTimeoutEvent event) {
-        // TODO
-    }
-
-    @EventListener
     public void onResultUploadTimeoutEvent(ResultUploadTimeoutEvent event) {
-        // TODO
+        String chainTaskId = event.getChainTaskId();
+        log.info("Received ResultUploadTimeoutEvent [chainTaskId:{}] ", chainTaskId);
     }
 
     // when a task is finalized, all workers need to be informed

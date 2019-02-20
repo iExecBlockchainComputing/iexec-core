@@ -2,7 +2,7 @@ package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.core.detector.replicate.ResultUploadTimeoutDetector;
+import com.iexec.core.detector.replicate.ReplicateResultUploadTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -37,7 +37,7 @@ public class ResultUploadTimeoutDetectorTests {
     private ReplicatesService replicatesService;
 
     @InjectMocks
-    private ResultUploadTimeoutDetector timeoutDetector;
+    private ReplicateResultUploadTimeoutDetector timeoutDetector;
 
     @Before
     public void init() {

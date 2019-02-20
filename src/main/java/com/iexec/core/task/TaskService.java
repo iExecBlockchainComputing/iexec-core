@@ -10,7 +10,6 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
 import com.iexec.core.task.event.ContributionTimeoutEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.event.ResultUploadRequestTimeoutEvent;
 import com.iexec.core.task.event.ResultUploadTimeoutEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
 import com.iexec.core.worker.Worker;
@@ -356,7 +355,7 @@ public class TaskService {
 
         if (isTaskInUploadRequested && isNowAfterFinalDeadline) {
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUEST_TIMEOUT);
-            applicationEventPublisher.publishEvent(ResultUploadRequestTimeoutEvent.builder()
+            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
         }
@@ -385,7 +384,6 @@ public class TaskService {
             applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
-
         }
     }
 

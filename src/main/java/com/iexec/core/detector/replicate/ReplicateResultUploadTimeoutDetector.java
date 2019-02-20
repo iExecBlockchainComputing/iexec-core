@@ -20,12 +20,12 @@ import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
-public class ResultUploadTimeoutDetector implements Detector {
+public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
 
-    public ResultUploadTimeoutDetector(TaskService taskService,
+    public ReplicateResultUploadTimeoutDetector(TaskService taskService,
                                        ReplicatesService replicatesService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
