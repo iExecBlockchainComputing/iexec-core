@@ -4,6 +4,7 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -48,8 +49,6 @@ public class TaskService {
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
 
-    private static final String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
-
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        IexecHubService iexecHubService,
@@ -71,10 +70,6 @@ public class TaskService {
         log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                 chainDealId, taskIndex, imageName, commandLine, trust);
         return Optional.empty();
-    }
-
-    public boolean doesTaskNeedTEE(Task task) {
-        return task.getTag().equals(TEE_TAG);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -120,7 +115,8 @@ public class TaskService {
 
         for (Task task : runningTasks) {
             // skip the task if it needs TEE and the worker doesn't support it
-            if(doesTaskNeedTEE(task) && !worker.isTeeEnabled()) {
+            boolean doesTaskNeedTEE = TeeUtils.isTrustedExecutionTag(task.getTag());
+            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
                 continue;
             }
 
