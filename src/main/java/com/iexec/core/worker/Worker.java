@@ -22,6 +22,7 @@ public class Worker {
     private String cpu;
     private int cpuNb;
     private int memorySize;
+    private boolean teeEnabled;
     private List<String> participatingChainTaskIds;
     private List<String> computingChainTaskIds;
 
