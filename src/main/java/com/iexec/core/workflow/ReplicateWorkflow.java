@@ -23,9 +23,9 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
         addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE);
         addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET);
-        addTransition(COMPUTED, OUT_OF_GAS);
         addTransition(COMPUTED, CAN_CONTRIBUTE);
         addTransition(CAN_CONTRIBUTE, CONTRIBUTING);
+        addTransition(CAN_CONTRIBUTE, OUT_OF_GAS);
 
         addTransition(CONTRIBUTING, CONTRIBUTED);
         addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
