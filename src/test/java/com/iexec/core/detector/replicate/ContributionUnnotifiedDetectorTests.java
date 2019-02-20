@@ -1,4 +1,4 @@
-package com.iexec.core.detector;
+package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;

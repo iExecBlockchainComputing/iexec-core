@@ -1,4 +1,4 @@
-package com.iexec.core.detector;
+package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -24,7 +24,7 @@ import java.util.Optional;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
-public class ResultUploadTimeoutDetectorTests {
+public class ReplicateResultUploadTimeoutDetectorTests {
 
     private final static String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
     private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
