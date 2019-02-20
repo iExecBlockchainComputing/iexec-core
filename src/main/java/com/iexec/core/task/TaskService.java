@@ -4,6 +4,7 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -99,6 +100,7 @@ public class TaskService {
         if (!optional.isPresent()) {
             return Optional.empty();
         }
+        Worker worker = optional.get();
 
         // return empty if there is no task to contribute
         List<Task> runningTasks = getAllRunningTasks();
@@ -112,6 +114,12 @@ public class TaskService {
         }
 
         for (Task task : runningTasks) {
+            // skip the task if it needs TEE and the worker doesn't support it
+            boolean doesTaskNeedTEE = TeeUtils.isTrustedExecutionTag(task.getTag());
+            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
+                continue;
+            }
+
             String chainTaskId = task.getChainTaskId();
             boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0 && task.getInitializationBlockNumber() <= blockNumber;
             if (blockNumberAvailable &&
@@ -219,7 +227,7 @@ public class TaskService {
         task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
         task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
         long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
-        if (receiptBlockNumber != 0){
+        if (receiptBlockNumber != 0) {
             task.setInitializationBlockNumber(receiptBlockNumber);
         }
         //TODO Put other fields?
