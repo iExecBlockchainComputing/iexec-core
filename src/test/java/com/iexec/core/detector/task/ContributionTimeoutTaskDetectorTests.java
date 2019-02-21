@@ -1,4 +1,4 @@
-package com.iexec.core.detector;
+package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.replicate.ReplicatesService;

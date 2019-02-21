@@ -1,4 +1,4 @@
-package com.iexec.core.detector;
+package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.task.UnstartedTxDetector;
 import com.iexec.core.task.Task;

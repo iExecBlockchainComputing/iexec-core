@@ -111,6 +111,12 @@ public class TaskListeners {
         log.info("NotifyUploadingWorker completed[uploadingWorkerWallet={}]", workerWallet);
     }
 
+    @EventListener
+    public void onResultUploadTimeoutEvent(ResultUploadTimeoutEvent event) {
+        String chainTaskId = event.getChainTaskId();
+        log.info("Received ResultUploadTimeoutEvent [chainTaskId:{}] ", chainTaskId);
+    }
+
     // when a task is finalized, all workers need to be informed
     // the task should also be removed from the executor
     @EventListener
