@@ -6,12 +6,12 @@ import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
+import io.reactivex.disposables.Disposable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import rx.Subscription;
 
 import javax.annotation.PostConstruct;
 import java.math.BigInteger;
@@ -26,7 +26,7 @@ public class DealWatcherService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TaskService taskService;
     // internal variables
-    private Subscription dealEventSubscriptionReplay;
+    private Disposable dealEventSubscriptionReplay;
 
     @Autowired
     public DealWatcherService(IexecHubService iexecHubService,
@@ -44,7 +44,7 @@ public class DealWatcherService {
         subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }
 
-    Subscription subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
+    Disposable subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
         log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
         return iexecHubService.getDealEventObservableToLatest(from)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
@@ -91,15 +91,15 @@ public class DealWatcherService {
     @Scheduled(fixedRateString = "${detector.dealwatcherreplay.period}")
     void replayDealEvent() {
         if (configurationService.getFromReplay().intValue() < configurationService.getLastSeenBlockWithDeal().intValue()) {
-            if (dealEventSubscriptionReplay != null) {
-                this.dealEventSubscriptionReplay.unsubscribe();
+            if (dealEventSubscriptionReplay != null && !dealEventSubscriptionReplay.isDisposed()) {
+                dealEventSubscriptionReplay.dispose();
             }
-            this.dealEventSubscriptionReplay = subscribeToDealEventInRange(configurationService.getFromReplay(), configurationService.getLastSeenBlockWithDeal());
+            dealEventSubscriptionReplay = subscribeToDealEventInRange(configurationService.getFromReplay(), configurationService.getLastSeenBlockWithDeal());
             configurationService.setFromReplay(configurationService.getLastSeenBlockWithDeal());
         }
     }
 
-    private Subscription subscribeToDealEventInRange(BigInteger from, BigInteger to) {
+    private Disposable subscribeToDealEventInRange(BigInteger from, BigInteger to) {
         log.info("Replay Watcher DealEvent started [from:{}, to:{}]", from, (to == null) ? "latest" : to);
         return iexecHubService.getDealEventObservable(from, to)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
