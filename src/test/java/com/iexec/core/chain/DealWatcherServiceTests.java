@@ -1,22 +1,17 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainApp;
-import com.iexec.common.chain.ChainAppParams;
 import com.iexec.common.chain.ChainCategory;
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
+import io.reactivex.Flowable;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
-import rx.Observable;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -54,7 +49,7 @@ public class DealWatcherServiceTests {
         BigInteger blockNumber = BigInteger.TEN;
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
         when(iexecHubService.getDealEventObservableToLatest(blockNumber))
-            .thenReturn(Observable.just(Optional.empty()));
+            .thenReturn(Flowable.just(Optional.empty()));
 
         dealWatcherService.run();
 
@@ -73,7 +68,7 @@ public class DealWatcherServiceTests {
                 .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -106,7 +101,7 @@ public class DealWatcherServiceTests {
 
         Task task = new Task();
 
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any())).thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
@@ -139,7 +134,7 @@ public class DealWatcherServiceTests {
             .botSize(BigInteger.valueOf(0))
             .build();
 
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
@@ -166,7 +161,7 @@ public class DealWatcherServiceTests {
             .build();
 
 
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
@@ -195,7 +190,7 @@ public class DealWatcherServiceTests {
                 .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1, dealEvent2));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent1, dealEvent2));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -216,7 +211,7 @@ public class DealWatcherServiceTests {
                 .build());
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Observable.just(dealEvent1));
+        when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent1));
 
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
@@ -235,7 +230,7 @@ public class DealWatcherServiceTests {
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        when(iexecHubService.getDealEventObservable(any(), any())).thenReturn(Observable.just(dealEvent1));
+        when(iexecHubService.getDealEventObservable(any(), any())).thenReturn(Flowable.just(dealEvent1));
 
         dealWatcherService.replayDealEvent();
 
@@ -254,7 +249,7 @@ public class DealWatcherServiceTests {
 
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        when(iexecHubService.getDealEventObservable(any(), any())).thenReturn(Observable.just(dealEvent1));
+        when(iexecHubService.getDealEventObservable(any(), any())).thenReturn(Flowable.just(dealEvent1));
 
         dealWatcherService.replayDealEvent();
 

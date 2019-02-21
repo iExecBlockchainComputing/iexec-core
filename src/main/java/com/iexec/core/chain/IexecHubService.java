@@ -5,6 +5,7 @@ import com.iexec.common.contract.generated.App;
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
+import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import rx.Observable;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -352,17 +352,17 @@ public class IexecHubService {
         return ChainUtils.getChainApp(app);
     }
 
-    Observable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
+    Flowable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
         return getDealEventObservable(from, null);
     }
 
-    Observable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
+    Flowable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
         DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
         DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
-        return getClerkContract().schedulerNoticeEventObservable(fromBlock, toBlock).map(schedulerNotice -> {
+        return getClerkContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
 
             if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
                 return Optional.of(new DealEvent(schedulerNotice));
