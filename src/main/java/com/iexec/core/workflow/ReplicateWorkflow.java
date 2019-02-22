@@ -14,10 +14,19 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // This is where the whole workflow is defined
         addTransition(CREATED, RUNNING);
         addTransition(RUNNING, APP_DOWNLOADING);
+
         addTransition(APP_DOWNLOADING, APP_DOWNLOADED);
         addTransition(APP_DOWNLOADING, APP_DOWNLOAD_FAILED);
-        addTransition(APP_DOWNLOADED, COMPUTING);
-        addTransition(APP_DOWNLOAD_FAILED, COMPUTING);
+
+        addTransition(APP_DOWNLOADED, DATA_DOWNLOADING);
+        addTransition(APP_DOWNLOAD_FAILED, DATA_DOWNLOADING);
+
+        addTransition(DATA_DOWNLOADING, DATA_DOWNLOADED);
+        addTransition(DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED);
+
+        addTransition(DATA_DOWNLOADED, COMPUTING);
+        addTransition(DATA_DOWNLOAD_FAILED, COMPUTING);
+
         addTransition(COMPUTING, COMPUTED);
         addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW);
         addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
