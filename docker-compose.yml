@@ -16,12 +16,15 @@ services:
     container_name: core
     environment:
     - MONGO_HOST=mongo
+    - IEXEC_CORE_SSL_KEYSTORE=/iexec/ssl-keystore-dev.p12
+    - IEXEC_CORE_SSL_PASSWORD=whatever
     - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
     - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
     - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
     - IEXEC_IPFS_HOST=ipfs
     volumes:
-      - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./ssl-keystore-dev.p12:/iexec/ssl-keystore-dev.p12
     ports:
     - 18090:18090
     restart: on-failure

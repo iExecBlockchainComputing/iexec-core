@@ -22,6 +22,6 @@ public class SmsConfiguration {
     private String smsPort;
 
     public String getSmsURL() {
-        return smsProtocol + "://" + smsIP + ":" + smsProtocol;
+        return smsProtocol + "://" + smsIP + ":" + smsPort;
     }
 }
