@@ -8,11 +8,9 @@ import com.iexec.core.chain.IexecHubService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.gridfs.GridFsOperations;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -23,14 +21,13 @@ public class ResultService {
 
     private static final String RESULT_FILENAME_PREFIX = "iexec-result-";
 
-    private GridFsOperations gridOperations;
     private IexecHubService iexecHubService;
+    private IPFSService ipfsService;
 
-
-    public ResultService(GridFsOperations gridOperations,
-                         IexecHubService iexecHubService) {
-        this.gridOperations = gridOperations;
+    public ResultService(IexecHubService iexecHubService,
+                         IPFSService ipfsService) {
         this.iexecHubService = iexecHubService;
+        this.ipfsService = ipfsService;
     }
 
     static String getResultFilename(String chainTaskId) {
@@ -39,11 +36,11 @@ public class ResultService {
 
     boolean canUploadResult(String chainTaskId, String walletAddress, byte[] zip) {
         // check if result has been already uploaded
-        if (isResultInDatabase(chainTaskId)) {
-            log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
-                    chainTaskId, walletAddress);
-            return false;
-        }
+        //if (isResultInDatabase(chainTaskId)) {
+        //    log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
+        //            chainTaskId, walletAddress);
+        //    return false;
+        //}
 
         // ContributionStatus of chainTask should be REVEALED
         boolean isChainContributionStatusSetToRevealed = iexecHubService.doesWishedStatusMatchesOnChainStatus(chainTaskId,
@@ -58,19 +55,15 @@ public class ResultService {
     }
 
     public boolean isResultInDatabase(String chainTaskId) {
+        ipfsService.getContent();
+
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
 
     String addResult(Result result, byte[] data) {
-        if (result == null || result.getChainTaskId() == null) {
-            return "";
-        }
-
-        InputStream inputStream = new ByteArrayInputStream(data);
-        String resultFileName = getResultFilename(result.getChainTaskId());
-        gridOperations.store(inputStream, resultFileName, result);
-        return resultFileName;
+        return result == null || result.getChainTaskId() == null ? "" :
+                ipfsService.putContent(getResultFilename(result.getChainTaskId()), data);
     }
 
     byte[] getResultByChainTaskId(String chainTaskId) throws IOException {

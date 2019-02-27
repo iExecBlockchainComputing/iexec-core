@@ -43,7 +43,7 @@ public class ResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        String filename = resultService.addResult(
+        String ipfsHash = resultService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
@@ -52,7 +52,7 @@ public class ResultController {
                         .build(),
                 model.getZip());
 
-        if (filename.isEmpty()) {
+        if (ipfsHash.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
         }
 
@@ -61,7 +61,7 @@ public class ResultController {
 
         challengeService.invalidateEip712ChallengeString(auth.getChallenge());
 
-        return ok(filename);
+        return ok(ipfsHash);
     }
 
     @RequestMapping(method = RequestMethod.HEAD, path = "/results/{chainTaskId}")
