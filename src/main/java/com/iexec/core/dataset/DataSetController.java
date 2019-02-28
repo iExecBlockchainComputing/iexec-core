@@ -12,7 +12,6 @@ import java.util.Optional;
 import static org.springframework.http.ResponseEntity.ok;
 
 @Slf4j
-@CrossOrigin
 @RestController
 public class DataSetController {
 
