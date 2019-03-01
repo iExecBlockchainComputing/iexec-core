@@ -268,7 +268,7 @@ public class TaskServiceTests {
         taskService.consensusReached2Reopened(task);
 
         assertThat(task.getLastButOneStatus()).isEqualTo(REOPEN_FAILED);
-        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test
@@ -358,7 +358,7 @@ public class TaskServiceTests {
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
         assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
-        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test
@@ -749,7 +749,7 @@ public class TaskServiceTests {
         TaskStatus lastButTwoStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus();
         TaskStatus lastButThreeStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus();
 
-        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
         assertThat(task.getLastButOneStatus()).isEqualTo(FINALIZE_FAILED);        
         assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
         assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);

@@ -89,7 +89,7 @@ public class TaskService {
     }
 
     private List<Task> getTasksInNonFinalStatus() {
-        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(ERROR, COMPLETED));
+        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
@@ -218,7 +218,7 @@ public class TaskService {
             log.error("Initialize failed [existingChainTaskId:{}, returnedChainTaskId:{}]",
                     existingChainTaskId, chainTaskId);
             updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-            updateTaskStatusAndSave(task, ERROR);
+            updateTaskStatusAndSave(task, FAILED);
             return;
         }
 
@@ -336,7 +336,7 @@ public class TaskService {
             log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas:{}]",
                     task.getChainTaskId(), canReopen, hasEnoughGas);
             updateTaskStatusAndSave(task, REOPEN_FAILED);
-            updateTaskStatusAndSave(task, ERROR);
+            updateTaskStatusAndSave(task, FAILED);
             return;
         }
 
@@ -369,7 +369,7 @@ public class TaskService {
             applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
-            updateTaskStatusAndSave(task, ERROR);
+            updateTaskStatusAndSave(task, FAILED);
         }
     }
 
@@ -397,7 +397,7 @@ public class TaskService {
             applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
-            updateTaskStatusAndSave(task, ERROR);
+            updateTaskStatusAndSave(task, FAILED);
         }
     }
 
@@ -446,7 +446,7 @@ public class TaskService {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
                     task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             updateTaskStatusAndSave(task, FINALIZE_FAILED);
-            updateTaskStatusAndSave(task, ERROR);
+            updateTaskStatusAndSave(task, FAILED);
             return;
         }
 
