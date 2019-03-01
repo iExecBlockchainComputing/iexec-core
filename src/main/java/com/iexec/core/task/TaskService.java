@@ -88,15 +88,8 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
     }
 
-    private List<Task> getNotYetFinishedTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(
-                RUNNING,
-                CONTRIBUTION_TIMEOUT,
-                CONSENSUS_REACHED,
-                AT_LEAST_ONE_REVEALED,
-                REVEALED,
-                RESULT_UPLOAD_REQUESTED,
-                RESULT_UPLOADING));
+    private List<Task> getTasksInNonFinalStatus() {
+        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(ERROR, COMPLETED));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
