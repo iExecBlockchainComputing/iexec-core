@@ -6,6 +6,7 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
@@ -35,31 +36,25 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
-    @Value("${resultRepository.protocol}")
-    private String resultRepositoryProtocol;
-
-    @Value("${resultRepository.ip}")
-    private String resultRepositoryIp;
-
-    @Value("${resultRepository.port}")
-    private String resultRepositoryPort;
-
     private TaskRepository taskRepository;
     private WorkerService workerService;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
+    private ResultRepositoryConfiguration resultRepositoryConfig;
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
-                       ApplicationEventPublisher applicationEventPublisher) {
+                       ApplicationEventPublisher applicationEventPublisher,
+                       ResultRepositoryConfiguration resultRepositoryConfig) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.resultRepositoryConfig = resultRepositoryConfig;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, long maxExecutionTime, String tag) {
@@ -89,8 +84,19 @@ public class TaskService {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
 
-    private List<Task> getAllRunningTasks() {
+    private List<Task> getInitializedOrRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
+    }
+
+    private List<Task> getNotYetFinishedTasks() {
+        return taskRepository.findByCurrentStatus(Arrays.asList(
+                RUNNING,
+                CONTRIBUTION_TIMEOUT,
+                CONSENSUS_REACHED,
+                AT_LEAST_ONE_REVEALED,
+                REVEALED,
+                RESULT_UPLOAD_REQUESTED,
+                RESULT_UPLOADING));
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
@@ -104,7 +110,7 @@ public class TaskService {
         Worker worker = optional.get();
 
         // return empty if there is no task to contribute
-        List<Task> runningTasks = getAllRunningTasks();
+        List<Task> runningTasks = getInitializedOrRunningTasks();
         if (runningTasks.isEmpty()) {
             return Optional.empty();
         }
@@ -167,7 +173,7 @@ public class TaskService {
                 resultUploading2UploadTimeout(task);
                 break;
             case RESULT_UPLOADED:
-                updateResultUploaded2Finalized(task);
+                resultUploaded2Finalized2Completed(task);
                 break;
         }
     }
@@ -188,7 +194,7 @@ public class TaskService {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
         if (!isCurrentStatusReceived) {
-            log.error("Initialize failed [chainTaskId:{}, currentStatus:{}]",
+            log.error("Cannot initialize [chainTaskId:{}, currentStatus:{}]",
                     task.getChainTaskId(), task.getCurrentStatus());
             return;
         }
@@ -219,6 +225,8 @@ public class TaskService {
             log.error("Initialize failed [existingChainTaskId:{}, returnedChainTaskId:{}]",
                     existingChainTaskId, chainTaskId);
             updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+            updateTaskStatusAndSave(task, ERROR);
+            return;
         }
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
@@ -328,24 +336,25 @@ public class TaskService {
             return;
         }
 
-        updateTaskStatusAndSave(task, TaskStatus.REOPENING);
+        updateTaskStatusAndSave(task, REOPENING);
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
 
         if (!optionalChainReceipt.isPresent()) {
             log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas:{}]",
                     task.getChainTaskId(), canReopen, hasEnoughGas);
-            updateTaskStatusAndSave(task, TaskStatus.REOPEN_FAILED);
+            updateTaskStatusAndSave(task, REOPEN_FAILED);
+            updateTaskStatusAndSave(task, ERROR);
             return;
         }
 
         task.setConsensus(null);
         task.setRevealDeadline(new Date(0));
-        updateTaskStatusAndSave(task, TaskStatus.REOPENED, optionalChainReceipt.get());
-        updateTaskStatusAndSave(task, TaskStatus.INITIALIZED, optionalChainReceipt.get());
+        updateTaskStatusAndSave(task, REOPENED, optionalChainReceipt.get());
+        updateTaskStatusAndSave(task, INITIALIZED, optionalChainReceipt.get());
     }
 
     private void uploadRequested2UploadingResult(Task task) {
-        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
         boolean isThereAWorkerUploading = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
         if (isTaskInUploadRequested) {
@@ -358,19 +367,21 @@ public class TaskService {
     }
 
     private void uploadRequested2UploadRequestTimeout(Task task) {
-        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOAD_REQUESTED);
-        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
+        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
+        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
+                                        && new Date().after(task.getFinalDeadline());
 
         if (isTaskInUploadRequested && isNowAfterFinalDeadline) {
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUEST_TIMEOUT);
             applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
+            updateTaskStatusAndSave(task, ERROR);
         }
     }
 
     private void resultUploading2Uploaded(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
+        boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADING);
         boolean condition2 = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
 
         if (condition1 && condition2) {
@@ -384,14 +395,16 @@ public class TaskService {
     }
 
     private void resultUploading2UploadTimeout(Task task) {
-        boolean isTaskInResultUploading = task.getCurrentStatus().equals(TaskStatus.RESULT_UPLOADING);
-        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
+        boolean isTaskInResultUploading = task.getCurrentStatus().equals(RESULT_UPLOADING);
+        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
+                                        && new Date().after(task.getFinalDeadline());
 
         if (isTaskInResultUploading && isNowAfterFinalDeadline) {
             updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
             applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
+            updateTaskStatusAndSave(task, ERROR);
         }
     }
 
@@ -409,7 +422,7 @@ public class TaskService {
         }
     }
 
-    private void updateResultUploaded2Finalized(Task task) {
+    private void resultUploaded2Finalized2Completed(Task task) {
         boolean isTaskInResultUploaded = task.getCurrentStatus().equals(RESULT_UPLOADED);
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
@@ -432,26 +445,21 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        String resultUri = resultRepositoryProtocol + "://" + resultRepositoryIp + ":" + resultRepositoryPort + "/results/" + task.getChainTaskId();
+        String resultUri = resultRepositoryConfig.getResultRepositoryURL()
+                + "/results/" + task.getChainTaskId();
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), resultUri);
 
         if (!optionalChainReceipt.isPresent()) {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
                     task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             updateTaskStatusAndSave(task, FINALIZE_FAILED);
+            updateTaskStatusAndSave(task, ERROR);
             return;
         }
 
         updateTaskStatusAndSave(task, FINALIZED, optionalChainReceipt.get());
-        updateFromFinalizedToCompleted(task);
+
+        updateTaskStatusAndSave(task, COMPLETED);
+        applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
-
-    private void updateFromFinalizedToCompleted(Task task) {
-        if (task.getCurrentStatus().equals(FINALIZED)) {
-            updateTaskStatusAndSave(task, COMPLETED);
-
-            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
-        }
-    }
-
 }
