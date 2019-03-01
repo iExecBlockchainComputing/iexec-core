@@ -88,7 +88,7 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
     }
 
-    private List<Task> getTasksInNonFinalStatus() {
+    private List<Task> getTasksInNonFinalStatuses() {
         return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
     }
 
@@ -295,6 +295,7 @@ public class TaskService {
 
         if (isInitializedOrRunningTask && isChainTaskActive && isNowAfterContributionDeadline) {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
+            updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());

@@ -533,7 +533,8 @@ public class TaskServiceTests {
 
         taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);
 
-        assertThat(task.getCurrentStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+        assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
 
 
