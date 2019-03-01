@@ -92,6 +92,11 @@ public class Task {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
     }
 
+    @JsonIgnore
+    public TaskStatus getLastButOneStatus() {
+        return this.getDateStatusList().get(this.getDateStatusList().size() - 2).getStatus();
+    }
+
     public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
         Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
         if (!consensusReachedDate.isPresent()){

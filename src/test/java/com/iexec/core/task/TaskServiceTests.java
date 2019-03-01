@@ -5,6 +5,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.utils.DateTimeUtils;
@@ -55,6 +56,9 @@ public class TaskServiceTests {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private ResultRepositoryConfiguration resulRepositoryConfig;
 
     @InjectMocks
     private TaskService taskService;
@@ -263,7 +267,8 @@ public class TaskServiceTests {
 
         taskService.consensusReached2Reopened(task);
 
-        assertThat(task.getCurrentStatus()).isEqualTo(REOPEN_FAILED);
+        assertThat(task.getLastButOneStatus()).isEqualTo(REOPEN_FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
     }
 
     @Test
@@ -351,7 +356,9 @@ public class TaskServiceTests {
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZE_FAILED);
+
+        assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
     }
 
     @Test
@@ -693,6 +700,7 @@ public class TaskServiceTests {
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any())).thenReturn(Optional.of(new ChainReceipt()));
+        when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
@@ -738,12 +746,13 @@ public class TaskServiceTests {
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
-        TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         TaskStatus lastButTwoStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus();
+        TaskStatus lastButThreeStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus();
 
-        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZE_FAILED);
-        assertThat(lastButOneStatus).isEqualTo(FINALIZING);
-        assertThat(lastButTwoStatus).isEqualTo(RESULT_UPLOADED);
+        assertThat(task.getCurrentStatus()).isEqualTo(ERROR);
+        assertThat(task.getLastButOneStatus()).isEqualTo(FINALIZE_FAILED);        
+        assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
+        assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
     }
 
 
