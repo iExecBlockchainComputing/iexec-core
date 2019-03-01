@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 public class Web3jService extends Web3jAbstractService {
 
     public Web3jService(ChainConfig chainConfig) {
-        super(chainConfig.getPrivateChainAddress());
+        super(chainConfig.getPrivateChainAddress(), chainConfig.getGasPriceMultiplier(), chainConfig.getGasPriceCap());
     }
 
 }

@@ -1,8 +1,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.App;
-import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
@@ -10,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -31,53 +27,28 @@ import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service
-public class IexecHubService {
+public class IexecHubService extends IexecHubAbstractService {
 
     private static final String INITIALIZING_PENDING_STATUS = "pending";
     private final ThreadPoolExecutor executor;
-    private final Credentials credentials;
+    private final CredentialsService credentialsService;
     private final Web3jService web3jService;
-    private final Web3j web3j;
-    private ChainConfig chainConfig;
+    private final String poolAddress;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
                            Web3jService web3jService,
-                           ChainConfig chainConfig
-    ) {
-        this.chainConfig = chainConfig;
-        this.credentials = credentialsService.getCredentials();
+                           ChainConfig chainConfig) {
+        super(credentialsService.getCredentials(), web3jService, chainConfig.getHubAddress());
+        this.credentialsService = credentialsService;
         this.web3jService = web3jService;
-        this.web3j = web3jService.getWeb3j();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-    }
-
-    private IexecHubABILegacy getHubContract() {
-        return ChainUtils.getHubContract(credentials,
-                this.web3j,
-                chainConfig.getHubAddress(),
-                ChainUtils.getWritingContractGasProvider(web3j,
-                        chainConfig.getGasPriceMultiplier(),
-                        chainConfig.getGasPriceCap()));
-    }
-
-    private IexecClerkABILegacy getClerkContract() {
-        return ChainUtils.getClerkContract(credentials,
-                this.web3j,
-                chainConfig.getHubAddress(),
-                ChainUtils.getWritingContractGasProvider(web3j,
-                        chainConfig.getGasPriceMultiplier(),
-                        chainConfig.getGasPriceCap()));
-    }
-
-
-    public Optional<ChainContribution> getContribution(String chainTaskId, String workerWalletAddress) {
-        return ChainUtils.getChainContribution(getHubContract(), chainTaskId, workerWalletAddress);
+        this.poolAddress = chainConfig.getPoolAddress();
     }
 
     public boolean doesWishedStatusMatchesOnChainStatus(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
 
-        Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
+        Optional<ChainContribution> optional = getChainContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
             return false;
         }
@@ -130,14 +101,6 @@ public class IexecHubService {
         return date.getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
     }
 
-    private long getMaxNbOfPeriodsForConsensus() {
-        try {
-            return getHubContract().CONSENSUS_DURATION_RATIO().send().longValue();
-        } catch (Exception e) {
-            log.error("Failed to getMaxNbOfPeriodsForConsensus");
-        }
-        return 0;
-    }
 
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
@@ -155,14 +118,15 @@ public class IexecHubService {
 
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().initialize(chainDealIdBytes, taskIndexBigInteger).send();
+
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).initialize(chainDealIdBytes, taskIndexBigInteger).send();
         } catch (Exception e) {
             log.error("Failed initialize [chainDealId:{}, taskIndex:{}, error:{}]",
                     chainDealId, taskIndex, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = getHubContract().getTaskInitializeEvents(receipt);
+        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskInitializeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
@@ -187,7 +151,7 @@ public class IexecHubService {
     }
 
     private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainTaskStatus taskStatus) {
-        Optional<ChainTask> optionalChainTask = ChainUtils.getChainTask(getHubContract(), chainTaskId);
+        Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
         return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(taskStatus);
     }
 
@@ -249,13 +213,13 @@ public class IexecHubService {
 
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().finalize(chainTaskIdBytes, resultUriBytes).send();
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes).send();
         } catch (Exception e) {
             log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract().getTaskFinalizeEvents(receipt);
+        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskFinalizeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -312,13 +276,13 @@ public class IexecHubService {
     private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().reopen(BytesUtils.stringToBytes(chainTaskId)).send();
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(BytesUtils.stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
+        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskReopenEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -334,18 +298,6 @@ public class IexecHubService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-    public Optional<ChainDeal> getChainDeal(String chainDealId) {
-        return ChainUtils.getChainDeal(credentials, web3j, getHubContract().getContractAddress(), chainDealId);
-    }
-
-    public Optional<ChainTask> getChainTask(String chainTaskId) {
-        return ChainUtils.getChainTask(getHubContract(), chainTaskId);
-    }
-
-    Optional<ChainApp> getChainApp(String address) {
-        App app = ChainUtils.getAppContract(credentials, web3j, address);
-        return ChainUtils.getChainApp(app);
-    }
 
     Flowable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
         return getDealEventObservable(from, null);
@@ -357,9 +309,9 @@ public class IexecHubService {
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
-        return getClerkContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
+        return getClerkContract(web3jService.getWritingContractGasProvider()).schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
 
-            if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
+            if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
                 return Optional.of(new DealEvent(schedulerNotice));
             }
             return Optional.empty();
@@ -367,6 +319,8 @@ public class IexecHubService {
     }
 
     public boolean hasEnoughGas() {
-        return ChainUtils.hasEnoughGas(web3j, credentials.getAddress(), chainConfig.getGasPriceCap());
+        return hasEnoughGas(credentialsService.getCredentials().getAddress());
     }
+
+
 }
