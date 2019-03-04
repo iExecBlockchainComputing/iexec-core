@@ -25,7 +25,7 @@ public enum TaskStatus {
     FINALIZED,
     FINALIZE_FAILED,
     COMPLETED,
-    ERROR;
+    FAILED;
 
     public static List<TaskStatus> getWaitingRevealStatuses() {
         return Arrays.asList(

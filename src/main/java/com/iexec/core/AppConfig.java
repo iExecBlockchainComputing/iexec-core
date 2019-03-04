@@ -10,7 +10,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableRetry
 @EnableScheduling
-@EnableWebMvc
 public class AppConfig implements WebMvcConfigurer {
 
     @Override
