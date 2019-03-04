@@ -1,11 +1,10 @@
-package com.iexec.core.result;
+package com.iexec.core.result.IPFS;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
 import io.ipfs.api.NamedStreamable;
 import io.ipfs.multihash.Multihash;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,16 +14,10 @@ import java.util.Optional;
 @Slf4j
 public class IPFSService {
 
-    @Value("${ipfs.host}")
-    private String host;
-
-    @Value("${ipfs.port}")
-    private String port;
-
     private IPFS ipfs;
 
-    public IPFSService() {
-        String multiAddress = "/ip4/" + host + "/tcp/" + port;
+    public IPFSService(IPFSConfig ipfsConfig) {
+        String multiAddress = "/ip4/" + ipfsConfig.getHost() + "/tcp/" + ipfsConfig.getPort();
         ipfs = new IPFS(multiAddress);
     }
 

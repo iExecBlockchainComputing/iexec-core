@@ -89,8 +89,9 @@ dependencies {
     // expiring map
     compile "net.jodah:expiringmap:0.5.8"
 
-    // ipfs java client
-    compile 'com.github.ipfs:java-ipfs-http-client:1.2.3'
+    // ipfs 
+    compile "com.github.ipfs:java-ipfs-http-client:1.2.3"
+    compile "com.github.multiformats:java-multiaddr:1.3.1"
 }
 
 jacoco {

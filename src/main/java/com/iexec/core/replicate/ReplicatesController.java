@@ -26,6 +26,7 @@ public class ReplicatesController {
     public ResponseEntity<String> updateReplicateStatus(
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
+            @RequestParam(name = "resultLink") String resultLink,
             @RequestHeader("Authorization") String bearerToken,
             @RequestBody ChainReceipt chainReceipt) {
 
@@ -38,7 +39,7 @@ public class ReplicatesController {
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}, blockNumber:{}]",
                 chainTaskId, replicateStatus, walletAddress, chainReceipt.getBlockNumber());
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, chainReceipt);
+        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, chainReceipt, resultLink);
         return ResponseEntity.ok().build();
     }
 }

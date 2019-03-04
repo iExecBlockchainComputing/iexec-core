@@ -189,7 +189,7 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null, "");
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
@@ -198,7 +198,8 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
-                                      ChainReceipt chainReceipt) {
+                                      ChainReceipt chainReceipt,
+                                      String resultLink) {
 
         if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
