@@ -92,7 +92,7 @@ public class ResultController {
     public ResponseEntity<byte[]> getResultUnsafe(@PathVariable("chainTaskId") String chainTaskId) throws IOException {
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId))
+                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
                 .body(zip);
     }
 
@@ -120,7 +120,7 @@ public class ResultController {
 
             byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId))
+                    .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
                     .body(zip);
         }
 
