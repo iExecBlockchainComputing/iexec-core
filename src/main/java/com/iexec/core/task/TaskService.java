@@ -80,6 +80,24 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(statusList);
     }
 
+    public List<Task> getInterruptedButStillActiveReplicates(String walletAddress) {
+        List<Task> actifTasks = getTasksInNonFinalStatuses();
+        List<Task> sdf;
+
+        for (Task task : actifTasks) {
+            Optional<Replicate> oReplicate = replicatesService.getReplicate(
+                    task.getChainTaskId(), walletAddress);
+
+            if (!oReplicate.isPresent()) {
+                continue;
+            }
+
+            if (task.getCurrentStatus().) {
+                
+            }
+        }
+    }
+
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }

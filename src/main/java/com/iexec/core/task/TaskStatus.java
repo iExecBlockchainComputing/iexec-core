@@ -36,4 +36,26 @@ public enum TaskStatus {
                 RESULT_UPLOADED
         );
     }
+
+    public static boolean isInContributionPhase(TaskStatus status) {
+        return Arrays.asList(
+                RECEIVED,
+                INITIALIZING,
+                INITIALIZED,
+                // INITIALIZE_FAILED,
+                RUNNING
+        ).contains(status);
+    }
+
+    public static boolean isInRevealingPhase(TaskStatus status) {
+        return getWaitingRevealStatuses().contains(status);
+    }
+
+    public static boolean isInResultUploadPhase(TaskStatus status) {
+        return Arrays.asList(
+            RESULT_UPLOAD_REQUESTED,
+            RESULT_UPLOADING
+        ).contains(status);
+    }
+
 }
