@@ -13,6 +13,8 @@ import org.web3j.utils.Numeric;
 
 import static com.iexec.common.utils.BytesUtils.EMPTY_ADDRESS;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 public class SignatureService {
@@ -38,7 +40,7 @@ public class SignatureService {
         return Numeric.toHexString(Hash.sha3(res));
     }
 
-    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, boolean isTrustedExecution) {
+    public Optional<ContributionAuthorization> createAuthorization(String workerWallet, String chainTaskId, boolean isTrustedExecution) {
         String enclaveAddress = getEnclaveAddress(isTrustedExecution);
 
         String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
@@ -46,14 +48,14 @@ public class SignatureService {
         Sign.SignatureData sign = SignatureUtils.signPrefixedMessage(
                 BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
-        return ContributionAuthorization.builder()
+        return Optional.of(ContributionAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
                 .signR(sign.getR())
                 .signS(sign.getS())
                 .signV(sign.getV())
-                .build();
+                .build());
     }
 
     private String getEnclaveAddress(boolean isTrustedExecution) {

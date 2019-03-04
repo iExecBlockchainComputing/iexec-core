@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
@@ -44,18 +45,18 @@ public class TaskController {
         Task task = optionalTask.get();
 
         Optional<ReplicatesList> optionalReplicates = replicatesService.getReplicatesList(chainTaskId);
+
+        TaskModel taskModel;
         if (!optionalReplicates.isPresent()) {
-            return createTaskModel(task, new ReplicatesList()).
-                    <ResponseEntity>map(ResponseEntity::ok).
-                    orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+            taskModel = new TaskModel(task, new ReplicatesList().getReplicates());
+        } else {
+            taskModel = new TaskModel(task, optionalReplicates.get().getReplicates());
         }
 
-        return createTaskModel(task, optionalReplicates.get()).
-                <ResponseEntity>map(ResponseEntity::ok).
-                orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        return ResponseEntity.ok(taskModel);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = "/tasks/available")
+    @GetMapping("/tasks/available")
     public ResponseEntity getAvailableReplicate(@RequestParam(name = "blockNumber") long blockNumber,
                                                 @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
@@ -78,33 +79,35 @@ public class TaskController {
         Task task = taskOptional.get();
 
         // generate contribution authorization
-        ContributionAuthorization authorization = signatureService.createAuthorization(
+        Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
                 workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
 
-        return Optional.of(authorization).
-                <ResponseEntity>map(ResponseEntity::ok)
+        return authorization
+                .<ResponseEntity>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
-    private Optional<TaskModel> createTaskModel(Task task,
-                                                ReplicatesList replicatesList) {
-        return Optional.of(TaskModel.builder()
-                .id(task.getId())
-                .version(task.getVersion())
-                .chainTaskId(task.getChainTaskId())
-                .dappType(task.getDappType())
-                .dappName(task.getDappName())
-                .commandLine(task.getCommandLine())
-                .currentStatus(task.getCurrentStatus())
-                .dateStatusList(task.getDateStatusList())
-                .replicates(replicatesList.getReplicates())
-                .trust(task.getTrust())
-                .numWorkersNeeded(task.getNumWorkersNeeded())
-                .uploadingWorkerWalletAddress(task.getUploadingWorkerWalletAddress())
-                .consensus(task.getConsensus())
-                .build()
-        );
-    }
+    @GetMapping("/tasks/interrupted")
+    public ResponseEntity getUnfinishedReplicates(@RequestHeader("Authorization") String bearerToken) {
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
 
+        // get all running tasks
+        List<Replicate> l = taskService.getInterruptedButStillActiveReplicates(workerWalletAddress);
+        // extract the ones for this wallet
+        List<Replicate> unfinishedReplicateList;
+        for (Replicate replicate : unfinishedReplicateList) {
+            switch (replicate.getCurrentStatus()) {
+                case value:
+                    
+                    break;
+            
+                default:
+                    break;
+            }
+        }
+    }
 }
 
