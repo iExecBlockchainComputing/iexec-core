@@ -312,7 +312,7 @@ public class ReplicatesService {
     }
 
     private Replicate getReplicateWithBlockchainUpdates(Replicate replicate, ChainContributionStatus wishedChainStatus) {
-        Optional<ChainContribution> optional = iexecHubService.getContribution(replicate.getChainTaskId(), replicate.getWalletAddress());
+        Optional<ChainContribution> optional = iexecHubService.getChainContribution(replicate.getChainTaskId(), replicate.getWalletAddress());
         if (!optional.isPresent()) {
             return null;
         }
@@ -330,7 +330,7 @@ public class ReplicatesService {
             return false;
         }
 
-        Optional<ChainContribution> optional = iexecHubService.getContribution(chainTaskId, walletAddress);
+        Optional<ChainContribution> optional = iexecHubService.getChainContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
             return false;
         }
