@@ -38,6 +38,10 @@ public class IPFSService {
         return Optional.empty();
     }
 
+    public boolean doesContentExists(String ipfsHash) {
+        return getContent(ipfsHash).isPresent();
+    }
+
     public String putContent(String fileName, byte[] fileContent) {
         NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(fileName, fileContent);
         try {

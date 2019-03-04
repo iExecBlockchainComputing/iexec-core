@@ -35,13 +35,6 @@ public class ResultService {
     }
 
     boolean canUploadResult(String chainTaskId, String walletAddress, byte[] zip) {
-        // check if result has been already uploaded
-        //if (isResultInDatabase(chainTaskId)) {
-        //    log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
-        //            chainTaskId, walletAddress);
-        //    return false;
-        //}
-
         // ContributionStatus of chainTask should be REVEALED
         boolean isChainContributionStatusSetToRevealed = iexecHubService.doesWishedStatusMatchesOnChainStatus(chainTaskId,
                 walletAddress, ChainContributionStatus.REVEALED);
