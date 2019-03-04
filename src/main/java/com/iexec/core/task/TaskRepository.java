@@ -21,6 +21,8 @@ interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findByCurrentStatus(TaskStatus status);
 
     @Query("{ 'currentStatus': {$in: ?0} }")
-    List<Task> findByCurrentStatus(List<TaskStatus> status);
+    List<Task> findByCurrentStatus(List<TaskStatus> statuses);
 
+    @Query("{ 'currentStatus': {$nin: ?0} }")
+    List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);    
 }
