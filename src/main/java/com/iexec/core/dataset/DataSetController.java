@@ -33,7 +33,6 @@ public class DataSetController {
         return ok(hash);
     }
 
-    @CrossOrigin
     @GetMapping(value = "/datasets/{hash}", produces = "application/zip")
     public ResponseEntity<byte[]> getDataSet(@PathVariable("hash") String hash) {
         Optional<DataSet> dataSet = dataSetService.getDataSetByHash(hash);

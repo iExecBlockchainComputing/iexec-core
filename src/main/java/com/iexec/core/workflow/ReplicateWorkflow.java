@@ -4,6 +4,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
+
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
@@ -15,56 +16,68 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CREATED, RUNNING);
         addTransition(RUNNING, APP_DOWNLOADING);
 
-        addTransition(APP_DOWNLOADING, APP_DOWNLOADED);
-        addTransition(APP_DOWNLOADING, APP_DOWNLOAD_FAILED);
+        // app
+        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+
+        addTransition(APP_DOWNLOAD_FAILED, toList(
+                // DATA_DOWNLOADING,
+                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
+                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
+                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
+                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CAN_CONTRIBUTE));
 
         addTransition(APP_DOWNLOADED, DATA_DOWNLOADING);
-        addTransition(APP_DOWNLOAD_FAILED, DATA_DOWNLOADING);
 
-        addTransition(DATA_DOWNLOADING, DATA_DOWNLOADED);
-        addTransition(DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED);
+        // data
+        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
+
+        addTransition(DATA_DOWNLOAD_FAILED, toList(
+                // COMPUTING,
+                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
+                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
+                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
+                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CAN_CONTRIBUTE));
 
         addTransition(DATA_DOWNLOADED, COMPUTING);
-        addTransition(DATA_DOWNLOAD_FAILED, COMPUTING);
 
-        addTransition(COMPUTING, COMPUTED);
-        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW);
-        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
-        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE);
-        addTransition(COMPUTED, CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET);
-        addTransition(COMPUTED, CAN_CONTRIBUTE);
-        addTransition(CAN_CONTRIBUTE, CONTRIBUTING);
-        addTransition(CAN_CONTRIBUTE, OUT_OF_GAS);
+        // computation
+        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
 
-        addTransition(CONTRIBUTING, CONTRIBUTED);
-        addTransition(CONTRIBUTING, CONTRIBUTE_FAILED);
+        addTransition(COMPUTED, toList(
+                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
+                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
+                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
+                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CAN_CONTRIBUTE));
 
+        // contribution
+        addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS));
+        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
-        addTransition(CONTRIBUTED, ABORTED_ON_CONTRIBUTION_TIMEOUT);
-        addTransition(OUT_OF_GAS, ABORTED_ON_CONTRIBUTION_TIMEOUT);
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
-        addTransition(CONTRIBUTED, ABORTED_ON_CONSENSUS_REACHED);
-        addTransition(OUT_OF_GAS, ABORTED_ON_CONSENSUS_REACHED);
 
-        addTransition(CONTRIBUTED, CANT_REVEAL);
-        addTransition(CONTRIBUTED, OUT_OF_GAS);
-        addTransition(CONTRIBUTED, REVEALING);
-        addTransition(CONTRIBUTED, REVEAL_TIMEOUT);
-        addTransition(REVEALING, REVEAL_TIMEOUT);
-        addTransition(REVEALING, REVEALED);
-        addTransition(REVEALING, REVEAL_FAILED);
-        addTransition(REVEALED, RESULT_UPLOADING);
-        addTransition(REVEALED, COMPLETED);
-        addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
-        addTransition(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED);
+        // reveal - completed
+        addTransition(CONTRIBUTED, toList(CANT_REVEAL, OUT_OF_GAS, REVEALING, REVEAL_TIMEOUT));
+        addTransition(REVEALING, toList(REVEAL_TIMEOUT, REVEALED, REVEAL_FAILED));
+        addTransition(REVEALED, toList(RESULT_UPLOADING, COMPLETED));
+        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_REQUEST_FAILED));
         addTransition(WORKER_LOST, RESULT_UPLOAD_REQUEST_FAILED);
         addTransition(RESULT_UPLOADED, COMPLETED);
 
+        // worker_lost
+        addTransition(WORKER_LOST, toList(
+                ABORTED_ON_CONSENSUS_REACHED,
+                ABORTED_ON_CONTRIBUTION_TIMEOUT,
+                RESULT_UPLOAD_REQUEST_FAILED,
+                RESULT_UPLOAD_FAILED,
+                COMPLETED,
+                REVEAL_TIMEOUT));
+
         // from any status to WORKER_LOST or ERROR
-        addTransitionToAllStatus(WORKER_LOST);
-        addTransitionToAllStatus(ERROR);
-
-
+        addTransitionToAllStatuses(WORKER_LOST);
+        addTransitionToAllStatuses(ERROR);
     }
 
     public static synchronized ReplicateWorkflow getInstance() {
@@ -78,32 +91,9 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         for (ReplicateStatus from : getStatusesBeforeContributed()) {
             addTransition(from, to);
         }
-    }
 
-    private void addTransitionToAllStatus(ReplicateStatus status) {
-        addTransition(CREATED, status);
-        addTransition(RUNNING, status);
-        addTransition(APP_DOWNLOADING, status);
-        addTransition(APP_DOWNLOADED, status);
-        addTransition(APP_DOWNLOAD_FAILED, status);
-        addTransition(COMPUTING, status);
-        addTransition(COMPUTED, status);
-        addTransition(CONTRIBUTING, status);
-        addTransition(CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW, status);
-        addTransition(CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE, status);
-        addTransition(CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE, status);
-        addTransition(CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET, status);
-        addTransition(CAN_CONTRIBUTE, status);
-        addTransition(CONTRIBUTED, status);
-        addTransition(CONTRIBUTE_FAILED, status);
-        addTransition(REVEALING, status);
-        addTransition(REVEALED, status);
-        addTransition(RESULT_UPLOADING, status);
-        addTransition(RESULT_UPLOADED, status);
-        addTransition(RESULT_UPLOAD_REQUEST_FAILED, status);
-        addTransition(COMPLETED, status);
-        addTransition(ABORTED_ON_CONTRIBUTION_TIMEOUT, status);
-        addTransition(ABORTED_ON_CONSENSUS_REACHED, status);
-        addTransition(OUT_OF_GAS, status);
+        addTransition(CONTRIBUTED, to);
+        addTransition(OUT_OF_GAS, to);
+        addTransition(WORKER_LOST, to);
     }
 }
