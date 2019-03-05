@@ -3,9 +3,12 @@ package com.iexec.core.task;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.replicate.InterruptedReplicatesModel;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.SignatureService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -24,6 +27,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -42,19 +46,23 @@ public class TaskService {
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
     private ResultRepositoryConfiguration resultRepositoryConfig;
+    private SignatureService signatureService;
+
 
     public TaskService(TaskRepository taskRepository,
                        WorkerService workerService,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
                        ApplicationEventPublisher applicationEventPublisher,
-                       ResultRepositoryConfiguration resultRepositoryConfig) {
+                       ResultRepositoryConfiguration resultRepositoryConfig,
+                       SignatureService signatureService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.resultRepositoryConfig = resultRepositoryConfig;
+        this.signatureService = signatureService;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, long maxExecutionTime, String tag) {
@@ -80,9 +88,12 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(statusList);
     }
 
-    public List<Task> getInterruptedButStillActiveReplicates(String walletAddress) {
+    public InterruptedReplicatesModel getInterruptedButStillActiveReplicates(String walletAddress) {
         List<Task> actifTasks = getTasksInNonFinalStatuses();
-        List<Task> sdf;
+
+        List<ContributionAuthorization> contributionNeeded = new ArrayList<>();
+        List<ContributionAuthorization> revealNeeded = new ArrayList<>();
+        List<ContributionAuthorization> resultUploadNeeded = new ArrayList<>();
 
         for (Task task : actifTasks) {
             Optional<Replicate> oReplicate = replicatesService.getReplicate(
@@ -92,10 +103,35 @@ public class TaskService {
                 continue;
             }
 
-            if (task.getCurrentStatus().) {
-                
+            // generate contribution authorization
+            Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
+                    walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
+
+            if (!authorization.isPresent()) {
+                continue;
+            }
+
+            boolean doesTaskNeedContribution = TaskStatus.isInContributionPhase(task.getCurrentStatus());
+            if (doesTaskNeedContribution) {
+                contributionNeeded.add(authorization.get());
+            }
+
+            boolean doesTaskNeedReveal = TaskStatus.isInRevealPhase(task.getCurrentStatus());
+            if (doesTaskNeedReveal) {
+                revealNeeded.add(authorization.get());
+            }
+
+            boolean doesTaskNeedResultUpload = TaskStatus.isInResultUploadPhase(task.getCurrentStatus());
+            if (doesTaskNeedResultUpload) {
+                resultUploadNeeded.add(authorization.get());
             }
         }
+
+        return InterruptedReplicatesModel.builder()
+                .contributionNeededList(contributionNeeded)
+                .revealNeededList(revealNeeded)
+                .resultUploadNeededList(resultUploadNeeded)
+                .build();
     }
 
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {

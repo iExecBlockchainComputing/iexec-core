@@ -29,25 +29,25 @@ public enum TaskStatus {
 
     public static List<TaskStatus> getWaitingRevealStatuses() {
         return Arrays.asList(
-                CONSENSUS_REACHED,
-                AT_LEAST_ONE_REVEALED,
-                RESULT_UPLOAD_REQUESTED,
-                RESULT_UPLOADING,
-                RESULT_UPLOADED
+            CONSENSUS_REACHED,
+            AT_LEAST_ONE_REVEALED,
+            RESULT_UPLOAD_REQUESTED,
+            RESULT_UPLOADING,
+            RESULT_UPLOADED
         );
     }
 
     public static boolean isInContributionPhase(TaskStatus status) {
         return Arrays.asList(
-                RECEIVED,
-                INITIALIZING,
-                INITIALIZED,
-                // INITIALIZE_FAILED,
-                RUNNING
+            RECEIVED,
+            INITIALIZING,
+            INITIALIZED,
+            // INITIALIZE_FAILED,
+            RUNNING
         ).contains(status);
     }
 
-    public static boolean isInRevealingPhase(TaskStatus status) {
+    public static boolean isInRevealPhase(TaskStatus status) {
         return getWaitingRevealStatuses().contains(status);
     }
 

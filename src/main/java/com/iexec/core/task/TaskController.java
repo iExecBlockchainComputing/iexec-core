@@ -1,21 +1,32 @@
 package com.iexec.core.task;
 
 import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.disconnection.RecoverableAction;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
+import com.iexec.common.replicate.InterruptedReplicatesModel;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @Slf4j
 @RestController
@@ -25,15 +36,19 @@ public class TaskController {
     private SignatureService signatureService;
     private ReplicatesService replicatesService;
     private JwtTokenProvider jwtTokenProvider;
+    private NotificationService notificationService;
+
 
     public TaskController(TaskService taskService,
                           SignatureService signatureService,
                           ReplicatesService replicatesService,
-                          JwtTokenProvider jwtTokenProvider) {
+                          JwtTokenProvider jwtTokenProvider,
+                          NotificationService notificationService) {
         this.taskService = taskService;
         this.signatureService = signatureService;
         this.replicatesService = replicatesService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.notificationService = notificationService;
     }
 
     @GetMapping("/tasks/{chainTaskId}")
@@ -88,26 +103,59 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/interrupted")
-    public ResponseEntity getUnfinishedReplicates(@RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity getInterruptedReplicates(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        // get all running tasks
-        List<Replicate> l = taskService.getInterruptedButStillActiveReplicates(workerWalletAddress);
-        // extract the ones for this wallet
-        List<Replicate> unfinishedReplicateList;
-        for (Replicate replicate : unfinishedReplicateList) {
-            switch (replicate.getCurrentStatus()) {
-                case value:
-                    
-                    break;
-            
-                default:
-                    break;
-            }
-        }
+        InterruptedReplicatesModel interruptedReplicatesModel =
+                taskService.getInterruptedButStillActiveReplicates(workerWalletAddress);
+
+        return ResponseEntity.ok(interruptedReplicatesModel);
     }
+
+    @PostMapping(value="/tasks/recovered")
+    public void recoverReplicates(@RequestParam("interruptedAction") RecoverableAction interruptedAction,
+                                  @RequestBody() List<String> chainTaskIdList,
+                                  @RequestHeader("Authorization") String bearerToken) {
+
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (workerWalletAddress.isEmpty()) {
+            return;
+        }
+
+        for (String chainTaskId : chainTaskIdList) {
+            Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
+            if (!oTask.isPresent()) {
+                continue;
+            }
+
+            boolean isTaskWaitingForReveal = TaskStatus.isInRevealPhase(oTask.get().getCurrentStatus());
+            if (isTaskWaitingForReveal && interruptedAction == RecoverableAction.REVEAL) {
+                log.info("recovering replicate after interruption [chainTaskId:{}, worker:{}, action:{}]",
+                        chainTaskId, workerWalletAddress, interruptedAction);
+                notificationService.sendTaskNotification(
+                    TaskNotification.builder()
+                    .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                    .chainTaskId(chainTaskId)
+                    .workersAddress(Arrays.asList(workerWalletAddress)).build()
+                );
+            }
+
+            boolean isTaskWaitingForResultUpload = TaskStatus.isInResultUploadPhase(oTask.get().getCurrentStatus());
+            if (isTaskWaitingForResultUpload && interruptedAction == RecoverableAction.RESULT_UPLOAD) {
+                log.info("recovering replicate after interruption [chainTaskId:{}, worker:{}, action:{}]",
+                        chainTaskId, workerWalletAddress, interruptedAction);
+                notificationService.sendTaskNotification(
+                    TaskNotification.builder()
+                    .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
+                    .chainTaskId(chainTaskId)
+                    .workersAddress(Arrays.asList(workerWalletAddress)).build()
+                );
+            }
+            
+        }
+    }    
 }
 
