@@ -802,7 +802,7 @@ public class TaskServiceTests {
         when(taskRepository.findByChainTaskId("chainTaskId")).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(task);
         ChainContribution chainContribution = ChainContribution.builder().status(ChainContributionStatus.UNSET).build();
-        when(iexecHubService.getContribution("chainTaskId", "0x1")).thenReturn(Optional.of(chainContribution));
+        when(iexecHubService.getChainContribution("chainTaskId", "0x1")).thenReturn(Optional.of(chainContribution));
 
 
         Runnable runnable1 = () -> {

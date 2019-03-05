@@ -1,8 +1,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.App;
-import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
@@ -10,13 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -32,54 +27,27 @@ import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service
-public class IexecHubService {
+public class IexecHubService extends IexecHubAbstractService {
 
     private final ThreadPoolExecutor executor;
-    private final Credentials credentials;
+    private final CredentialsService credentialsService;
     private final Web3jService web3jService;
-    private final Web3j web3j;
-    private ChainConfig chainConfig;
-
-    private static final String INITIALIZING_PENDING_STATUS = "pending";
+    private final String poolAddress;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
                            Web3jService web3jService,
-                           ChainConfig chainConfig
-                           ) {
-        this.chainConfig = chainConfig;
-        this.credentials = credentialsService.getCredentials();
+                           ChainConfig chainConfig) {
+        super(credentialsService.getCredentials(), web3jService, chainConfig.getHubAddress());
+        this.credentialsService = credentialsService;
         this.web3jService = web3jService;
-        this.web3j = web3jService.getWeb3j();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-    }
-
-    private IexecHubABILegacy getHubContract() {
-        return ChainUtils.getHubContract(credentials,
-                this.web3j,
-                chainConfig.getHubAddress(),
-                ChainUtils.getWritingContractGasProvider(web3j,
-                        chainConfig.getGasPriceMultiplier(),
-                        chainConfig.getGasPriceCap()));
-    }
-
-    private IexecClerkABILegacy getClerkContract() {
-        return ChainUtils.getClerkContract(credentials,
-                this.web3j,
-                chainConfig.getHubAddress(),
-                ChainUtils.getWritingContractGasProvider(web3j,
-                        chainConfig.getGasPriceMultiplier(),
-                        chainConfig.getGasPriceCap()));
-    }
-
-
-    public Optional<ChainContribution> getContribution(String chainTaskId, String workerWalletAddress) {
-        return ChainUtils.getChainContribution(getHubContract(), chainTaskId, workerWalletAddress);
+        this.poolAddress = chainConfig.getPoolAddress();
     }
 
     public boolean doesWishedStatusMatchesOnChainStatus(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
 
-        Optional<ChainContribution> optional = getContribution(chainTaskId, walletAddress);
+        Optional<ChainContribution> optional = getChainContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
             return false;
         }
@@ -132,14 +100,6 @@ public class IexecHubService {
         return date.getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
     }
 
-    private long getMaxNbOfPeriodsForConsensus() {
-        try {
-            return getHubContract().CONSENSUS_DURATION_RATIO().send().longValue();
-        } catch (Exception e) {
-            log.error("Failed to getMaxNbOfPeriodsForConsensus");
-        }
-        return 0;
-    }
 
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
@@ -157,7 +117,8 @@ public class IexecHubService {
 
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().initialize(chainDealIdBytes, taskIndexBigInteger).send();
+
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).initialize(chainDealIdBytes, taskIndexBigInteger).send();
         } catch (Exception e) {
             log.error("Failed initialize [chainDealId:{}, taskIndex:{}, error:{}]",
                     chainDealId, taskIndex, e.getMessage());
@@ -170,10 +131,11 @@ public class IexecHubService {
             return Optional.empty();
         }
 
-        // if the status is still pending, check regularly for a status update
-        if (eventsList.get(0).log != null &&
-                eventsList.get(0).log.getType().equals(INITIALIZING_PENDING_STATUS) &&
-                !checkPendingInitialization(chainDealId, taskIndexBigInteger)) {
+        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
+        boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ChainTaskStatus.ACTIVE);
+        // if the status is still pending, isTaskStatusValidOnChain regularly for a status update
+        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
+                && !isTaskStatusValidOnChain) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
         }
@@ -185,41 +147,6 @@ public class IexecHubService {
                 chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
 
         return Optional.of(Pair.of(chainTaskId, chainReceipt));
-    }
-
-    private boolean checkPendingInitialization(String chainDealId, BigInteger taskIndexBigInteger) {
-
-        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
-        long maxWaitingTime = 2 * 60 * 1000L; // 2min
-
-        // max waiting Time should be roughly the time of 10 blocks
-        try {
-            long latestBlockNumber = web3jService.getLatestBlockNumber();
-            BigInteger latestBlockTimestamp = web3jService.getLatestBlock().getTimestamp();
-            BigInteger tenBlocksAgoTimestamp = web3jService.getBlock(latestBlockNumber - 10).getTimestamp();
-
-            maxWaitingTime = latestBlockTimestamp.longValue() - tenBlocksAgoTimestamp.longValue();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        final long startTime = System.currentTimeMillis();
-        long duration = 0;
-        while (duration < maxWaitingTime) {
-            try {
-                Optional<ChainTask> optionalChainTask = ChainUtils.getChainTask(getHubContract(), computedChainTaskId);
-                if (optionalChainTask.isPresent() && !optionalChainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
-                    return true;
-                }
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error("Error in checking the latest block number");
-            }
-            duration = System.currentTimeMillis() - startTime;
-        }
-
-        return false;
     }
 
     public boolean canFinalize(String chainTaskId) {
@@ -261,7 +188,7 @@ public class IexecHubService {
 
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().finalize(chainTaskIdBytes, resultUriBytes).send();
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes).send();
         } catch (Exception e) {
             log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
@@ -269,6 +196,13 @@ public class IexecHubService {
 
         List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract().getTaskFinalizeEvents(receipt);
         if (eventsList.isEmpty()) {
+            log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
+        }
+
+        boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(chainTaskId, ChainTaskStatus.COMPLETED);
+        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
+                && !isTaskStatusValidOnChain) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
@@ -317,7 +251,7 @@ public class IexecHubService {
     private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract().reopen(BytesUtils.stringToBytes(chainTaskId)).send();
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(BytesUtils.stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
             return Optional.empty();
@@ -339,18 +273,6 @@ public class IexecHubService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-    public Optional<ChainDeal> getChainDeal(String chainDealId) {
-        return ChainUtils.getChainDeal(credentials, web3j, getHubContract().getContractAddress(), chainDealId);
-    }
-
-    public Optional<ChainTask> getChainTask(String chainTaskId) {
-        return ChainUtils.getChainTask(getHubContract(), chainTaskId);
-    }
-
-    Optional<ChainApp> getChainApp(String address) {
-        App app = ChainUtils.getAppContract(credentials, web3j, address);
-        return ChainUtils.getChainApp(app);
-    }
 
     Flowable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
         return getDealEventObservable(from, null);
@@ -364,7 +286,7 @@ public class IexecHubService {
         }
         return getClerkContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
 
-            if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
+            if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
                 return Optional.of(new DealEvent(schedulerNotice));
             }
             return Optional.empty();
@@ -372,6 +294,32 @@ public class IexecHubService {
     }
 
     public boolean hasEnoughGas() {
-        return ChainUtils.hasEnoughGas(web3j, credentials.getAddress(), chainConfig.getGasPriceCap());
+        return hasEnoughGas(credentialsService.getCredentials().getAddress());
     }
+
+    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainTaskStatus taskStatus) {
+        Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
+        return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(taskStatus);
+    }
+
+    private boolean isTaskStatusValidOnChainAfterPendingReceipt(String chainTaskId, ChainTaskStatus taskStatus) {
+        long maxWaitingTime = web3jService.getMaxWaitingTimeWhenPendingReceipt();
+
+        final long startTime = System.currentTimeMillis();
+        long duration = 0;
+        while (duration < maxWaitingTime) {
+            try {
+                if (isTaskStatusValidOnChain(chainTaskId, taskStatus)) {
+                    return true;
+                }
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                log.error("Error in checking the latest block number");
+            }
+            duration = System.currentTimeMillis() - startTime;
+        }
+        return false;
+    }
+
+
 }
