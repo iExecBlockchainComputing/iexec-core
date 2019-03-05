@@ -4,12 +4,17 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.replicate.InterruptedReplicatesModel;
+import com.iexec.common.disconnection.InterruptedReplicateModel;
+import com.iexec.common.disconnection.RecoverableAction;
+import com.iexec.common.disconnection.RecoveredReplicateModel;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
@@ -21,7 +26,6 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -47,6 +51,7 @@ public class TaskService {
     private ApplicationEventPublisher applicationEventPublisher;
     private ResultRepositoryConfiguration resultRepositoryConfig;
     private SignatureService signatureService;
+    private NotificationService notificationService;
 
 
     public TaskService(TaskRepository taskRepository,
@@ -55,7 +60,8 @@ public class TaskService {
                        ReplicatesService replicatesService,
                        ApplicationEventPublisher applicationEventPublisher,
                        ResultRepositoryConfiguration resultRepositoryConfig,
-                       SignatureService signatureService) {
+                       SignatureService signatureService,
+                       NotificationService notificationService) {
         this.taskRepository = taskRepository;
         this.workerService = workerService;
         this.iexecHubService = iexecHubService;
@@ -63,9 +69,11 @@ public class TaskService {
         this.applicationEventPublisher = applicationEventPublisher;
         this.resultRepositoryConfig = resultRepositoryConfig;
         this.signatureService = signatureService;
+        this.notificationService = notificationService;
     }
 
-    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, long maxExecutionTime, String tag) {
+    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
+    String commandLine, int trust, long maxExecutionTime, String tag) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
             log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
@@ -86,52 +94,6 @@ public class TaskService {
 
     public List<Task> findByCurrentStatus(List<TaskStatus> statusList) {
         return taskRepository.findByCurrentStatus(statusList);
-    }
-
-    public InterruptedReplicatesModel getInterruptedButStillActiveReplicates(String walletAddress) {
-        List<Task> actifTasks = getTasksInNonFinalStatuses();
-
-        List<ContributionAuthorization> contributionNeeded = new ArrayList<>();
-        List<ContributionAuthorization> revealNeeded = new ArrayList<>();
-        List<ContributionAuthorization> resultUploadNeeded = new ArrayList<>();
-
-        for (Task task : actifTasks) {
-            Optional<Replicate> oReplicate = replicatesService.getReplicate(
-                    task.getChainTaskId(), walletAddress);
-
-            if (!oReplicate.isPresent()) {
-                continue;
-            }
-
-            // generate contribution authorization
-            Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
-                    walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
-
-            if (!authorization.isPresent()) {
-                continue;
-            }
-
-            boolean doesTaskNeedContribution = TaskStatus.isInContributionPhase(task.getCurrentStatus());
-            if (doesTaskNeedContribution) {
-                contributionNeeded.add(authorization.get());
-            }
-
-            boolean doesTaskNeedReveal = TaskStatus.isInRevealPhase(task.getCurrentStatus());
-            if (doesTaskNeedReveal) {
-                revealNeeded.add(authorization.get());
-            }
-
-            boolean doesTaskNeedResultUpload = TaskStatus.isInResultUploadPhase(task.getCurrentStatus());
-            if (doesTaskNeedResultUpload) {
-                resultUploadNeeded.add(authorization.get());
-            }
-        }
-
-        return InterruptedReplicatesModel.builder()
-                .contributionNeededList(contributionNeeded)
-                .revealNeededList(revealNeeded)
-                .resultUploadNeededList(resultUploadNeeded)
-                .build();
     }
 
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
@@ -509,5 +471,90 @@ public class TaskService {
 
         updateTaskStatusAndSave(task, COMPLETED);
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+    }
+
+    public List<InterruptedReplicateModel> getInterruptedButStillActiveReplicates(String walletAddress) {
+        List<Task> actifTasks = getTasksInNonFinalStatuses();
+        List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
+
+        for (Task task : actifTasks) {
+            Optional<Replicate> oReplicate = replicatesService.getReplicate(
+                    task.getChainTaskId(), walletAddress);
+
+            if (!oReplicate.isPresent()) {
+                continue;
+            }
+
+            // generate contribution authorization
+            Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
+                    walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
+
+            if (!authorization.isPresent()) {
+                continue;
+            }
+
+            boolean doesTaskNeedContribution = TaskStatus.isInContributionPhase(task.getCurrentStatus());
+            boolean doesTaskNeedReveal = TaskStatus.isInRevealPhase(task.getCurrentStatus());
+            boolean doesTaskNeedResultUpload = TaskStatus.isInResultUploadPhase(task.getCurrentStatus());
+
+            RecoverableAction recoverableAction = doesTaskNeedContribution
+                                                ? RecoverableAction.CONTRIBUTE
+                                                : doesTaskNeedReveal
+                                                ? RecoverableAction.REVEAL
+                                                : doesTaskNeedResultUpload
+                                                ? RecoverableAction.UPLOAD_RESULT
+                                                : null;
+
+            if (recoverableAction != null) {
+                InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
+                        .contributionAuthorization(authorization.get())
+                        .recoverableAction(recoverableAction)
+                        .build();
+
+                interruptedReplicates.add(interruptedReplicate);
+            }
+        }
+
+        return interruptedReplicates;
+    }
+
+    public void recoverInterruptedReplicates(String walletAddress,
+                                            List<RecoveredReplicateModel> recoveredReplicates) {
+
+        for (RecoveredReplicateModel recoveredReplicate : recoveredReplicates) {
+            Optional<Task> oTask = getTaskByChainTaskId(recoveredReplicate.getChainTaskId());
+            if (!oTask.isPresent()) {
+                continue;
+            }
+
+            TaskNotificationType notificationToSend = null;
+
+            boolean isReplicateAllowedtoReveal = TaskStatus.isInRevealPhase(oTask.get().getCurrentStatus());
+            boolean hasReplicateAskedForReveal = recoveredReplicate.getRecoverableAction() == RecoverableAction.REVEAL;
+
+            boolean isReplicateAllowedtoUploadResult = TaskStatus.isInResultUploadPhase(oTask.get().getCurrentStatus());
+            boolean hasReplicateAskedForResultUpload = recoveredReplicate.getRecoverableAction() == RecoverableAction.UPLOAD_RESULT;
+
+            if (isReplicateAllowedtoReveal && hasReplicateAskedForReveal) {
+                log.info("notifying recovered replicate to reveal [chainTaskId:{}, worker:{}]",
+                        recoveredReplicate.getChainTaskId(), walletAddress);
+                notificationToSend = TaskNotificationType.PLEASE_REVEAL;
+            }
+
+            if (isReplicateAllowedtoUploadResult && hasReplicateAskedForResultUpload) {
+                log.info("notifying recovered replicate to upload result[chainTaskId:{}, worker:{}]",
+                        recoveredReplicate.getChainTaskId(), walletAddress);
+                notificationToSend = TaskNotificationType.PLEASE_UPLOAD;
+            }
+
+            if (notificationToSend != null) {
+                notificationService.sendTaskNotification(
+                    TaskNotification.builder()
+                    .taskNotificationType(notificationToSend)
+                    .chainTaskId(recoveredReplicate.getChainTaskId())
+                    .workersAddress(Arrays.asList(walletAddress)).build()
+                );
+            }
+        }
     }
 }
