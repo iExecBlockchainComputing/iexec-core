@@ -29,7 +29,6 @@ import static com.iexec.core.utils.DateTimeUtils.now;
 @Service
 public class IexecHubService extends IexecHubAbstractService {
 
-    private static final String INITIALIZING_PENDING_STATUS = "pending";
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
@@ -126,7 +125,7 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskInitializeEvents(receipt);
+        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = getHubContract().getTaskInitializeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
@@ -135,7 +134,7 @@ public class IexecHubService extends IexecHubAbstractService {
         String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
         boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ChainTaskStatus.ACTIVE);
         // if the status is still pending, isTaskStatusValidOnChain regularly for a status update
-        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(INITIALIZING_PENDING_STATUS)
+        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
                 && !isTaskStatusValidOnChain) {
             log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
             return Optional.empty();
@@ -148,30 +147,6 @@ public class IexecHubService extends IexecHubAbstractService {
                 chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
 
         return Optional.of(Pair.of(chainTaskId, chainReceipt));
-    }
-
-    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainTaskStatus taskStatus) {
-        Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
-        return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(taskStatus);
-    }
-
-    private boolean isTaskStatusValidOnChainAfterPendingReceipt(String chainTaskId, ChainTaskStatus taskStatus) {
-        long maxWaitingTime = web3jService.getMaxWaitingTimeWhenPendingReceipt();
-
-        final long startTime = System.currentTimeMillis();
-        long duration = 0;
-        while (duration < maxWaitingTime) {
-            try {
-                if (isTaskStatusValidOnChain(chainTaskId, taskStatus)) {
-                    return true;
-                }
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error("Error in checking the latest block number");
-            }
-            duration = System.currentTimeMillis() - startTime;
-        }
-        return false;
     }
 
     public boolean canFinalize(String chainTaskId) {
@@ -219,14 +194,14 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskFinalizeEvents(receipt);
+        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract().getTaskFinalizeEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
 
         boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(chainTaskId, ChainTaskStatus.COMPLETED);
-        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(INITIALIZING_PENDING_STATUS)
+        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
                 && !isTaskStatusValidOnChain) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -282,7 +257,7 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = getHubContract(web3jService.getWritingContractGasProvider()).getTaskReopenEvents(receipt);
+        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -309,7 +284,7 @@ public class IexecHubService extends IexecHubAbstractService {
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
-        return getClerkContract(web3jService.getWritingContractGasProvider()).schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
+        return getClerkContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
 
             if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
                 return Optional.of(new DealEvent(schedulerNotice));
@@ -320,6 +295,30 @@ public class IexecHubService extends IexecHubAbstractService {
 
     public boolean hasEnoughGas() {
         return hasEnoughGas(credentialsService.getCredentials().getAddress());
+    }
+
+    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainTaskStatus taskStatus) {
+        Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
+        return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(taskStatus);
+    }
+
+    private boolean isTaskStatusValidOnChainAfterPendingReceipt(String chainTaskId, ChainTaskStatus taskStatus) {
+        long maxWaitingTime = web3jService.getMaxWaitingTimeWhenPendingReceipt();
+
+        final long startTime = System.currentTimeMillis();
+        long duration = 0;
+        while (duration < maxWaitingTime) {
+            try {
+                if (isTaskStatusValidOnChain(chainTaskId, taskStatus)) {
+                    return true;
+                }
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                log.error("Error in checking the latest block number");
+            }
+            duration = System.currentTimeMillis() - startTime;
+        }
+        return false;
     }
 
 

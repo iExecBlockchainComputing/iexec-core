@@ -2,7 +2,10 @@ package com.iexec.core.chain;
 
 import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.utils.BytesUtils;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigInteger;
 
