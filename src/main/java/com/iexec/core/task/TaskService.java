@@ -5,11 +5,12 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
-import com.iexec.common.disconnection.RecoverableAction;
 import com.iexec.common.disconnection.RecoveredReplicateModel;
+import com.iexec.common.disconnection.RecoveryAction;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.SignatureService;
@@ -427,6 +428,7 @@ public class TaskService {
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
+            replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
 
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }
@@ -473,7 +475,7 @@ public class TaskService {
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
 
-    public List<InterruptedReplicateModel> getInterruptedButStillActiveReplicates(String walletAddress) {
+    public List<InterruptedReplicateModel> getInterruptedReplicates(String walletAddress) {
         List<Task> actifTasks = getTasksInNonFinalStatuses();
         List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
 
@@ -485,6 +487,12 @@ public class TaskService {
                 continue;
             }
 
+            Replicate replicate = oReplicate.get();
+
+            if (!ReplicateStatus.isRecoverableStatus(replicate.getCurrentStatus())) {
+                continue;
+            }
+
             // generate contribution authorization
             Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
                     walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
@@ -493,32 +501,96 @@ public class TaskService {
                 continue;
             }
 
-            boolean doesTaskNeedContribution = TaskStatus.isInContributionPhase(task.getCurrentStatus());
-            boolean doesTaskNeedReveal = TaskStatus.isInRevealPhase(task.getCurrentStatus());
-            boolean doesTaskNeedResultUpload = TaskStatus.isInResultUploadPhase(task.getCurrentStatus());
+            RecoveryAction recoveryAction = getAppropriateRecoveryAction(task, replicate);
 
-            RecoverableAction recoverableAction = doesTaskNeedContribution
-                                                ? RecoverableAction.CONTRIBUTE
-                                                : doesTaskNeedReveal
-                                                ? RecoverableAction.REVEAL
-                                                : doesTaskNeedResultUpload
-                                                ? RecoverableAction.UPLOAD_RESULT
-                                                : null;
-
-            if (recoverableAction != null) {
-                InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
-                        .contributionAuthorization(authorization.get())
-                        .recoverableAction(recoverableAction)
-                        .build();
-
-                interruptedReplicates.add(interruptedReplicate);
+            if (recoveryAction == null) {
+                continue;
             }
+
+            InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
+                    .contributionAuthorization(authorization.get())
+                    .recoverableAction(recoveryAction)
+                    .build();
+
+            // change replicate status
+            replicatesService.updateReplicateStatus(task.getChainTaskId(), walletAddress,
+                    ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+
+            interruptedReplicates.add(interruptedReplicate);
         }
 
         return interruptedReplicates;
     }
 
-    public void recoverInterruptedReplicates(String walletAddress,
+    public RecoveryAction getAppropriateRecoveryAction(Task task, Replicate replicate) {
+        String chainTaskId = task.getChainTaskId();
+        String walletAddress = replicate.getWalletAddress();
+
+
+        boolean isTaskInContributionPhase = TaskStatus.isInContributionPhase(task.getCurrentStatus());
+        boolean hasReplicateAlreadyContributed = replicate.getRelevantLastStatus().equals(ReplicateStatus.CONTRIBUTED);
+        boolean didReplicateStartContributing = replicate.getRelevantLastStatus().equals(ReplicateStatus.CONTRIBUTING);
+        boolean didReplicateContributeOnChain = replicatesService.didReplicateContributeOnchain(chainTaskId, walletAddress);
+        boolean isRecoverableAndBeforeContributed = replicate.isRecoverableAndBeforeStatus(ReplicateStatus.CONTRIBUTING);
+
+        if (isTaskInContributionPhase) {
+            if (hasReplicateAlreadyContributed) {
+                return RecoveryAction.NONE;
+            }
+
+            if (didReplicateStartContributing && didReplicateContributeOnChain) {
+                return RecoveryAction.NONE; // unNotifiedContribution detector would take care of it
+            }
+
+            if (isRecoverableAndBeforeContributed) {
+                return RecoveryAction.CONTRIBUTE;
+            }
+        }
+
+        boolean isTaskInRevealPhase = TaskStatus.isInRevealPhase(task.getCurrentStatus());
+        boolean hasReplicateAlreadyRevealed = replicate.getRelevantLastStatus().equals(ReplicateStatus.REVEALED);
+        boolean didReplicateStartRevealing = replicate.getRelevantLastStatus().equals(ReplicateStatus.REVEALING);
+        boolean didReplicateRevealOnChain = replicatesService.didReplicateRevealOnchain(chainTaskId, walletAddress);
+        boolean didReplicateContribute = replicate.getRelevantLastStatus().equals(ReplicateStatus.CONTRIBUTED);
+
+        if (isTaskInRevealPhase) {
+            if (hasReplicateAlreadyRevealed) {
+                return RecoveryAction.NONE;
+            }
+
+            if (didReplicateStartRevealing && didReplicateRevealOnChain) {
+                return RecoveryAction.NONE; // unNotifiedReveal detector would take care of it
+            }
+
+            if (didReplicateContribute) {
+                return RecoveryAction.REVEAL;
+            }
+        }
+
+        boolean isTaskInResultUploadPhase = TaskStatus.isInResultUploadPhase(task.getCurrentStatus());
+        boolean hasReplicateAlreadyUploaded = replicate.getRelevantLastStatus().equals(ReplicateStatus.RESULT_UPLOADED);
+        boolean didReplicateStartUploading = replicate.getRelevantLastStatus().equals(ReplicateStatus.RESULT_UPLOADING);
+        boolean didReplicateUploadWithoutNotifying = replicatesService.hasResultBeenUploaded(task.getChainTaskId()); // todo
+        boolean wasReplicateRequestedToUpload = replicate.getRelevantLastStatus().equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+
+        if (isTaskInResultUploadPhase) {
+            if (hasReplicateAlreadyUploaded) {
+                return RecoveryAction.NONE;
+            }
+
+            if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
+                return RecoveryAction.NONE; // unNotifiedUpload detector would take care of it
+            }
+
+            if (wasReplicateRequestedToUpload) {
+                return RecoveryAction.NONE;
+            }
+        }
+
+        return null;
+    }
+
+    public void reactivateInterruptedReplicates(String walletAddress,
                                             List<RecoveredReplicateModel> recoveredReplicates) {
 
         for (RecoveredReplicateModel recoveredReplicate : recoveredReplicates) {
@@ -530,10 +602,10 @@ public class TaskService {
             TaskNotificationType notificationToSend = null;
 
             boolean isReplicateAllowedtoReveal = TaskStatus.isInRevealPhase(oTask.get().getCurrentStatus());
-            boolean hasReplicateAskedForReveal = recoveredReplicate.getRecoverableAction() == RecoverableAction.REVEAL;
+            boolean hasReplicateAskedForReveal = recoveredReplicate.getRecoverableAction() == RecoveryAction.REVEAL;
 
             boolean isReplicateAllowedtoUploadResult = TaskStatus.isInResultUploadPhase(oTask.get().getCurrentStatus());
-            boolean hasReplicateAskedForResultUpload = recoveredReplicate.getRecoverableAction() == RecoverableAction.UPLOAD_RESULT;
+            boolean hasReplicateAskedForResultUpload = recoveredReplicate.getRecoverableAction() == RecoveryAction.UPLOAD_RESULT;
 
             if (isReplicateAllowedtoReveal && hasReplicateAskedForReveal) {
                 log.info("notifying recovered replicate to reveal [chainTaskId:{}, worker:{}]",

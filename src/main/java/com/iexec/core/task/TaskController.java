@@ -90,7 +90,7 @@ public class TaskController {
                 workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
 
         return authorization
-                .<ResponseEntity>map(ResponseEntity::ok)
+                .<ResponseEntity<ContributionAuthorization>>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
@@ -103,21 +103,9 @@ public class TaskController {
         }
 
         List<InterruptedReplicateModel> interruptedReplicateList =
-                taskService.getInterruptedButStillActiveReplicates(workerWalletAddress);
+                taskService.getInterruptedReplicates(workerWalletAddress);
 
         return ResponseEntity.ok(interruptedReplicateList);
-    }
-
-    @PostMapping(value="/tasks/recovered")
-    public void recoverReplicates(@RequestBody() List<RecoveredReplicateModel> recoveredReplicates,
-                                  @RequestHeader("Authorization") String bearerToken) {
-
-        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (workerWalletAddress.isEmpty()) {
-            return;
-        }
-
-        taskService.recoverInterruptedReplicates(workerWalletAddress, recoveredReplicates);
     }
 }
 

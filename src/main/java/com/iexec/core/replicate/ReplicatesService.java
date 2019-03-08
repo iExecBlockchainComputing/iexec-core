@@ -374,4 +374,14 @@ public class ReplicatesService {
                 .getStatusCode()
                 .is2xxSuccessful();
     }
+
+    public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
+        return iexecHubService.doesWishedStatusMatchesOnChainStatus(
+            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+    }
+
+    public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
+        return iexecHubService.doesWishedStatusMatchesOnChainStatus(
+            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+    }
 }
