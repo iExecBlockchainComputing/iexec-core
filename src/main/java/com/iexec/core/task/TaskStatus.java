@@ -42,7 +42,6 @@ public enum TaskStatus {
             RECEIVED,
             INITIALIZING,
             INITIALIZED,
-            // INITIALIZE_FAILED,
             RUNNING
         ).contains(status);
     }
