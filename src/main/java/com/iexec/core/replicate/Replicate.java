@@ -9,8 +9,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
 
@@ -37,6 +39,27 @@ public class Replicate {
     @JsonIgnore
     public ReplicateStatus getCurrentStatus() {
         return this.getLatestStatusChange().getStatus();
+    }
+
+    @JsonIgnore
+    public ReplicateStatus getRelevantLastStatus() {
+        // ignore cases like: WORKER_LOST, RECOVERING, WORKER_LOST....
+
+        List<ReplicateStatus> statusList = getStatusChangeList().stream()
+                .map(ReplicateStatusChange::getStatus)
+                .collect(Collectors.toList());
+
+        List<ReplicateStatus> ignoredStatuses = Arrays.asList(
+                ReplicateStatus.WORKER_LOST,
+                ReplicateStatus.RECOVERING);
+        
+        int i = statusList.size() - 1;
+
+        while (ignoredStatuses.contains(statusList.get(i))) {
+            i--;
+        }
+
+        return statusList.get(i);
     }
 
     @JsonIgnore
@@ -102,6 +125,11 @@ public class Replicate {
 
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
+    }
+
+    public boolean isRecoverableAndBeforeStatus(ReplicateStatus status) {
+        return ReplicateStatus.isRecoverableStatus(getRelevantLastStatus())
+            && getCurrentStatus().ordinal() < status.ordinal();
     }
 
 }
