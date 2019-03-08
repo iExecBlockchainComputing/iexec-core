@@ -69,7 +69,19 @@ public class ResultService {
         return true;
     }
 
-    public boolean isResultInDatabase(String chainTaskId) {
+    boolean isResultInDatabase(String chainTaskId) {
+        if(isPublicResult(chainTaskId, 0)){
+            return isResultInIpfs(chainTaskId);
+        }
+        return isResultInMongo(chainTaskId);
+    }
+
+    boolean isResultInIpfs (String chainTaskId) {
+        return true;
+    }
+
+    boolean isResultInMongo(String chainTaskId) {
+
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
