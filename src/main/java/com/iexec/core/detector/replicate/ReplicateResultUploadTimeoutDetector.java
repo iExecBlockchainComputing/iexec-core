@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
@@ -35,35 +36,45 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
     @Override
     public void detect() {
         // check all tasks with status upload result requested
-        // Timeout for the replicate uploading its result is 1 min.
-        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING))) {
-            String chainTaskId = task.getChainTaskId();
+        // Timeout for the replicate uploading its result is 2 min.
 
-            Optional<Replicate> optional = replicatesService.getReplicate(chainTaskId, task.getUploadingWorkerWalletAddress());
-            if (!optional.isPresent()) {
+        List<TaskStatus> taskUploadStatuses = Arrays.asList(
+                TaskStatus.RESULT_UPLOAD_REQUESTED,
+                TaskStatus.RESULT_UPLOADING);
+
+        List<ReplicateStatus> replicateUploadFailureStatuses = Arrays.asList(
+                ReplicateStatus.RESULT_UPLOAD_FAILED,
+                ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED);
+
+        for (Task task : taskService.findByCurrentStatus(taskUploadStatuses)) {
+            String chainTaskId = task.getChainTaskId();
+            String uploadingWallet = task.getUploadingWorkerWalletAddress();
+
+            Optional<Replicate> oUploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet);
+            if (!oUploadingReplicate.isPresent()) {
                 return;
             }
 
-            Replicate replicate = optional.get();
+            Replicate uploadingReplicate = oUploadingReplicate.get();
+
             boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
-            boolean hasReplicateUploadAlreadyFailed = replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED)
-                    || replicate.getCurrentStatus().equals(ReplicateStatus.RESULT_UPLOAD_FAILED);
+            boolean hasReplicateUploadAlreadyFailed = replicateUploadFailureStatuses.contains(uploadingReplicate.getCurrentStatus());
 
             if (!startUploadLongAgo || hasReplicateUploadAlreadyFailed) {
                 return;
             }
 
-            log.info("detected replicate with resultUploadTimeout [replicate:{},currentStatus:{}]",
-            replicate.getWalletAddress(), replicate.getCurrentStatus());
+            log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
+            chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
-            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOAD_REQUESTED) {
-                replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED) {
+                replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 return;
             }
 
-            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOADING) {
-                replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING) {
+                replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 return;
             }
