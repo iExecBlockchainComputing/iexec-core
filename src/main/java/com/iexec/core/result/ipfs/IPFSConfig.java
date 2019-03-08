@@ -1,4 +1,4 @@
-package com.iexec.core.result.IPFS;
+package com.iexec.core.result.ipfs;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;

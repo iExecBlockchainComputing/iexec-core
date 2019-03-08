@@ -6,7 +6,7 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.result.IPFS.IPFSService;
+import com.iexec.core.result.ipfs.IPFSService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;

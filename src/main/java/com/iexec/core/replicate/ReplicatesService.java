@@ -192,6 +192,7 @@ public class ReplicatesService {
         updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null, "");
     }
 
+    // TODO: this method is to refactor !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
@@ -203,7 +204,7 @@ public class ReplicatesService {
 
         if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
-                    + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
+                            + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
                     chainTaskId, walletAddress);
             return;
         }
@@ -350,7 +351,7 @@ public class ReplicatesService {
     public boolean hasResultBeenUploaded(String chainTaskId) {
         RestTemplate restTemplate = new RestTemplate();
         String resultChallengeURI = resultRepoConfig.getResultRepositoryURL()
-                                  + "/results/challenge?chainId={id}";
+                + "/results/challenge?chainId={id}";
 
         // get the eip712 challenge
         Eip712Challenge eip712Challenge = restTemplate.getForObject(resultChallengeURI,

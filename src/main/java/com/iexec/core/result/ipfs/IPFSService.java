@@ -1,4 +1,4 @@
-package com.iexec.core.result.IPFS;
+package com.iexec.core.result.ipfs;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
