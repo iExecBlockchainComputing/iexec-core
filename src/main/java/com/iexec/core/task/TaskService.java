@@ -509,7 +509,7 @@ public class TaskService {
 
             InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
                     .contributionAuthorization(authorization.get())
-                    .recoverableAction(recoveryAction)
+                    .recoveryAction(recoveryAction)
                     .build();
 
             // change replicate status
@@ -588,45 +588,5 @@ public class TaskService {
         }
 
         return null;
-    }
-
-    public void reactivateInterruptedReplicates(String walletAddress,
-                                            List<RecoveredReplicateModel> recoveredReplicates) {
-
-        for (RecoveredReplicateModel recoveredReplicate : recoveredReplicates) {
-            Optional<Task> oTask = getTaskByChainTaskId(recoveredReplicate.getChainTaskId());
-            if (!oTask.isPresent()) {
-                continue;
-            }
-
-            TaskNotificationType notificationToSend = null;
-
-            boolean isReplicateAllowedtoReveal = TaskStatus.isInRevealPhase(oTask.get().getCurrentStatus());
-            boolean hasReplicateAskedForReveal = recoveredReplicate.getRecoverableAction() == RecoveryAction.REVEAL;
-
-            boolean isReplicateAllowedtoUploadResult = TaskStatus.isInResultUploadPhase(oTask.get().getCurrentStatus());
-            boolean hasReplicateAskedForResultUpload = recoveredReplicate.getRecoverableAction() == RecoveryAction.UPLOAD_RESULT;
-
-            if (isReplicateAllowedtoReveal && hasReplicateAskedForReveal) {
-                log.info("notifying recovered replicate to reveal [chainTaskId:{}, worker:{}]",
-                        recoveredReplicate.getChainTaskId(), walletAddress);
-                notificationToSend = TaskNotificationType.PLEASE_REVEAL;
-            }
-
-            if (isReplicateAllowedtoUploadResult && hasReplicateAskedForResultUpload) {
-                log.info("notifying recovered replicate to upload result[chainTaskId:{}, worker:{}]",
-                        recoveredReplicate.getChainTaskId(), walletAddress);
-                notificationToSend = TaskNotificationType.PLEASE_UPLOAD;
-            }
-
-            if (notificationToSend != null) {
-                notificationService.sendTaskNotification(
-                    TaskNotification.builder()
-                    .taskNotificationType(notificationToSend)
-                    .chainTaskId(recoveredReplicate.getChainTaskId())
-                    .workersAddress(Arrays.asList(walletAddress)).build()
-                );
-            }
-        }
     }
 }

@@ -2,7 +2,6 @@ package com.iexec.core.task;
 
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
-import com.iexec.common.disconnection.RecoveredReplicateModel;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
@@ -19,8 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 @Slf4j
