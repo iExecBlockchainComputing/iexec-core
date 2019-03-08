@@ -36,8 +36,8 @@ public class ReplicatesList {
     }
 
     Optional<Replicate> getReplicateOfWorker(String workerWalletAddress) {
-        for (Replicate replicate: replicates){
-            if (replicate.getWalletAddress().equals(workerWalletAddress)){
+        for (Replicate replicate : replicates) {
+            if (replicate.getWalletAddress().equals(workerWalletAddress)) {
                 return Optional.of(replicate);
             }
         }
