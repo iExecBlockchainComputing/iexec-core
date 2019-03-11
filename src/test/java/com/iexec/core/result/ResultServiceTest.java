@@ -214,15 +214,14 @@ public class ResultServiceTest {
 
     @Test
     public void isPublicResult() {
-        String beneficiary = BytesUtils.EMPTY_ADDRESS;
-        when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
-        assertThat(resultService.isPublicResult(chainTaskId, chainId)).isTrue();
+        when(iexecHubService.isPublicResult(chainTaskId, 0)).thenReturn(true);
+        assertThat(resultService.isPublicResult(chainTaskId)).isTrue();
     }
 
     @Test
     public void isNotPublicResult() {
         String beneficiary = "0xb";
         when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
-        assertThat(resultService.isPublicResult(chainTaskId, chainId)).isFalse();
+        assertThat(resultService.isPublicResult(chainTaskId)).isFalse();
     }
 }

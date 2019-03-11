@@ -108,7 +108,7 @@ public class ResultController {
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        boolean isPublicResult = resultService.isPublicResult(chainTaskId, chainId);
+        boolean isPublicResult = resultService.isPublicResult(chainTaskId);
         boolean isAuthorizedOwnerOfResult = auth != null
                 && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
                 && authorizationService.isAuthorizationValid(auth);

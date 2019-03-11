@@ -70,7 +70,7 @@ public class ResultService {
     }
 
     boolean isResultInDatabase(String chainTaskId) {
-        if(isPublicResult(chainTaskId, 0)){
+        if(isPublicResult(chainTaskId)){
             return isResultInIpfs(chainTaskId);
         }
         return isResultInMongo(chainTaskId);
@@ -91,7 +91,7 @@ public class ResultService {
             return "";
         }
 
-        if (isPublicResult(result.getChainTaskId())) {
+        if (iexecHubService.isPublicResult(result.getChainTaskId(), 0)) {
             return addResultToIPFS(result, data);
         } else {
             return addResultToMongo(result, data);
@@ -107,6 +107,10 @@ public class ResultService {
 
     private String addResultToIPFS(Result result, byte[] data) {
         return IPFS_ADDRESS_PREFIX + ipfsService.putContent(result.getChainTaskId(), data);
+    }
+
+    public boolean isPublicResult(String chainTaskId) {
+        return iexecHubService.isPublicResult(chainTaskId, 0);
     }
 
     byte[] getResultByChainTaskId(String chainTaskId) throws IOException {
@@ -137,18 +141,5 @@ public class ResultService {
             return false;
         }
         return true;
-    }
-
-    boolean isPublicResult(String chainTaskId) {
-        return isPublicResult(chainTaskId, 0);
-    }
-
-    boolean isPublicResult(String chainTaskId, Integer chainId) {
-        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
-        if (!beneficiary.isPresent()) {
-            log.error("Failed to get beneficiary for isPublicResult() method [chainTaskId:{}]", chainTaskId);
-            return false;
-        }
-        return beneficiary.get().equals(BytesUtils.EMPTY_ADDRESS);
     }
 }

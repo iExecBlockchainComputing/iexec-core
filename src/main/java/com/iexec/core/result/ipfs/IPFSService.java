@@ -31,7 +31,7 @@ public class IPFSService {
         return Optional.empty();
     }
 
-    public boolean doesContentExists(String ipfsHash) {
+    public boolean doesContentExist(String ipfsHash) {
         return getContent(ipfsHash).isPresent();
     }
 

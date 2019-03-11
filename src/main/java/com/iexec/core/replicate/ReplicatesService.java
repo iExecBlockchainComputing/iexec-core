@@ -147,9 +147,7 @@ public class ReplicatesService {
     private int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(String chainTaskId, ReplicateStatus status) {
         int nbReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
-            int size = replicate.getStatusChangeList().size();
-            if (size >= 2 && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
-                    && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status)) {
+            if (isStatusBeforeWorkerLostEqualsTo(replicate, status)) {
                 nbReplicates++;
             }
         }
@@ -171,12 +169,23 @@ public class ReplicatesService {
 
     public Optional<Replicate> getReplicateWithResultUploadedStatus(String chainTaskId) {
         for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (replicate.getCurrentStatus().equals(RESULT_UPLOADED)) {
+
+            boolean isStatusResultUploaded = replicate.getCurrentStatus().equals(RESULT_UPLOADED);
+            boolean isStatusResultUploadedBeforeWorkerLost = isStatusBeforeWorkerLostEqualsTo(replicate, RESULT_UPLOADED);
+
+            if (isStatusResultUploaded || isStatusResultUploadedBeforeWorkerLost) {
                 return Optional.of(replicate);
             }
         }
 
         return Optional.empty();
+    }
+
+    private boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
+        int size = replicate.getStatusChangeList().size();
+        return size >= 2
+                && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
+                && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status);
     }
 
     public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, long maxExecutionTime) {
@@ -360,18 +369,9 @@ public class ReplicatesService {
         }
     }
 
-    boolean isPublicResult(String chainTaskId, Integer chainId) {
-        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
-        if (!beneficiary.isPresent()) {
-            log.error("Failed to get beneficiary for isPublicResult() method [chainTaskId:{}]", chainTaskId);
-            return false;
-        }
-        return beneficiary.get().equals(BytesUtils.EMPTY_ADDRESS);
-    }
-
     public boolean hasResultBeenUploaded(String chainTaskId) {
         // currently no check in case of IPFS
-        if(isPublicResult(chainTaskId, 0)){
+        if(iexecHubService.isPublicResult(chainTaskId, 0)){
             return true;
         }
 
