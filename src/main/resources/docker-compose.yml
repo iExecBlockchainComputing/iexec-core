@@ -47,3 +47,14 @@ services:
       - GATEWAY=http://chain:8545
     ports:
       - 5000:5000
+
+  ipfs:
+    image: jbenet/go-ipfs:latest
+      container_name: ipfs-node
+      ports:
+        - 8080:8080
+        - 4001:4001
+        - 5001:5001
+      volumes:
+        - /tmp/ipfs-docker-staging:/export
+        - /tmp/ipfs-docker-data:/data/ipfs

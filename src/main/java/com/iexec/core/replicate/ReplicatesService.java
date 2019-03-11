@@ -1,13 +1,12 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.chain.*;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
@@ -148,9 +147,7 @@ public class ReplicatesService {
     private int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(String chainTaskId, ReplicateStatus status) {
         int nbReplicates = 0;
         for (Replicate replicate : getReplicates(chainTaskId)) {
-            int size = replicate.getStatusChangeList().size();
-            if (size >= 2 && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
-                    && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status)) {
+            if (isStatusBeforeWorkerLostEqualsTo(replicate, status)) {
                 nbReplicates++;
             }
         }
@@ -168,6 +165,27 @@ public class ReplicatesService {
         }
 
         return Optional.empty();
+    }
+
+    public Optional<Replicate> getReplicateWithResultUploadedStatus(String chainTaskId) {
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+
+            boolean isStatusResultUploaded = replicate.getCurrentStatus().equals(RESULT_UPLOADED);
+            boolean isStatusResultUploadedBeforeWorkerLost = isStatusBeforeWorkerLostEqualsTo(replicate, RESULT_UPLOADED);
+
+            if (isStatusResultUploaded || isStatusResultUploadedBeforeWorkerLost) {
+                return Optional.of(replicate);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
+        int size = replicate.getStatusChangeList().size();
+        return size >= 2
+                && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
+                && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status);
     }
 
     public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, long maxExecutionTime) {
@@ -189,20 +207,22 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null);
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null, "");
     }
 
+    // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
-                                      ChainReceipt chainReceipt) {
+                                      ChainReceipt chainReceipt,
+                                      String resultLink) {
 
         if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
-                    + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
+                            + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
                     chainTaskId, walletAddress);
             return;
         }
@@ -261,6 +281,9 @@ public class ReplicatesService {
             chainReceipt = null;
         }
 
+        if (newStatus.equals(RESULT_UPLOADED)) {
+            replicate.setResultLink(resultLink);
+        }
         replicate.updateStatus(newStatus, modifier, chainReceipt);
         replicatesRepository.save(optionalReplicates.get());
 
@@ -347,9 +370,14 @@ public class ReplicatesService {
     }
 
     public boolean hasResultBeenUploaded(String chainTaskId) {
+        // currently no check in case of IPFS
+        if(iexecHubService.isPublicResult(chainTaskId, 0)){
+            return true;
+        }
+
         RestTemplate restTemplate = new RestTemplate();
         String resultChallengeURI = resultRepoConfig.getResultRepositoryURL()
-                                  + "/results/challenge?chainId={id}";
+                + "/results/challenge?chainId={id}";
 
         // get the eip712 challenge
         Eip712Challenge eip712Challenge = restTemplate.getForObject(resultChallengeURI,
@@ -369,7 +397,7 @@ public class ReplicatesService {
 
         String resultURI = resultRepoConfig.getResultRepositoryURL() + "/results/{chainTaskId}";
 
-        // HEAD resultRepoURL/resuts/chainTaskId
+        // HEAD resultRepoURL/results/chainTaskId
         return restTemplate.exchange(resultURI, HttpMethod.HEAD, entity, String.class, chainTaskId)
                 .getStatusCode()
                 .is2xxSuccessful();

@@ -43,14 +43,9 @@ public class TaskController {
         }
         Task task = optionalTask.get();
 
-        Optional<ReplicatesList> optionalReplicates = replicatesService.getReplicatesList(chainTaskId);
-        if (!optionalReplicates.isPresent()) {
-            return createTaskModel(task, new ReplicatesList()).
-                    <ResponseEntity>map(ResponseEntity::ok).
-                    orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
-        }
+        ReplicatesList replicates = replicatesService.getReplicatesList(chainTaskId).orElseGet(ReplicatesList::new);
 
-        return createTaskModel(task, optionalReplicates.get()).
+        return createTaskModel(task, replicates).
                 <ResponseEntity>map(ResponseEntity::ok).
                 orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }

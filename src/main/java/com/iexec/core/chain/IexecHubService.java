@@ -193,7 +193,7 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             receipt = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes).send();
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
+            log.error("Failed finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
 
@@ -210,7 +210,7 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        log.info("Finalized [chainTaskId:{}, resultUri:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
+        log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
         ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         return Optional.of(chainReceipt);

@@ -18,7 +18,6 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -376,9 +375,11 @@ public class TaskService {
 
     private void resultUploading2Uploaded(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADING);
-        boolean condition2 = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        Optional<Replicate> optionalReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
+        boolean condition2 = optionalReplicate.isPresent();
 
         if (condition1 && condition2) {
+            task.setResultLink(optionalReplicate.get().getResultLink());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalized2Completed(task);
         } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&

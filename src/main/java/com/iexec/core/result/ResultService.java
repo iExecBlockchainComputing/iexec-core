@@ -5,6 +5,8 @@ import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.result.ipfs.IPFSService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -19,18 +21,28 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+/**
+ * Service class to manage all the results. If the result is public, it will be stored on IPFS. If there is a dedicated
+ * beneficiary, the result will be pushed to mongo.
+ */
 public class ResultService {
 
     private static final String RESULT_FILENAME_PREFIX = "iexec-result-";
+    private static final String IPFS_ADDRESS_PREFIX = "/ipfs/";
 
-    private GridFsOperations gridOperations;
     private IexecHubService iexecHubService;
+    private IPFSService ipfsService;
+    private GridFsOperations gridOperations;
+    private ResultRepositoryConfiguration resultRepositoryConfig;
 
-
-    public ResultService(GridFsOperations gridOperations,
-                         IexecHubService iexecHubService) {
-        this.gridOperations = gridOperations;
+    public ResultService(IexecHubService iexecHubService,
+                         IPFSService ipfsService,
+                         GridFsOperations gridOperations,
+                         ResultRepositoryConfiguration resultRepositoryConfig) {
         this.iexecHubService = iexecHubService;
+        this.ipfsService = ipfsService;
+        this.gridOperations = gridOperations;
+        this.resultRepositoryConfig = resultRepositoryConfig;
     }
 
     static String getResultFilename(String chainTaskId) {
@@ -57,7 +69,19 @@ public class ResultService {
         return true;
     }
 
-    public boolean isResultInDatabase(String chainTaskId) {
+    boolean isResultInDatabase(String chainTaskId) {
+        if(isPublicResult(chainTaskId)){
+            return isResultInIpfs(chainTaskId);
+        }
+        return isResultInMongo(chainTaskId);
+    }
+
+    boolean isResultInIpfs (String chainTaskId) {
+        return false;
+    }
+
+    boolean isResultInMongo(String chainTaskId) {
+
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
@@ -67,10 +91,26 @@ public class ResultService {
             return "";
         }
 
+        if (iexecHubService.isPublicResult(result.getChainTaskId(), 0)) {
+            return addResultToIPFS(result, data);
+        } else {
+            return addResultToMongo(result, data);
+        }
+    }
+
+    private String addResultToMongo(Result result, byte[] data) {
         InputStream inputStream = new ByteArrayInputStream(data);
         String resultFileName = getResultFilename(result.getChainTaskId());
         gridOperations.store(inputStream, resultFileName, result);
-        return resultFileName;
+        return resultRepositoryConfig.getResultRepositoryURL() + "/results/" + result.getChainTaskId();
+    }
+
+    private String addResultToIPFS(Result result, byte[] data) {
+        return IPFS_ADDRESS_PREFIX + ipfsService.putContent(result.getChainTaskId(), data);
+    }
+
+    public boolean isPublicResult(String chainTaskId) {
+        return iexecHubService.isPublicResult(chainTaskId, 0);
     }
 
     byte[] getResultByChainTaskId(String chainTaskId) throws IOException {
@@ -88,7 +128,7 @@ public class ResultService {
      * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
      */
     boolean isOwnerOfResult(Integer chainId, String chainTaskId, String downloaderAddress) {
-        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
+        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
         if (!beneficiary.isPresent()) {
             log.error("Failed to get beneficiary for isOwnerOfResult() method [chainTaskId:{}, downloaderAddress:{}]",
                     chainTaskId, downloaderAddress);
@@ -102,23 +142,4 @@ public class ResultService {
         }
         return true;
     }
-
-    boolean isPublicResult(String chainTaskId, Integer chainId) {
-        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
-        if (!beneficiary.isPresent()) {
-            log.error("Failed to get beneficiary for isPublicResult() method [chainTaskId:{}]", chainTaskId);
-            return false;
-        }
-        return beneficiary.get().equals(BytesUtils.EMPTY_ADDRESS);
-    }
-
-    private Optional<String> getBeneficiary(String chainTaskId, Integer chainId) {
-        Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
-        if (!chainTask.isPresent()) {
-            return Optional.empty();
-        }
-        Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
-        return optionalChainDeal.map(chainDeal -> chainDeal.getBeneficiary().toLowerCase());
-    }
-
 }

@@ -1,6 +1,7 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.security.JwtTokenProvider;
@@ -27,7 +28,7 @@ public class ReplicatesController {
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
             @RequestHeader("Authorization") String bearerToken,
-            @RequestBody ChainReceipt chainReceipt) {
+            @RequestBody ReplicateDetails details) {
 
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
@@ -35,10 +36,11 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}, blockNumber:{}]",
-                chainTaskId, replicateStatus, walletAddress, chainReceipt.getBlockNumber());
+        log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
+                chainTaskId, replicateStatus, walletAddress);
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, chainReceipt);
+        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER,
+                details.getChainReceipt(), details.getResultLink());
         return ResponseEntity.ok().build();
     }
 }
