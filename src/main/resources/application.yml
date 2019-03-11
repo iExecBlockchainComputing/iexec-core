@@ -49,3 +49,7 @@ sms:
   protocol: ${IEXEC_SMS_PROTOCOL:http}
   ip: ${IEXEC_SMS_IP:localhost}
   port: ${IEXEC_SMS_PORT:5000}
+
+ipfs:
+  host: ${IEXEC_IPFS_HOST:127.0.0.1}
+  port: ${IEXEC_IPFS_PORT:5001}

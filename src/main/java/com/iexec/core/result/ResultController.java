@@ -43,7 +43,7 @@ public class ResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        String filename = resultService.addResult(
+        String resultLink = resultService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
@@ -52,16 +52,16 @@ public class ResultController {
                         .build(),
                 model.getZip());
 
-        if (filename.isEmpty()) {
+        if (resultLink.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).build();
         }
 
-        log.info("Result uploaded successfully [chainTaskId:{}, uploadRequester:{}]",
-                model.getChainTaskId(), auth.getWalletAddress());
+        log.info("Result uploaded successfully [chainTaskId:{}, uploadRequester:{}, resultLink:{}]",
+                model.getChainTaskId(), auth.getWalletAddress(), resultLink);
 
         challengeService.invalidateEip712ChallengeString(auth.getChallenge());
 
-        return ok(filename);
+        return ok(resultLink);
     }
 
     @RequestMapping(method = RequestMethod.HEAD, path = "/results/{chainTaskId}")
@@ -108,7 +108,7 @@ public class ResultController {
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        boolean isPublicResult = resultService.isPublicResult(chainTaskId, chainId);
+        boolean isPublicResult = resultService.isPublicResult(chainTaskId);
         boolean isAuthorizedOwnerOfResult = auth != null
                 && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
                 && authorizationService.isAuthorizationValid(auth);

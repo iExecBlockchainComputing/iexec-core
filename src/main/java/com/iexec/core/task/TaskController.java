@@ -48,14 +48,10 @@ public class TaskController {
         }
         Task task = optionalTask.get();
 
-        Optional<ReplicatesList> optionalReplicates = replicatesService.getReplicatesList(chainTaskId);
+        ReplicatesList replicates = replicatesService.getReplicatesList(chainTaskId)
+                .orElseGet(ReplicatesList::new);
 
-        TaskModel taskModel;
-        if (!optionalReplicates.isPresent()) {
-            taskModel = new TaskModel(task, new ReplicatesList().getReplicates());
-        } else {
-            taskModel = new TaskModel(task, optionalReplicates.get().getReplicates());
-        }
+        TaskModel taskModel = new TaskModel(task, replicates.getReplicates());
 
         return ResponseEntity.ok(taskModel);
     }

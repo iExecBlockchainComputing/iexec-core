@@ -46,6 +46,7 @@ public class Task {
     private Date contributionDeadline;
     private Date revealDeadline;
     private Date finalDeadline;
+    private String resultLink;
     private List<TaskStatusChange> dateStatusList;
 
     public Task(String dappName, String commandLine, int trust) {

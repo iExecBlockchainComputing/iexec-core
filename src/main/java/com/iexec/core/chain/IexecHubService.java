@@ -23,6 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainContributionStatus.*;
+import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
+import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
 import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
@@ -132,7 +134,7 @@ public class IexecHubService extends IexecHubAbstractService {
         }
 
         String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
-        boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ChainTaskStatus.ACTIVE);
+        boolean isTaskStatusValidOnChain = isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain);
         // if the status is still pending, isTaskStatusValidOnChain regularly for a status update
         if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
                 && !isTaskStatusValidOnChain) {
@@ -190,7 +192,7 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             receipt = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes).send();
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, resultUri:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
+            log.error("Failed finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
 
@@ -200,14 +202,14 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        boolean isTaskStatusValidOnChain = isTaskStatusValidOnChainAfterPendingReceipt(chainTaskId, ChainTaskStatus.COMPLETED);
+        boolean isTaskStatusValidOnChain = isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain);
         if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
                 && !isTaskStatusValidOnChain) {
             log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
 
-        log.info("Finalized [chainTaskId:{}, resultUri:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
+        log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
         ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
 
         return Optional.of(chainReceipt);
@@ -297,26 +299,10 @@ public class IexecHubService extends IexecHubAbstractService {
         return hasEnoughGas(credentialsService.getCredentials().getAddress());
     }
 
-    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainTaskStatus taskStatus) {
-        Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
-        return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(taskStatus);
-    }
-
-    private boolean isTaskStatusValidOnChainAfterPendingReceipt(String chainTaskId, ChainTaskStatus taskStatus) {
-        long maxWaitingTime = web3jService.getMaxWaitingTimeWhenPendingReceipt();
-
-        final long startTime = System.currentTimeMillis();
-        long duration = 0;
-        while (duration < maxWaitingTime) {
-            try {
-                if (isTaskStatusValidOnChain(chainTaskId, taskStatus)) {
-                    return true;
-                }
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error("Error in checking the latest block number");
-            }
-            duration = System.currentTimeMillis() - startTime;
+    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainStatus chainTaskStatus) {
+        if (chainTaskStatus instanceof ChainTaskStatus) {
+            Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
+            return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(chainTaskStatus);
         }
         return false;
     }

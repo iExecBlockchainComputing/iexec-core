@@ -386,9 +386,11 @@ public class TaskService {
 
     private void resultUploading2Uploaded(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADING);
-        boolean condition2 = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADED) > 0;
+        Optional<Replicate> optionalReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
+        boolean condition2 = optionalReplicate.isPresent();
 
         if (condition1 && condition2) {
+            task.setResultLink(optionalReplicate.get().getResultLink());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalized2Completed(task);
         } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
