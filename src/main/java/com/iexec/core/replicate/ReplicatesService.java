@@ -23,6 +23,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.web3j.crypto.ECKeyPair;
 
@@ -367,12 +368,16 @@ public class ReplicatesService {
         headers.set(HttpHeaders.AUTHORIZATION, authorizationToken);
         HttpEntity<String> entity = new HttpEntity<String>(headers);
 
-        String resultURI = resultRepoConfig.getResultRepositoryURL() + "/results/{chainTaskId}";
+        String resultURI = resultRepoConfig.getResultRepositoryURL() + "/results/" + chainTaskId;
 
-        // HEAD resultRepoURL/resuts/chainTaskId
-        return restTemplate.exchange(resultURI, HttpMethod.HEAD, entity, String.class, chainTaskId)
-                .getStatusCode()
-                .is2xxSuccessful();
+        try {
+            // HEAD resultRepoURL/resuts/chainTaskId
+            return restTemplate.exchange(resultURI, HttpMethod.HEAD, entity, String.class)
+                    .getStatusCode()
+                    .is2xxSuccessful();
+        } catch (HttpClientErrorException e) {
+            return e.getStatusCode().is2xxSuccessful();
+        }
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
@@ -382,6 +387,6 @@ public class ReplicatesService {
 
     public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
-            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
     }
 }

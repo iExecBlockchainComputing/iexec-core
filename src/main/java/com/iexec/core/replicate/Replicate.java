@@ -42,7 +42,7 @@ public class Replicate {
     }
 
     @JsonIgnore
-    public ReplicateStatus getRelevantLastStatus() {
+    public ReplicateStatus getLastRelevantStatus() {
         // ignore cases like: WORKER_LOST, RECOVERING, WORKER_LOST....
 
         List<ReplicateStatus> statusList = getStatusChangeList().stream()
@@ -127,9 +127,7 @@ public class Replicate {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
 
-    public boolean isRecoverableAndBeforeStatus(ReplicateStatus status) {
-        return ReplicateStatus.isRecoverableStatus(getRelevantLastStatus())
-            && getCurrentStatus().ordinal() < status.ordinal();
+    public boolean isBeforeStatus(ReplicateStatus status) {
+        return getLastRelevantStatus().ordinal() < status.ordinal();
     }
-
 }
