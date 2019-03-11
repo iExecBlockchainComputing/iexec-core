@@ -20,7 +20,7 @@ public class Replicate {
 
     private List<ReplicateStatusChange> statusChangeList;
     private String walletAddress;
-    private String resultUri;
+    private String resultLink;
     private String chainTaskId;
     private String contributionHash;
     private int credibility;
@@ -48,7 +48,6 @@ public class Replicate {
     private ReplicateStatusChange getLatestStatusChange() {
         return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
     }
-
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
         return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier));

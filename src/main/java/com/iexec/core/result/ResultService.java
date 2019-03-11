@@ -77,7 +77,7 @@ public class ResultService {
     }
 
     boolean isResultInIpfs (String chainTaskId) {
-        return true;
+        return false;
     }
 
     boolean isResultInMongo(String chainTaskId) {
@@ -91,7 +91,7 @@ public class ResultService {
             return "";
         }
 
-        if (isResultPublic(result.getChainTaskId())) {
+        if (isPublicResult(result.getChainTaskId())) {
             return addResultToIPFS(result, data);
         } else {
             return addResultToMongo(result, data);
@@ -124,7 +124,7 @@ public class ResultService {
      * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
      */
     boolean isOwnerOfResult(Integer chainId, String chainTaskId, String downloaderAddress) {
-        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
+        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
         if (!beneficiary.isPresent()) {
             log.error("Failed to get beneficiary for isOwnerOfResult() method [chainTaskId:{}, downloaderAddress:{}]",
                     chainTaskId, downloaderAddress);
@@ -139,30 +139,16 @@ public class ResultService {
         return true;
     }
 
+    boolean isPublicResult(String chainTaskId) {
+        return isPublicResult(chainTaskId, 0);
+    }
+
     boolean isPublicResult(String chainTaskId, Integer chainId) {
-        Optional<String> beneficiary = getBeneficiary(chainTaskId, chainId);
+        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
         if (!beneficiary.isPresent()) {
             log.error("Failed to get beneficiary for isPublicResult() method [chainTaskId:{}]", chainTaskId);
             return false;
         }
         return beneficiary.get().equals(BytesUtils.EMPTY_ADDRESS);
     }
-
-    private Optional<String> getBeneficiary(String chainTaskId, Integer chainId) {
-        Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);
-        if (!chainTask.isPresent()) {
-            return Optional.empty();
-        }
-        Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainTask.get().getDealid());
-        return optionalChainDeal.map(chainDeal -> chainDeal.getBeneficiary().toLowerCase());
-    }
-
-    private boolean isResultPublic(String chainTaskId) {
-        Optional<String> optional = getBeneficiary(chainTaskId, 0);
-        if (optional.isPresent() && !optional.get().equals(BytesUtils.EMPTY_ADDRESS)) {
-            return false;
-        }
-        return true;
-    }
-
 }

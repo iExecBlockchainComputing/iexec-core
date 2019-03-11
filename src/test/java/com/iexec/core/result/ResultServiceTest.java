@@ -206,25 +206,23 @@ public class ResultServiceTest {
 
     @Test
     public void isOwnerOfResult() {
-        String beneficiary = "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E";
-        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
-        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E")).isTrue();
+        String beneficiary = "0xabcd1339ec7e762e639f4887e2bfe5ee8023e23e";
+        when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
+
+        assertThat(resultService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339ec7e762e639f4887e2bfe5ee8023e23e")).isTrue();
     }
 
     @Test
     public void isPublicResult() {
         String beneficiary = BytesUtils.EMPTY_ADDRESS;
-        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
         assertThat(resultService.isPublicResult(chainTaskId, chainId)).isTrue();
     }
 
     @Test
     public void isNotPublicResult() {
         String beneficiary = "0xb";
-        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(ChainTask.builder().dealid(chainDealId).build()));
-        when(iexecHubService.getChainDeal(chainDealId)).thenReturn(Optional.of(ChainDeal.builder().beneficiary(beneficiary).build()));
+        when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
         assertThat(resultService.isPublicResult(chainTaskId, chainId)).isFalse();
     }
 }
