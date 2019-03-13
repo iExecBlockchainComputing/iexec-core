@@ -114,10 +114,10 @@ public class TaskService {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
 
-    void tryUpgradeTaskStatus(String chainTaskId) {
+    boolean tryUpgradeTaskStatus(String chainTaskId) {
         Optional<Task> optional = getTaskByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
-            return;
+            return false;
         }
         Task task = optional.get();
 
@@ -149,6 +149,7 @@ public class TaskService {
                 resultUploaded2Finalized2Completed(task);
                 break;
         }
+        return true;
     }
 
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
@@ -158,7 +159,6 @@ public class TaskService {
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus, chainReceipt);
-        // Thread.dumpStack();
         Task savedTask = taskRepository.save(task);
         log.info("UpdateTaskStatus suceeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
         return savedTask;

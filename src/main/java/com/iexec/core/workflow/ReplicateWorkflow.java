@@ -82,6 +82,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransitionFromAllStatusesTo(ERROR);
 
         addTransitionFromStatusToAllStatuses(RECOVERING);
+        addTransition(RECOVERING, COMPLETED);
     }
 
     public static synchronized ReplicateWorkflow getInstance() {
