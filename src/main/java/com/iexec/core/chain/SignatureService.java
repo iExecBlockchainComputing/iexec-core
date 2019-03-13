@@ -50,7 +50,7 @@ public class SignatureService {
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
-                .signature(new Signature(workerWallet, sign))
+                .signature(new Signature(sign))
                 .build();
     }
 

@@ -57,7 +57,7 @@ public class SignatureServiceTests {
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskid)
                 .enclave(enclaveWallet)
-                .signature(new Signature(workerWallet,
+                .signature(new Signature(
                         BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
                         BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"),
                         (byte)28))
