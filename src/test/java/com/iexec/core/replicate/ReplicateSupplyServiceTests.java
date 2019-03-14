@@ -21,6 +21,9 @@ import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 
@@ -83,11 +86,10 @@ public class ReplicateSupplyServiceTests {
                 .build();
 
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.of(existingWorker));
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
-                .thenReturn(new ArrayList<>());
+        when(taskService.getInitializedOrRunningTasks()).thenReturn(new ArrayList<>());
 
         Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(123, WALLET_WORKER_1);
-        assertThat(optional.isPresent()).isFalse();
+        assertThat(optional).isEmpty();
     }
 
     @Test
@@ -104,7 +106,7 @@ public class ReplicateSupplyServiceTests {
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
 
         Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(123, WALLET_WORKER_1);
@@ -122,17 +124,23 @@ public class ReplicateSupplyServiceTests {
                 .build();
 
         Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5);
+        runningTask1.setInitializationBlockNumber(10);
+        runningTask1.setMaxExecutionTime(maxExecutionTime);
         runningTask1.changeStatus(RUNNING);
         runningTask1.setTag(NO_TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(true);
+        when(replicatesService.moreReplicatesNeeded(anyString(), anyInt(), anyLong()))
+                .thenReturn(true);
 
         Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(123, WALLET_WORKER_1);
-        assertThat(optional.isPresent()).isFalse();
+
+        assertThat(optional).isEmpty();
     }
 
     @Test
@@ -146,17 +154,21 @@ public class ReplicateSupplyServiceTests {
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5);
         runningTask.changeStatus(RUNNING);
+        runningTask.setInitializationBlockNumber(10);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(NO_TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), maxExecutionTime)).thenReturn(false);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+                maxExecutionTime)).thenReturn(false);
 
         Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(123, WALLET_WORKER_1);
-        assertThat(optional.isPresent()).isFalse();
+        assertThat(optional).isEmpty();
     }
 
     @Test
@@ -174,13 +186,14 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
 
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
-                .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), runningTask.getMaxExecutionTime())).thenReturn(true);
-
+        when(taskService.getInitializedOrRunningTasks())
+                .thenReturn(Collections.singletonList(runningTask));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+                runningTask.getMaxExecutionTime())).thenReturn(true);
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(
                 Optional.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
 
@@ -211,7 +224,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.setTag(TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
 
@@ -242,7 +255,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.setTag(TEE_TAG);
 
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(taskService.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
