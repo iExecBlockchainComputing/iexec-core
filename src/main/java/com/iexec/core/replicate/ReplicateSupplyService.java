@@ -100,10 +100,10 @@ public class ReplicateSupplyService {
     public List<InterruptedReplicateModel> getInterruptedReplicates(long blockNumber, String walletAddress) {
 
         List<String> chainTaskIdList = workerService.getChainTaskIds(walletAddress);
-        List<Task> workerTasks = taskService.getTasksByChainTaskIds(chainTaskIdList);
+        List<Task> tasksWithWorkerParticipation = taskService.getTasksByChainTaskIds(chainTaskIdList);
         List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
 
-        for (Task task : workerTasks) {
+        for (Task task : tasksWithWorkerParticipation) {
 
             Optional<Replicate> oReplicate = replicatesService.getReplicate(
                     task.getChainTaskId(), walletAddress);
@@ -120,7 +120,7 @@ public class ReplicateSupplyService {
             // generate contribution authorization
             Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
                     walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
-        
+
             InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
                     .contributionAuthorization(authorization.get())
                     .recoveryAction(recoveryAction)
@@ -148,30 +148,33 @@ public class ReplicateSupplyService {
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED)) {
-            return recoverReplicateInConsensusReachedPhase(replicate);
+            if (!replicate.containsContributedStatus())
+                return RecoveryAction.ABORT_CONSENSUS_REACHED;
         }
 
+        RecoveryAction recoveryAction = null;
+
         if (task.inRevealPhase()) {
-            return recoverReplicateInRevealPhase(task, replicate, chainReceipt);
+            recoveryAction = recoverReplicateInRevealPhase(task, replicate, chainReceipt);
         }
 
         if (task.inResultUploadPhase()) {
-            return recoverReplicateInResultUploadPhase(task, replicate);
+            recoveryAction = recoverReplicateInResultUploadPhase(task, replicate);
         }
 
         if (task.inCompletionPhase()) {
             return recoverReplicateIfRevealed(replicate);
         }
 
-        return null;
+        return recoveryAction;
     }
 
     /**
      * CREATED, ..., CAN_CONTRIBUTE         => RecoveryAction.CONTRIBUTE
      * CONTRIBUTING + !onChain              => RecoveryAction.CONTRIBUTE
      * CONTRIBUTING + done onChain          => updateStatus to CONTRIBUTED & go to next case
-     * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
      * CONTRIBUTED + !CONSENSUS_REACHED     => RecoveryAction.WAIT
+     * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
      */
 
     private RecoveryAction recoverReplicateInContributionPhase(Task task, Replicate replicate, ChainReceipt chainReceipt) {
@@ -207,33 +210,22 @@ public class ReplicateSupplyService {
 
         if (didReplicateContribute) {
 
-            if (taskService.isConsensusReached(task)) {
-                taskExecutorEngine.updateTask(chainTaskId);
-                return RecoveryAction.REVEAL;
+            if (!taskService.isConsensusReached(task)) {
+                return RecoveryAction.WAIT;
             }
 
-            return RecoveryAction.WAIT;
+            taskExecutorEngine.updateTask(chainTaskId);
+            return RecoveryAction.REVEAL;
         }
 
         return null;
     }
 
     /**
-     * CONTRIBUTED          => RecoveryAction.WAIT
-     * !CONTRIBUTED         => RecoveryAction.ABORT_CONSENSUS_REACHED
-     */
-
-    private RecoveryAction recoverReplicateInConsensusReachedPhase(Replicate replicate) {
-        return replicate.containsContributedStatus()
-           ?   RecoveryAction.WAIT
-           :   RecoveryAction.ABORT_CONSENSUS_REACHED;
-    }
-
-    /**
      * CONTRIBUTED                      => RecoveryAction.REVEAL
      * REVEALING + !onChain             => RecoveryAction.REVEAL
-     * REVEALING + done onChain         => update replicateStatus to REVEALED, update taskStatus & go to next case
-     * REVEALED                         => RecoveryAction.WAIT
+     * REVEALING + done onChain         => update replicateStatus to REVEALED, update task & go to next case
+     * REVEALED (no upload req)         => RecoveryAction.WAIT
      * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
      */
 
@@ -267,10 +259,8 @@ public class ReplicateSupplyService {
         if (!oReplicateWithLatestChanges.isPresent()) return null;
         
         replicate = oReplicateWithLatestChanges.get();
-        log.info("" + replicate.getCurrentStatus());
 
-        boolean didReplicateReveal = oReplicateWithLatestChanges.get()
-                .getLastRelevantStatus()
+        boolean didReplicateReveal = replicate.getLastRelevantStatus()
                 .equals(ReplicateStatus.REVEALED);
 
         boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus()
@@ -290,7 +280,8 @@ public class ReplicateSupplyService {
     /**
      * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
      * RESULT_UPLOADING + !done yet     => RecoveryAction.UPLOAD_RESULT
-     * RESULT_UPLOADING + done          => RecoveryAction.WAIT + updateStatus to ReplicateStatus.RESULT_UPLOADED
+     * RESULT_UPLOADING + done          => RecoveryAction.WAIT
+     *                                     update to ReplicateStatus.RESULT_UPLOADED
      * RESULT_UPLOADED                  => RecoveryAction.WAIT 
      */
 
@@ -314,6 +305,8 @@ public class ReplicateSupplyService {
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+
+            taskExecutorEngine.updateTask(chainTaskId);
             return RecoveryAction.WAIT;
         }
 
@@ -326,7 +319,7 @@ public class ReplicateSupplyService {
 
     /**
      * REVEALED          => RecoveryAction.COMPLETE
-     * !REVEALED         => RecoveryAction.ABORT
+     * !REVEALED         => null
      */
 
     private RecoveryAction recoverReplicateIfRevealed(Replicate replicate) {

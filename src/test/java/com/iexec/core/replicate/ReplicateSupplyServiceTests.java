@@ -1,12 +1,20 @@
 package com.iexec.core.replicate;
 
+import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.disconnection.InterruptedReplicateModel;
+import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.chain.SignatureService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -15,12 +23,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 public class ReplicateSupplyServiceTests {
 
-        private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
     private final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
 
@@ -39,23 +48,11 @@ public class ReplicateSupplyServiceTests {
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
     private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
-    @Mock
-    private TaskService taskService;
-
-    @Mock
-    private WorkerService workerService;
-
-    @Mock
-    private IexecHubService iexecHubService;
-
-    @Mock
-    private ReplicatesService replicatesService;
-
-    @Mock
-    private ApplicationEventPublisher applicationEventPublisher;
-
-    @Mock
-    private ResultRepositoryConfiguration resulRepositoryConfig;
+    @Mock private ReplicatesService replicatesService;
+    @Mock private SignatureService signatureService;
+    @Mock private TaskExecutorEngine taskExecutorEngine;
+    @Mock private TaskService taskService;
+    @Mock private WorkerService workerService;
 
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
@@ -66,7 +63,7 @@ public class ReplicateSupplyServiceTests {
     }
 
 
-    // Tests on the getAvailableReplicate method
+    // Tests on getAvailableReplicate()
 
     @Test
     public void shouldNotGetAnyReplicateSinceWorkerDoesntExist() {
@@ -273,4 +270,546 @@ public class ReplicateSupplyServiceTests {
                 .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
     }
 
+    // Tests on getInterruptedReplicates()
+
+    @Test
+    public void shouldReturnEmptyListSinceNotParticipatingToAnyTask() {
+
+        when(taskService.getTasksByChainTaskIds(any()))
+                .thenReturn(Collections.emptyList());
+
+        List<InterruptedReplicateModel> list =
+                replicateSupplyService.getInterruptedReplicates(1l, WALLET_WORKER_1);
+
+        assertThat(list).isEmpty();
+        Mockito.verify(replicatesService, Mockito.times(0))
+            .updateReplicateStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    // CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
+    public void shouldTellReplicateToContributeWhenComputing() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.COMPUTING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.CONTRIBUTE);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
+    public void shouldTellReplicateToContributeSinceNotDoneOnchain() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.CONTRIBUTING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(false);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.CONTRIBUTE);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // CONTRIBUTING + done onChain   => updateStatus to CONTRIBUTED
+    // Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitSinceContributedOnchain() {
+        long blockNumber = 3;
+        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
+        Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(replicate1)
+                .thenReturn(replicate2);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+        when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(true);
+        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(false);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
+                chainReceipt, "");
+    }
+
+    @Test
+    // CONTRIBUTING + done onChain => updateStatus to CONTRIBUTED
+    // Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
+    public void shouldTellReplicateToRevealSinceConsensusReached() {
+        long blockNumber = 3;
+        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
+        Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(replicate1)
+                .thenReturn(replicate2);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+        when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(true);
+        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(true);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
+                chainReceipt, "");
+    }
+
+    @Test
+    // any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
+    public void shouldTellReplicateToAbortSinceContributionTimeout() {
+        long blockNumber = 3;
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.CONTRIBUTION_TIMEOUT);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(replicate1);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
+    public void shouldTellReplicateToWaitSinceConsensusReachedAndItDidNotContribute() {
+        long blockNumber = 3;
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.CONSENSUS_REACHED);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.RUNNING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(replicate1);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.ABORT_CONSENSUS_REACHED);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
+    public void shouldTellReplicateToRevealSinceContributed() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.CONTRIBUTED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // REVEALING + !onChain => RecoveryAction.REVEAL
+    public void shouldTellReplicateToRevealSinceNotDoneOnchain() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(false);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // REVEALING + done onChain     => updateStatus to REVEALED
+    // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitSinceRevealed() {
+        long blockNumber = 3;
+        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
+        Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.REVEALED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(replicate1)
+                .thenReturn(replicate2);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+        when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(true);
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(true);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
+                chainReceipt, "");
+    }
+
+    @Test
+    // REVEALING + done onChain     => updateStatus to REVEALED
+    // RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
+    public void shouldTellReplicateToUploadResultSinceRequestedAfterRevealing() {
+        long blockNumber = 3;
+        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
+        Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(replicate1)
+                .thenReturn(replicate2);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+        when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(true);
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(true);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
+                chainReceipt, "");
+    }
+
+    @Test
+    // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
+    public void shouldTellReplicateToUploadResultSinceRequested() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
+    public void shouldTellReplicateToUploadResultSinceNotDoneYet() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(false);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
+    //                            RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitSinceDetectedResultUpload() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(true);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // RESULT_UPLOADED => RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitSinceUploadedResult() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(true);
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // REVEALED + Task in completion phase => RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitForCompletionSinceRevealed() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
+    public void shouldTellReplicateToWaitForCompletionSinceRevealedAndUploaded() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
+        replicate.get().updateStatus(ReplicateStatus.RESULT_UPLOADED, null);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
+    // !REVEALED + Task in completion phase => null / nothing
+    public void shouldNotTellReplicateToWaitForCompletionSinceNotRevealed() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isEmpty();
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    List<Task> getStubTaskList(TaskStatus status) {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .currentStatus(status)
+                .build();
+
+        return Arrays.asList(task);
+    }
+
+    Optional<Replicate> getStubReplicate(ReplicateStatus status) {
+        Replicate replicate = new Replicate();
+        replicate.setWalletAddress(WALLET_WORKER_1);
+        replicate.setStatusChangeList(new ArrayList<ReplicateStatusChange>());
+        replicate.updateStatus(status, ReplicateStatusModifier.WORKER);
+        return Optional.of(replicate);
+    }
+
+    Optional<ContributionAuthorization> getStubAuth() {
+        return Optional.of(new ContributionAuthorization());
+    }
 }
