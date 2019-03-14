@@ -45,7 +45,7 @@ public class SignatureService {
 
         String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
 
-        Sign.SignatureData sign = SignatureUtils.signPrefixedMessage(
+        Sign.SignatureData sign = Sign.signPrefixedMessage(
                 BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
         return Optional.of(ContributionAuthorization.builder()
