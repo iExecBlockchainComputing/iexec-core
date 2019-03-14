@@ -41,6 +41,8 @@ public class ReplicatesService {
     private ChainConfig chainConfig;
     private ResultRepositoryConfiguration resultRepoConfig;
     private CredentialsService credentialsService;
+    private RestTemplate restTemplate;
+
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
@@ -48,7 +50,8 @@ public class ReplicatesService {
                              Web3jService web3jService,
                              ChainConfig chainConfig,
                              ResultRepositoryConfiguration resultRepoConfig,
-                             CredentialsService credentialsService) {
+                             CredentialsService credentialsService,
+                             RestTemplate restTemplate) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -56,6 +59,7 @@ public class ReplicatesService {
         this.chainConfig = chainConfig;
         this.resultRepoConfig = resultRepoConfig;
         this.credentialsService = credentialsService;
+        this.restTemplate = restTemplate;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -375,7 +379,6 @@ public class ReplicatesService {
             return true;
         }
 
-        RestTemplate restTemplate = new RestTemplate();
         String resultChallengeURI = resultRepoConfig.getResultRepositoryURL()
                 + "/results/challenge?chainId={id}";
 

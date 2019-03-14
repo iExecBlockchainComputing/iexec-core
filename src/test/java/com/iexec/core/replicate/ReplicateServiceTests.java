@@ -3,13 +3,22 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.core.chain.ChainConfig;
+import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.web.client.RestTemplate;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.ECKeyPair;
 
+import java.math.BigInteger;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
@@ -28,20 +37,19 @@ public class ReplicateServiceTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
-    @Mock
-    private ReplicatesRepository replicatesRepository;
-
-    @Mock
-    private IexecHubService iexecHubService;
-
-    @Mock
-    private ApplicationEventPublisher applicationEventPublisher;
-
-    @Mock
-    private Web3jService web3jService;
+    @Mock private ReplicatesRepository replicatesRepository;
+    @Mock private IexecHubService iexecHubService;
+    @Mock private ApplicationEventPublisher applicationEventPublisher;
+    @Mock private Web3jService web3jService;
+    @Mock private ChainConfig chainConfig;
+    @Mock private ResultRepositoryConfiguration resultRepoConfig;
+    @Mock private CredentialsService credentialsService;
+    @Mock private RestTemplate restTemplate;
 
     @InjectMocks
     private ReplicatesService replicatesService;
+
+
 
     @Before
     public void init() {
@@ -567,5 +575,29 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldFindReplicateContributedOnchain() {
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
+                .thenReturn(true);
+    }
+
+    @Test
+    public void shouldNotFindReplicateContributedOnchain() {
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
+                .thenReturn(false);
+    }
+
+    @Test
+    public void shouldFindReplicateRevealedOnchain() {
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
+                .thenReturn(true);
+    }
+
+    @Test
+    public void shouldNotFindReplicateRevealedOnchain() {
+        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
+                .thenReturn(true);
     }
 }
