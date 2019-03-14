@@ -117,4 +117,20 @@ public class Task {
         }
         return Optional.empty();
     }
+
+	public boolean inContributionPhase() {
+		return TaskStatus.isInContributionPhase(getCurrentStatus());
+	}
+
+	public boolean inRevealPhase() {
+		return TaskStatus.isInRevealPhase(getCurrentStatus());
+	}
+
+	public boolean inResultUploadPhase() {
+		return TaskStatus.isInResultUploadPhase(getCurrentStatus());
+	}
+
+    public boolean inCompletionPhase() {
+		return TaskStatus.isInCompletionPhase(getCurrentStatus());
+    }
 }

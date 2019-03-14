@@ -57,4 +57,12 @@ public enum TaskStatus {
         ).contains(status);
     }
 
+    public static boolean isInCompletionPhase(TaskStatus status) {
+        return Arrays.asList(
+            FINALIZING,
+            FINALIZED,
+            COMPLETED
+        ).contains(status);
+    }
+
 }

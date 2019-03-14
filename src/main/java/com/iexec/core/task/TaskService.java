@@ -5,9 +5,7 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.SignatureService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -16,13 +14,9 @@ import com.iexec.core.task.event.ContributionTimeoutEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.event.ResultUploadTimeoutEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
-import com.iexec.core.worker.Worker;
-import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -38,28 +32,22 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
 
     private TaskRepository taskRepository;
-    private WorkerService workerService;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
     private ResultRepositoryConfiguration resultRepositoryConfig;
-    private SignatureService signatureService;
 
 
     public TaskService(TaskRepository taskRepository,
-                       WorkerService workerService,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
                        ApplicationEventPublisher applicationEventPublisher,
-                       ResultRepositoryConfiguration resultRepositoryConfig,
-                       SignatureService signatureService) {
+                       ResultRepositoryConfiguration resultRepositoryConfig) {
         this.taskRepository = taskRepository;
-        this.workerService = workerService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.resultRepositoryConfig = resultRepositoryConfig;
-        this.signatureService = signatureService;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
@@ -76,6 +64,10 @@ public class TaskService {
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
         return taskRepository.findByChainTaskId(chainTaskId);
+    }
+
+    public List<Task> getTasksByChainTaskIds(List<String> chainTaskIds) {
+        return taskRepository.findByChainTaskId(chainTaskIds);
     }
 
     public List<Task> findByCurrentStatus(TaskStatus status) {
