@@ -88,7 +88,7 @@ public class ReplicatesController {
         }
 
         List<InterruptedReplicateModel> interruptedReplicateList =
-                replicateSupplyService.getInterruptedReplicates(workerWalletAddress, blockNumber);
+                replicateSupplyService.getInterruptedReplicates(blockNumber, workerWalletAddress);
 
         return ResponseEntity.ok(interruptedReplicateList);
     }

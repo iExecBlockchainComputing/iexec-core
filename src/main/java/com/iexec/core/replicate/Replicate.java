@@ -14,7 +14,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
 
 @Data
 @NoArgsConstructor
@@ -106,7 +105,11 @@ public class Replicate {
     }
 
     public boolean containsContributedStatus() {
-        return containsStatus(CONTRIBUTED);
+        return containsStatus(ReplicateStatus.CONTRIBUTED);
+    }
+
+    public boolean containsRevealedStatus() {
+        return containsStatus(ReplicateStatus.REVEALED);
     }
 
     public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, long maxExecutionTime) {
@@ -124,6 +127,10 @@ public class Replicate {
 
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
+    }
+
+    public boolean isRecoverable() {
+        return ReplicateStatus.isRecoverableStatus(getLastRelevantStatus());
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {
