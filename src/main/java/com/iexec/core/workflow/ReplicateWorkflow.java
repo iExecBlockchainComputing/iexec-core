@@ -79,7 +79,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         // from any status to WORKER_LOST or ERROR
         addTransitionFromAllStatusesTo(WORKER_LOST);
-        addTransitionFromAllStatusesTo(ERROR);
+        addTransitionFromAllStatusesTo(FAILED);
 
         addTransitionFromStatusToAllStatuses(RECOVERING);
         addTransition(RECOVERING, COMPLETED);

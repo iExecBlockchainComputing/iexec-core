@@ -273,7 +273,7 @@ public class ReplicateServiceTests {
         int shouldBe4 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED);
         assertThat(shouldBe4).isEqualTo(4);
 
-        int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.COMPLETED, ReplicateStatus.ERROR,
+        int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.COMPLETED, ReplicateStatus.FAILED,
                 ReplicateStatus.RESULT_UPLOADING);
         assertThat(shouldBe0).isEqualTo(0);
     }
