@@ -1,6 +1,7 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,9 +57,10 @@ public class SignatureServiceTests {
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskid)
                 .enclave(enclaveWallet)
-                .signR(BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"))
-                .signS(BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"))
-                .signV((byte)28)
+                .signature(new Signature(
+                        BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
+                        BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"),
+                        (byte)28))
                 .build();
 
         assertEquals(auth, expected);
