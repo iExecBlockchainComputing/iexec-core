@@ -3,7 +3,6 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
@@ -15,10 +14,7 @@ import org.junit.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.client.RestTemplate;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.ECKeyPair;
 
-import java.math.BigInteger;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
@@ -48,7 +44,6 @@ public class ReplicateServiceTests {
 
     @InjectMocks
     private ReplicatesService replicatesService;
-
 
 
     @Before

@@ -51,14 +51,14 @@ public class Replicate {
         List<ReplicateStatus> ignoredStatuses = Arrays.asList(
                 ReplicateStatus.WORKER_LOST,
                 ReplicateStatus.RECOVERING);
-        
-        int i = statusList.size() - 1;
 
-        while (ignoredStatuses.contains(statusList.get(i))) {
-            i--;
+        for (int i = statusList.size() - 1; i >= 0; i--) {
+            if (!ignoredStatuses.contains(statusList.get(i))) {
+                return statusList.get(i);
+            }
         }
 
-        return statusList.get(i);
+        return null;
     }
 
     @JsonIgnore

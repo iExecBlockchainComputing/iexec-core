@@ -53,7 +53,7 @@ public class SignatureService {
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
                 .signature(new Signature(sign))
-                .build();
+                .build());
     }
 
     private String getEnclaveAddress(boolean isTrustedExecution) {
