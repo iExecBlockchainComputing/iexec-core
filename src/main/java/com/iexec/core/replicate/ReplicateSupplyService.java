@@ -323,8 +323,14 @@ public class ReplicateSupplyService {
      */
 
     private RecoveryAction recoverReplicateIfRevealed(Replicate replicate) {
+        // refresh task
+        Optional<Task> oTask = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
+        if (!oTask.isPresent()) return null; 
+
         return replicate.containsRevealedStatus()
-           ?   RecoveryAction.WAIT
+           ?   oTask.get().getCurrentStatus().equals(TaskStatus.COMPLETED)
+           ?   RecoveryAction.COMPLETE
+           :   RecoveryAction.WAIT
            :   null;
     }
 }
