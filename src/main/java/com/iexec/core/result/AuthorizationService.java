@@ -24,9 +24,9 @@ public class AuthorizationService {
             return false;
         }
 
-        String eip712ChallengeString=authorization.getChallenge();
-        String challengeSignature=authorization.getChallengeSignature();
-        String walletAddress=authorization.getWalletAddress();
+        String eip712ChallengeString = authorization.getChallenge();
+        String challengeSignature = authorization.getChallengeSignature();
+        String walletAddress = authorization.getWalletAddress();
 
         challengeSignature = Numeric.cleanHexPrefix(challengeSignature);
 
@@ -37,7 +37,7 @@ public class AuthorizationService {
         String r = challengeSignature.substring(0, 64);
         String s = challengeSignature.substring(64, 128);
         String v = challengeSignature.substring(128, 130);
-        
+
         //ONE: check if eip712Challenge is in eip712Challenge map
         if (!challengeService.containsEip712ChallengeString(eip712ChallengeString)) {
             log.error("Eip712ChallengeString provided doesn't match any challenge [downloadRequester:{}]", walletAddress);

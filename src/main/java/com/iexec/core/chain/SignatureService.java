@@ -1,8 +1,8 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.common.utils.SignatureUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,9 +50,7 @@ public class SignatureService {
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
-                .signR(sign.getR())
-                .signS(sign.getS())
-                .signV(sign.getV())
+                .signature(new Signature(sign))
                 .build();
     }
 
