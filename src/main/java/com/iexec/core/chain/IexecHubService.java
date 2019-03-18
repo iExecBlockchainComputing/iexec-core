@@ -3,7 +3,6 @@ package com.iexec.core.chain;
 import com.iexec.common.chain.*;
 import com.iexec.common.contract.generated.IexecHubABILegacy;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.task.TaskStatus;
 import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -11,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
@@ -117,39 +117,43 @@ public class IexecHubService extends IexecHubAbstractService {
     private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
         byte[] chainDealIdBytes = BytesUtils.stringToBytes(chainDealId);
         BigInteger taskIndexBigInteger = BigInteger.valueOf(taskIndex);
-
-        TransactionReceipt receipt;
-        try {
-
-            receipt = getHubContract(web3jService.getWritingContractGasProvider()).initialize(chainDealIdBytes, taskIndexBigInteger).send();
-        } catch (Exception e) {
-            log.error("Failed initialize [chainDealId:{}, taskIndex:{}, error:{}]",
-                    chainDealId, taskIndex, e.getMessage());
-            return Optional.empty();
-        }
-
-        List<IexecHubABILegacy.TaskInitializeEventResponse> eventsList = getHubContract().getTaskInitializeEvents(receipt);
-        if (eventsList.isEmpty()) {
-            log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
-            return Optional.empty();
-        }
-
         String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
-        boolean isTaskStatusValidOnChain = isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain);
-        // if the status is still pending, isTaskStatusValidOnChain regularly for a status update
-        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
-                && !isTaskStatusValidOnChain) {
-            log.error("Failed to get initialise event [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+
+
+        RemoteCall<TransactionReceipt> initializeCall = getHubContract(web3jService.getWritingContractGasProvider())
+                .initialize(chainDealIdBytes, taskIndexBigInteger);
+
+
+        TransactionReceipt initializeReceipt;
+        try {
+            initializeReceipt = initializeCall.send();
+        } catch (Exception e) {
+            log.error("Failed to send initialize [chainDealId:{}, taskIndex:{}, exception:{}]",
+                    chainDealId, taskIndex, e.getMessage());
+            e.printStackTrace();
             return Optional.empty();
         }
 
-        String chainTaskId = BytesUtils.bytesToString(eventsList.get(0).taskid);
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
+        List<IexecHubABILegacy.TaskInitializeEventResponse> initializeEvents = getHubContract().getTaskInitializeEvents(initializeReceipt);
 
-        log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
-                chainTaskId, chainDealId, taskIndex, receipt.getGasUsed());
+        IexecHubABILegacy.TaskInitializeEventResponse initializeEvent = null;
+        if (initializeEvents != null && !initializeEvents.isEmpty()) {
+            initializeEvent = initializeEvents.get(0);
+        }
 
-        return Optional.of(Pair.of(chainTaskId, chainReceipt));
+        if (initializeEvent != null && initializeEvent.log != null &&
+                (!initializeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
+                        || isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain))) {
+            String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId);
+
+            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
+                    computedChainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
+            return Optional.of(Pair.of(chainTaskId, chainReceipt));
+        }
+
+        log.error("Failed to initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
+        return Optional.empty();
     }
 
     public boolean canFinalize(String chainTaskId) {
@@ -190,30 +194,34 @@ public class IexecHubService extends IexecHubAbstractService {
         byte[] resultUriBytes = resultUri.getBytes(StandardCharsets.UTF_8);
 
         TransactionReceipt receipt;
+
+        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes);
+
         try {
-            receipt = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes).send();
+            receipt = finalizeCall.send();
         } catch (Exception e) {
-            log.error("Failed finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
+            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskFinalizeEventResponse> eventsList = getHubContract().getTaskFinalizeEvents(receipt);
-        if (eventsList.isEmpty()) {
-            log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
-            return Optional.empty();
+        List<IexecHubABILegacy.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(receipt);
+
+        IexecHubABILegacy.TaskFinalizeEventResponse finalizeEvent = null;
+        if (finalizeEvents != null && !finalizeEvents.isEmpty()) {
+            finalizeEvent = finalizeEvents.get(0);
         }
 
-        boolean isTaskStatusValidOnChain = isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain);
-        if (eventsList.get(0).log != null && eventsList.get(0).log.getType().equals(PENDING_RECEIPT_STATUS)
-                && !isTaskStatusValidOnChain) {
-            log.error("Failed to get finalize event [chainTaskId:{}]", chainTaskId);
-            return Optional.empty();
+        if (finalizeEvent != null && finalizeEvent.log != null &&
+                (!finalizeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
+                        || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId);
+
+            log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
+            return Optional.of(chainReceipt);
         }
 
-        log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
-
-        return Optional.of(chainReceipt);
+        log.error("Failed to finalize [chainTaskId:{}]", chainTaskId);
+        return Optional.empty();
     }
 
     public boolean canReopen(String chainTaskId) {
