@@ -193,18 +193,18 @@ public class IexecHubService extends IexecHubAbstractService {
         byte[] chainTaskIdBytes = BytesUtils.stringToBytes(chainTaskId);
         byte[] resultUriBytes = resultUri.getBytes(StandardCharsets.UTF_8);
 
-        TransactionReceipt receipt;
+        TransactionReceipt finalizeReceipt;
 
         RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes);
 
         try {
-            receipt = finalizeCall.send();
+            finalizeReceipt = finalizeCall.send();
         } catch (Exception e) {
             log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(receipt);
+        List<IexecHubABILegacy.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(finalizeReceipt);
 
         IexecHubABILegacy.TaskFinalizeEventResponse finalizeEvent = null;
         if (finalizeEvents != null && !finalizeEvents.isEmpty()) {
@@ -216,7 +216,7 @@ public class IexecHubService extends IexecHubAbstractService {
                         || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
             ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId);
 
-            log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, receipt.getGasUsed());
+            log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, finalizeReceipt.getGasUsed());
             return Optional.of(chainReceipt);
         }
 
