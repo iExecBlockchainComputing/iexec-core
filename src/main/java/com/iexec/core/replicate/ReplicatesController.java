@@ -69,12 +69,10 @@ public class ReplicatesController {
         Task task = taskOptional.get();
 
         // generate contribution authorization
-        Optional<ContributionAuthorization> authorization = signatureService.createAuthorization(
+        ContributionAuthorization authorization = signatureService.createAuthorization(
                 workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
 
-        return authorization
-                .<ResponseEntity<ContributionAuthorization>>map(ResponseEntity::ok)
-                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        return ResponseEntity.ok(authorization);
     }
 
     @GetMapping("/replicates/interrupted")

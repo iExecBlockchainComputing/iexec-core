@@ -846,7 +846,7 @@ public class ReplicateSupplyServiceTests {
         return Optional.of(replicate);
     }
 
-    Optional<ContributionAuthorization> getStubAuth() {
-        return Optional.of(new ContributionAuthorization());
+    ContributionAuthorization getStubAuth() {
+        return new ContributionAuthorization();
     }
 }

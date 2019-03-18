@@ -50,7 +50,7 @@ public class SignatureServiceTests {
         ReflectionTestUtils.setField(signatureService, "enclaveChallenge", enclaveWallet);
 
         // creation
-        ContributionAuthorization auth = signatureService.createAuthorization(workerWallet, chainTaskid, true).get();
+        ContributionAuthorization auth = signatureService.createAuthorization(workerWallet, chainTaskid, true);
 
         // check
         ContributionAuthorization expected = ContributionAuthorization.builder()

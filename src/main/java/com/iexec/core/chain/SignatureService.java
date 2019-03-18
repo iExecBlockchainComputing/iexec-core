@@ -40,7 +40,7 @@ public class SignatureService {
         return Numeric.toHexString(Hash.sha3(res));
     }
 
-    public Optional<ContributionAuthorization> createAuthorization(String workerWallet, String chainTaskId, boolean isTrustedExecution) {
+    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, boolean isTrustedExecution) {
         String enclaveAddress = getEnclaveAddress(isTrustedExecution);
 
         String hash = computeAuthorizationHash(workerWallet, chainTaskId, enclaveAddress);
@@ -48,12 +48,12 @@ public class SignatureService {
         Sign.SignatureData sign = Sign.signPrefixedMessage(
                 BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
-        return Optional.of(ContributionAuthorization.builder()
+        return ContributionAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclave(enclaveAddress)
                 .signature(new Signature(sign))
-                .build());
+                .build();
     }
 
     private String getEnclaveAddress(boolean isTrustedExecution) {

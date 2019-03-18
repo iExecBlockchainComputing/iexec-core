@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -41,7 +42,7 @@ public class Replicate {
     }
 
     @JsonIgnore
-    public ReplicateStatus getLastRelevantStatus() {
+    public Optional<ReplicateStatus> getLastRelevantStatus() {
         // ignore cases like: WORKER_LOST, RECOVERING, WORKER_LOST....
 
         List<ReplicateStatus> statusList = getStatusChangeList().stream()
@@ -54,11 +55,11 @@ public class Replicate {
 
         for (int i = statusList.size() - 1; i >= 0; i--) {
             if (!ignoredStatuses.contains(statusList.get(i))) {
-                return statusList.get(i);
+                return Optional.of(statusList.get(i));
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     @JsonIgnore
@@ -130,10 +131,14 @@ public class Replicate {
     }
 
     public boolean isRecoverable() {
-        return ReplicateStatus.isRecoverableStatus(getLastRelevantStatus());
+        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
+        if (!currentStatus.isPresent()) return false;
+        return ReplicateStatus.isRecoverableStatus(currentStatus.get());
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {
-        return getLastRelevantStatus().ordinal() < status.ordinal();
+        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
+        if (!getLastRelevantStatus().isPresent()) return false;
+        return currentStatus.get().ordinal() < status.ordinal();
     }
 }
