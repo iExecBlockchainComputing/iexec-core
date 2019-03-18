@@ -325,7 +325,7 @@ public class ReplicateSupplyService {
     private RecoveryAction recoverReplicateIfRevealed(Replicate replicate) {
         // refresh task
         Optional<Task> oTask = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
-        if (!oTask.isPresent()) return null; 
+        if (!oTask.isPresent()) return null;
 
         return replicate.containsRevealedStatus()
            ?   oTask.get().getCurrentStatus().equals(TaskStatus.COMPLETED)

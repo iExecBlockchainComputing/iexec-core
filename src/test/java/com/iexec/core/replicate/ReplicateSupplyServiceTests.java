@@ -689,7 +689,7 @@ public class ReplicateSupplyServiceTests {
 
     @Test
     // RESULT_UPLOADED => RecoveryAction.WAIT
-    public void shouldTellReplicateToWaitSinceUploadedResult() {
+    public void shouldTellReplicateToWaitSinceItUploadedResult() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADED);
@@ -720,13 +720,15 @@ public class ReplicateSupplyServiceTests {
 
     @Test
     // REVEALED + Task in completion phase => RecoveryAction.WAIT
-    public void shouldTellReplicateToWaitForCompletionSinceRevealed() {
+    public void shouldTellReplicateToWaitForCompletionSinceItRevealed() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskList.get(0)));
         when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
                 .thenReturn(getStubAuth());
@@ -745,7 +747,7 @@ public class ReplicateSupplyServiceTests {
 
     @Test
     // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
-    public void shouldTellReplicateToWaitForCompletionSinceRevealedAndUploaded() {
+    public void shouldTellReplicateToWaitForCompletionSinceItRevealedAndUploaded() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
@@ -753,6 +755,9 @@ public class ReplicateSupplyServiceTests {
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskList.get(0)));
+
         when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
                 .thenReturn(getStubAuth());
@@ -770,8 +775,39 @@ public class ReplicateSupplyServiceTests {
     }
 
     @Test
+    public void shouldTellReplicateToCompleteSinceItRevealed() {
+        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
+        Task completedTask = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .currentStatus(TaskStatus.COMPLETED)
+                .build();
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(completedTask));
+
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, false))
+                .thenReturn(getStubAuth());
+
+        List<InterruptedReplicateModel> interruptedReplicates =
+                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+
+        assertThat(interruptedReplicates).isNotEmpty();
+        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
+        assertThat(action).isEqualTo(RecoveryAction.COMPLETE);
+
+        Mockito.verify(replicatesService, Mockito.times(1))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
+                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+    }
+
+    @Test
     // !REVEALED + Task in completion phase => null / nothing
-    public void shouldNotTellReplicateToWaitForCompletionSinceNotRevealed() {
+    public void shouldNotTellReplicateToWaitForCompletionSinceItDidNotReveal() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALING);
@@ -804,6 +840,7 @@ public class ReplicateSupplyServiceTests {
     Optional<Replicate> getStubReplicate(ReplicateStatus status) {
         Replicate replicate = new Replicate();
         replicate.setWalletAddress(WALLET_WORKER_1);
+        replicate.setChainTaskId(CHAIN_TASK_ID);
         replicate.setStatusChangeList(new ArrayList<ReplicateStatusChange>());
         replicate.updateStatus(status, ReplicateStatusModifier.WORKER);
         return Optional.of(replicate);
