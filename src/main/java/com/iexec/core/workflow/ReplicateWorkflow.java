@@ -53,6 +53,14 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 CAN_CONTRIBUTE,
                 RECOVERING));
 
+        addTransition(COMPUTE_FAILED, toList(
+                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
+                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
+                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
+                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CAN_CONTRIBUTE,
+                RECOVERING));
+
         // contribution
         addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS, RECOVERING));
         addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED, RECOVERING));
