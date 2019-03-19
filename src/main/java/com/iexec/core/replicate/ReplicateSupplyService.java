@@ -137,10 +137,9 @@ public class ReplicateSupplyService {
     }
 
     public Optional<RecoveryAction> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
-        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
 
         if (task.inContributionPhase()) {
-            return recoverReplicateInContributionPhase(task, replicate, chainReceipt);
+            return recoverReplicateInContributionPhase(task, replicate, blockNumber);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)) {
@@ -154,7 +153,7 @@ public class ReplicateSupplyService {
         Optional<RecoveryAction> oRecoveryAction = Optional.empty();
 
         if (task.inRevealPhase()) {
-            oRecoveryAction = recoverReplicateInRevealPhase(task, replicate, chainReceipt);
+            oRecoveryAction = recoverReplicateInRevealPhase(task, replicate, blockNumber);
         }
 
         if (task.inResultUploadPhase()) {
@@ -176,7 +175,7 @@ public class ReplicateSupplyService {
      * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
      */
 
-    private Optional<RecoveryAction> recoverReplicateInContributionPhase(Task task, Replicate replicate, ChainReceipt chainReceipt) {
+    private Optional<RecoveryAction> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -198,7 +197,7 @@ public class ReplicateSupplyService {
 
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                    chainReceipt, "");
+                    new ChainReceipt(blockNumber, ""), "");
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -232,7 +231,7 @@ public class ReplicateSupplyService {
      * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
      */
 
-    private Optional<RecoveryAction> recoverReplicateInRevealPhase(Task task, Replicate replicate, ChainReceipt chainReceipt) {
+    private Optional<RecoveryAction> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -253,7 +252,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                    chainReceipt, "");
+                    new ChainReceipt(blockNumber, ""), "");
 
             CompletableFuture<Boolean> completableFuture = taskExecutorEngine.updateTask(chainTaskId);
             completableFuture.join();
