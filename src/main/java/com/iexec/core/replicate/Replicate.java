@@ -9,10 +9,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
 
 @Data
 @NoArgsConstructor
@@ -37,6 +39,27 @@ public class Replicate {
     @JsonIgnore
     public ReplicateStatus getCurrentStatus() {
         return this.getLatestStatusChange().getStatus();
+    }
+
+    @JsonIgnore
+    public Optional<ReplicateStatus> getLastRelevantStatus() {
+        // ignore cases like: WORKER_LOST, RECOVERING, WORKER_LOST....
+
+        List<ReplicateStatus> statusList = getStatusChangeList().stream()
+                .map(ReplicateStatusChange::getStatus)
+                .collect(Collectors.toList());
+
+        List<ReplicateStatus> ignoredStatuses = Arrays.asList(
+                ReplicateStatus.WORKER_LOST,
+                ReplicateStatus.RECOVERING);
+
+        for (int i = statusList.size() - 1; i >= 0; i--) {
+            if (!ignoredStatuses.contains(statusList.get(i))) {
+                return Optional.of(statusList.get(i));
+            }
+        }
+
+        return Optional.empty();
     }
 
     @JsonIgnore
@@ -83,7 +106,11 @@ public class Replicate {
     }
 
     public boolean containsContributedStatus() {
-        return containsStatus(CONTRIBUTED);
+        return containsStatus(ReplicateStatus.CONTRIBUTED);
+    }
+
+    public boolean containsRevealedStatus() {
+        return containsStatus(ReplicateStatus.REVEALED);
     }
 
     public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, long maxExecutionTime) {
@@ -103,4 +130,15 @@ public class Replicate {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
 
+    public boolean isRecoverable() {
+        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
+        if (!currentStatus.isPresent()) return false;
+        return ReplicateStatus.isRecoverableStatus(currentStatus.get());
+    }
+
+    public boolean isBeforeStatus(ReplicateStatus status) {
+        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
+        if (!getLastRelevantStatus().isPresent()) return false;
+        return currentStatus.get().ordinal() < status.ordinal();
+    }
 }

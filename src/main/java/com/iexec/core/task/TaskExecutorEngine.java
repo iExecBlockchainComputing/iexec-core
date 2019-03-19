@@ -3,7 +3,10 @@ package com.iexec.core.task;
 import com.iexec.core.utils.ThreadPoolExecutorUtils;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -13,6 +16,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * performed for no reason (in the case of multiple replicate updates in a short time, the task update will only be called
  * once)
  */
+@Slf4j
 @Service
 public class TaskExecutorEngine {
 
@@ -24,12 +28,21 @@ public class TaskExecutorEngine {
         executorMap = new ConcurrentHashMap<>();
     }
 
-    public void updateTask(String chainTaskId) {
+    public CompletableFuture<Boolean> updateTask(String chainTaskId) {
 
         executorMap.putIfAbsent(chainTaskId, ThreadPoolExecutorUtils.singleThreadExecutorWithFixedSizeQueue(1));
 
         Executor executor = executorMap.get(chainTaskId);
-        executor.execute(() -> taskService.tryUpgradeTaskStatus(chainTaskId));
+
+        return CompletableFuture.supplyAsync(() -> taskService.tryUpgradeTaskStatus(chainTaskId), executor)
+        .handle((res, err) -> {
+            if (err != null) {
+                log.error(err.getMessage());
+                return false;
+            }
+            return res;
+        });
+
     }
 
     public void removeTaskExecutor(Task task){

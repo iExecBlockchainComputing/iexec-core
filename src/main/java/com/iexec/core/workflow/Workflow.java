@@ -31,10 +31,16 @@ public class Workflow<T> {
         return possibleTransitions.put(from, to) != null;
     }
 
-    void addTransitionToAllStatuses(T status) {
+    void addTransitionFromAllStatusesTo(T status) {
         for (T key : possibleTransitions.keySet()) {
             addTransition(key, status);
         }
+    }
+
+    void addTransitionFromStatusToAllStatuses(T status) {
+        List<T> to = new ArrayList<T>();
+        to.addAll(possibleTransitions.keySet());
+        addTransition(status, to);
     }
 
     public boolean isValidTransition(T from, T to){

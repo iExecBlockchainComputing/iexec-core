@@ -32,4 +32,20 @@ public class TaskModel {
     private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
     private String consensus;
+
+    public TaskModel(Task task, List<Replicate> replicates) {
+        this.id = task.getId();
+        this.version = task.getVersion();
+        this.chainTaskId = task.getChainTaskId();
+        this.dappType = task.getDappType();
+        this.dappName = task.getDappName();
+        this.commandLine = task.getCommandLine();
+        this.currentStatus = task.getCurrentStatus();
+        this.dateStatusList = task.getDateStatusList();
+        this.replicates = replicates;
+        this.trust = task.getTrust();
+        this.numWorkersNeeded = task.getNumWorkersNeeded();
+        this.uploadingWorkerWalletAddress = task.getUploadingWorkerWalletAddress();
+        this.consensus = task.getConsensus();
+    }
 }
