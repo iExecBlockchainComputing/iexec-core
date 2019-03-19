@@ -440,9 +440,7 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        String resultUri = resultRepositoryConfig.getResultRepositoryURL()
-                + "/results/" + task.getChainTaskId();
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), resultUri);
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink());
 
         if (!optionalChainReceipt.isPresent()) {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
