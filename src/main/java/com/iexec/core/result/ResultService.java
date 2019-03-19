@@ -1,9 +1,6 @@
 package com.iexec.core.result;
 
 import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.chain.ChainTask;
-import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.result.ipfs.IPFSService;

@@ -4,7 +4,7 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.tee.TeeUtils;
+import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
@@ -14,13 +14,9 @@ import com.iexec.core.task.event.ContributionTimeoutEvent;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.event.ResultUploadTimeoutEvent;
 import com.iexec.core.task.event.TaskCompletedEvent;
-import com.iexec.core.worker.Worker;
-import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -36,27 +32,26 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
 
     private TaskRepository taskRepository;
-    private WorkerService workerService;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
     private ResultRepositoryConfiguration resultRepositoryConfig;
 
+
     public TaskService(TaskRepository taskRepository,
-                       WorkerService workerService,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
                        ApplicationEventPublisher applicationEventPublisher,
                        ResultRepositoryConfiguration resultRepositoryConfig) {
         this.taskRepository = taskRepository;
-        this.workerService = workerService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.resultRepositoryConfig = resultRepositoryConfig;
     }
 
-    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName, String commandLine, int trust, long maxExecutionTime, String tag) {
+    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
+    String commandLine, int trust, long maxExecutionTime, String tag) {
         if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
             log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
                     chainDealId, taskIndex, imageName, commandLine, trust);
@@ -71,6 +66,10 @@ public class TaskService {
         return taskRepository.findByChainTaskId(chainTaskId);
     }
 
+    public List<Task> getTasksByChainTaskIds(List<String> chainTaskIds) {
+        return taskRepository.findByChainTaskId(chainTaskIds);
+    }
+
     public List<Task> findByCurrentStatus(TaskStatus status) {
         return taskRepository.findByCurrentStatus(status);
     }
@@ -79,64 +78,38 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(statusList);
     }
 
+    public List<Task> getInitializedOrRunningTasks() {
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
+    }
+
+    public List<Task> getTasksInNonFinalStatuses() {
+        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
+    }
+
+    public boolean isConsensusReached(Task task) {
+
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!optional.isPresent()) return false;
+
+        ChainTask chainTask = optional.get();
+
+        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+
+        int onChainWinners = chainTask.getWinnerCounter();
+        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
+        boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
+
+        return isChainTaskRevealing && offChainWinnersEqualsOnChainWinners;
+    }
+
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
 
-    private List<Task> getInitializedOrRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
-    }
-
-    private List<Task> getTasksInNonFinalStatuses() {
-        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
-    }
-
-    // in case the task has been modified between reading and writing it, it is retried up to 5 times
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<Replicate> getAvailableReplicate(long blockNumber, String walletAddress) {
-        // return empty if the worker is not registered
-        Optional<Worker> optional = workerService.getWorker(walletAddress);
-        if (!optional.isPresent()) {
-            return Optional.empty();
-        }
-        Worker worker = optional.get();
-
-        // return empty if there is no task to contribute
-        List<Task> runningTasks = getInitializedOrRunningTasks();
-        if (runningTasks.isEmpty()) {
-            return Optional.empty();
-        }
-
-        // return empty if the worker already has enough running tasks
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
-            return Optional.empty();
-        }
-
-        for (Task task : runningTasks) {
-            // skip the task if it needs TEE and the worker doesn't support it
-            boolean doesTaskNeedTEE = TeeUtils.isTrustedExecutionTag(task.getTag());
-            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
-                continue;
-            }
-
-            String chainTaskId = task.getChainTaskId();
-            boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0 && task.getInitializationBlockNumber() <= blockNumber;
-            if (blockNumberAvailable &&
-                    !replicatesService.hasWorkerAlreadyParticipated(chainTaskId, walletAddress) &&
-                    replicatesService.moreReplicatesNeeded(chainTaskId, task.getNumWorkersNeeded(), task.getMaxExecutionTime())) {
-                replicatesService.addNewReplicate(chainTaskId, walletAddress);
-                workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
-                return replicatesService.getReplicate(chainTaskId, walletAddress);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    void tryUpgradeTaskStatus(String chainTaskId) {
+    boolean tryUpgradeTaskStatus(String chainTaskId) {
         Optional<Task> optional = getTaskByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
-            return;
+            return false;
         }
         Task task = optional.get();
 
@@ -168,6 +141,7 @@ public class TaskService {
                 resultUploaded2Finalized2Completed(task);
                 break;
         }
+        return true;
     }
 
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
@@ -252,20 +226,13 @@ public class TaskService {
 
     private void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
+        boolean isConsensusReached = isConsensusReached(task);
 
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()) {
-            return;
-        }
-        ChainTask chainTask = optional.get();
-
-        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-
-        int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
-        boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
-
-        if (isTaskInRunningStatus && isChainTaskRevealing && offChainWinnersEqualsOnChainWinners) {
+        if (isTaskInRunningStatus && isConsensusReached) {
+            Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+            if (!optional.isPresent()) return;
+    
+            ChainTask chainTask = optional.get();    
 
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
@@ -412,6 +379,7 @@ public class TaskService {
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
+            replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
 
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }

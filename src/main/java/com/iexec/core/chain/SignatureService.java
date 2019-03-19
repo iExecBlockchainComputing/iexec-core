@@ -13,6 +13,8 @@ import org.web3j.utils.Numeric;
 
 import static com.iexec.common.utils.BytesUtils.EMPTY_ADDRESS;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 public class SignatureService {

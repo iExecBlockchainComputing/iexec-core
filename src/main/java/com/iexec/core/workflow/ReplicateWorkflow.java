@@ -13,11 +13,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         super();
 
         // This is where the whole workflow is defined
-        addTransition(CREATED, RUNNING);
-        addTransition(RUNNING, APP_DOWNLOADING);
+        addTransition(CREATED, toList(RUNNING, RECOVERING));
+        addTransition(RUNNING, toList(APP_DOWNLOADING, RECOVERING));
 
         // app
-        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, RECOVERING));
 
         addTransition(APP_DOWNLOAD_FAILED, toList(
                 // DATA_DOWNLOADING,
@@ -27,10 +27,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
                 CAN_CONTRIBUTE));
 
-        addTransition(APP_DOWNLOADED, DATA_DOWNLOADING);
+        addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, RECOVERING));
 
         // data
-        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
+        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED, RECOVERING));
 
         addTransition(DATA_DOWNLOAD_FAILED, toList(
                 // COMPUTING,
@@ -40,30 +40,31 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
                 CAN_CONTRIBUTE));
 
-        addTransition(DATA_DOWNLOADED, COMPUTING);
+        addTransition(DATA_DOWNLOADED, toList(COMPUTING, RECOVERING));
 
         // computation
-        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
+        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED, RECOVERING));
 
         addTransition(COMPUTED, toList(
                 CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
                 CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
                 CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
                 CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
-                CAN_CONTRIBUTE));
+                CAN_CONTRIBUTE,
+                RECOVERING));
 
         // contribution
-        addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS));
-        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
+        addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS, RECOVERING));
+        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED, RECOVERING));
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
 
         // reveal - completed
-        addTransition(CONTRIBUTED, toList(CANT_REVEAL, OUT_OF_GAS, REVEALING, REVEAL_TIMEOUT));
-        addTransition(REVEALING, toList(REVEAL_TIMEOUT, REVEALED, REVEAL_FAILED));
-        addTransition(REVEALED, toList(RESULT_UPLOADING, COMPLETED));
-        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_REQUEST_FAILED));
-        addTransition(WORKER_LOST, RESULT_UPLOAD_REQUEST_FAILED);
+        addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
+        addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED, REVEAL_TIMEOUT, RECOVERING));
+        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETED, RECOVERING));
+        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
+        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
         addTransition(RESULT_UPLOADED, COMPLETED);
 
         // worker_lost
@@ -72,12 +73,16 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 ABORTED_ON_CONTRIBUTION_TIMEOUT,
                 RESULT_UPLOAD_REQUEST_FAILED,
                 RESULT_UPLOAD_FAILED,
+                REVEAL_TIMEOUT,
                 COMPLETED,
-                REVEAL_TIMEOUT));
+                RECOVERING));
 
         // from any status to WORKER_LOST or ERROR
-        addTransitionToAllStatuses(WORKER_LOST);
-        addTransitionToAllStatuses(ERROR);
+        addTransitionFromAllStatusesTo(WORKER_LOST);
+        addTransitionFromAllStatusesTo(FAILED);
+
+        addTransitionFromStatusToAllStatuses(RECOVERING);
+        addTransition(RECOVERING, COMPLETED);
     }
 
     public static synchronized ReplicateWorkflow getInstance() {

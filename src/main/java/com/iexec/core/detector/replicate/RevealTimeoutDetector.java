@@ -47,7 +47,7 @@ public class RevealTimeoutDetector implements Detector {
 
     private void detectTaskAfterRevealDealLineWithAtLeastOneReveal() {
         List<Task> tasks = new ArrayList<>(taskService.findByCurrentStatus(Arrays.asList(AT_LEAST_ONE_REVEALED,
-                RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING, RESULT_UPLOADED)));
+                TaskStatus.RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING, RESULT_UPLOADED)));
 
         for (Task task : tasks) {
             Date now = new Date();
