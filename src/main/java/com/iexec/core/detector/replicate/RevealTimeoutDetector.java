@@ -20,6 +20,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADED;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
+import static com.iexec.core.task.TaskStatus.RESULT_UPLOAD_REQUESTED;
 
 @Slf4j
 @Service
