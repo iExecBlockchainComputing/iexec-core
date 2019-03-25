@@ -193,8 +193,8 @@ buildImage.dependsOn prepareDockerFile
 buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
-    if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
-        commandLine("sh", "-c", "docker login -u " + project.dockerHubUser + " -p " + project.dockerHubPassword + " && " +
+    if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
+        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " && " +
                 "docker push " + getDockerImageNameFull() + " && " +
                 "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
                 "docker push " + getDockerImageNameShortCommit() + " && " +
@@ -205,4 +205,4 @@ task pushImage(type: Exec) {
 }
 
 pushImage.dependsOn buildImage
-pushImage.enabled = isMasterBranch && project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")
+pushImage.enabled = isMasterBranch && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
