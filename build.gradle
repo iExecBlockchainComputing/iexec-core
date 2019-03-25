@@ -28,11 +28,8 @@ repositories {
     mavenCentral()
     jcenter()
     maven {
-       url "https://packagecloud.io/priv/${token}/iexec/common/maven2"
+        url "https://nexus.iex.ec/repository/hosted-maven"
     }
-    //maven {
-    //    url "https://nexus.iex.ec/repository/hosted-maven"
-    //}
 
     maven { url "https://jitpack.io" }
 }
@@ -107,7 +104,7 @@ build.dependsOn jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "remotes/origin/master"
-def canUploadArchives = isMasterBranch
+def canUploadArchives = true // isMasterBranch
 def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
@@ -118,8 +115,8 @@ uploadSpringBootJar {
         pom.artifactId = project.name
         pom.version = version
         configuration = configurations.springBootJar
-        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
-            authentication(password: packageCloudPassword)
+        repository(url: "https://nexus.iex.ec/repository/hosted-maven/") {
+            authentication(userName: nexusUser, password: nexusPassword)
         }
     }
 }
@@ -131,8 +128,8 @@ uploadLibraryJar {
         pom.artifactId = LIBRARY_JAR_NAME
         pom.version = version
         configuration = configurations.libraryJar
-        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
-            authentication(password: packageCloudPassword)
+        repository(url: "https://nexus.iex.ec/repository/hosted-maven/") {
+            authentication(userName: nexusUser, password: nexusPassword)
         }
     }
 }
