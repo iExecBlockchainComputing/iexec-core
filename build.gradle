@@ -27,12 +27,12 @@ def token = 'curl -XPOST --data name=${UNIQUE_ID} https://58448eb9dc6e105c7a3f77
 repositories {
     mavenCentral()
     jcenter()
-    // maven {
-    //    url "https://packagecloud.io/priv/${token}/iexec/common/maven2"
-    // }
     maven {
-        url "https://nexus.iex.ec/repository/hosted-maven"
+       url "https://packagecloud.io/priv/${token}/iexec/common/maven2"
     }
+    //maven {
+    //    url "https://nexus.iex.ec/repository/hosted-maven"
+    //}
 
     maven { url "https://jitpack.io" }
 }
