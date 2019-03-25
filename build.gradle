@@ -103,7 +103,7 @@ jacoco {
 build.dependsOn jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
-def isMasterBranch = gitBranch == "remotes/origin/master"
+def isMasterBranch = true // gitBranch == "remotes/origin/master"
 def canUploadArchives = true // isMasterBranch
 def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
