@@ -2,13 +2,15 @@ package com.iexec.core.result;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AuthorizationServiceTest {
 
     @Mock
@@ -24,7 +26,6 @@ public class AuthorizationServiceTest {
 
     @Before
     public void init() {
-        MockitoAnnotations.initMocks(this);
         challenge = "0xb7a099c5998bb07a9e30ad6faaa79ddfc70c3475134957de7343ddb13f4c382a";
         challengeSignature = "0x1b0b90d9f17a30d42492c8a2f98a24374600729a98d4e0b663a44ed48b589cab0e445eec300245e590150c7d88340d902c27e0d8673f3257cb8393f647d6c75c1b";
         address = "0xabcd1339Ec7e762e639f4887E2bFe5EE8023E23E";
@@ -59,7 +60,6 @@ public class AuthorizationServiceTest {
 
     @Test
     public void isNotAuthorizedToGetResultSinceChallengeSignatureIsBadFormat() {
-        when(eip712ChallengeService.containsEip712ChallengeString(challenge)).thenReturn(true);
         Authorization authorization = Authorization.builder()
                 .challenge(challenge)
                 .challengeSignature("0xbad")
