@@ -161,7 +161,7 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
-def imageName = "iexechub/iexec-core"
+def imageName = "nexus.iex.ec/iexec-core"
 
 project.ext.getDockerImageNameFull = {
     def imageNameWithVersion = imageName + ":${version}"
@@ -194,7 +194,7 @@ buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
     if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
-        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " && " +
+        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " nexus.iex.ec && " +
                 "docker push " + getDockerImageNameFull() + " && " +
                 "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
                 "docker push " + getDockerImageNameShortCommit() + " && " +
