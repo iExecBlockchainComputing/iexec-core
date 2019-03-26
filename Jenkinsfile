@@ -4,19 +4,15 @@ pipeline {
 
     stages {
 
-        stage('Build + Tests') {
-          steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
-                    sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD clean build --refresh-dependencies'
-                }
+        stage('Test') {
+            steps {
+                 sh './gradlew clean test --refresh-dependencies'
             }
         }
 
-        stage('gitbranch') {
-          steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
-                    sh './gradlew gitbranch'
-                }
+        stage('Build') {
+            steps {
+                sh './gradlew build --refresh-dependencies'
             }
         }
 
