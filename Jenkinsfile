@@ -17,7 +17,7 @@ pipeline {
                     }
               }
         }
-        stage('Upload Docker image') {
+        stage('Build/Upload Docker image') {
               steps {
                     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
                         sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD pushImage -PforceDockerBuild'
