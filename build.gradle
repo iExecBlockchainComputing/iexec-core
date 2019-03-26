@@ -20,12 +20,13 @@ apply plugin: 'jacoco'
 
 group = 'com.iexec.core'
 sourceCompatibility = 1.8
+nexusMaven = "https://nexus.iex.ec/repository/maven-public/"
 
 repositories {
     mavenCentral()
     jcenter()
     maven {
-        url "https://nexus.iex.ec/repository/maven-public/"
+        url nexusMaven
     }
 
     maven { url "https://jitpack.io" }
@@ -113,7 +114,7 @@ uploadSpringBootJar {
         pom.artifactId = project.name
         pom.version = version
         configuration = configurations.springBootJar
-        repository(url: "https://nexus.iex.ec/repository/hosted-maven/") {
+        repository(url: nexusMaven) {
             authentication(userName: project.nexusUser, password: project.nexusPassword)
         }
     }
@@ -126,7 +127,7 @@ uploadLibraryJar {
         pom.artifactId = LIBRARY_JAR_NAME
         pom.version = version
         configuration = configurations.libraryJar
-        repository(url: "https://nexus.iex.ec/repository/hosted-maven/") {
+        repository(url: nexusMaven) {
             authentication(userName: project.nexusUser, password: project.nexusPassword)
         }
     }
