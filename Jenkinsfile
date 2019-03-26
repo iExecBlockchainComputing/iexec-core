@@ -11,6 +11,15 @@ pipeline {
                 }
             }
         }
+
+        stage('gitbranch') {
+          steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
+                    sh './gradlew gitbranch'
+                }
+            }
+        }
+
         stage('Upload Jars') {
               steps {
                     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {

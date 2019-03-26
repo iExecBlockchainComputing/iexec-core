@@ -106,6 +106,7 @@ def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
 uploadSpringBootJar {
+    
     description 'Upload the executable jar version of the core'
     repositories.mavenDeployer {
         pom.groupId = project.group
@@ -140,6 +141,10 @@ uploadArchives.dependsOn uploadSpringBootJar
 
 
 import org.apache.tools.ant.filters.ReplaceTokens
+
+task gitbranch(){
+    println gitBranch
+}
 
 // create the version controller for the core
 task createVersion(type: Copy) {
