@@ -20,7 +20,7 @@ apply plugin: 'jacoco'
 
 group = 'com.iexec.core'
 sourceCompatibility = 1.8
-nexusMaven = "https://nexus.iex.ec/repository/maven-public/"
+def nexusMaven = "https://nexus.iex.ec/repository/maven-public/"
 
 repositories {
     mavenCentral()
