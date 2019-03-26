@@ -16,12 +16,12 @@ public class SmsConfiguration {
     private String smsProtocol;
 
     @Value("${sms.ip}")
-    private String smsIP;
+    private String smsIp;
 
     @Value("${sms.port}")
     private String smsPort;
 
     public String getSmsURL() {
-        return smsProtocol + "://" + smsIP + ":" + smsProtocol;
+        return smsProtocol + "://" + smsIp + ":" + smsProtocol;
     }
 }

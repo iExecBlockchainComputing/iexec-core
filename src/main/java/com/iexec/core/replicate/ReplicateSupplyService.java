@@ -24,10 +24,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import lombok.extern.slf4j.Slf4j;
 
-
-@Slf4j
 @Service
 public class ReplicateSupplyService {
 
