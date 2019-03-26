@@ -176,7 +176,7 @@ project.ext.getDockerImageNameShortCommit = {
 
 task prepareDockerFile(type: Copy) {
     delete 'build/main/resources/'
-    from 'src/main/resources/Dockerfile'
+    from 'Dockerfile'
     into 'build/main/resources/'
     filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
 }
