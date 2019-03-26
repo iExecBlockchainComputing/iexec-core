@@ -3,6 +3,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Build + Tests') {
           steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
