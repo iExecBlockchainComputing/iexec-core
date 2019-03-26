@@ -100,12 +100,13 @@ jacoco {
 build.dependsOn jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
-def isMasterBranch = gitBranch == "remotes/origin/master"
+def isMasterBranch = gitBranch == "master"
 def canUploadArchives = isMasterBranch && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
 def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
 
 uploadSpringBootJar {
+
     description 'Upload the executable jar version of the core'
     repositories.mavenDeployer {
         pom.groupId = project.group
