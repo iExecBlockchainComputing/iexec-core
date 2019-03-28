@@ -5,14 +5,14 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                 sh './gradlew clean test --refresh-dependencies'
+                 sh './gradlew clean test --refresh-dependencies --no-daemon'
                  junit 'build/test-results/test/*.xml'
             }
         }
 
         stage('Build') {
             steps {
-                sh './gradlew build --refresh-dependencies'
+                sh './gradlew build --refresh-dependencies --no-daemon'
             }
         }
 
@@ -22,7 +22,7 @@ pipeline {
             }
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
-                    sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD uploadArchives'
+                    sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD uploadArchives --no-daemon'
                 }
             }
         }
@@ -32,7 +32,7 @@ pipeline {
             }
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
-                    sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD pushImage'
+                    sh './gradlew -PnexusUser=$NEXUS_USER -PnexusPassword=$NEXUS_PASSWORD pushImage --no-daemon'
                 }
             }
         }
