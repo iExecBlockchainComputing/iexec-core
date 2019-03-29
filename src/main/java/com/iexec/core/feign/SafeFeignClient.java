@@ -33,10 +33,11 @@ public class SafeFeignClient {
         return null;    
     }
 
-    public String generateSmsAttestation(String chainTaskId) {
+    public String generateEnclaveChallenge(String chainTaskId) {
         try {
-            return this.smsClient.generateSmsAttestation(chainTaskId);
+            return smsClient.generateEnclaveChallenge(chainTaskId).getAddress();
         } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
     }
