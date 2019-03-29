@@ -41,9 +41,22 @@ public class WorkerServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
+        Worker newWorker = Worker.builder()
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("otherOS")
+                .cpu("otherCpu")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .build();
+
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
-        Worker addedWorker = workerService.addWorker(existingWorker);
-        assertThat(addedWorker).isEqualTo(existingWorker);
+        when(workerRepository.save(Mockito.any())).thenReturn(newWorker);
+
+        Worker addedWorker = workerService.addWorker(newWorker);
+
+        assertThat(addedWorker).isNotEqualTo(existingWorker);
+        assertThat(addedWorker.getId()).isEqualTo(existingWorker.getId());
     }
 
     @Test
