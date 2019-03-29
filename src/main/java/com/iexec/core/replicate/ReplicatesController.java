@@ -54,25 +54,13 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        // get available replicate
-        Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(blockNumber, workerWalletAddress);
-        if (!optional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
-        Replicate replicate = optional.get();
+        // get contributionAuthorization if a replicate is available
+        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService
+                .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress);
 
-        // get associated task
-        Optional<Task> taskOptional = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
-        if (!taskOptional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
-        Task task = taskOptional.get();
-
-        // generate contribution authorization
-        ContributionAuthorization authorization = signatureService.createAuthorization(
-                workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
-
-        return ResponseEntity.ok(authorization);
+        return oAuthorization
+                .<ResponseEntity<ContributionAuthorization>>map(ResponseEntity::ok)
+                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @GetMapping("/replicates/interrupted")
