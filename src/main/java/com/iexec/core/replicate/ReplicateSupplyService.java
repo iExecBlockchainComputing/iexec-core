@@ -11,7 +11,6 @@ import com.iexec.common.disconnection.InterruptedReplicateModel;
 import com.iexec.common.disconnection.RecoveryAction;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
