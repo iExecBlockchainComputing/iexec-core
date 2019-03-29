@@ -30,7 +30,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect tasks with upload timeout");
+        log.debug("Trying to detect tasks with upload timeout");
 
         List<Task> inUploadStatus = taskService.findByCurrentStatus(Arrays.asList(
                 TaskStatus.RESULT_UPLOAD_REQUESTED,

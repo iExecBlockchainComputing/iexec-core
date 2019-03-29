@@ -38,7 +38,7 @@ public class RevealTimeoutDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.reveal.timeout.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect reveal timeout");
+        log.debug("Trying to detect reveal timeout");
 
         detectTaskAfterRevealDealLineWithZeroReveal();//finalizable
 
