@@ -27,14 +27,14 @@ public class SignatureService {
         Sign.SignatureData sign = Sign.signPrefixedMessage(
                 BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
-        String smsIp = smsConfiguration.getSmsIp();
+        String smsIp = smsConfiguration.getSmsURL();
 
         return ContributionAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclaveChallenge(enclaveChallenge)
                 .signature(new Signature(sign))
-                .smsIp(smsIp)
+                .smsURL(smsIp)
                 .build();
     }
 }

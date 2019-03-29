@@ -11,13 +11,11 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 
 public class SignatureServiceTests {
 
@@ -54,7 +52,7 @@ public class SignatureServiceTests {
         String dummyIp = "dummyIP";
 
         when(credentialsService.getCredentials()).thenReturn(Credentials.create(privateKey));
-        when(smsConfiguration.getSmsIp()).thenReturn(dummyIp);
+        when(smsConfiguration.getSmsURL()).thenReturn(dummyIp);
 
         // creation
         ContributionAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveChallenge);
@@ -68,7 +66,7 @@ public class SignatureServiceTests {
                         BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
                         BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"),
                         (byte)28))
-                .smsIp(dummyIp)
+                .smsURL(dummyIp)
                 .build();
 
         assertEquals(authorization, expected);
