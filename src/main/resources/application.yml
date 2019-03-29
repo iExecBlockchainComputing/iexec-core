@@ -53,3 +53,10 @@ sms:
 ipfs:
   host: ${IEXEC_IPFS_HOST:127.0.0.1}
   port: ${IEXEC_IPFS_PORT:5001}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - httptrace
