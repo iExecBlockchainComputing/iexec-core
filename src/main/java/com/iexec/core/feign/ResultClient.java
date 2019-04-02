@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import feign.FeignException;
 
 @FeignClient(
-    name = "ResultRepoClient",
-    url = "#{publicConfigurationService.resultRepositoryURL}"
+    name = "ResultClient",
+    url = "#{feignURLs.resultRepositoryURL}"
 )
 
 public interface ResultClient {

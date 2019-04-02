@@ -1,6 +1,6 @@
 package com.iexec.core.feign;
 
-import com.iexec.common.sms.SmsEnclaveChallenge;
+import com.iexec.common.sms.SmsEnclaveChallengeResponse;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,11 +10,11 @@ import feign.FeignException;
 
 @FeignClient(
     name = "SmsClient",
-    url = "#{smsConfiguration.smsURL}"
+    url = "#{feignURLs.smsURL}"
 )
 
 public interface SmsClient {
 
     @GetMapping("/attestation/generate/{chainTaskId}")
-    SmsEnclaveChallenge generateEnclaveChallenge(@PathVariable(name = "chainTaskId") String chainTaskId) throws FeignException;
+    SmsEnclaveChallengeResponse generateEnclaveChallenge(@PathVariable(name = "chainTaskId") String chainTaskId) throws FeignException;
 }
