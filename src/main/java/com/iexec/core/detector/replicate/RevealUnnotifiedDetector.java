@@ -34,7 +34,7 @@ public class RevealUnnotifiedDetector implements Detector {
 
     @Scheduled(fixedRateString = "${detector.reveal.unnotified.period}")
     public void detect() {
-        log.info("Trying to detectUnNotifiedRevealed");
+        log.debug("Trying to detectUnNotifiedRevealed");
         //check if a worker has revealed on-chain but hasn't notified off-chain
         for (Task task : taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())) {
             String taskId = task.getChainTaskId();

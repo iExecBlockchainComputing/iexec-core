@@ -31,7 +31,6 @@ public class WorkerLostDetector implements Detector {
             for (String chainTaskId : worker.getParticipatingChainTaskIds()) {
                 replicatesService.getReplicate(chainTaskId, workerWallet).ifPresent(replicate -> {
                     if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
-                        workerService.removeChainTaskIdFromWorker(chainTaskId, workerWallet);
                         replicatesService.updateReplicateStatus(chainTaskId, workerWallet,
                                 ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
                     }
