@@ -69,10 +69,6 @@ public class WorkerLostDetectorTests {
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
-
-        // verify that the worker should remove the taskId from its current tasks
-        Mockito.verify(workerService, Mockito.times(1))
-                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET_WORKER);
     }
 
     // similar test with previous except that the Replicate is already is WORKER_LOST status.
