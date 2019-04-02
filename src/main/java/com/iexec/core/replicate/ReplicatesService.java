@@ -224,7 +224,7 @@ public class ReplicatesService {
                                       ChainReceipt chainReceipt,
                                       String resultLink) {
 
-        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
+        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !isResultUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
                             + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
                     chainTaskId, walletAddress);
@@ -373,7 +373,7 @@ public class ReplicatesService {
         }
     }
 
-    public boolean hasResultBeenUploaded(String chainTaskId) {
+    public boolean isResultUploaded(String chainTaskId) {
         // currently no check in case of IPFS
         if(iexecHubService.isPublicResult(chainTaskId, 0)){
             return true;

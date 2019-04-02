@@ -744,7 +744,7 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(false);
+        when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         List<InterruptedReplicateModel> interruptedReplicates =
                 replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
@@ -772,7 +772,7 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(true);
+        when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
                 replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
@@ -803,7 +803,7 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        when(replicatesService.hasResultBeenUploaded(CHAIN_TASK_ID)).thenReturn(true);
+        when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
                 replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
