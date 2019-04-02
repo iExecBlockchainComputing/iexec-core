@@ -38,7 +38,7 @@ public class ContributionUnnotifiedDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.contribution.unnotified.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect un-notified contributed");
+        log.debug("Trying to detect un-notified contributed");
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 //check if a worker has contributed on-chain but hasn't notified off-chain
