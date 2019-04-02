@@ -46,7 +46,7 @@ workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
 
 resultRepository:
-  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
+  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:https}
   ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 

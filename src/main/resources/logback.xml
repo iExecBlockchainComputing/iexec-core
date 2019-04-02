@@ -7,4 +7,6 @@
 
     <logger name="org.springframework.web" level="${LOG_LEVEL}"/>
 
+    <logger name="org.springframework.web.socket" level="TRACE"/>
+
 </configuration>
