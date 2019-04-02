@@ -12,20 +12,22 @@ services:
     container_name: mongo
 
   core:
-    image: iexechub/iexec-core:3.0.0-alpha2
+    image: nexus.iex.ec/iexec-core:3.0.0-SNAPSHOT-ef6a068
     container_name: core
     environment:
     - MONGO_HOST=mongo
     - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
     - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
     - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
+    - IEXEC_IPFS_HOST=ipfs
     volumes:
-      - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
     ports:
     - 18090:18090
     restart: on-failure
     depends_on:
       - mongo
+      - ipfs
 
   mongo_ui:
     image: mongo-express:0.49
@@ -50,11 +52,11 @@ services:
 
   ipfs:
     image: jbenet/go-ipfs:latest
-      container_name: ipfs-node
-      ports:
-        - 8080:8080
-        - 4001:4001
-        - 5001:5001
-      volumes:
-        - /tmp/ipfs-docker-staging:/export
-        - /tmp/ipfs-docker-data:/data/ipfs
+    container_name: ipfs
+    ports:
+      - 8080:8080
+      - 4001:4001
+      - 5001:5001
+    volumes:
+      - /tmp/ipfs-docker-staging:/export
+      - /tmp/ipfs-docker-data:/data/ipfs

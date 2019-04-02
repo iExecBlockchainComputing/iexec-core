@@ -1,5 +1,6 @@
 package com.iexec.core.result.ipfs;
 
+import com.iexec.core.utils.NetworkUtils;
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
 import io.ipfs.api.NamedStreamable;
@@ -17,7 +18,9 @@ public class IPFSService {
     private IPFS ipfs;
 
     public IPFSService(IPFSConfig ipfsConfig) {
-        String multiAddress = "/ip4/" + ipfsConfig.getHost() + "/tcp/" + ipfsConfig.getPort();
+        String ipfsHost = ipfsConfig.getHost();
+        String ipfsNodeIp = NetworkUtils.isIPAddress(ipfsHost) ? ipfsHost : NetworkUtils.convertHostToIp(ipfsHost);
+        String multiAddress = "/ip4/" + ipfsNodeIp + "/tcp/" + ipfsConfig.getPort();
         ipfs = new IPFS(multiAddress);
     }
 

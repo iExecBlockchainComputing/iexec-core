@@ -21,15 +21,14 @@ apply plugin: 'jacoco'
 group = 'com.iexec.core'
 sourceCompatibility = 1.8
 
-def UNIQUE_ID = 'hostname -f'.execute().text.trim()
-def token = 'curl -XPOST --data name=${UNIQUE_ID} https://58448eb9dc6e105c7a3f77c74880f451234251ea3eeae544:@packagecloud.io/install/repositories/iexec/common/tokens.text'.execute().text.trim()
 
 repositories {
     mavenCentral()
     jcenter()
     maven {
-        url "https://packagecloud.io/priv/${token}/iexec/common/maven2"
+        url "https://nexus.iex.ec/repository/maven-public/"
     }
+
     maven { url "https://jitpack.io" }
 }
 
@@ -113,10 +112,19 @@ jacoco {
 build.dependsOn jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
-def isMasterBranch = gitBranch == "remotes/origin/master"
-def canUploadArchives = isMasterBranch
+def isMasterBranch = gitBranch == "master"
+def canUploadArchives = isMasterBranch && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
 def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
 def isSnapshotVersion = project.version.contains("SNAPSHOT")
+
+project.ext.getNexusMaven = {
+    def nexusMavenBase = "https://nexus.iex.ec/repository"
+    if (isSnapshotVersion) {
+        return nexusMavenBase + "/maven-snapshots/"
+    } else {
+        return nexusMavenBase + "/maven-releases/"
+    }
+}
 
 uploadSpringBootJar {
     description 'Upload the executable jar version of the core'
@@ -125,8 +133,8 @@ uploadSpringBootJar {
         pom.artifactId = project.name
         pom.version = version
         configuration = configurations.springBootJar
-        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
-            authentication(password: packageCloudPassword)
+        repository(url: getNexusMaven()) {
+            authentication(userName: project.nexusUser, password: project.nexusPassword)
         }
     }
 }
@@ -138,8 +146,8 @@ uploadLibraryJar {
         pom.artifactId = LIBRARY_JAR_NAME
         pom.version = version
         configuration = configurations.libraryJar
-        repository(url: "packagecloud+https://packagecloud.io/iexec/core") {
-            authentication(password: packageCloudPassword)
+        repository(url: getNexusMaven()) {
+            authentication(userName: project.nexusUser, password: project.nexusPassword)
         }
     }
 }
@@ -171,7 +179,7 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
-def imageName = "iexechub/iexec-core"
+def imageName = "nexus.iex.ec/iexec-core"
 
 project.ext.getDockerImageNameFull = {
     def imageNameWithVersion = imageName + ":${version}"
@@ -188,7 +196,7 @@ project.ext.getDockerImageNameShortCommit = {
 
 task prepareDockerFile(type: Copy) {
     delete 'build/main/resources/'
-    from 'src/main/resources/Dockerfile'
+    from 'Dockerfile'
     into 'build/main/resources/'
     filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
 }
@@ -203,8 +211,8 @@ buildImage.dependsOn prepareDockerFile
 buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
-    if (project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")) {
-        commandLine("sh", "-c", "docker login -u " + project.dockerHubUser + " -p " + project.dockerHubPassword + " && " +
+    if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
+        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " nexus.iex.ec && " +
                 "docker push " + getDockerImageNameFull() + " && " +
                 "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
                 "docker push " + getDockerImageNameShortCommit() + " && " +
@@ -215,4 +223,4 @@ task pushImage(type: Exec) {
 }
 
 pushImage.dependsOn buildImage
-pushImage.enabled = isMasterBranch && project.hasProperty("dockerHubUser") && project.hasProperty("dockerHubPassword")
+pushImage.enabled = isMasterBranch && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
