@@ -1,8 +1,12 @@
 package com.iexec.core.feign;
 
 import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.common.sms.SmsEnclaveChallengeResponse;
 import com.iexec.core.chain.ChainConfig;
 
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import feign.FeignException;
@@ -13,32 +17,57 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class SafeFeignClient {
 
+    private static final int BACKOFF = 2000; // 2s
+    private static final int MAX_ATTEMPS = 5;
+
     private ChainConfig chainConfig;
     private ResultClient resultClient;
     private SmsClient smsClient;
 
-    public SafeFeignClient(ChainConfig chainConfig) {
+    public SafeFeignClient(ChainConfig chainConfig,
+                           ResultClient resultClient,
+                           SmsClient smsClient) {
         this.chainConfig = chainConfig;
+        this.resultClient = resultClient;
+        this.smsClient = smsClient;
     }
 
+    @Retryable (
+        value = {FeignException.class},
+        maxAttempts = MAX_ATTEMPS,
+        backoff = @Backoff(delay = BACKOFF)
+    )
     public Eip712Challenge getResultRepoChallenge() {
-        for (int i : new int[]{1, 2, 3}) {
-            try {
-                return resultClient.getChallenge(this.chainConfig.getChainId());
-            } catch (FeignException e) {
-                log.error("Failed to get resultRepo challenge, will retry [instance:{}, retry:{}]", i);
-            }
-        }
-
-        return null;    
+        return resultClient.getChallenge(this.chainConfig.getChainId());
     }
 
+    @Recover
+    public Eip712Challenge getResultRepoChallenge(FeignException e) {
+        log.error("Failed to get challenge from resultRepo [attempts:{}]", MAX_ATTEMPS);
+        return null;
+    }
+
+    @Retryable (
+        value = {FeignException.class},
+        maxAttempts = MAX_ATTEMPS,
+        backoff = @Backoff(delay = BACKOFF)
+    )
     public String generateEnclaveChallenge(String chainTaskId) {
-        try {
-            return smsClient.generateEnclaveChallenge(chainTaskId).getAddress();
-        } catch (Exception e) {
-            e.printStackTrace();
+        SmsEnclaveChallengeResponse smsResponse = smsClient.generateEnclaveChallenge(chainTaskId);
+
+        if (smsResponse == null || !smsResponse.isOk() || smsResponse.getData() == null) {
+            log.error("An error occured while getting enclaveChallenge [erroMsg:{}]", smsResponse.getErrorMessage());
             return "";
         }
+
+        return smsResponse.getData().getAddress();
     }
+
+    @Recover
+    public String generateEnclaveChallenge(FeignException e, String chainTaskId) {
+        log.error("Failed to get enclaveChallenge from SMS [attempts:{}]", MAX_ATTEMPS);
+        e.printStackTrace();
+        return "";
+    }
+
 }
