@@ -145,7 +145,8 @@ public class IexecHubService extends IexecHubAbstractService {
                 (!initializeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
                         || isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain))) {
             String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId);
+
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId, web3jService.getLatestBlockNumber());
 
             log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
                     computedChainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
@@ -214,7 +215,7 @@ public class IexecHubService extends IexecHubAbstractService {
         if (finalizeEvent != null && finalizeEvent.log != null &&
                 (!finalizeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
                         || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId);
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
             log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, finalizeReceipt.getGasUsed());
             return Optional.of(chainReceipt);
@@ -275,7 +276,7 @@ public class IexecHubService extends IexecHubAbstractService {
         }
 
         log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
         return Optional.of(chainReceipt);
     }
