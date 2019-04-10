@@ -49,10 +49,8 @@ public class SignatureServiceTests {
         String chainTaskid = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";
         String enclaveChallenge = "0x9a43BB008b7A657e1936ebf5d8e28e5c5E021596";
         String privateKey = "0x2a46e8c1535792f6689b10d5c882c9363910c30751ec193ae71ec71630077909";
-        String dummyIp = "dummyIP";
 
         when(credentialsService.getCredentials()).thenReturn(Credentials.create(privateKey));
-        when(smsConfiguration.getSmsURL()).thenReturn(dummyIp);
 
         // creation
         ContributionAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveChallenge);
@@ -66,7 +64,6 @@ public class SignatureServiceTests {
                         BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
                         BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"),
                         (byte)28))
-                .smsURL(dummyIp)
                 .build();
 
         assertEquals(authorization, expected);

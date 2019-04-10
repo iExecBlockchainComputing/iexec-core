@@ -32,11 +32,9 @@ public class SafeFeignClient {
         this.smsClient = smsClient;
     }
 
-    @Retryable (
-        value = {FeignException.class},
-        maxAttempts = MAX_ATTEMPS,
-        backoff = @Backoff(delay = BACKOFF)
-    )
+    @Retryable (value = {FeignException.class},
+                maxAttempts = MAX_ATTEMPS,
+                backoff = @Backoff(delay = BACKOFF))
     public Eip712Challenge getResultRepoChallenge() {
         return resultClient.getChallenge(this.chainConfig.getChainId());
     }
@@ -47,16 +45,15 @@ public class SafeFeignClient {
         return null;
     }
 
-    @Retryable (
-        value = {FeignException.class},
-        maxAttempts = MAX_ATTEMPS,
-        backoff = @Backoff(delay = BACKOFF)
-    )
+    @Retryable (value = {FeignException.class},
+                maxAttempts = MAX_ATTEMPS,
+                backoff = @Backoff(delay = BACKOFF))
     public String generateEnclaveChallenge(String chainTaskId) {
         SmsEnclaveChallengeResponse smsResponse = smsClient.generateEnclaveChallenge(chainTaskId);
 
         if (smsResponse == null || !smsResponse.isOk() || smsResponse.getData() == null) {
-            log.error("An error occured while getting enclaveChallenge [erroMsg:{}]", smsResponse.getErrorMessage());
+            log.error("An error occured while getting enclaveChallenge [chainTaskId:{}, erroMsg:{}]",
+                    chainTaskId, smsResponse.getErrorMessage());
             return "";
         }
 
@@ -65,7 +62,7 @@ public class SafeFeignClient {
 
     @Recover
     public String generateEnclaveChallenge(FeignException e, String chainTaskId) {
-        log.error("Failed to get enclaveChallenge from SMS [attempts:{}]", MAX_ATTEMPS);
+        log.error("Failed to get enclaveChallenge from SMS [chainTaskId:{}, attempts:{}]", chainTaskId, MAX_ATTEMPS);
         e.printStackTrace();
         return "";
     }
