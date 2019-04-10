@@ -286,6 +286,12 @@ public class ReplicatesService {
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {
+            if (resultLink == null || resultLink.isEmpty()){
+                log.error("UpdateReplicateStatus failed (empty resultLink) [chainTaskId:{}, walletAddress:{}, " +
+                                "currentStatus:{}, newStatus:{}, resultLink:{}]",
+                        chainTaskId, walletAddress, currentStatus, newStatus, resultLink);
+                return;
+            }
             replicate.setResultLink(resultLink);
         }
         replicate.updateStatus(newStatus, modifier, chainReceipt);
