@@ -21,7 +21,13 @@ public class IPFSService {
         String ipfsHost = ipfsConfig.getHost();
         String ipfsNodeIp = NetworkUtils.isIPAddress(ipfsHost) ? ipfsHost : NetworkUtils.convertHostToIp(ipfsHost);
         String multiAddress = "/ip4/" + ipfsNodeIp + "/tcp/" + ipfsConfig.getPort();
-        ipfs = new IPFS(multiAddress);
+        try{
+            ipfs = new IPFS(multiAddress);
+        } catch (Exception e) {
+            log.error("Exception when inializing IPFS [exception:{}]", e.getMessage());
+            log.warn("Shutting down the service since IPFS is necessary");
+            System.exit(1);
+        }
     }
 
     public Optional<byte[]> getContent(String ipfsHash) {
