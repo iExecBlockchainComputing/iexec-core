@@ -37,8 +37,7 @@ public class WorkerService {
             log.info("Registering new worker");
         }
 
-        Worker savedWorker = workerRepository.save(worker);
-        return savedWorker;
+        return workerRepository.save(worker);
     }
 
     public Optional<Worker> updateLastAlive(String walletAddress) {

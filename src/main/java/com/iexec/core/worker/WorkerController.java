@@ -116,7 +116,7 @@ public class WorkerController {
                 .build();
 
         Worker savedWorker = workerService.addWorker(worker);
-        log.info("Worker is ready [worker:{}]", savedWorker);
+        log.info("Worker ready [worker:{}]", savedWorker);
         return ok(savedWorker);
     }
 

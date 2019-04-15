@@ -90,7 +90,7 @@ public class ReplicateSupplyService {
             if (blockNumberAvailable && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
-                if (doesTaskNeedTEE && enclaveChallenge.isEmpty()) continue;
+                if (enclaveChallenge.isEmpty()) continue;
 
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
