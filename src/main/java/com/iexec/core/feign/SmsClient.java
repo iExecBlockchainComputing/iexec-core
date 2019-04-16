@@ -16,5 +16,6 @@ import feign.FeignException;
 public interface SmsClient {
 
     @GetMapping("/attestation/generate/{chainTaskId}")
-    SmsEnclaveChallengeResponse generateEnclaveChallenge(@PathVariable(name = "chainTaskId") String chainTaskId) throws FeignException;
+    SmsEnclaveChallengeResponse generateEnclaveChallenge(@PathVariable("chainTaskId") String chainTaskId)
+            throws FeignException;
 }

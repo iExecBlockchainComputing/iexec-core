@@ -1,20 +1,22 @@
 package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.feign.SafeFeignClient;
+import com.iexec.core.feign.SmsClientWrapper;
 
 import org.springframework.stereotype.Service;
 
 @Service
 public class SmsService {
 
-    private SafeFeignClient safeFeignClient;
+    private SmsClientWrapper smsClientWrapper;
 
-    public SmsService(SafeFeignClient safeFeignClient) {
-        this.safeFeignClient = safeFeignClient;
+    public SmsService(SmsClientWrapper smsClientWrapper) {
+        this.smsClientWrapper = smsClientWrapper;
     }
 
     public String getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
-        return isTeeEnabled ? safeFeignClient.generateEnclaveChallenge(chainTaskId) : BytesUtils.EMPTY_ADDRESS;
+        return isTeeEnabled
+            ? smsClientWrapper.generateEnclaveChallenge(chainTaskId)
+            : BytesUtils.EMPTY_ADDRESS;
     }
 }
