@@ -10,9 +10,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultRepoService;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.crypto.Credentials;
@@ -27,9 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ReplicateServiceTests {
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0x2ab2674aa374fe6415d11f0a8fcbd8027fc1e6a9";
