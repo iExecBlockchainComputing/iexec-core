@@ -23,6 +23,7 @@ public class Replicate {
     private List<ReplicateStatusChange> statusChangeList;
     private String walletAddress;
     private String resultLink;
+    private String chainCallbackData;
     private String chainTaskId;
     private String contributionHash;
     private int credibility;
