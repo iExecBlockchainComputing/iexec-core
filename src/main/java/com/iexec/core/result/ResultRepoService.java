@@ -1,9 +1,10 @@
-package com.iexec.core.feign;
+package com.iexec.core.result;
 
 import java.util.Optional;
 
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.ChainConfig;
+import com.iexec.core.feign.ResultRepoClient;
 
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -15,19 +16,19 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class ResultRepoClientWrapper {
+public class ResultRepoService {
 
     private ChainConfig chainConfig;
-    private ResultRepoClient resultClient;
+    private ResultRepoClient resultRepoClient;
 
-    public ResultRepoClientWrapper(ChainConfig chainConfig, ResultRepoClient resultClient) {
+    public ResultRepoService(ChainConfig chainConfig, ResultRepoClient resultRepoClient) {
         this.chainConfig = chainConfig;
-        this.resultClient = resultClient;
+        this.resultRepoClient = resultRepoClient;
     }
 
     @Retryable (value = FeignException.class)
     public Optional<Eip712Challenge> getChallenge() {
-        return Optional.of(resultClient.getChallenge(chainConfig.getChainId()));
+        return Optional.of(resultRepoClient.getChallenge(chainConfig.getChainId()));
     }
 
     @Recover
@@ -39,7 +40,7 @@ public class ResultRepoClientWrapper {
 
     @Retryable (value = FeignException.class)
     public boolean isResultUploaded(String authorizationToken, String chainTaskId) {
-        return resultClient.isResultUploaded(authorizationToken, chainTaskId)
+        return resultRepoClient.isResultUploaded(authorizationToken, chainTaskId)
                 .getStatusCode()
                 .is2xxSuccessful();
     }

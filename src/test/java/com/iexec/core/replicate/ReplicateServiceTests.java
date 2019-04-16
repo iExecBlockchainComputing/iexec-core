@@ -7,7 +7,7 @@ import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.feign.ResultRepoClientWrapper;
+import com.iexec.core.result.ResultRepoService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,11 +16,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 
-import feign.FeignException;
-
-import java.io.File;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
@@ -47,7 +43,7 @@ public class ReplicateServiceTests {
     @Mock private ApplicationEventPublisher applicationEventPublisher;
     @Mock private Web3jService web3jService;
     @Mock private CredentialsService credentialsService;
-    @Mock private ResultRepoClientWrapper resultRepoClientWrapper;
+    @Mock private ResultRepoService resultRepoService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -606,7 +602,7 @@ public class ReplicateServiceTests {
     @Test
     public void shouldReturnFalseSinceCouldNotGetEIP712Challenge() {
         when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultRepoClientWrapper.getChallenge()).thenReturn(Optional.empty());
+        when(resultRepoService.getChallenge()).thenReturn(Optional.empty());
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
 
@@ -620,7 +616,7 @@ public class ReplicateServiceTests {
         Credentials credentialsMock = mock(Credentials.class);
 
         when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultRepoClientWrapper.getChallenge()).thenReturn(Optional.of(eip712Challenge));
+        when(resultRepoService.getChallenge()).thenReturn(Optional.of(eip712Challenge));
         when(credentialsService.getCredentials()).thenReturn(credentialsMock);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
