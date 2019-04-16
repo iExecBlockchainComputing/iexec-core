@@ -46,13 +46,14 @@ public class ReplicateSupplyServiceTests {
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
     private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
     private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
+    private final static long maxExecutionTime = 60000;
 
     @Mock private ReplicatesService replicatesService;
     @Mock private SignatureService signatureService;
     @Mock private TaskExecutorEngine taskExecutorEngine;
     @Mock private TaskService taskService;
     @Mock private WorkerService workerService;
-    @Mock SmsService smsService;
+    @Mock private SmsService smsService;
 
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
