@@ -1,6 +1,9 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.*;
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -211,7 +214,7 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null, "");
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, ReplicateDetails.builder().build());
     }
 
     // TODO: this method needs to be refactored !
@@ -221,8 +224,8 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
-                                      ChainReceipt chainReceipt,
-                                      String resultLink) {
+                                      ReplicateDetails details) {
+        ChainReceipt chainReceipt = details.getChainReceipt();
 
         if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
@@ -286,13 +289,14 @@ public class ReplicatesService {
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {
-            if (resultLink == null || resultLink.isEmpty()){
+            replicate.setResultLink(details.getResultLink());
+            replicate.setChainCallbackData(details.getChainCallbackData());
+            if (replicate.getResultLink() == null || replicate.getResultLink().isEmpty()) {
                 log.error("UpdateReplicateStatus failed (empty resultLink) [chainTaskId:{}, walletAddress:{}, " +
                                 "currentStatus:{}, newStatus:{}, resultLink:{}]",
-                        chainTaskId, walletAddress, currentStatus, newStatus, resultLink);
+                        chainTaskId, walletAddress, currentStatus, newStatus, replicate.getResultLink());
                 return;
             }
-            replicate.setResultLink(resultLink);
         }
         replicate.updateStatus(newStatus, modifier, chainReceipt);
         replicatesRepository.save(optionalReplicates.get());
@@ -312,8 +316,8 @@ public class ReplicatesService {
                                       String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
-                                      long blockNumber,
-                                      ReplicateStatusModifier modifier) {
+                                      ReplicateStatusModifier modifier,
+                                      ReplicateDetails details) {
         log.error("Maximum number of tries reached [exception:{}]", exception.getMessage());
         exception.printStackTrace();
     }
@@ -381,7 +385,7 @@ public class ReplicatesService {
 
     public boolean hasResultBeenUploaded(String chainTaskId) {
         // currently no check in case of IPFS
-        if(iexecHubService.isPublicResult(chainTaskId, 0)){
+        if (iexecHubService.isPublicResult(chainTaskId, 0)) {
             return true;
         }
 
@@ -418,11 +422,11 @@ public class ReplicatesService {
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
-            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
     }
 
     public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
-            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
+                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
     }
 }

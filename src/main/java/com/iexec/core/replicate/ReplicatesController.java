@@ -1,9 +1,5 @@
 package com.iexec.core.replicate;
 
-import java.util.List;
-import java.util.Optional;
-
-import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
 import com.iexec.common.replicate.ReplicateDetails;
@@ -14,11 +10,13 @@ import com.iexec.core.chain.SignatureService;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
 
@@ -107,8 +105,7 @@ public class ReplicatesController {
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                 chainTaskId, replicateStatus, walletAddress);
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER,
-                details.getChainReceipt(), details.getResultLink());
+        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
         return ResponseEntity.ok().build();
     }
 }
