@@ -3,18 +3,24 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.core.chain.ChainConfig;
+import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.feign.ResultRepoClientWrapper;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.web.client.RestTemplate;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
 
+import feign.FeignException;
+
+import java.io.File;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
@@ -25,6 +31,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ReplicateServiceTests {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0x2ab2674aa374fe6415d11f0a8fcbd8027fc1e6a9";
@@ -37,10 +46,8 @@ public class ReplicateServiceTests {
     @Mock private IexecHubService iexecHubService;
     @Mock private ApplicationEventPublisher applicationEventPublisher;
     @Mock private Web3jService web3jService;
-    @Mock private ChainConfig chainConfig;
-    @Mock private ResultRepositoryConfiguration resultRepoConfig;
     @Mock private CredentialsService credentialsService;
-    @Mock private RestTemplate restTemplate;
+    @Mock private ResultRepoClientWrapper resultRepoClientWrapper;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -594,5 +601,30 @@ public class ReplicateServiceTests {
     public void shouldNotFindReplicateRevealedOnchain() {
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
                 .thenReturn(true);
+    }
+
+    @Test
+    public void shouldReturnFalseSinceCouldNotGetEIP712Challenge() {
+        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
+        when(resultRepoClientWrapper.getChallenge()).thenReturn(Optional.empty());
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+
+        assertThat(isResultUploaded).isFalse();
+    }
+
+    @Test
+    public void shouldReturnFalseSinceCouldNotBuildAuthorizationToken() {
+
+        Eip712Challenge eip712Challenge = new Eip712Challenge("dummyChallenge", 123);
+        Credentials credentialsMock = mock(Credentials.class);
+
+        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
+        when(resultRepoClientWrapper.getChallenge()).thenReturn(Optional.of(eip712Challenge));
+        when(credentialsService.getCredentials()).thenReturn(credentialsMock);
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+
+        assertThat(isResultUploaded).isFalse();
     }
 }

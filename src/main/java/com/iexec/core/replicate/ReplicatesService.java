@@ -6,24 +6,17 @@ import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
-import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.feign.ResultRepoClientWrapper;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.web3j.crypto.ECKeyPair;
 
 import java.util.*;
@@ -39,8 +32,6 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private ChainConfig chainConfig;
-    private ResultRepositoryConfiguration resultRepoConfig;
     private CredentialsService credentialsService;
     private ResultRepoClientWrapper resultRepoClientWrapper;
 
@@ -49,16 +40,12 @@ public class ReplicatesService {
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             ChainConfig chainConfig,
-                             ResultRepositoryConfiguration resultRepoConfig,
                              CredentialsService credentialsService,
                              ResultRepoClientWrapper resultRepoClientWrapper) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.chainConfig = chainConfig;
-        this.resultRepoConfig = resultRepoConfig;
         this.credentialsService = credentialsService;
         this.resultRepoClientWrapper = resultRepoClientWrapper;
     }
@@ -386,13 +373,20 @@ public class ReplicatesService {
             return true;
         }
 
-        Eip712Challenge eip712Challenge = resultRepoClientWrapper.getChallenge();
+        Optional<Eip712Challenge> oEip712Challenge = resultRepoClientWrapper.getChallenge();
+        if (!oEip712Challenge.isPresent()) return false;
+
+        Eip712Challenge eip712Challenge = oEip712Challenge.get();
         ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
         String walletAddress = credentialsService.getCredentials().getAddress();
 
         // sign the eip712 challenge and build authorization token
         String authorizationToken = Eip712ChallengeUtils.buildAuthorizationToken(eip712Challenge,
                 walletAddress, ecKeyPair);
+
+        if (authorizationToken.isEmpty()) {
+            return false;
+        }
 
         return resultRepoClientWrapper.isResultUploaded(authorizationToken, chainTaskId);
     }

@@ -1,5 +1,7 @@
 package com.iexec.core.feign;
 
+import java.util.Optional;
+
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.ChainConfig;
 
@@ -24,15 +26,15 @@ public class ResultRepoClientWrapper {
     }
 
     @Retryable (value = FeignException.class)
-    public Eip712Challenge getChallenge() {
-        return resultClient.getChallenge(chainConfig.getChainId());
+    public Optional<Eip712Challenge> getChallenge() {
+        return Optional.of(resultClient.getChallenge(chainConfig.getChainId()));
     }
 
     @Recover
-    public Eip712Challenge getChallenge(FeignException e) {
+    public Optional<Eip712Challenge> getChallenge(FeignException e) {
         log.error("Failed to get challenge from resultRepo [attempts:3]");
         e.printStackTrace();
-        return null;
+        return Optional.empty();
     }
 
     @Retryable (value = FeignException.class)
