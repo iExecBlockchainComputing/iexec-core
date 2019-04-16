@@ -194,8 +194,8 @@ public class IexecHubService extends IexecHubAbstractService {
     private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultUri, String callbackData) {
         byte[] chainTaskIdBytes = stringToBytes(chainTaskId);
         byte[] finalizePayload = resultUri.getBytes(StandardCharsets.UTF_8);
-
-        if (callbackData != null && !callbackData.isEmpty()) {
+        boolean shouldSendCallback = callbackData != null && !callbackData.isEmpty();
+        if (shouldSendCallback) {
             finalizePayload = stringToBytes(callbackData);
         }
 
@@ -206,8 +206,8 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             finalizeReceipt = finalizeCall.send();
         } catch (Exception e) {
-            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, finalizePayload:{}, error:{}]]",
-                    chainTaskId, resultUri, callbackData, finalizePayload, e.getMessage());
+            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, error:{}]]",
+                    chainTaskId, resultUri, callbackData, shouldSendCallback, e.getMessage());
             return Optional.empty();
         }
 
@@ -223,8 +223,8 @@ public class IexecHubService extends IexecHubAbstractService {
                         || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
             ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
-            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, finalizePayload:{}, gasUsed:{}]", chainTaskId,
-                    resultUri, callbackData, finalizePayload, finalizeReceipt.getGasUsed());
+            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, gasUsed:{}]", chainTaskId,
+                    resultUri, callbackData, shouldSendCallback, finalizeReceipt.getGasUsed());
             return Optional.of(chainReceipt);
         }
 
