@@ -347,6 +347,7 @@ public class TaskService {
 
         if (condition1 && condition2) {
             task.setResultLink(optionalReplicate.get().getResultLink());
+            task.setChainCallbackData(optionalReplicate.get().getChainCallbackData());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalized2Completed(task);
         } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
@@ -408,7 +409,7 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink());
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
 
         if (!optionalChainReceipt.isPresent()) {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",

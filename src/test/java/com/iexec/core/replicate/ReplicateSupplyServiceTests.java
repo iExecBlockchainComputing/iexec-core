@@ -4,6 +4,7 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
 import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -28,12 +29,9 @@ import org.mockito.MockitoAnnotations;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static com.iexec.core.task.TaskStatus.*;
+import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 
@@ -45,7 +43,6 @@ public class ReplicateSupplyServiceTests {
 
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
-    private final long maxExecutionTime = 60000;
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
     private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
     private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
@@ -362,7 +359,7 @@ public class ReplicateSupplyServiceTests {
 
         assertThat(list).isEmpty();
         Mockito.verify(replicatesService, Mockito.times(0))
-            .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any());
     }
 
     @Test
@@ -411,7 +408,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -439,7 +436,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -473,11 +470,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                chainReceipt, "");
+                        ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
+                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
     }
 
     @Test
@@ -511,11 +508,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                chainReceipt, "");
+                        ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
+                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
     }
 
     @Test
@@ -541,7 +538,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -568,7 +565,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -593,7 +590,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -621,7 +618,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -658,11 +655,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                chainReceipt, "");
+                        ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
+                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
     }
 
     @Test
@@ -699,11 +696,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                chainReceipt, "");
+                        ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
+                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
     }
 
     @Test
@@ -728,7 +725,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -755,7 +752,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -783,11 +780,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -814,11 +811,11 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -845,7 +842,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -874,7 +871,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -905,7 +902,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     @Test
@@ -928,7 +925,7 @@ public class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
     }
 
     List<Task> getStubTaskList(TaskStatus status) {

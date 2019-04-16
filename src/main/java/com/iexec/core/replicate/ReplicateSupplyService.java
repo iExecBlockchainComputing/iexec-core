@@ -1,14 +1,10 @@
 package com.iexec.core.replicate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
 import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
@@ -19,11 +15,15 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ReplicateSupplyService {
@@ -157,7 +157,7 @@ public class ReplicateSupplyService {
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED) && !replicate.containsContributedStatus()) {
-                return Optional.of(RecoveryAction.ABORT_CONSENSUS_REACHED);
+            return Optional.of(RecoveryAction.ABORT_CONSENSUS_REACHED);
         }
 
         Optional<RecoveryAction> oRecoveryAction = Optional.empty();
@@ -207,7 +207,7 @@ public class ReplicateSupplyService {
 
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                    new ChainReceipt(blockNumber, ""), "");
+                    ReplicateDetails.builder().chainReceipt(new ChainReceipt(blockNumber, "")).build());
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -262,7 +262,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                    new ChainReceipt(blockNumber, ""), "");
+                    ReplicateDetails.builder().chainReceipt(new ChainReceipt(blockNumber, "")).build());
 
             CompletableFuture<Boolean> completableFuture = taskExecutorEngine.updateTask(chainTaskId);
             completableFuture.join();
@@ -270,7 +270,7 @@ public class ReplicateSupplyService {
 
         // we read the replicate from db to consider the changes added in the previous case
         Optional<Replicate> oReplicateWithLatestChanges = replicatesService.getReplicate(chainTaskId, walletAddress);
-        
+
         replicate = oReplicateWithLatestChanges.get();
         if (!replicate.getLastRelevantStatus().isPresent()) return Optional.empty();
 
@@ -280,7 +280,7 @@ public class ReplicateSupplyService {
         boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get()
                 .equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
-        if (didReplicateReveal) {               
+        if (didReplicateReveal) {
             return Optional.of(RecoveryAction.WAIT);
         }
 
@@ -295,8 +295,8 @@ public class ReplicateSupplyService {
      * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
      * RESULT_UPLOADING + !done yet     => RecoveryAction.UPLOAD_RESULT
      * RESULT_UPLOADING + done          => RecoveryAction.WAIT
-     *                                     update to ReplicateStatus.RESULT_UPLOADED
-     * RESULT_UPLOADED                  => RecoveryAction.WAIT 
+     * update to ReplicateStatus.RESULT_UPLOADED
+     * RESULT_UPLOADED                  => RecoveryAction.WAIT
      */
 
     private Optional<RecoveryAction> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
