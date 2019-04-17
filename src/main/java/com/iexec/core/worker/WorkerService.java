@@ -25,15 +25,19 @@ public class WorkerService {
     }
 
     public Worker addWorker(Worker worker) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(worker.getWalletAddress());
-        if (optional.isPresent()) {
-            log.info("The worker is already registered [workerId:{}]", optional.get().getId());
-            return optional.get();
+        Optional<Worker> oWorker = workerRepository.findByWalletAddress(worker.getWalletAddress());
+
+        if (oWorker.isPresent()) {
+            Worker existingWorker = oWorker.get();
+            log.info("The worker is already registered [workerId:{}]", existingWorker.getId());
+            worker.setId(existingWorker.getId());
+            worker.setParticipatingChainTaskIds(existingWorker.getParticipatingChainTaskIds());
+            worker.setComputingChainTaskIds(existingWorker.getComputingChainTaskIds());
         } else {
-            Worker newWorker = workerRepository.save(worker);
-            log.info("A new worker has been registered [workerId:{}]", newWorker.getId());
-            return newWorker;
+            log.info("Registering new worker");
         }
+
+        return workerRepository.save(worker);
     }
 
     public Optional<Worker> updateLastAlive(String walletAddress) {

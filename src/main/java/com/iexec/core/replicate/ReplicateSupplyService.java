@@ -7,8 +7,8 @@ import com.iexec.common.disconnection.RecoveryAction;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-
-@Slf4j
 @Service
 public class ReplicateSupplyService {
 
@@ -35,23 +33,26 @@ public class ReplicateSupplyService {
     private TaskExecutorEngine taskExecutorEngine;
     private TaskService taskService;
     private WorkerService workerService;
+    private SmsService smsService;
 
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
-                                  SignatureService signatureService,
-                                  TaskExecutorEngine taskExecutorEngine,
-                                  TaskService taskService,
-                                  WorkerService workerService) {
+                                 SignatureService signatureService,
+                                 TaskExecutorEngine taskExecutorEngine,
+                                 TaskService taskService,
+                                 WorkerService workerService,
+                                 SmsService smsService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
         this.taskService = taskService;
         this.workerService = workerService;
+        this.smsService = smsService;
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<Replicate> getAvailableReplicate(long blockNumber, String walletAddress) {
+    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long blockNumber, String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
@@ -72,8 +73,8 @@ public class ReplicateSupplyService {
 
         for (Task task : runningTasks) {
             // skip the task if it needs TEE and the worker doesn't support it
-            boolean doesTaskNeedTEE = TeeUtils.isTrustedExecutionTag(task.getTag());
-            if (doesTaskNeedTEE && !worker.isTeeEnabled()) {
+            boolean doesTaskNeedTEE = task.isTeeNeeded();
+            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
                 continue;
             }
 
@@ -87,9 +88,16 @@ public class ReplicateSupplyService {
                     task.getNumWorkersNeeded(), task.getMaxExecutionTime());
 
             if (blockNumberAvailable && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
+
+                String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
+                if (enclaveChallenge.isEmpty()) continue;
+
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
-                return replicatesService.getReplicate(chainTaskId, walletAddress);
+
+                // generate contribution authorization
+                return Optional.of(signatureService.createAuthorization(
+                        walletAddress, chainTaskId, enclaveChallenge));
             }
         }
 
@@ -103,9 +111,9 @@ public class ReplicateSupplyService {
         List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
 
         for (Task task : tasksWithWorkerParticipation) {
+            String chainTaskId = task.getChainTaskId();
 
-            Optional<Replicate> oReplicate = replicatesService.getReplicate(
-                    task.getChainTaskId(), walletAddress);
+            Optional<Replicate> oReplicate = replicatesService.getReplicate(chainTaskId, walletAddress);
             if (!oReplicate.isPresent()) continue;
 
             Replicate replicate = oReplicate.get();
@@ -113,12 +121,15 @@ public class ReplicateSupplyService {
             boolean isRecoverable = replicate.isRecoverable();
             if (!isRecoverable) continue;
 
+            String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeNeeded());
+            if (task.isTeeNeeded() && enclaveChallenge.isEmpty()) continue;
+
             Optional<RecoveryAction> oRecoveryAction = getAppropriateRecoveryAction(task, replicate, blockNumber);
             if (!oRecoveryAction.isPresent()) continue;
 
             // generate contribution authorization
             ContributionAuthorization authorization = signatureService.createAuthorization(
-                    walletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
+                    walletAddress, chainTaskId, enclaveChallenge);
 
             InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
                     .contributionAuthorization(authorization)
@@ -126,7 +137,7 @@ public class ReplicateSupplyService {
                     .build();
 
             // change replicate status
-            replicatesService.updateReplicateStatus(task.getChainTaskId(), walletAddress,
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
 
             interruptedReplicates.add(interruptedReplicate);
@@ -296,7 +307,7 @@ public class ReplicateSupplyService {
 
         boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
         boolean didReplicateStartUploading = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADING);
-        boolean didReplicateUploadWithoutNotifying = replicatesService.hasResultBeenUploaded(task.getChainTaskId());
+        boolean didReplicateUploadWithoutNotifying = replicatesService.isResultUploaded(task.getChainTaskId());
         boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADED);
 
         if (wasReplicateRequestedToUpload) {
