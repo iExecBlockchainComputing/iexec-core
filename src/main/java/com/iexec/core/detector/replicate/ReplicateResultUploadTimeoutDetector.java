@@ -27,7 +27,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
     private ReplicatesService replicatesService;
 
     public ReplicateResultUploadTimeoutDetector(TaskService taskService,
-                                       ReplicatesService replicatesService) {
+                                                ReplicatesService replicatesService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
     }
@@ -65,17 +65,19 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             }
 
             log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
-            chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
+                    chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
-            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED) {
+            if (uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOADING) &&
+                    !uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOADED)) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 return;
             }
 
-            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING) {
+            if (uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOAD_REQUESTED) &&
+                    !uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOADING)) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                        ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 return;
             }
         }

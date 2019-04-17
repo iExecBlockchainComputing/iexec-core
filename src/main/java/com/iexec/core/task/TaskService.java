@@ -350,8 +350,7 @@ public class TaskService {
             task.setChainCallbackData(optionalReplicate.get().getChainCallbackData());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalized2Completed(task);
-        } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
-                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
+        } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
             // need to request upload again
             requestUpload(task);
         }
