@@ -2,6 +2,7 @@ package com.iexec.core.result;
 
 import com.iexec.common.result.ResultModel;
 import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.core.utils.version.VersionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +19,16 @@ public class ResultController {
     private ResultService resultService;
     private Eip712ChallengeService challengeService;
     private AuthorizationService authorizationService;
+    private VersionService versionService;
 
     public ResultController(ResultService resultService,
                             Eip712ChallengeService challengeService,
-                            AuthorizationService authorizationService) {
+                            AuthorizationService authorizationService,
+                            VersionService versionService) {
         this.resultService = resultService;
         this.challengeService = challengeService;
         this.authorizationService = authorizationService;
+        this.versionService = versionService;
     }
 
     @PostMapping("/results")
@@ -85,11 +89,11 @@ public class ResultController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
     }
 
-    /*
-     * WARNING: This endpoint is for testing purposes only, it has to be removed in production
-     */
-    @GetMapping(value = "/results/{chainTaskId}/unsafe", produces = "application/zip")
+    @GetMapping(value = "/results/{chainTaskId}/snap", produces = "application/zip")
     public ResponseEntity<byte[]> getResultUnsafe(@PathVariable("chainTaskId") String chainTaskId) throws IOException {
+        if (!versionService.isSnapshot()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
         byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")

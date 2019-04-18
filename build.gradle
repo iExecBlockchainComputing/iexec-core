@@ -154,10 +154,10 @@ import org.apache.tools.ant.filters.ReplaceTokens
 // create the version controller for the core
 task createVersion(type: Copy) {
     // delete old one
-    delete 'src/main/java/com/iexec/core/utils/Version.java'
+    delete 'src/main/java/com/iexec/core/utils/version/Version.java'
     // use and copy template to the new location
     from 'src/main/resources/Version.java.template'
-    into 'src/main/java/com/iexec/core/utils/'
+    into 'src/main/java/com/iexec/core/utils/version/'
 
     rename { String fileName ->
         fileName.replace('.template', '')
