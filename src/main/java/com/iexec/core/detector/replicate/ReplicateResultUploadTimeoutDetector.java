@@ -5,6 +5,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -25,11 +26,14 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
+    private ResultService resultService;
 
     public ReplicateResultUploadTimeoutDetector(TaskService taskService,
-                                                ReplicatesService replicatesService) {
+                                                ReplicatesService replicatesService,
+                                                ResultService resultService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
+        this.resultService = resultService;
     }
 
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
@@ -69,6 +73,8 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
             if (uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOADING) &&
                     !uploadingReplicate.containsStatus(ReplicateStatus.RESULT_UPLOADED)) {
+                // delete the result from the database as the result may be truncated
+                resultService.removeResult(chainTaskId);
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
                 return;

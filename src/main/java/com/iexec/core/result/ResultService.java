@@ -95,6 +95,12 @@ public class ResultService {
         }
     }
 
+    public void removeResult(String chainTaskId){
+        if (isResultInDatabase(chainTaskId)) {
+            gridOperations.delete(new Query(Criteria.where("filename").is(RESULT_FILENAME_PREFIX + chainTaskId)));
+        }
+    }
+
     private String addResultToMongo(Result result, byte[] data) {
         InputStream inputStream = new ByteArrayInputStream(data);
         String resultFileName = getResultFilename(result.getChainTaskId());
