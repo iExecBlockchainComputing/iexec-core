@@ -13,6 +13,7 @@ import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultRepoService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,6 +38,7 @@ public class ReplicatesService {
     private Web3jService web3jService;
     private CredentialsService credentialsService;
     private ResultRepoService resultRepoService;
+    private ResultService resultService;
 
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
@@ -44,13 +46,15 @@ public class ReplicatesService {
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              CredentialsService credentialsService,
-                             ResultRepoService resultRepoService) {
+                             ResultRepoService resultRepoService,
+                             ResultService resultService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.credentialsService = credentialsService;
         this.resultRepoService = resultRepoService;
+        this.resultService = resultService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -274,6 +278,12 @@ public class ReplicatesService {
         // don't save receipt to db if no relevant info
         if (chainReceipt != null && chainReceipt.getBlockNumber() == 0 && chainReceipt.getTxHash() == null) {
             chainReceipt = null;
+        }
+
+        if (newStatus.equals(WORKER_LOST) &&
+                replicate.containsStatus(RESULT_UPLOADING) &&
+                !replicate.containsStatus(RESULT_UPLOADED) ) {
+            resultService.removeResult(chainTaskId);
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {
