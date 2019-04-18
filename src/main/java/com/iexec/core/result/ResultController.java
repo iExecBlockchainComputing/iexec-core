@@ -90,7 +90,7 @@ public class ResultController {
     }
 
     @GetMapping(value = "/results/{chainTaskId}/snap", produces = "application/zip")
-    public ResponseEntity<byte[]> getResultUnsafe(@PathVariable("chainTaskId") String chainTaskId) throws IOException {
+    public ResponseEntity<byte[]> getResultSnap(@PathVariable("chainTaskId") String chainTaskId) throws IOException {
         if (!versionService.isSnapshot()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
