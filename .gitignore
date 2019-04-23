@@ -25,7 +25,7 @@
 /nbdist/
 /.nb-gradle/
 
-src/main/java/com/iexec/core/utils/Version.java
+src/main/java/com/iexec/core/utils/version/Version.java
 
 /bin/
 .vscode/
