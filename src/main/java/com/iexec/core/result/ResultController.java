@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -94,10 +95,13 @@ public class ResultController {
         if (!versionService.isSnapshot()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
-        byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
+        Optional<byte[]> zip = resultService.getResultFromLocalRepo(chainTaskId);
+        if (!zip.isPresent()) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        }
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
-                .body(zip);
+                .body(zip.get());
     }
 
     @GetMapping(value = "/results/challenge")
@@ -117,18 +121,35 @@ public class ResultController {
                 && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
                 && authorizationService.isAuthorizationValid(auth);
 
-        if (isAuthorizedOwnerOfResult || isPublicResult) {
+        if (isAuthorizedOwnerOfResult || isPublicResult) {//TODO: IPFS fetch from chainTaskId
             if (isAuthorizedOwnerOfResult) {
                 challengeService.invalidateEip712ChallengeString(auth.getChallenge());
             }
 
-            byte[] zip = resultService.getResultByChainTaskId(chainTaskId);
+            Optional<byte[]> zip = resultService.getResultFromLocalRepo(chainTaskId);
+            if (!zip.isPresent()) {
+                return new ResponseEntity(HttpStatus.NOT_FOUND);
+            }
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
-                    .body(zip);
+                    .body(zip.get());
         }
 
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+        IPFS Gateway endpoint
+     */
+    @GetMapping(value = "/results/ipfs/{ipfsHash}", produces = "application/zip")
+    public ResponseEntity<byte[]> getResult(@PathVariable("ipfsHash") String ipfsHash) throws IOException {
+        Optional<byte[]> zip = resultService.getResultFromIpfs(ipfsHash);
+        if (!zip.isPresent()) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(ipfsHash) + ".zip")
+                .body(zip.get());
     }
 
 }

@@ -152,16 +152,17 @@ public class ResultServiceTest {
             .thenReturn(new GridFsResource[] {resource});
         when(resource.getInputStream()).thenReturn(inputStream);
 
-         byte[] result = resultService.getResultByChainTaskId(chainTaskId);
-        assertThat(result).isEqualTo(inputStreamBytes);
+        Optional<byte[]> result = resultService.getResultFromLocalRepo(chainTaskId);
+        assertThat(result.isPresent()).isTrue();
+        assertThat(result.get()).isEqualTo(inputStreamBytes);
     }
 
     @Test
     public void shouldGetEmptyArraySinceNoResultWithChainTaskId() throws IOException {
         when(gridFsOperations.getResources(resultFilename)).thenReturn(new GridFsResource[0]);
 
-         byte[] result = resultService.getResultByChainTaskId(chainTaskId);
-        assertThat(result).isEmpty();
+        Optional<byte[]> result = resultService.getResultFromLocalRepo(chainTaskId);
+        assertThat(result.isPresent()).isFalse();
     }
 
     @Test

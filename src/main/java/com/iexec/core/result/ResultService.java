@@ -42,8 +42,8 @@ public class ResultService {
         this.resultRepositoryConfig = resultRepositoryConfig;
     }
 
-    static String getResultFilename(String chainTaskId) {
-        return RESULT_FILENAME_PREFIX + chainTaskId;
+    static String getResultFilename(String hash) {
+        return RESULT_FILENAME_PREFIX + hash;
     }
 
     boolean canUploadResult(String chainTaskId, String walletAddress, byte[] zip) {
@@ -110,14 +110,18 @@ public class ResultService {
         return iexecHubService.isPublicResult(chainTaskId, 0);
     }
 
-    byte[] getResultByChainTaskId(String chainTaskId) throws IOException {
+    Optional<byte[]> getResultFromLocalRepo(String chainTaskId) throws IOException {
         String resultFileName = getResultFilename(chainTaskId);
         GridFsResource[] resources = gridOperations.getResources(resultFileName);
         if (resources.length == 0) {
-            return new byte[0];
+            return Optional.empty();
         }
         InputStream result = resources[0].getInputStream();
-        return org.apache.commons.io.IOUtils.toByteArray(result);
+        return Optional.of(org.apache.commons.io.IOUtils.toByteArray(result));
+    }
+
+    Optional<byte[]> getResultFromIpfs(String ipfsHash){
+        return ipfsService.getContent(ipfsHash);
     }
 
     /*

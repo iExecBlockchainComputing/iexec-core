@@ -44,13 +44,13 @@ public class IPFSService {
         return getContent(ipfsHash).isPresent();
     }
 
-    public String putContent(String fileName, byte[] fileContent) {
-        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(fileName, fileContent);
+    public String putContent(String chainTaskId, byte[] fileContent) {
+        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(fileContent);
         try {
-            MerkleNode pushedContent = ipfs.add(file).get(0);
+            MerkleNode pushedContent = ipfs.add(file, false).get(0);
             return pushedContent.hash.toString();
         } catch (IOException e) {
-            log.error("Error when trying to push ipfs object [fileName:{}]", fileName);
+            log.error("Error when trying to push ipfs object [fileName:{}]");
         }
 
         return "";
