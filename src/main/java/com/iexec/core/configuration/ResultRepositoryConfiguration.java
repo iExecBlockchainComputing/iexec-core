@@ -13,15 +13,15 @@ import org.springframework.stereotype.Component;
 public class ResultRepositoryConfiguration {
 
     @Value("${resultRepository.protocol}")
-    private String resultRepoProtocol;
+    private String protocol;
 
-    @Value("${resultRepository.ip}")
-    private String resultRepoIP;
+    @Value("${resultRepository.host}")
+    private String host;
 
     @Value("${resultRepository.port}")
-    private String resultRepoPort;
+    private String port;
 
     public String getResultRepositoryURL() {
-        return resultRepoProtocol + "://" + resultRepoIP + ":" + resultRepoPort;
+        return protocol + "://" + host + ":" + port;
     }
 }

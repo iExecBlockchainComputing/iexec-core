@@ -49,10 +49,20 @@ artifacts {
     libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
 }
 
+ext {
+    springCloudVersion = 'Finchley.RELEASE'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
 dependencies {
     // iexec
     compile "com.iexec.common:iexec-common:$iexecCommonVersion"
-    //compile files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}.jar")
+    // compile files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}.jar")
 
     // spring
     compile "org.springframework.boot:spring-boot-starter"
@@ -63,6 +73,7 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-aop"
     compile "org.springframework.boot:spring-boot-starter-security"
     compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.cloud:spring-cloud-starter-openfeign"
 
     testCompile "org.springframework.boot:spring-boot-starter-test"
 
