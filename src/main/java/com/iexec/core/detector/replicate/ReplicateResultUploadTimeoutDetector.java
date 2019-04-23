@@ -6,6 +6,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +26,14 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
+    private TaskExecutorEngine taskExecutorEngine;
 
     public ReplicateResultUploadTimeoutDetector(TaskService taskService,
-                                       ReplicatesService replicatesService) {
+                                       ReplicatesService replicatesService,
+                                       TaskExecutorEngine taskExecutorEngine) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
+        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
@@ -70,12 +74,16 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+
+                taskExecutorEngine.updateTask(task.getChainTaskId());
                 return;
             }
 
             if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+
+                    taskExecutorEngine.updateTask(task.getChainTaskId());
                 return;
             }
         }
