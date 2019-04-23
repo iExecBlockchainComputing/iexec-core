@@ -36,6 +36,7 @@ chain:
 
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
+  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
 
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
