@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.dapp.DappType;
+import com.iexec.common.tee.TeeUtils;
+
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -133,5 +135,9 @@ public class Task {
 
     public boolean inCompletionPhase() {
 		return TaskStatus.isInCompletionPhase(getCurrentStatus());
+    }
+
+    public boolean isTeeNeeded() {
+        return TeeUtils.isTrustedExecutionTag(getTag());
     }
 }

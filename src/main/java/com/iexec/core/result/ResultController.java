@@ -69,7 +69,7 @@ public class ResultController {
     }
 
     @RequestMapping(method = RequestMethod.HEAD, path = "/results/{chainTaskId}")
-    public ResponseEntity<String> checkIfResultHasBeenUploaded(
+    public ResponseEntity<String> isResultUploaded(
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String token) {
 
