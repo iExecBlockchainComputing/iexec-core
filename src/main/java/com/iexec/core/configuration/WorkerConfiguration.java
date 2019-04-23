@@ -12,7 +12,7 @@ public class WorkerConfiguration {
     @Value("${workers.askForReplicatePeriod}")
     private long askForReplicatePeriod;
 
-    @Value("${workers.workerVersionRequired}")
-    private String workerVersionRequired;
+    @Value("${workers.requiredWorkerVersion}")
+    private String requiredWorkerVersion;
 
 }
