@@ -324,8 +324,6 @@ public class TaskService {
                 replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
                 ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
 
-        Thread.dumpStack();
-
         if (!isTaskInUploadRequested) {
             return;
         }
