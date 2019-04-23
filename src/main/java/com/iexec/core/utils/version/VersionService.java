@@ -1,5 +1,6 @@
 package com.iexec.core.utils.version;
 
+import com.iexec.common.utils.VersionUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,7 +13,7 @@ public class VersionService {
     }
 
     public boolean isSnapshot() {
-        return version.contains("SNAPSHOT");
+        return VersionUtils.isSnapshot(version);
     }
 
 }

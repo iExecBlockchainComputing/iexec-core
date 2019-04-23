@@ -131,6 +131,7 @@ public class WorkerController {
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .smsURL(smsConfiguration.getSmsURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
+                .workerVersionRequired(workerConfiguration.getWorkerVersionRequired())
                 .build();
 
         return ok(config);
