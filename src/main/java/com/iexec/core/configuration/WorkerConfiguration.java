@@ -11,4 +11,8 @@ public class WorkerConfiguration {
 
     @Value("${workers.askForReplicatePeriod}")
     private long askForReplicatePeriod;
+
+    @Value("${workers.requiredWorkerVersion}")
+    private String requiredWorkerVersion;
+
 }
