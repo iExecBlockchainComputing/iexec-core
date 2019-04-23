@@ -1,6 +1,7 @@
 package com.iexec.core.result;
 
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.result.ipfs.IPFSService;
@@ -103,11 +104,19 @@ public class ResultService {
     }
 
     private String addResultToIPFS(Result result, byte[] data) {
-        return IPFS_ADDRESS_PREFIX + ipfsService.putContent(result.getChainTaskId(), data);
+        String resultFileName = getResultFilename(result.getChainTaskId());
+        return IPFS_ADDRESS_PREFIX + ipfsService.putContent(resultFileName, data);
     }
 
     public boolean isPublicResult(String chainTaskId) {
         return iexecHubService.isPublicResult(chainTaskId, 0);
+    }
+
+    Optional<byte[]> getResult(String chainTaskId) throws IOException {
+        if (!isPublicResult(chainTaskId)){
+            return getResultFromLocalRepo(chainTaskId);
+        }
+        return getResultFromIpfs(chainTaskId);
     }
 
     Optional<byte[]> getResultFromLocalRepo(String chainTaskId) throws IOException {
@@ -120,7 +129,33 @@ public class ResultService {
         return Optional.of(org.apache.commons.io.IOUtils.toByteArray(result));
     }
 
-    Optional<byte[]> getResultFromIpfs(String ipfsHash){
+    private Optional<byte[]> getResultFromIpfs(String chainTaskId) {
+        String ipfsHash = getIpfsHashFromChainTaskId(chainTaskId);
+        if (!ipfsHash.isEmpty()){
+            return getResultFromIpfsWithIpfsHash(ipfsHash);
+        }
+        return Optional.empty();
+    }
+
+    private String getIpfsHashFromChainTaskId(String chainTaskId) {
+        String ipfsHash = "";
+        String resultLink = BytesUtils.hexStringToAscii(iexecHubService.getTaskResults(chainTaskId, 0));
+        if (resultLink.contains("/ipfs/")){
+            String[] ipfsLinkParts = resultLink.split("/");
+            if (ipfsLinkParts.length > 2){
+                ipfsHash = ipfsLinkParts[2];
+            }
+        }
+        return ipfsHash;
+    }
+
+    public static void main(String[] args) {
+        String resultLink = "0x2f697066732f516d665a38384a586d7832464a73417854345a734a42566842555864506f5262445a68626b53533157734d625541";
+        String resultLinkOk = BytesUtils.hexStringToAscii(resultLink);
+        System.out.println(resultLinkOk);
+    }
+
+    Optional<byte[]> getResultFromIpfsWithIpfsHash(String ipfsHash){
         return ipfsService.getContent(ipfsHash);
     }
 

@@ -33,7 +33,7 @@ public class IPFSService {
     public Optional<byte[]> getContent(String ipfsHash) {
         Multihash filePointer = Multihash.fromBase58(ipfsHash);
         try {
-            return Optional.of(ipfs.get(filePointer));
+            return Optional.of(ipfs.cat(filePointer));
         } catch (IOException e) {
             log.error("Error when trying to retrieve ipfs object [hash:{}]", ipfsHash);
         }

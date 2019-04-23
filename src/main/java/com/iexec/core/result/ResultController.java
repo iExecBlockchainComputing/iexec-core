@@ -95,7 +95,7 @@ public class ResultController {
         if (!versionService.isSnapshot()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
-        Optional<byte[]> zip = resultService.getResultFromLocalRepo(chainTaskId);
+        Optional<byte[]> zip = resultService.getResult(chainTaskId);
         if (!zip.isPresent()) {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
@@ -126,7 +126,7 @@ public class ResultController {
                 challengeService.invalidateEip712ChallengeString(auth.getChallenge());
             }
 
-            Optional<byte[]> zip = resultService.getResultFromLocalRepo(chainTaskId);
+            Optional<byte[]> zip = resultService.getResult(chainTaskId);
             if (!zip.isPresent()) {
                 return new ResponseEntity(HttpStatus.NOT_FOUND);
             }
@@ -143,7 +143,7 @@ public class ResultController {
      */
     @GetMapping(value = "/results/ipfs/{ipfsHash}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("ipfsHash") String ipfsHash) throws IOException {
-        Optional<byte[]> zip = resultService.getResultFromIpfs(ipfsHash);
+        Optional<byte[]> zip = resultService.getResultFromIpfsWithIpfsHash(ipfsHash);
         if (!zip.isPresent()) {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
