@@ -71,7 +71,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
             chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
-            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED) {
+            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOAD_REQUESTED) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
@@ -79,7 +79,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
                 return;
             }
 
-            if (uploadingReplicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING) {
+            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOADING) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
