@@ -315,14 +315,26 @@ public class TaskService {
 
     private void uploadRequested2UploadingResult(Task task) {
         boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
-        boolean isThereAWorkerUploading = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) > 0;
 
-        if (isTaskInUploadRequested) {
-            if (isThereAWorkerUploading) {
-                updateTaskStatusAndSave(task, RESULT_UPLOADING);
-            } else {
-                requestUpload(task);
-            }
+        boolean isThereAWorkerUploading =
+                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
+                ReplicateStatus.RESULT_UPLOADING) > 0;
+
+        boolean isThereAWorkerRequestedToUpload =
+                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
+                ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
+
+        if (!isTaskInUploadRequested) {
+            return;
+        }
+
+        if (isThereAWorkerUploading) {
+            updateTaskStatusAndSave(task, RESULT_UPLOADING);
+            return;
+        }
+
+        if (!isThereAWorkerRequestedToUpload) {
+            requestUpload(task);
         }
     }
 

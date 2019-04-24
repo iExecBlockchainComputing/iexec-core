@@ -6,6 +6,7 @@ import com.iexec.core.detector.replicate.ReplicateResultUploadTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.TaskStatusChange;
@@ -30,11 +31,9 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
     private final static String CHAIN_TASK_ID = "CHAIN_TASK_ID";
 
-    @Mock
-    private TaskService taskService;
-
-    @Mock
-    private ReplicatesService replicatesService;
+    @Mock private TaskService taskService;
+    @Mock private ReplicatesService replicatesService;
+    @Mock private TaskExecutorEngine taskExecutorEngine;
 
     @InjectMocks
     private ReplicateResultUploadTimeoutDetector timeoutDetector;
@@ -102,6 +101,8 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                         ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+
+        Mockito.verify(taskExecutorEngine, Mockito.times(1)).updateTask(CHAIN_TASK_ID);
     }
 
     @Test
@@ -134,6 +135,8 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
                         ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+
+        Mockito.verify(taskExecutorEngine, Mockito.times(1)).updateTask(CHAIN_TASK_ID);
     }
 
     @Test
