@@ -1,5 +1,8 @@
-package com.iexec.core.result;
+package com.iexec.core.result.repo.proxy;
 
+import com.iexec.core.result.repo.proxy.Authorization;
+import com.iexec.core.result.repo.proxy.AuthorizationService;
+import com.iexec.core.result.repo.proxy.Eip712ChallengeService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;

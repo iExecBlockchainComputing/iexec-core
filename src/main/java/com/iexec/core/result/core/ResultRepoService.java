@@ -1,4 +1,4 @@
-package com.iexec.core.result;
+package com.iexec.core.result.core;
 
 import java.util.Optional;
 

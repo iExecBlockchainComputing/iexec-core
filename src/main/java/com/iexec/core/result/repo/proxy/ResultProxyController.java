@@ -1,7 +1,8 @@
-package com.iexec.core.result;
+package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.result.ResultModel;
 import com.iexec.common.result.eip712.Eip712Challenge;
+import com.iexec.core.result.repo.ipfs.IpfsService;
 import com.iexec.core.utils.version.VersionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,21 +16,24 @@ import static org.springframework.http.ResponseEntity.ok;
 
 @Slf4j
 @RestController
-public class ResultController {
+public class ResultProxyController {
 
-    private ResultService resultService;
-    private Eip712ChallengeService challengeService;
-    private AuthorizationService authorizationService;
-    private VersionService versionService;
+    private final ResultProxyService resultProxyService;
+    private final Eip712ChallengeService challengeService;
+    private final AuthorizationService authorizationService;
+    private final VersionService versionService;
+    private final IpfsService ipfsService;
 
-    public ResultController(ResultService resultService,
-                            Eip712ChallengeService challengeService,
-                            AuthorizationService authorizationService,
-                            VersionService versionService) {
-        this.resultService = resultService;
+    public ResultProxyController(ResultProxyService resultProxyService,
+                                 Eip712ChallengeService challengeService,
+                                 AuthorizationService authorizationService,
+                                 VersionService versionService,
+                                 IpfsService ipfsService) {
+        this.resultProxyService = resultProxyService;
         this.challengeService = challengeService;
         this.authorizationService = authorizationService;
         this.versionService = versionService;
+        this.ipfsService = ipfsService;
     }
 
     @PostMapping("/results")
@@ -40,7 +44,7 @@ public class ResultController {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
         boolean authorizedAndCanUploadResult = authorizationService.isAuthorizationValid(auth) &&
-                resultService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
+                resultProxyService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
 
         // TODO check if the result to be added is the correct result for that task
 
@@ -48,7 +52,7 @@ public class ResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        String resultLink = resultService.addResult(
+        String resultLink = resultProxyService.addResult(
                 Result.builder()
                         .chainTaskId(model.getChainTaskId())
                         .image(model.getImage())
@@ -80,7 +84,7 @@ public class ResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        boolean isResultInDatabase = resultService.isResultInDatabase(chainTaskId);
+        boolean isResultInDatabase = resultProxyService.doesResultExist(chainTaskId);
         if (!isResultInDatabase) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
         }
@@ -95,12 +99,12 @@ public class ResultController {
         if (!versionService.isSnapshot()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
-        Optional<byte[]> zip = resultService.getResult(chainTaskId);
+        Optional<byte[]> zip = resultProxyService.getResult(chainTaskId);
         if (!zip.isPresent()) {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
+                .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(chainTaskId) + ".zip")
                 .body(zip.get());
     }
 
@@ -116,9 +120,9 @@ public class ResultController {
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
         Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        boolean isPublicResult = resultService.isPublicResult(chainTaskId);
+        boolean isPublicResult = resultProxyService.isPublicResult(chainTaskId);
         boolean isAuthorizedOwnerOfResult = auth != null
-                && resultService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
+                && resultProxyService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
                 && authorizationService.isAuthorizationValid(auth);
 
         if (isAuthorizedOwnerOfResult || isPublicResult) {//TODO: IPFS fetch from chainTaskId
@@ -126,12 +130,12 @@ public class ResultController {
                 challengeService.invalidateEip712ChallengeString(auth.getChallenge());
             }
 
-            Optional<byte[]> zip = resultService.getResult(chainTaskId);
+            Optional<byte[]> zip = resultProxyService.getResult(chainTaskId);
             if (!zip.isPresent()) {
                 return new ResponseEntity(HttpStatus.NOT_FOUND);
             }
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(chainTaskId) + ".zip")
+                    .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(chainTaskId) + ".zip")
                     .body(zip.get());
         }
 
@@ -142,13 +146,13 @@ public class ResultController {
         IPFS Gateway endpoint
      */
     @GetMapping(value = "/results/ipfs/{ipfsHash}", produces = "application/zip")
-    public ResponseEntity<byte[]> getResult(@PathVariable("ipfsHash") String ipfsHash) throws IOException {
-        Optional<byte[]> zip = resultService.getResultFromIpfsWithIpfsHash(ipfsHash);
+    public ResponseEntity<byte[]> getResult(@PathVariable("ipfsHash") String ipfsHash) {
+        Optional<byte[]> zip = ipfsService.get(ipfsHash);
         if (!zip.isPresent()) {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + ResultService.getResultFilename(ipfsHash) + ".zip")
+                .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(ipfsHash) + ".zip")
                 .body(zip.get());
     }
 
