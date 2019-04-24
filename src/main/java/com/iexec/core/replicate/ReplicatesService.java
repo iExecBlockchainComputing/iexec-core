@@ -13,7 +13,6 @@ import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.core.ResultRepoService;
-import com.iexec.core.result.repo.proxy.ResultProxyService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,7 +37,6 @@ public class ReplicatesService {
     private Web3jService web3jService;
     private CredentialsService credentialsService;
     private ResultRepoService resultRepoService;
-    private ResultProxyService resultProxyService;
 
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
@@ -46,15 +44,13 @@ public class ReplicatesService {
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              CredentialsService credentialsService,
-                             ResultRepoService resultRepoService,
-                             ResultProxyService resultProxyService) {
+                             ResultRepoService resultRepoService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.credentialsService = credentialsService;
         this.resultRepoService = resultRepoService;
-        this.resultProxyService = resultProxyService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -278,11 +274,6 @@ public class ReplicatesService {
         // don't save receipt to db if no relevant info
         if (chainReceipt != null && chainReceipt.getBlockNumber() == 0 && chainReceipt.getTxHash() == null) {
             chainReceipt = null;
-        }
-
-        if (newStatus.equals(WORKER_LOST) && replicate.containsStatus(RESULT_UPLOADING) &&
-                !replicate.containsStatus(RESULT_UPLOADED) ) {
-            resultProxyService.removeResult(chainTaskId);
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {

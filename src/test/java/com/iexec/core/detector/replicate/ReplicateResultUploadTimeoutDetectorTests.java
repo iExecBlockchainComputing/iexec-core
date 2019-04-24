@@ -34,7 +34,6 @@ public class ReplicateResultUploadTimeoutDetectorTests {
 
     @Mock private TaskService taskService;
     @Mock private ReplicatesService replicatesService;
-    @Mock private ResultProxyService resultProxyService;
     @Mock private TaskExecutorEngine taskExecutorEngine;
 
     @InjectMocks

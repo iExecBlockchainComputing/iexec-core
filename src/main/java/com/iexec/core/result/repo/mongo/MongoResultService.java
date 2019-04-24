@@ -60,11 +60,4 @@ public class MongoResultService extends ResultRepo {
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
-
-    public void removeResult(String chainTaskId){
-        if (doesResultExist(chainTaskId)) {
-            Query query = new Query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
-            gridOperations.delete(query);
-        }
-    }
 }

@@ -4,7 +4,6 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.result.repo.proxy.ResultProxyService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
@@ -27,17 +26,14 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
-    private ResultProxyService resultProxyService;
     private TaskExecutorEngine taskExecutorEngine;
 
     public ReplicateResultUploadTimeoutDetector(TaskService taskService,
                                                 ReplicatesService replicatesService,
-                                                ResultProxyService resultProxyService,
                                                 TaskExecutorEngine taskExecutorEngine) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.resultProxyService = resultProxyService;
-        this.taskExecutorEngine = taskExecutorEngine;        
+        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
@@ -86,7 +82,6 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             }
 
             if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOADING) {
-                resultProxyService.removeResult(chainTaskId);
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
