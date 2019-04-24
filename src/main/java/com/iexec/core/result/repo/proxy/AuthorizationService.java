@@ -1,4 +1,4 @@
-package com.iexec.core.result;
+package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
