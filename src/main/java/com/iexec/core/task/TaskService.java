@@ -369,11 +369,28 @@ public class TaskService {
             return;
         }
 
-        boolean noReplicateIsUploading = replicatesService.getNbReplicatesWithCurrentStatus(
-                task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0;
+        String uploadingReplicateAddress = task.getUploadingWorkerWalletAddress();
 
-        if (noReplicateIsUploading) {
-            // need to request upload again
+        if (uploadingReplicateAddress == null || uploadingReplicateAddress.isEmpty()) {
+            requestUpload(task);
+            return;
+        }
+
+        Optional<Replicate> oReplicate = replicatesService.getReplicate(task.getChainTaskId(), uploadingReplicateAddress);
+
+        if (!oReplicate.isPresent()) {
+            requestUpload(task);
+            return;
+        }
+
+        Replicate replicate = oReplicate.get();
+
+        boolean isReplicateUploading = replicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING;
+        boolean isReplicateRecoveringToUpload = replicate.getCurrentStatus() == ReplicateStatus.RECOVERING &&
+                                                replicate.getLastRelevantStatus().isPresent() &&
+                                                replicate.getLastRelevantStatus().get() == ReplicateStatus.RESULT_UPLOADING;
+
+        if (!isReplicateUploading && !isReplicateRecoveringToUpload) {
             requestUpload(task);
         }
     }
@@ -401,7 +418,8 @@ public class TaskService {
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
-            replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(), ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
+            replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
+                    ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
 
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }
