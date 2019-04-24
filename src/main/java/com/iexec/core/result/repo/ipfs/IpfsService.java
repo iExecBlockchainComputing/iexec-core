@@ -43,13 +43,13 @@ public class IpfsService {
         return Optional.empty();
     }
 
-    public String add(String resultFileName, byte[] fileContent) {
-        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(resultFileName, fileContent);
+    public String add(String fileName, byte[] fileContent) {
+        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(fileName, fileContent);
         try {
             MerkleNode pushedContent = ipfs.add(file, false).get(0);
             return pushedContent.hash.toString();
         } catch (IOException e) {
-            log.error("Error when trying to push ipfs object [fileName:{}]");
+            log.error("Error when trying to push ipfs object [fileName:{}]", fileName);
         }
         return "";
     }
