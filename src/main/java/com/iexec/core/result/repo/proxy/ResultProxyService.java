@@ -104,4 +104,10 @@ public class ResultProxyService {
         }
         return true;
     }
+
+    public void removeResult(String chainTaskId){
+        if (isPublicResult(chainTaskId) && doesResultExist(chainTaskId)) {
+            mongoResultService.removeResult(chainTaskId);
+        }
+    }
 }
