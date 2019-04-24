@@ -353,17 +353,26 @@ public class TaskService {
     }
 
     private void resultUploading2Uploaded(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(RESULT_UPLOADING);
-        Optional<Replicate> optionalReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
-        boolean condition2 = optionalReplicate.isPresent();
+        boolean isTaskInResultUploading = task.getCurrentStatus().equals(RESULT_UPLOADING);
+        Optional<Replicate> oUploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
+        boolean didReplicateUpload = oUploadedReplicate.isPresent();
 
-        if (condition1 && condition2) {
-            task.setResultLink(optionalReplicate.get().getResultLink());
-            task.setChainCallbackData(optionalReplicate.get().getChainCallbackData());
+        if (!isTaskInResultUploading) {
+            return;
+        }
+
+        if (didReplicateUpload) {
+            task.setResultLink(oUploadedReplicate.get().getResultLink());
+            task.setChainCallbackData(oUploadedReplicate.get().getChainCallbackData());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalized2Completed(task);
-        } else if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED) > 0 &&
-                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0) {
+            return;
+        }
+
+        boolean noReplicateIsUploading = replicatesService.getNbReplicatesWithCurrentStatus(
+                task.getChainTaskId(), ReplicateStatus.RESULT_UPLOADING) == 0;
+
+        if (noReplicateIsUploading) {
             // need to request upload again
             requestUpload(task);
         }

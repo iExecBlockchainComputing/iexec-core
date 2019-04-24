@@ -139,4 +139,10 @@ public class ResultService {
         }
         return true;
     }
+
+    public void removeResult(String chainTaskId){
+        if (isResultInDatabase(chainTaskId)) {
+            gridOperations.delete(new Query(Criteria.where("filename").is(RESULT_FILENAME_PREFIX + chainTaskId)));
+        }
+    }
 }

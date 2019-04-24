@@ -1,10 +1,10 @@
 package com.iexec.core.detector.replicate;
 
-import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
@@ -26,14 +27,17 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
+    private ResultService resultService;
     private TaskExecutorEngine taskExecutorEngine;
 
     public ReplicateResultUploadTimeoutDetector(TaskService taskService,
-                                       ReplicatesService replicatesService,
-                                       TaskExecutorEngine taskExecutorEngine) {
+                                                ReplicatesService replicatesService,
+                                                ResultService resultService,
+                                                TaskExecutorEngine taskExecutorEngine) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.taskExecutorEngine = taskExecutorEngine;
+        this.resultService = resultService;
+        this.taskExecutorEngine = taskExecutorEngine;        
     }
 
     @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
@@ -46,10 +50,6 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
                 TaskStatus.RESULT_UPLOAD_REQUESTED,
                 TaskStatus.RESULT_UPLOADING);
 
-        List<ReplicateStatus> replicateUploadFailureStatuses = Arrays.asList(
-                ReplicateStatus.RESULT_UPLOAD_FAILED,
-                ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED);
-
         for (Task task : taskService.findByCurrentStatus(taskUploadStatuses)) {
             String chainTaskId = task.getChainTaskId();
             String uploadingWallet = task.getUploadingWorkerWalletAddress();
@@ -61,29 +61,36 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
             Replicate uploadingReplicate = oUploadingReplicate.get();
 
-            boolean startUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
-            boolean hasReplicateUploadAlreadyFailed = replicateUploadFailureStatuses.contains(uploadingReplicate.getCurrentStatus());
+            boolean startedUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
+            boolean hasReplicateAlreadyFailedToUpload = uploadingReplicate.containsStatus(RESULT_UPLOAD_REQUEST_FAILED) ||
+                                                        uploadingReplicate.containsStatus(RESULT_UPLOAD_FAILED);
 
-            if (!startUploadLongAgo || hasReplicateUploadAlreadyFailed) {
+            if (!startedUploadLongAgo) {
+                return;
+            }
+
+            if (hasReplicateAlreadyFailedToUpload) {
+                taskExecutorEngine.updateTask(task.getChainTaskId());
                 return;
             }
 
             log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
-            chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
+                    chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
             if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOAD_REQUESTED) {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                        RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
                 taskExecutorEngine.updateTask(task.getChainTaskId());
                 return;
             }
 
             if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOADING) {
+                resultService.removeResult(chainTaskId);
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                        RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
-                    taskExecutorEngine.updateTask(task.getChainTaskId());
+                taskExecutorEngine.updateTask(task.getChainTaskId());
                 return;
             }
         }
