@@ -1,4 +1,4 @@
-package com.iexec.core.result;
+package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;

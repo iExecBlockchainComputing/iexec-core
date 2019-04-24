@@ -7,7 +7,7 @@ import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.ResultRepoService;
+import com.iexec.core.result.core.ResultRepoService;
 
 import org.junit.Before;
 import org.junit.Test;
