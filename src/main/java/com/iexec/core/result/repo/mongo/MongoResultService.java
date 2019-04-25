@@ -60,5 +60,4 @@ public class MongoResultService extends ResultRepo {
         Query query = Query.query(Criteria.where("filename").is(getResultFilename(chainTaskId)));
         return gridOperations.findOne(query) != null;
     }
-
 }
