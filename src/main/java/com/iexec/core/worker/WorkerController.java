@@ -116,7 +116,7 @@ public class WorkerController {
                 .build();
 
         Worker savedWorker = workerService.addWorker(worker);
-        log.info("Worker has been registered [worker:{}]", savedWorker);
+        log.info("Worker ready [worker:{}]", savedWorker);
         return ok(savedWorker);
     }
 
@@ -131,6 +131,7 @@ public class WorkerController {
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .smsURL(smsConfiguration.getSmsURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
+                .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
 
         return ok(config);

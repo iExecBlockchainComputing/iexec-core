@@ -37,7 +37,7 @@ public class TaskExecutorEngine {
         return CompletableFuture.supplyAsync(() -> taskService.tryUpgradeTaskStatus(chainTaskId), executor)
         .handle((res, err) -> {
             if (err != null) {
-                log.error(err.getMessage());
+                err.printStackTrace();
                 return false;
             }
             return res;

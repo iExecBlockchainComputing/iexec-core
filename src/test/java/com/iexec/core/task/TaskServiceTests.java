@@ -703,7 +703,7 @@ public class TaskServiceTests {
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(new ChainReceipt()));
         when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
@@ -752,7 +752,7 @@ public class TaskServiceTests {
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any())).thenReturn(Optional.empty());
+        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.empty());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 

@@ -3,17 +3,17 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.core.chain.ChainConfig;
+import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.result.core.ResultRepoService;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.web.client.RestTemplate;
+import org.web3j.crypto.Credentials;
 
 import java.util.*;
 
@@ -37,10 +37,8 @@ public class ReplicateServiceTests {
     @Mock private IexecHubService iexecHubService;
     @Mock private ApplicationEventPublisher applicationEventPublisher;
     @Mock private Web3jService web3jService;
-    @Mock private ChainConfig chainConfig;
-    @Mock private ResultRepositoryConfiguration resultRepoConfig;
     @Mock private CredentialsService credentialsService;
-    @Mock private RestTemplate restTemplate;
+    @Mock private ResultRepoService resultRepoService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -594,5 +592,30 @@ public class ReplicateServiceTests {
     public void shouldNotFindReplicateRevealedOnchain() {
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any()))
                 .thenReturn(true);
+    }
+
+    @Test
+    public void shouldReturnFalseSinceCouldNotGetEIP712Challenge() {
+        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
+        when(resultRepoService.getChallenge()).thenReturn(Optional.empty());
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+
+        assertThat(isResultUploaded).isFalse();
+    }
+
+    @Test
+    public void shouldReturnFalseSinceCouldNotBuildAuthorizationToken() {
+
+        Eip712Challenge eip712Challenge = new Eip712Challenge("dummyChallenge", 123);
+        Credentials credentialsMock = mock(Credentials.class);
+
+        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
+        when(resultRepoService.getChallenge()).thenReturn(Optional.of(eip712Challenge));
+        when(credentialsService.getCredentials()).thenReturn(credentialsMock);
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+
+        assertThat(isResultUploaded).isFalse();
     }
 }

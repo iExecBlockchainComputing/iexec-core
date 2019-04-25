@@ -49,6 +49,16 @@ artifacts {
     libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
 }
 
+ext {
+    springCloudVersion = 'Finchley.RELEASE'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
 dependencies {
     // iexec
     compile "com.iexec.common:iexec-common:$iexecCommonVersion"
@@ -63,6 +73,7 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-aop"
     compile "org.springframework.boot:spring-boot-starter-security"
     compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.cloud:spring-cloud-starter-openfeign"
 
     testCompile "org.springframework.boot:spring-boot-starter-test"
 
@@ -154,10 +165,10 @@ import org.apache.tools.ant.filters.ReplaceTokens
 // create the version controller for the core
 task createVersion(type: Copy) {
     // delete old one
-    delete 'src/main/java/com/iexec/core/utils/Version.java'
+    delete 'src/main/java/com/iexec/core/utils/version/Version.java'
     // use and copy template to the new location
     from 'src/main/resources/Version.java.template'
-    into 'src/main/java/com/iexec/core/utils/'
+    into 'src/main/java/com/iexec/core/utils/version/'
 
     rename { String fileName ->
         fileName.replace('.template', '')

@@ -13,15 +13,15 @@ import org.springframework.stereotype.Component;
 public class SmsConfiguration {
 
     @Value("${sms.protocol}")
-    private String smsProtocol;
+    private String protocol;
 
-    @Value("${sms.ip}")
-    private String smsIP;
+    @Value("${sms.host}")
+    private String host;
 
     @Value("${sms.port}")
-    private String smsPort;
+    private String port;
 
     public String getSmsURL() {
-        return smsProtocol + "://" + smsIP + ":" + smsPort;
+        return protocol + "://" + host + ":" + port;
     }
 }

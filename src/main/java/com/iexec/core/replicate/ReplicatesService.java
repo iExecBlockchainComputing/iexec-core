@@ -1,28 +1,25 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.*;
+import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
-import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.result.core.ResultRepoService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.web3j.crypto.ECKeyPair;
 
 import java.util.*;
@@ -38,28 +35,22 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private ChainConfig chainConfig;
-    private ResultRepositoryConfiguration resultRepoConfig;
     private CredentialsService credentialsService;
-    private RestTemplate restTemplate;
+    private ResultRepoService resultRepoService;
 
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             ChainConfig chainConfig,
-                             ResultRepositoryConfiguration resultRepoConfig,
                              CredentialsService credentialsService,
-                             RestTemplate restTemplate) {
+                             ResultRepoService resultRepoService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.chainConfig = chainConfig;
-        this.resultRepoConfig = resultRepoConfig;
         this.credentialsService = credentialsService;
-        this.restTemplate = restTemplate;
+        this.resultRepoService = resultRepoService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -211,7 +202,7 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, null, "");
+        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, ReplicateDetails.builder().build());
     }
 
     // TODO: this method needs to be refactored !
@@ -221,10 +212,10 @@ public class ReplicatesService {
                                       String walletAddress,
                                       ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier,
-                                      ChainReceipt chainReceipt,
-                                      String resultLink) {
+                                      ReplicateDetails details) {
+        ChainReceipt chainReceipt = details.getChainReceipt();
 
-        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !hasResultBeenUploaded(chainTaskId)) {
+        if (newStatus == ReplicateStatus.RESULT_UPLOADED && !isResultUploaded(chainTaskId)) {
             log.error("requested updateResplicateStatus to RESULT_UPLOADED when result has not been"
                             + " uploaded to result repository yet [chainTaskId:{}, ReplicateAddress:{}]",
                     chainTaskId, walletAddress);
@@ -286,7 +277,14 @@ public class ReplicatesService {
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {
-            replicate.setResultLink(resultLink);
+            replicate.setResultLink(details.getResultLink());
+            replicate.setChainCallbackData(details.getChainCallbackData());
+            if (replicate.getResultLink() == null || replicate.getResultLink().isEmpty()) {
+                log.error("UpdateReplicateStatus failed (empty resultLink) [chainTaskId:{}, walletAddress:{}, " +
+                                "currentStatus:{}, newStatus:{}, resultLink:{}]",
+                        chainTaskId, walletAddress, currentStatus, newStatus, replicate.getResultLink());
+                return;
+            }
         }
         replicate.updateStatus(newStatus, modifier, chainReceipt);
         replicatesRepository.save(optionalReplicates.get());
@@ -306,8 +304,8 @@ public class ReplicatesService {
                                       String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
-                                      long blockNumber,
-                                      ReplicateStatusModifier modifier) {
+                                      ReplicateStatusModifier modifier,
+                                      ReplicateDetails details) {
         log.error("Maximum number of tries reached [exception:{}]", exception.getMessage());
         exception.printStackTrace();
     }
@@ -373,19 +371,16 @@ public class ReplicatesService {
         }
     }
 
-    public boolean hasResultBeenUploaded(String chainTaskId) {
+    public boolean isResultUploaded(String chainTaskId) {
         // currently no check in case of IPFS
-        if(iexecHubService.isPublicResult(chainTaskId, 0)){
+        if (iexecHubService.isPublicResult(chainTaskId, 0)) {
             return true;
         }
 
-        String resultChallengeURI = resultRepoConfig.getResultRepositoryURL()
-                + "/results/challenge?chainId={id}";
+        Optional<Eip712Challenge> oEip712Challenge = resultRepoService.getChallenge();
+        if (!oEip712Challenge.isPresent()) return false;
 
-        // get the eip712 challenge
-        Eip712Challenge eip712Challenge = restTemplate.getForObject(resultChallengeURI,
-                Eip712Challenge.class, chainConfig.getChainId());
-
+        Eip712Challenge eip712Challenge = oEip712Challenge.get();
         ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
         String walletAddress = credentialsService.getCredentials().getAddress();
 
@@ -393,30 +388,20 @@ public class ReplicatesService {
         String authorizationToken = Eip712ChallengeUtils.buildAuthorizationToken(eip712Challenge,
                 walletAddress, ecKeyPair);
 
-        // add authorization token to http header
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, authorizationToken);
-        HttpEntity<String> entity = new HttpEntity<String>(headers);
-
-        String resultURI = resultRepoConfig.getResultRepositoryURL() + "/results/" + chainTaskId;
-
-        try {
-            // HEAD resultRepoURL/resuts/chainTaskId
-            return restTemplate.exchange(resultURI, HttpMethod.HEAD, entity, String.class)
-                    .getStatusCode()
-                    .is2xxSuccessful();
-        } catch (HttpClientErrorException e) {
-            return e.getStatusCode().is2xxSuccessful();
+        if (authorizationToken.isEmpty()) {
+            return false;
         }
+
+        return resultRepoService.isResultUploaded(authorizationToken, chainTaskId);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
-            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
     }
 
     public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
-            chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
+                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
     }
 }

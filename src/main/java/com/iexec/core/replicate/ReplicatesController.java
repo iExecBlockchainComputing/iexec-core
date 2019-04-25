@@ -3,22 +3,21 @@ package com.iexec.core.replicate;
 import java.util.List;
 import java.util.Optional;
 
-import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.tee.TeeUtils;
-import com.iexec.core.chain.SignatureService;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
 
@@ -30,20 +29,13 @@ public class ReplicatesController {
     private ReplicatesService replicatesService;
     private ReplicateSupplyService replicateSupplyService;
     private JwtTokenProvider jwtTokenProvider;
-    private SignatureService signatureService;
-    private TaskService taskService;
-
 
     public ReplicatesController(ReplicatesService replicatesService,
                                 ReplicateSupplyService replicateSupplyService,
-                                JwtTokenProvider jwtTokenProvider,
-                                SignatureService signatureService,
-                                TaskService taskService) {
+                                JwtTokenProvider jwtTokenProvider) {
         this.replicatesService = replicatesService;
         this.replicateSupplyService = replicateSupplyService;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.signatureService = signatureService;
-        this.taskService = taskService;
     }
 
     @GetMapping("/replicates/available")
@@ -54,25 +46,13 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        // get available replicate
-        Optional<Replicate> optional = replicateSupplyService.getAvailableReplicate(blockNumber, workerWalletAddress);
-        if (!optional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
-        Replicate replicate = optional.get();
+        // get contributionAuthorization if a replicate is available
+        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService
+                .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress);
 
-        // get associated task
-        Optional<Task> taskOptional = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
-        if (!taskOptional.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
-        }
-        Task task = taskOptional.get();
-
-        // generate contribution authorization
-        ContributionAuthorization authorization = signatureService.createAuthorization(
-                workerWalletAddress, task.getChainTaskId(), TeeUtils.isTrustedExecutionTag(task.getTag()));
-
-        return ResponseEntity.ok(authorization);
+        return oAuthorization
+                .<ResponseEntity<ContributionAuthorization>>map(ResponseEntity::ok)
+                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @GetMapping("/replicates/interrupted")
@@ -107,8 +87,7 @@ public class ReplicatesController {
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                 chainTaskId, replicateStatus, walletAddress);
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER,
-                details.getChainReceipt(), details.getResultLink());
+        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
         return ResponseEntity.ok().build();
     }
 }

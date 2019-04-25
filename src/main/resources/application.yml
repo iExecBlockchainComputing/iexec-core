@@ -39,22 +39,27 @@ chain:
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
-tee:
-  enclaveChallenge: "0x3cb738d98d7a70e81e81b0811fae2452bca049bc"
-
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
+  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
 
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:https}
-  ip: ${IEXEC_RESULT_REPOSITORY_IP:localhost}
+  host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
 
 sms:
   protocol: ${IEXEC_SMS_PROTOCOL:http}
-  ip: ${IEXEC_SMS_IP:localhost}
+  host: ${IEXEC_SMS_HOST:localhost}
   port: ${IEXEC_SMS_PORT:5000}
 
 ipfs:
   host: ${IEXEC_IPFS_HOST:127.0.0.1}
   port: ${IEXEC_IPFS_PORT:5001}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - httptrace

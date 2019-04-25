@@ -1,4 +1,4 @@
-package com.iexec.core.result;
+package com.iexec.core.result.repo.proxy;
 
 import lombok.Builder;
 import lombok.Data;

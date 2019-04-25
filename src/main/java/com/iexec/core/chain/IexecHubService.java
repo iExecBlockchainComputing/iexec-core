@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import static com.iexec.common.chain.ChainContributionStatus.*;
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
+import static com.iexec.common.utils.BytesUtils.stringToBytes;
 import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Slf4j
@@ -115,7 +116,7 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
-        byte[] chainDealIdBytes = BytesUtils.stringToBytes(chainDealId);
+        byte[] chainDealIdBytes = stringToBytes(chainDealId);
         BigInteger taskIndexBigInteger = BigInteger.valueOf(taskIndex);
         String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
 
@@ -145,7 +146,8 @@ public class IexecHubService extends IexecHubAbstractService {
                 (!initializeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
                         || isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain))) {
             String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId);
+
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId, web3jService.getLatestBlockNumber());
 
             log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
                     computedChainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
@@ -179,28 +181,33 @@ public class IexecHubService extends IexecHubAbstractService {
         return ret;
     }
 
-    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultUri) {
+    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultUri, String callbackData) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
-            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultUri), executor).get();
+            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultUri, callbackData), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return Optional.empty();
     }
 
-    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultUri) {
-        byte[] chainTaskIdBytes = BytesUtils.stringToBytes(chainTaskId);
-        byte[] resultUriBytes = resultUri.getBytes(StandardCharsets.UTF_8);
+    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultUri, String callbackData) {
+        byte[] chainTaskIdBytes = stringToBytes(chainTaskId);
+        byte[] finalizePayload = resultUri.getBytes(StandardCharsets.UTF_8);
+        boolean shouldSendCallback = callbackData != null && !callbackData.isEmpty();
+        if (shouldSendCallback) {
+            finalizePayload = stringToBytes(callbackData);
+        }
 
         TransactionReceipt finalizeReceipt;
-
-        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, resultUriBytes);
+        //TODO: Upgrade smart-contracts for sending both resultUri and callbackData
+        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, finalizePayload);
 
         try {
             finalizeReceipt = finalizeCall.send();
         } catch (Exception e) {
-            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, error:{}]]", chainTaskId, resultUri, e.getMessage());
+            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, error:{}]]",
+                    chainTaskId, resultUri, callbackData, shouldSendCallback, e.getMessage());
             return Optional.empty();
         }
 
@@ -214,9 +221,10 @@ public class IexecHubService extends IexecHubAbstractService {
         if (finalizeEvent != null && finalizeEvent.log != null &&
                 (!finalizeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
                         || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId);
+            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
-            log.info("Finalized [chainTaskId:{}, resultLink:{}, gasUsed:{}]", chainTaskId, resultUri, finalizeReceipt.getGasUsed());
+            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, gasUsed:{}]", chainTaskId,
+                    resultUri, callbackData, shouldSendCallback, finalizeReceipt.getGasUsed());
             return Optional.of(chainReceipt);
         }
 
@@ -262,7 +270,7 @@ public class IexecHubService extends IexecHubAbstractService {
     private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(BytesUtils.stringToBytes(chainTaskId)).send();
+            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
             return Optional.empty();
@@ -275,7 +283,7 @@ public class IexecHubService extends IexecHubAbstractService {
         }
 
         log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId);
+        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
         return Optional.of(chainReceipt);
     }

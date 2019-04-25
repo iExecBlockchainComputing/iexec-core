@@ -1,27 +1,19 @@
 version: '3.4'
 
 services:
-  chain:
-    image: iexechub/poco-chain:legacy-11a934b690bd4c020a90186bf6a10ecb47a2fe4d
-    container_name: chain
-    ports:
-      - 8545:8545
-
-  mongo:
-    image: mongo:4-xenial
-    container_name: mongo
 
   core:
-    image: nexus.iex.ec/iexec-core:3.0.0-SNAPSHOT-ef6a068
+    image: nexus.iex.ec/iexec-core:${CORE_VERSION}
     container_name: core
     environment:
-    - MONGO_HOST=mongo
-    - IEXEC_CORE_SSL_KEYSTORE=/iexec/ssl-keystore-dev.p12
-    - IEXEC_CORE_SSL_PASSWORD=whatever
     - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
     - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
     - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
+    - MONGO_HOST=mongo
     - IEXEC_IPFS_HOST=ipfs
+    - IEXEC_SMS_HOST=sms
+    - IEXEC_CORE_SSL_KEYSTORE=/iexec/ssl-keystore-dev.p12
+    - IEXEC_CORE_SSL_PASSWORD=whatever
     volumes:
       - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
       - ./ssl-keystore-dev.p12:/iexec/ssl-keystore-dev.p12
@@ -30,7 +22,21 @@ services:
     restart: on-failure
     depends_on:
       - mongo
+      - chain
       - ipfs
+      - sms
+
+  chain:
+    image: nexus.iex.ec/poco-chain:${CHAIN_VERSION}
+    container_name: chain
+    ports:
+      - 8545:8545
+
+  mongo:
+    image: mongo:4-xenial
+    container_name: mongo
+    ports:
+      - 27017:27017
 
   mongo_ui:
     image: mongo-express:0.49
@@ -43,18 +49,8 @@ services:
     depends_on:
       - mongo
 
-  sms:
-    image: iexechub/sms:latest
-    container_name: sms
-    environment:
-      - CLERK=0xDf62b3FddA0B2C9bc282f058eB80A270d80D25f2
-      - HUB=0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC
-      - GATEWAY=http://chain:8545
-    ports:
-      - 5000:5000
-
   ipfs:
-    image: jbenet/go-ipfs:latest
+    image: ipfs/go-ipfs:v0.4.20
     container_name: ipfs
     ports:
       - 8080:8080
@@ -63,3 +59,15 @@ services:
     volumes:
       - /tmp/ipfs-docker-staging:/export
       - /tmp/ipfs-docker-data:/data/ipfs
+    restart: on-failure
+
+  sms:
+    image: nexus.iex.ec/sms:latest
+    container_name: sms
+    environment:
+      - HUB=0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC
+      - GATEWAY=http://chain:8545
+    ports:
+      - 5000:5000
+    depends_on:
+      - chain
