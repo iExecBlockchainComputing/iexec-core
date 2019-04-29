@@ -6,7 +6,6 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
@@ -35,19 +34,16 @@ public class TaskService {
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
-    private ResultRepositoryConfiguration resultRepositoryConfig;
 
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
-                       ApplicationEventPublisher applicationEventPublisher,
-                       ResultRepositoryConfiguration resultRepositoryConfig) {
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.resultRepositoryConfig = resultRepositoryConfig;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
@@ -96,12 +92,13 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
+        int offChainWinners = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(),
+                ReplicateStatus.CONTRIBUTED);
         boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersEqualsOnChainWinners;
     }
-
+ 
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
