@@ -550,7 +550,7 @@ public class TaskServiceTests {
                 .winnerCounter(2)
                 .build()));
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
