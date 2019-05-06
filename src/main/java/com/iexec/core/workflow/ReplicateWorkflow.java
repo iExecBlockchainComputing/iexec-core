@@ -65,7 +65,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS, RECOVERING));
         addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED, RECOVERING));
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
-        addTransition(CONTRIBUTED, ABORTED_ON_CONTRIBUTION_TIMEOUT);
         addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
 
         // reveal - completed
