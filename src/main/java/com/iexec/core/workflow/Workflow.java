@@ -25,7 +25,7 @@ public class Workflow<T> {
 
     boolean addTransition(T from, List<T> to) {
         if(possibleTransitions.containsKey(from)) {
-            return possibleTransitions.put(from, to) != null;
+            return possibleTransitions.get(from).addAll(to);
         }
 
         return possibleTransitions.put(from, to) != null;
