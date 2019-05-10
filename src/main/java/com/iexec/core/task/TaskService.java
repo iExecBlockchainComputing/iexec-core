@@ -94,9 +94,9 @@ public class TaskService {
         int onChainWinners = chainTask.getWinnerCounter();
         int offChainWinners = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(),
                 ReplicateStatus.CONTRIBUTED);
-        boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
+        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
-        return isChainTaskRevealing && offChainWinnersEqualsOnChainWinners;
+        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
     }
  
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
