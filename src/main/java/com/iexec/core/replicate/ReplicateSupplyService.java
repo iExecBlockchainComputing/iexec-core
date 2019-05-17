@@ -119,7 +119,6 @@ public class ReplicateSupplyService {
         long coreLastBlock = web3jService.getLatestBlockNumber();
         long initializationBlock = task.getInitializationBlockNumber();
         boolean isFewBlocksAfterInitialization = coreLastBlock >= initializationBlock + 2;
-        log.info("****** [1:{},1:{},1:{}]",coreLastBlock, initializationBlock, isFewBlocksAfterInitialization );
         return coreLastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
     }
 
