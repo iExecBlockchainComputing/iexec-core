@@ -8,6 +8,7 @@ import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @Service
 public class ReplicateSupplyService {
 
@@ -34,31 +36,41 @@ public class ReplicateSupplyService {
     private TaskService taskService;
     private WorkerService workerService;
     private SmsService smsService;
+    private Web3jService web3jService;
 
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
-                                 SignatureService signatureService,
-                                 TaskExecutorEngine taskExecutorEngine,
-                                 TaskService taskService,
-                                 WorkerService workerService,
-                                 SmsService smsService) {
+                                  SignatureService signatureService,
+                                  TaskExecutorEngine taskExecutorEngine,
+                                  TaskService taskService,
+                                  WorkerService workerService,
+                                  SmsService smsService,
+                                  Web3jService web3jService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
         this.taskService = taskService;
         this.workerService = workerService;
         this.smsService = smsService;
+        this.web3jService = web3jService;
     }
 
     // in case the task has been modified between reading and writing it, it is retried up to 5 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long blockNumber, String walletAddress) {
+    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
             return Optional.empty();
         }
         Worker worker = optional.get();
+
+        // return empty if the worker is not sync
+        //TODO Check if worker node is sync
+        boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
+        if (!isWorkerLastBlockAvailable) {
+            return Optional.empty();
+        }
 
         // return empty if there is no task to contribute
         List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
@@ -80,14 +92,13 @@ public class ReplicateSupplyService {
 
             String chainTaskId = task.getChainTaskId();
 
-            boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0
-                    && task.getInitializationBlockNumber() <= blockNumber;
+            boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
             boolean moreReplicatesNeeded = replicatesService.moreReplicatesNeeded(chainTaskId,
                     task.getNumWorkersNeeded(), task.getMaxExecutionTime());
 
-            if (blockNumberAvailable && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
+            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
                 if (enclaveChallenge.isEmpty()) continue;
@@ -102,6 +113,14 @@ public class ReplicateSupplyService {
         }
 
         return Optional.empty();
+    }
+
+    private boolean isFewBlocksAfterInitialization(Task task) {
+        long coreLastBlock = web3jService.getLatestBlockNumber();
+        long initializationBlock = task.getInitializationBlockNumber();
+        boolean isFewBlocksAfterInitialization = coreLastBlock >= initializationBlock + 2;
+        log.info("****** [1:{},1:{},1:{}]",coreLastBlock, initializationBlock, isFewBlocksAfterInitialization );
+        return coreLastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
     }
 
     public List<InterruptedReplicateModel> getInterruptedReplicates(long blockNumber, String walletAddress) {
