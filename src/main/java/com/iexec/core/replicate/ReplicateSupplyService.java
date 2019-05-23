@@ -86,11 +86,11 @@ public class ReplicateSupplyService {
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
 
-            taskService.initializeTaskAccessForNewReplicate(chainTaskId);
-            if (taskService.isTaskAccessedForNewReplicate(chainTaskId)){
+            taskService.initializeTaskAccessForNewReplicateLock(chainTaskId);
+            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)){
                 continue;//skip task if being accessed
             }
-            taskService.setTaskAccessedForNewReplicate(chainTaskId, true);//lock task while being accessed
+            taskService.lockTaskAccessForNewReplicate(chainTaskId);//lock task while being accessed
 
             // skip the task if it needs TEE and the worker doesn't support it
             boolean doesTaskNeedTEE = task.isTeeNeeded();
@@ -111,7 +111,7 @@ public class ReplicateSupplyService {
                 if (enclaveChallenge.isEmpty()) continue;
 
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
-                taskService.setTaskAccessedForNewReplicate(chainTaskId, false);//release task when replicate is created
+                taskService.unlockTaskAccessForNewReplicate(chainTaskId);//release task when replicate is created
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
                 // generate contribution authorization
@@ -122,6 +122,7 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
+
 
 
 

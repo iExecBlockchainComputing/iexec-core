@@ -31,7 +31,7 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
-    private final ConcurrentHashMap<String, Boolean> taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Boolean> newReplicateTaskLock = new ConcurrentHashMap<>();
     private TaskRepository taskRepository;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
@@ -463,16 +463,24 @@ public class TaskService {
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
 
-    public void initializeTaskAccessForNewReplicate(String chainTaskId) {
-        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
+    public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
+        newReplicateTaskLock.putIfAbsent(chainTaskId, false);
     }
 
-    public Boolean isTaskAccessedForNewReplicate(String chainTaskId) {
-        return taskAccessForNewReplicateLock.get(chainTaskId);
+    public Boolean isTaskBeingAccessedForNewReplicate(String chainTaskId) {
+        return newReplicateTaskLock.get(chainTaskId);
     }
 
-    public void setTaskAccessedForNewReplicate(String chainTaskId, boolean isTaskAccessed) {
-        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskAccessed);
+    public void lockTaskAccessForNewReplicate(String chainTaskId) {
+        setTaskAccessForNewReplicateLock(chainTaskId, true);
+    }
+
+    public void unlockTaskAccessForNewReplicate(String chainTaskId) {
+        setTaskAccessForNewReplicateLock(chainTaskId, false);
+    }
+
+    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isNewReplicateTaskLocked) {
+        newReplicateTaskLock.replace(chainTaskId, isNewReplicateTaskLocked);
     }
 
 }
