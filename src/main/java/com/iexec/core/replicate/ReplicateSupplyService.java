@@ -120,6 +120,7 @@ public class ReplicateSupplyService {
                 return Optional.of(signatureService.createAuthorization(
                         walletAddress, chainTaskId, enclaveChallenge));
             }
+            taskService.unlockTaskAccessForNewReplicate(chainTaskId);
         }
 
         return Optional.empty();
