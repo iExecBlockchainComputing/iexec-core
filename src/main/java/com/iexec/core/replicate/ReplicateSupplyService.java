@@ -25,11 +25,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 public class ReplicateSupplyService {
 
+    private final ConcurrentHashMap<String, Boolean> taskAccessLock = new ConcurrentHashMap<>();
     private ReplicatesService replicatesService;
     private SignatureService signatureService;
     private TaskExecutorEngine taskExecutorEngine;
@@ -84,13 +86,20 @@ public class ReplicateSupplyService {
         }
 
         for (Task task : runningTasks) {
+            String chainTaskId = task.getChainTaskId();
+
+            initializeTaskAccess(chainTaskId);
+            if (isTaskAccessed(chainTaskId)){
+                continue;//skip task if being accessed
+            }
+            setTaskAccessed(chainTaskId, true);//lock task while being accessed
+
             // skip the task if it needs TEE and the worker doesn't support it
             boolean doesTaskNeedTEE = task.isTeeNeeded();
             if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
                 continue;
             }
 
-            String chainTaskId = task.getChainTaskId();
 
             boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
@@ -104,6 +113,7 @@ public class ReplicateSupplyService {
                 if (enclaveChallenge.isEmpty()) continue;
 
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
+                setTaskAccessed(chainTaskId, false);//release task when replicate is created
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
                 // generate contribution authorization
@@ -114,6 +124,19 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
+
+    private void initializeTaskAccess(String chainTaskId) {
+        taskAccessLock.putIfAbsent(chainTaskId, false);
+    }
+
+    private Boolean isTaskAccessed(String chainTaskId) {
+        return taskAccessLock.get(chainTaskId);
+    }
+
+    private void setTaskAccessed(String chainTaskId, boolean isTaskAccessed) {
+        taskAccessLock.replace(chainTaskId, isTaskAccessed);
+    }
+
 
     private boolean isFewBlocksAfterInitialization(Task task) {
         long coreLastBlock = web3jService.getLatestBlockNumber();
