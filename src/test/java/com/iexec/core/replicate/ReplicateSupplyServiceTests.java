@@ -11,8 +11,6 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -95,6 +93,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(initBlock + 1);//should be 2
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks())
@@ -134,6 +133,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks())
@@ -166,6 +166,7 @@ public class ReplicateSupplyServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks()).thenReturn(new ArrayList<>());
 
@@ -182,6 +183,7 @@ public class ReplicateSupplyServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
         runningTask1.changeStatus(RUNNING);
 
@@ -208,6 +210,7 @@ public class ReplicateSupplyServiceTests {
         runningTask1.changeStatus(RUNNING);
         runningTask1.setTag(NO_TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
@@ -238,6 +241,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(NO_TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
@@ -267,6 +271,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks())
@@ -277,6 +282,46 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
+
+        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+
+        assertThat(oAuthorization).isEmpty();
+
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(workerService, Mockito.times(0))
+                .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
+    }
+
+    @Test
+    public void shouldNotGetReplicateWhenTaskAlreadyAccessed() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .teeEnabled(false)
+                .lastAliveDate(new Date())
+                .build();
+
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setInitializationBlockNumber(initBlock);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(NO_TEE_TAG);
+
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(true);
+        when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(taskService.getInitializedOrRunningTasks())
+                .thenReturn(Collections.singletonList(runningTask));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(false);
+        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+                runningTask.getMaxExecutionTime())).thenReturn(true);
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
+                .thenReturn(new ContributionAuthorization());
 
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
@@ -304,6 +349,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks())
@@ -343,6 +389,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks())
@@ -382,6 +429,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
@@ -414,6 +462,7 @@ public class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
 
+        when(taskService.isTaskAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())

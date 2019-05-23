@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -30,6 +31,7 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
+    private final ConcurrentHashMap<String, Boolean> taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
     private TaskRepository taskRepository;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
@@ -460,4 +462,17 @@ public class TaskService {
         updateTaskStatusAndSave(task, COMPLETED);
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
+
+    public void initializeTaskAccessForNewReplicate(String chainTaskId) {
+        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
+    }
+
+    public Boolean isTaskAccessedForNewReplicate(String chainTaskId) {
+        return taskAccessForNewReplicateLock.get(chainTaskId);
+    }
+
+    public void setTaskAccessedForNewReplicate(String chainTaskId, boolean isTaskAccessed) {
+        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskAccessed);
+    }
+
 }
