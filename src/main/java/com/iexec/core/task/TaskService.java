@@ -31,7 +31,7 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
-    private final ConcurrentHashMap<String, Boolean> newReplicateTaskLock = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Boolean> taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
     private TaskRepository taskRepository;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
@@ -464,11 +464,11 @@ public class TaskService {
     }
 
     public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
-        newReplicateTaskLock.putIfAbsent(chainTaskId, false);
+        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
     }
 
     public Boolean isTaskBeingAccessedForNewReplicate(String chainTaskId) {
-        return newReplicateTaskLock.get(chainTaskId);
+        return taskAccessForNewReplicateLock.get(chainTaskId);
     }
 
     public void lockTaskAccessForNewReplicate(String chainTaskId) {
@@ -479,8 +479,8 @@ public class TaskService {
         setTaskAccessForNewReplicateLock(chainTaskId, false);
     }
 
-    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isNewReplicateTaskLocked) {
-        newReplicateTaskLock.replace(chainTaskId, isNewReplicateTaskLocked);
+    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
+        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
 
 }
