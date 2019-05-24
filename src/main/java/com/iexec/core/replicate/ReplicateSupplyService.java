@@ -84,13 +84,19 @@ public class ReplicateSupplyService {
         }
 
         for (Task task : runningTasks) {
+            String chainTaskId = task.getChainTaskId();
+
             // skip the task if it needs TEE and the worker doesn't support it
             boolean doesTaskNeedTEE = task.isTeeNeeded();
             if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
                 continue;
             }
 
-            String chainTaskId = task.getChainTaskId();
+            taskService.initializeTaskAccessForNewReplicateLock(chainTaskId);
+            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)){
+                continue;//skip task if being accessed
+            }
+            taskService.lockTaskAccessForNewReplicate(chainTaskId);
 
             boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
@@ -101,19 +107,27 @@ public class ReplicateSupplyService {
             if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
-                if (enclaveChallenge.isEmpty()) continue;
+                if (enclaveChallenge.isEmpty()){
+                    taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
+                    continue;
+                }
 
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
+                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
                 // generate contribution authorization
                 return Optional.of(signatureService.createAuthorization(
                         walletAddress, chainTaskId, enclaveChallenge));
             }
+            taskService.unlockTaskAccessForNewReplicate(chainTaskId);
         }
 
         return Optional.empty();
     }
+
+
+
 
     private boolean isFewBlocksAfterInitialization(Task task) {
         long coreLastBlock = web3jService.getLatestBlockNumber();
