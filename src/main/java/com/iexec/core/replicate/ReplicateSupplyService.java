@@ -55,7 +55,17 @@ public class ReplicateSupplyService {
         this.web3jService = web3jService;
     }
 
-    // in case the task has been modified between reading and writing it, it is retried up to 5 times
+    /*
+     * #1 Retryable - In case the task has been modified between reading and writing it, it is retried up to 5 times
+     *
+     * #2 TaskAccessForNewReplicateLock - To avoid the case where only 1 replicate is required but 2 replicates are
+     * created since 2 workers are calling getAvailableReplicate() and reading the database at the same time, we need a
+     *  'TaskAccessForNewReplicateLock' which should be:
+     *  - locked before `replicatesService.moreReplicatesNeeded(..)`
+     *  - released after `replicatesService.addNewReplicate(..)` in the best scenario
+     *  - released before any `continue` or  `return`
+     *
+     */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not registered
