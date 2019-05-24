@@ -240,6 +240,7 @@ public class TaskService {
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
+            // TODO: Set real consensusBlockNumber
             task.setConsensusReachedBlockNumber(web3jService.getLatestBlockNumber());
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
