@@ -83,6 +83,7 @@ public class TaskListeners {
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
                     .chainTaskId(chainTaskId)
+                    .blockNumber(event.getBlockNumber())
                     .workersAddress(winners).build()
             );
         }

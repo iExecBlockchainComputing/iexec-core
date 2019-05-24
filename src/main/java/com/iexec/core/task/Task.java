@@ -45,6 +45,7 @@ public class Task {
     private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
     private String consensus;
+    private long consensusReachedBlockNumber;
     private Date contributionDeadline;
     private Date revealDeadline;
     private Date finalDeadline;

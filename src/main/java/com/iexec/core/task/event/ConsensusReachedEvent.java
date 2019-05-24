@@ -12,4 +12,5 @@ public class ConsensusReachedEvent {
 
     private String chainTaskId;
     private String consensus;
+    private long blockNumber;
 }

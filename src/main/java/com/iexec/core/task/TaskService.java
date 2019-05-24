@@ -6,6 +6,7 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.ConsensusReachedEvent;
@@ -36,16 +37,19 @@ public class TaskService {
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
+    private Web3jService web3jService;
 
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
-                       ApplicationEventPublisher applicationEventPublisher) {
+                       ApplicationEventPublisher applicationEventPublisher,
+                       Web3jService web3jService) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.web3jService = web3jService;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
@@ -236,11 +240,14 @@ public class TaskService {
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
+            // TODO: Set real consensusBlockNumber
+            task.setConsensusReachedBlockNumber(web3jService.getLatestBlockNumber());
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .consensus(task.getConsensus())
+                    .blockNumber(task.getConsensusReachedBlockNumber())
                     .build());
         }
     }

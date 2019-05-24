@@ -5,6 +5,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -59,6 +60,9 @@ public class TaskServiceTests {
 
     @Mock
     private ResultRepositoryConfiguration resulRepositoryConfig;
+
+    @Mock
+    private Web3jService web3jService;
 
     @InjectMocks
     private TaskService taskService;
@@ -552,6 +556,7 @@ public class TaskServiceTests {
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
+        when(web3jService.getLatestBlockNumber()).thenReturn(1L);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
