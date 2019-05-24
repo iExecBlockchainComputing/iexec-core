@@ -96,6 +96,11 @@ public class ReplicateSupplyService {
         for (Task task : runningTasks) {
             String chainTaskId = task.getChainTaskId();
 
+            // no need to ge further if the consensus is alrady reached on-chain
+            if (taskService.isConsensusReached(task)){
+                continue;
+            }
+
             // skip the task if it needs TEE and the worker doesn't support it
             boolean doesTaskNeedTEE = task.isTeeNeeded();
             if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
