@@ -511,7 +511,7 @@ public class ReplicateSupplyServiceTests {
         Mockito.verify(taskService, Mockito.times(0)).unlockTaskAccessForNewReplicate(CHAIN_TASK_ID);
     }
 
-    // Tests on getInterruptedReplicates()
+    // Tests on getMissedTaskNotifications()
 
     @Test
     public void shouldReturnEmptyListSinceNotParticipatingToAnyTask() {
@@ -520,7 +520,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(Collections.emptyList());
 
         List<InterruptedReplicateModel> list =
-                replicateSupplyService.getInterruptedReplicates(1l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(1l, WALLET_WORKER_1);
 
         assertThat(list).isEmpty();
         Mockito.verify(replicatesService, Mockito.times(0))
@@ -542,7 +542,7 @@ public class ReplicateSupplyServiceTests {
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isEmpty();
 
@@ -565,7 +565,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -593,7 +593,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -627,7 +627,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isConsensusReached(taskList.get(0))).thenReturn(false);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -665,7 +665,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isConsensusReached(taskList.get(0))).thenReturn(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -695,7 +695,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -722,7 +722,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -747,7 +747,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -775,7 +775,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -812,7 +812,7 @@ public class ReplicateSupplyServiceTests {
         future.complete(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -853,7 +853,7 @@ public class ReplicateSupplyServiceTests {
         future.complete(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -882,7 +882,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -909,7 +909,7 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -937,7 +937,7 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -968,7 +968,7 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -999,7 +999,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -1028,7 +1028,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -1059,7 +1059,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isNotEmpty();
         RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
@@ -1084,7 +1084,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<InterruptedReplicateModel> interruptedReplicates =
-                replicateSupplyService.getInterruptedReplicates(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
         assertThat(interruptedReplicates).isEmpty();
 

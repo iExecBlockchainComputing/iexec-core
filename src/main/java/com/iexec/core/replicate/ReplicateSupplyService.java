@@ -2,7 +2,8 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.disconnection.InterruptedReplicateModel;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -22,6 +23,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -151,11 +153,11 @@ public class ReplicateSupplyService {
         return coreLastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
     }
 
-    public List<InterruptedReplicateModel> getInterruptedReplicates(long blockNumber, String walletAddress) {
+    public List<TaskNotification> getMissedTaskNotifications(long blockNumber, String walletAddress) {
 
         List<String> chainTaskIdList = workerService.getChainTaskIds(walletAddress);
         List<Task> tasksWithWorkerParticipation = taskService.getTasksByChainTaskIds(chainTaskIdList);
-        List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
+        List<TaskNotification> taskNotifications = new ArrayList<>();
 
         for (Task task : tasksWithWorkerParticipation) {
             String chainTaskId = task.getChainTaskId();
@@ -178,19 +180,27 @@ public class ReplicateSupplyService {
             ContributionAuthorization authorization = signatureService.createAuthorization(
                     walletAddress, chainTaskId, enclaveChallenge);
 
-            InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
+            //TODO Send only required extras
+            TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder()
                     .contributionAuthorization(authorization)
+                    .blockNumber(task.getConsensusReachedBlockNumber())
+                    .build();
+
+            TaskNotification taskNotification = TaskNotification.builder()
+                    .chainTaskId(chainTaskId)
+                    .workersAddress(Collections.singletonList(walletAddress))
                     .taskNotificationType(optionalTaskNotificationType.get())
+                    .taskNotificationExtra(taskNotificationExtra)
                     .build();
 
             // change replicate status
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
 
-            interruptedReplicates.add(interruptedReplicate);
+            taskNotifications.add(taskNotification);
         }
 
-        return interruptedReplicates;
+        return taskNotifications;
     }
 
     public Optional<TaskNotificationType> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
