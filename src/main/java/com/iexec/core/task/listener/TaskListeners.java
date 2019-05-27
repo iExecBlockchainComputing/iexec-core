@@ -130,7 +130,7 @@ public class TaskListeners {
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
-                .taskNotificationType(TaskNotificationType.COMPLETED)
+                .taskNotificationType(TaskNotificationType.PLEASE_COMPLETE)
                 .workersAddress(Collections.emptyList())
                 .build());
 

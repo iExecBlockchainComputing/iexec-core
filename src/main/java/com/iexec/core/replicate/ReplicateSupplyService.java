@@ -3,7 +3,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.disconnection.InterruptedReplicateModel;
-import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -98,19 +98,19 @@ public class ReplicateSupplyService {
 
             // no need to ge further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskService.isConsensusReached(task)){
+            if (taskService.isConsensusReached(task)) {
                 taskExecutorEngine.updateTask(chainTaskId);
                 continue;
             }
 
             // skip the task if it needs TEE and the worker doesn't support it
             boolean doesTaskNeedTEE = task.isTeeNeeded();
-            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
+            if (doesTaskNeedTEE && !worker.isTeeEnabled()) {
                 continue;
             }
 
             taskService.initializeTaskAccessForNewReplicateLock(chainTaskId);
-            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)){
+            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)) {
                 continue;//skip task if being accessed
             }
             taskService.lockTaskAccessForNewReplicate(chainTaskId);
@@ -124,7 +124,7 @@ public class ReplicateSupplyService {
             if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
-                if (enclaveChallenge.isEmpty()){
+                if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
                     continue;
                 }
@@ -142,8 +142,6 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
-
-
 
 
     private boolean isFewBlocksAfterInitialization(Task task) {
@@ -173,8 +171,8 @@ public class ReplicateSupplyService {
             String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeNeeded());
             if (task.isTeeNeeded() && enclaveChallenge.isEmpty()) continue;
 
-            Optional<RecoveryAction> oRecoveryAction = getAppropriateRecoveryAction(task, replicate, blockNumber);
-            if (!oRecoveryAction.isPresent()) continue;
+            Optional<TaskNotificationType> optionalTaskNotificationType = getAppropriateRecoveryAction(task, replicate, blockNumber);
+            if (!optionalTaskNotificationType.isPresent()) continue;
 
             // generate contribution authorization
             ContributionAuthorization authorization = signatureService.createAuthorization(
@@ -182,7 +180,7 @@ public class ReplicateSupplyService {
 
             InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
                     .contributionAuthorization(authorization)
-                    .recoveryAction(oRecoveryAction.get())
+                    .taskNotificationType(optionalTaskNotificationType.get())
                     .build();
 
             // change replicate status
@@ -195,21 +193,21 @@ public class ReplicateSupplyService {
         return interruptedReplicates;
     }
 
-    public Optional<RecoveryAction> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
+    public Optional<TaskNotificationType> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
 
         if (task.inContributionPhase()) {
             return recoverReplicateInContributionPhase(task, replicate, blockNumber);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)) {
-            return Optional.of(RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT);
+            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED) && !replicate.containsContributedStatus()) {
-            return Optional.of(RecoveryAction.ABORT_CONSENSUS_REACHED);
+            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
         }
 
-        Optional<RecoveryAction> oRecoveryAction = Optional.empty();
+        Optional<TaskNotificationType> oRecoveryAction = Optional.empty();
 
         if (task.inRevealPhase()) {
             oRecoveryAction = recoverReplicateInRevealPhase(task, replicate, blockNumber);
@@ -234,7 +232,7 @@ public class ReplicateSupplyService {
      * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
      */
 
-    private Optional<RecoveryAction> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
+    private Optional<TaskNotificationType> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -245,11 +243,11 @@ public class ReplicateSupplyService {
         boolean didReplicateContributeOnChain = replicatesService.didReplicateContributeOnchain(chainTaskId, walletAddress);
 
         if (beforeContributing) {
-            return Optional.of(RecoveryAction.CONTRIBUTE);
+            return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
         if (didReplicateStartContributing && !didReplicateContributeOnChain) {
-            return Optional.of(RecoveryAction.CONTRIBUTE);
+            return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
         if (didReplicateStartContributing && didReplicateContributeOnChain) {
@@ -272,11 +270,11 @@ public class ReplicateSupplyService {
         if (didReplicateContribute) {
 
             if (!taskService.isConsensusReached(task)) {
-                return Optional.of(RecoveryAction.WAIT);
+                return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 
             taskExecutorEngine.updateTask(chainTaskId);
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         return Optional.empty();
@@ -290,7 +288,7 @@ public class ReplicateSupplyService {
      * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
      */
 
-    private Optional<RecoveryAction> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
+    private Optional<TaskNotificationType> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -301,11 +299,11 @@ public class ReplicateSupplyService {
         boolean didReplicateRevealOnChain = replicatesService.didReplicateRevealOnchain(chainTaskId, walletAddress);
 
         if (isInStatusContributed) {
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         if (didReplicateStartRevealing && !didReplicateRevealOnChain) {
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
@@ -330,11 +328,11 @@ public class ReplicateSupplyService {
                 .equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
         if (didReplicateReveal) {
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         if (wasReplicateRequestedToUpload) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         return Optional.empty();
@@ -348,7 +346,7 @@ public class ReplicateSupplyService {
      * RESULT_UPLOADED                  => RecoveryAction.WAIT
      */
 
-    private Optional<RecoveryAction> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
+    private Optional<TaskNotificationType> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -360,11 +358,11 @@ public class ReplicateSupplyService {
         boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADED);
 
         if (wasReplicateRequestedToUpload) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         if (didReplicateStartUploading && !didReplicateUploadWithoutNotifying) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
@@ -372,11 +370,11 @@ public class ReplicateSupplyService {
                     ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
 
             taskExecutorEngine.updateTask(chainTaskId);
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         if (hasReplicateAlreadyUploaded) {
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         return Optional.empty();
@@ -388,17 +386,17 @@ public class ReplicateSupplyService {
      * !REVEALED                                    => null
      */
 
-    private Optional<RecoveryAction> recoverReplicateIfRevealed(Replicate replicate) {
+    private Optional<TaskNotificationType> recoverReplicateIfRevealed(Replicate replicate) {
         // refresh task
         Optional<Task> oTask = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
         if (!oTask.isPresent()) return Optional.empty();
 
         if (replicate.containsRevealedStatus()) {
             if (oTask.get().getCurrentStatus().equals(TaskStatus.COMPLETED)) {
-                return Optional.of(RecoveryAction.COMPLETE);
+                return Optional.of(TaskNotificationType.PLEASE_COMPLETE);
             }
 
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         return Optional.empty();
