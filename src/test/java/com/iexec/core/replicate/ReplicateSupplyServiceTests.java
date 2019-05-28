@@ -2,8 +2,8 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.disconnection.InterruptedReplicateModel;
-import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
@@ -519,7 +519,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getTasksByChainTaskIds(any()))
                 .thenReturn(Collections.emptyList());
 
-        List<InterruptedReplicateModel> list =
+        List<TaskNotification> list =
                 replicateSupplyService.getMissedTaskNotifications(1l, WALLET_WORKER_1);
 
         assertThat(list).isEmpty();
@@ -541,10 +541,10 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.getReplicate(any(), any())).thenReturn(noTeeReplicate);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> taskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isEmpty();
+        assertThat(taskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, Mockito.times(0))
             .updateReplicateStatus(any(), any(), any(), any());
@@ -564,12 +564,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.CONTRIBUTE);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -592,12 +592,12 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.CONTRIBUTE);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -626,12 +626,12 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(true);
         when(taskService.isConsensusReached(taskList.get(0))).thenReturn(false);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -664,12 +664,12 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(true);
         when(taskService.isConsensusReached(taskList.get(0))).thenReturn(true);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -694,12 +694,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -721,12 +721,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.ABORT_CONSENSUS_REACHED);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -746,12 +746,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -774,12 +774,12 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.REVEAL);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -811,12 +811,12 @@ public class ReplicateSupplyServiceTests {
         when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -852,12 +852,12 @@ public class ReplicateSupplyServiceTests {
         when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -881,12 +881,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -908,12 +908,12 @@ public class ReplicateSupplyServiceTests {
 
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.UPLOAD_RESULT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -936,12 +936,12 @@ public class ReplicateSupplyServiceTests {
 
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -967,12 +967,12 @@ public class ReplicateSupplyServiceTests {
 
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -998,12 +998,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -1027,12 +1027,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.WAIT);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -1058,12 +1058,12 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isNotEmpty();
-        RecoveryAction action = interruptedReplicates.get(0).getRecoveryAction();
-        assertThat(action).isEqualTo(RecoveryAction.COMPLETE);
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_COMPLETE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
@@ -1083,10 +1083,10 @@ public class ReplicateSupplyServiceTests {
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(getStubAuth());
 
-        List<InterruptedReplicateModel> interruptedReplicates =
+        List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
 
-        assertThat(interruptedReplicates).isEmpty();
+        assertThat(missedTaskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
