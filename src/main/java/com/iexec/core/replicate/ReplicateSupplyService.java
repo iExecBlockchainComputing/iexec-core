@@ -235,11 +235,11 @@ public class ReplicateSupplyService {
     }
 
     /**
-     * CREATED, ..., CAN_CONTRIBUTE         => RecoveryAction.CONTRIBUTE
-     * CONTRIBUTING + !onChain              => RecoveryAction.CONTRIBUTE
+     * CREATED, ..., CAN_CONTRIBUTE         => TaskNotificationType.PLEASE_CONTRIBUTE
+     * CONTRIBUTING + !onChain              => TaskNotificationType.PLEASE_CONTRIBUTE
      * CONTRIBUTING + done onChain          => updateStatus to CONTRIBUTED & go to next case
-     * CONTRIBUTED + !CONSENSUS_REACHED     => RecoveryAction.WAIT
-     * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
+     * CONTRIBUTED + !CONSENSUS_REACHED     => TaskNotificationType.PLEASE_WAIT
+     * CONTRIBUTED + CONSENSUS_REACHED      => TaskNotificationType.PLEASE_REVEAL
      */
 
     private Optional<TaskNotificationType> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
@@ -291,11 +291,11 @@ public class ReplicateSupplyService {
     }
 
     /**
-     * CONTRIBUTED                      => RecoveryAction.REVEAL
-     * REVEALING + !onChain             => RecoveryAction.REVEAL
+     * CONTRIBUTED                      => TaskNotificationType.PLEASE_REVEAL
+     * REVEALING + !onChain             => TaskNotificationType.PLEASE_REVEAL
      * REVEALING + done onChain         => update replicateStatus to REVEALED, update task & go to next case
-     * REVEALED (no upload req)         => RecoveryAction.WAIT
-     * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
+     * REVEALED (no upload req)         => TaskNotificationType.PLEASE_WAIT
+     * RESULT_UPLOAD_REQUESTED          => TaskNotificationType.PLEASE_UPLOAD_RESULT
      */
 
     private Optional<TaskNotificationType> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
@@ -349,11 +349,11 @@ public class ReplicateSupplyService {
     }
 
     /**
-     * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
-     * RESULT_UPLOADING + !done yet     => RecoveryAction.UPLOAD_RESULT
-     * RESULT_UPLOADING + done          => RecoveryAction.WAIT
+     * RESULT_UPLOAD_REQUESTED          => TaskNotificationType.PLEASE_UPLOAD_RESULT
+     * RESULT_UPLOADING + !done yet     => TaskNotificationType.PLEASE_UPLOAD_RESULT
+     * RESULT_UPLOADING + done          => TaskNotificationType.PLEASE_WAIT
      * update to ReplicateStatus.RESULT_UPLOADED
-     * RESULT_UPLOADED                  => RecoveryAction.WAIT
+     * RESULT_UPLOADED                  => TaskNotificationType.PLEASE_WAIT
      */
 
     private Optional<TaskNotificationType> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
@@ -391,8 +391,8 @@ public class ReplicateSupplyService {
     }
 
     /**
-     * REVEALED + task in COMPLETED status          => RecoveryAction.COMPLETE
-     * REVEALED + task not in COMPLETED status      => RecoveryAction.WAIT
+     * REVEALED + task in COMPLETED status          => TaskNotificationType.PLEASE_COMPLETE
+     * REVEALED + task not in COMPLETED status      => TaskNotificationType.PLEASE_WAIT
      * !REVEALED                                    => null
      */
 
