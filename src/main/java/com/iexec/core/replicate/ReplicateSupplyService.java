@@ -173,23 +173,16 @@ public class ReplicateSupplyService {
             String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeNeeded());
             if (task.isTeeNeeded() && enclaveChallenge.isEmpty()) continue;
 
-            Optional<TaskNotificationType> optionalTaskNotificationType = getAppropriateRecoveryAction(task, replicate, blockNumber);
-            if (!optionalTaskNotificationType.isPresent()) continue;
+            Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
+            if (!taskNotificationType.isPresent()) continue;
 
-            // generate contribution authorization
-            ContributionAuthorization authorization = signatureService.createAuthorization(
-                    walletAddress, chainTaskId, enclaveChallenge);
-
-            //TODO Send only required extras
-            TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder()
-                    .contributionAuthorization(authorization)
-                    .blockNumber(task.getConsensusReachedBlockNumber())
-                    .build();
+            TaskNotificationExtra taskNotificationExtra =
+                    getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
 
             TaskNotification taskNotification = TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .workersAddress(Collections.singletonList(walletAddress))
-                    .taskNotificationType(optionalTaskNotificationType.get())
+                    .taskNotificationType(taskNotificationType.get())
                     .taskNotificationExtra(taskNotificationExtra)
                     .build();
 
@@ -203,7 +196,25 @@ public class ReplicateSupplyService {
         return taskNotifications;
     }
 
-    public Optional<TaskNotificationType> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
+    private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
+        TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
+
+        switch (taskNotificationType){
+            case PLEASE_CONTRIBUTE:
+                ContributionAuthorization authorization = signatureService.createAuthorization(
+                        walletAddress, task.getChainTaskId(), enclaveChallenge);
+                taskNotificationExtra.setContributionAuthorization(authorization);
+                break;
+            case PLEASE_REVEAL:
+                taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
+                break;
+            default:
+                break;
+        }
+        return taskNotificationExtra;
+    }
+
+    public Optional<TaskNotificationType> getTaskNotificationType(Task task, Replicate replicate, long blockNumber) {
 
         if (task.inContributionPhase()) {
             return recoverReplicateInContributionPhase(task, replicate, blockNumber);
