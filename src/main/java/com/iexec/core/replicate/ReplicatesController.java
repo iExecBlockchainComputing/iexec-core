@@ -1,16 +1,11 @@
 package com.iexec.core.replicate;
 
-import java.util.List;
-import java.util.Optional;
-
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.disconnection.InterruptedReplicateModel;
+import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.security.JwtTokenProvider;
-import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +51,7 @@ public class ReplicatesController {
     }
 
     @GetMapping("/replicates/interrupted")
-    public ResponseEntity<List<InterruptedReplicateModel>> getInterruptedReplicates(
+    public ResponseEntity<List<TaskNotification>> getMissedTaskNotifications(
             @RequestParam(name = "blockNumber") long blockNumber,
             @RequestHeader("Authorization") String bearerToken) {
 
@@ -65,10 +60,10 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        List<InterruptedReplicateModel> interruptedReplicateList =
-                replicateSupplyService.getInterruptedReplicates(blockNumber, workerWalletAddress);
+        List<TaskNotification> missedTaskNotifications =
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, workerWalletAddress);
 
-        return ResponseEntity.ok(interruptedReplicateList);
+        return ResponseEntity.ok(missedTaskNotifications);
     }
 
     @PostMapping("/replicates/{chainTaskId}/updateStatus")
