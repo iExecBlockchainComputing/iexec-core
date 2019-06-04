@@ -2,45 +2,38 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.CoreConfigurationService;
-import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-
-import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
-public class ContributionUnnotifiedDetector { //implements Detector {
-
+public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
     private static final int DETECTOR_MULTIPLIER = 10;
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
-    private IexecHubService iexecHubService;
-    private CoreConfigurationService coreConfigurationService;
+    private final List<TaskStatus> dectectWhenTaskStatuses;
+    private final ReplicateStatus offchainCompleting;
+    private final ReplicateStatus offchainCompleted;
+    private final ChainContributionStatus onchainCompleted;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
                                           IexecHubService iexecHubService,
                                           CoreConfigurationService coreConfigurationService) {
-        this.taskService = taskService;
-        this.replicatesService = replicatesService;
-        this.iexecHubService = iexecHubService;
-        this.coreConfigurationService = coreConfigurationService;
+        super(taskService, replicatesService, iexecHubService, coreConfigurationService);
+        dectectWhenTaskStatuses = TaskStatus.getWaitingContributionStatuses();
+        offchainCompleting = ReplicateStatus.CONTRIBUTING;
+        offchainCompleted = ReplicateStatus.CONTRIBUTED;
+        onchainCompleted = ChainContributionStatus.CONTRIBUTED;
     }
-
+    
     /*
      * Detecting on-chain CONTRIBUTED only if replicates are CONTRIBUTING off-chain
      * (worker didn't notify last off-chain CONTRIBUTING)
@@ -50,21 +43,7 @@ public class ContributionUnnotifiedDetector { //implements Detector {
     public void detectIfOnChainContributedHappenedAfterContributing() {
         log.debug("Detect OnChain Contributed On OffChain Contributing Status [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
-        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-
-                if (!lastRelevantStatus.isPresent()) {
-                    continue;
-                }
-
-                boolean isReplicateStatusContributing = lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTING);
-
-                if (isReplicateStatusContributing && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
-                    updateReplicateStatuses(task.getChainTaskId(), replicate);
-                }
-            }
-        }
+        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
     /*
@@ -78,36 +57,8 @@ public class ContributionUnnotifiedDetector { //implements Detector {
     public void detectIfOnChainContributedHappened() {
         log.debug("Detect OnChain Contributed On OffChain Pre Contributing Status [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
-        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
 
-                if (!lastRelevantStatus.isPresent()) {
-                    continue;
-                }
-
-                boolean isNotOffChainContributed = !lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTED);//avoid eth node call if already contributed
-
-                if (isNotOffChainContributed && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
-                    updateReplicateStatuses(task.getChainTaskId(), replicate);
-                }
-            }
-        }
+        dectectOnchainCompleted(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
-
-    private void updateReplicateStatuses(String chainTaskId, Replicate replicate) {
-        List<ReplicateStatus> statusesToUpdate;
-        if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
-            statusesToUpdate = getMissingStatuses(replicate.getLastButOneStatus(), CONTRIBUTED);
-        } else {
-            statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
-        }
-
-        for (ReplicateStatus statusToUpdate : statusesToUpdate) {
-            replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                    statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
-        }
-    }
-
 
 }
