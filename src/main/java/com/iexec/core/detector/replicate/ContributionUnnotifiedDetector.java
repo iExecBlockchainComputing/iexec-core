@@ -17,7 +17,7 @@ import java.util.List;
 @Service
 public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private static final int DETECTOR_MULTIPLIER = 2;
+    private static final int DETECTOR_MULTIPLIER = 10;
     private final List<TaskStatus> dectectWhenOffchainTaskStatuses;
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
@@ -43,7 +43,7 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      */
     @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod}")
     public void detectOnchainContributedWhenOffchainContributing() {
-        log.info("Detect onchain Contributed (when offchain Contributing) [retryIn:{}]",
+        log.debug("Detect onchain Contributed (when offchain Contributing) [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
         dectectOnchainCompletedWhenOffchainCompleting(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
@@ -57,7 +57,7 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      */
     @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainContributed() {
-        log.info("Detect Onchain Contributed [retryIn:{}]",
+        log.debug("Detect onchain Contributed [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
 
         dectectOnchainCompleted(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);

@@ -4,20 +4,19 @@ import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.CoreConfigurationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
+import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
 
 @Slf4j
 @Service
@@ -35,13 +34,12 @@ public class UnnotifiedAbstractDetector {
         this.replicatesService = replicatesService;
         this.iexecHubService = iexecHubService;
     }
-
-
-    void dectectOnchainCompletedWhenOffchainCompleting(List<TaskStatus> dectectWhenTaskStatuses,
-                                                               ReplicateStatus offchainCompleting,
-                                                               ReplicateStatus offchainCompleted,
-                                                               ChainContributionStatus onchainCompleted) {
-        for (Task task : taskService.findByCurrentStatus(dectectWhenTaskStatuses)) {
+    
+    void dectectOnchainCompletedWhenOffchainCompleting(List<TaskStatus> dectectWhenOffchainTaskStatuses,
+                                                       ReplicateStatus offchainCompleting,
+                                                       ReplicateStatus offchainCompleted,
+                                                       ChainContributionStatus onchainCompleted) {
+        for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
 
@@ -58,12 +56,11 @@ public class UnnotifiedAbstractDetector {
         }
     }
 
-
-    void dectectOnchainCompleted(List<TaskStatus> dectectWhenTaskStatuses,
-                                         ReplicateStatus offchainCompleting,
-                                         ReplicateStatus offchainCompleted,
-                                         ChainContributionStatus onchainCompleted) {
-        for (Task task : taskService.findByCurrentStatus(dectectWhenTaskStatuses)) {
+    void dectectOnchainCompleted(List<TaskStatus> dectectWhenOffchainTaskStatuses,
+                                 ReplicateStatus offchainCompleting,
+                                 ReplicateStatus offchainCompleted,
+                                 ChainContributionStatus onchainCompleted) {
+        for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
 
