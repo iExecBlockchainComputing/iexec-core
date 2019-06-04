@@ -25,7 +25,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 public class ContributionUnnotifiedDetector { //implements Detector {
 
 
-    private static final int DETECTOR_MULTIPLIER = 2;
+    private static final int DETECTOR_MULTIPLIER = 10;
     private TaskService taskService;
     private ReplicatesService replicatesService;
     private IexecHubService iexecHubService;
@@ -104,7 +104,6 @@ public class ContributionUnnotifiedDetector { //implements Detector {
         }
 
         for (ReplicateStatus statusToUpdate : statusesToUpdate) {
-            System.out.println("Pif"+statusesToUpdate);
             replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
                     statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
         }
