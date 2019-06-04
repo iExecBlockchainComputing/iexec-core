@@ -20,7 +20,7 @@ import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
 
 @Slf4j
 @Service
-public class UnnotifiedAbstractDetector {
+public abstract class UnnotifiedAbstractDetector {
 
 
     protected TaskService taskService;
