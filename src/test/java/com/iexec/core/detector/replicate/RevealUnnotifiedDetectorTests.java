@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -63,7 +62,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        revealDetector.detectIfOnChainRevealedHappenedAfterRevealing();
+        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -81,7 +80,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        revealDetector.detectIfOnChainRevealedHappenedAfterRevealing();
+        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -99,7 +98,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
-        revealDetector.detectIfOnChainRevealedHappenedAfterRevealing();
+        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -120,7 +119,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        revealDetector.detectIfOnChainRevealedHappened();
+        revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -138,7 +137,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        revealDetector.detectIfOnChainRevealedHappened();
+        revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(2))//Missed REVEALING & REVEALED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -156,7 +155,7 @@ public class RevealUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        revealDetector.detectIfOnChainRevealedHappened();
+        revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());

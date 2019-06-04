@@ -63,7 +63,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -81,7 +81,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -99,7 +99,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -120,7 +120,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -138,7 +138,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(2))//Missed CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -156,7 +156,7 @@ public class ContributionUnnotifiedDetectorTests {
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());

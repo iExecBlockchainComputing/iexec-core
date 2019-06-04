@@ -17,18 +17,20 @@ import java.util.List;
 @Service
 public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private static final int DETECTOR_MULTIPLIER = 10;
-    private final List<TaskStatus> dectectWhenTaskStatuses;
+    private static final int DETECTOR_MULTIPLIER = 2;
+    private final List<TaskStatus> dectectWhenOffchainTaskStatuses;
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
+    private final CoreConfigurationService coreConfigurationService;
 
     public RevealUnnotifiedDetector(TaskService taskService,
                                     ReplicatesService replicatesService,
                                     IexecHubService iexecHubService,
                                     CoreConfigurationService coreConfigurationService) {
-        super(taskService, replicatesService, iexecHubService, coreConfigurationService);
-        dectectWhenTaskStatuses = TaskStatus.getWaitingContributionStatuses();
+        super(taskService, replicatesService, iexecHubService);
+        this.coreConfigurationService = coreConfigurationService;
+        dectectWhenOffchainTaskStatuses = TaskStatus.getWaitingContributionStatuses();
         offchainCompleting = ReplicateStatus.REVEALING;
         offchainCompleted = ReplicateStatus.REVEALED;
         onchainCompleted = ChainContributionStatus.REVEALED;
@@ -39,11 +41,11 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * (worker didn't notify after off-chain REVEALING)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{coreConfiguration.unnotifiedRevealDetectorPeriod}")
-    public void detectIfOnChainRevealedHappenedAfterRevealing() {
-        log.debug("Detect OnChain Revealed On OffChain Contributing Status [retryIn:{}]",
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod}")
+    public void detectOnchainRevealedWhenOffchainRevealed() {
+        log.info("Detect OnChain Revealed On OffChain Contributing Status [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
-        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
     /*
@@ -53,11 +55,11 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_REVEAL
      */
-    @Scheduled(fixedRateString = "#{coreConfiguration.unnotifiedRevealDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
-    public void detectIfOnChainRevealedHappened() {
-        log.debug("Detect OnChain Revealed On OffChain Pre Revealing Status [retryIn:{}]",
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
+    public void detectOnchainRevealed() {
+        log.info("Detect OnChain Revealed On OffChain Pre Revealing Status [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
-        dectectOnchainCompleted(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+        dectectOnchainCompleted(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
 }

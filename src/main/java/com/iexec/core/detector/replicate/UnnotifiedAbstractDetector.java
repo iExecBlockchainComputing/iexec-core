@@ -24,20 +24,16 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 public class UnnotifiedAbstractDetector {
 
 
-    TaskService taskService;
-    ReplicatesService replicatesService;
-    IexecHubService iexecHubService;
-    CoreConfigurationService coreConfigurationService;
-
+    protected TaskService taskService;
+    protected ReplicatesService replicatesService;
+    protected IexecHubService iexecHubService;
 
     public UnnotifiedAbstractDetector(TaskService taskService,
                                       ReplicatesService replicatesService,
-                                      IexecHubService iexecHubService,
-                                      CoreConfigurationService coreConfigurationService) {
+                                      IexecHubService iexecHubService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
         this.iexecHubService = iexecHubService;
-        this.coreConfigurationService = coreConfigurationService;
     }
 
 
