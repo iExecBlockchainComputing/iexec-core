@@ -268,6 +268,8 @@ public class ReplicatesService {
         // check that CONTRIBUTE_FAIL and REVEAL_FAIL are correct on-chain
         if (isFailedBlockchainStatus(newStatus) &&
                 !isTaskStatusFailOnChain(replicate.getChainTaskId(), replicate.getWalletAddress(), receiptBlockNumber)) {
+            log.warn("Replicate blockchain status sent by replicate is not valid, the replicate status will not be updated " +
+                    "[chainTaskId:{}, walletAddress:{}, currentStatus:{}, newStatus:{}]", chainTaskId, walletAddress, currentStatus, newStatus);
             return;
         }
 
