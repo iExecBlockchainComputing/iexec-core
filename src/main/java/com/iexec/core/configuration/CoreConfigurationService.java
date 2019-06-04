@@ -10,9 +10,12 @@ import org.springframework.stereotype.Component;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CoreConfiguration {
+public class CoreConfigurationService {
 
     @Value("${detector.contribution.unnotified.period}")
     private int unnotifiedContributionDetectorPeriod;
+
+    @Value("${detector.reveal.unnotified.period}")
+    private int unnotifiedRevealDetectorPeriod;
 
 }

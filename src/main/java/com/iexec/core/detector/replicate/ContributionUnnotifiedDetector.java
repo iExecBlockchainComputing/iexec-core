@@ -4,7 +4,7 @@ import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.CoreConfiguration;
+import com.iexec.core.configuration.CoreConfigurationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -29,16 +29,16 @@ public class ContributionUnnotifiedDetector { //implements Detector {
     private TaskService taskService;
     private ReplicatesService replicatesService;
     private IexecHubService iexecHubService;
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationService coreConfigurationService;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
                                           IexecHubService iexecHubService,
-                                          CoreConfiguration coreConfiguration) {
+                                          CoreConfigurationService coreConfigurationService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
         this.iexecHubService = iexecHubService;
-        this.coreConfiguration = coreConfiguration;
+        this.coreConfigurationService = coreConfigurationService;
     }
 
     /*
@@ -46,10 +46,10 @@ public class ContributionUnnotifiedDetector { //implements Detector {
      * (worker didn't notify last off-chain CONTRIBUTING)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{coreConfiguration.unnotifiedContributionDetectorPeriod}")
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod}")
     public void detectIfOnChainContributedHappenedAfterContributing() {
-        log.info("Detect OnChain Contributed On OffChain Contributing Status [retryIn:{}]",
-                coreConfiguration.getUnnotifiedContributionDetectorPeriod());
+        log.debug("Detect OnChain Contributed On OffChain Contributing Status [retryIn:{}]",
+                coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
@@ -74,10 +74,10 @@ public class ContributionUnnotifiedDetector { //implements Detector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
      */
-    @Scheduled(fixedRateString = "#{coreConfiguration.unnotifiedContributionDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
     public void detectIfOnChainContributedHappened() {
-        log.info("Detect OnChain Contributed On OffChain Pre Contributing Status [retryIn:{}]",
-                coreConfiguration.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
+        log.debug("Detect OnChain Contributed On OffChain Pre Contributing Status [retryIn:{}]",
+                coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
