@@ -34,7 +34,7 @@ public class UnnotifiedAbstractDetector {
         this.replicatesService = replicatesService;
         this.iexecHubService = iexecHubService;
     }
-    
+
     void dectectOnchainCompletedWhenOffchainCompleting(List<TaskStatus> dectectWhenOffchainTaskStatuses,
                                                        ReplicateStatus offchainCompleting,
                                                        ReplicateStatus offchainCompleted,
@@ -47,9 +47,9 @@ public class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                boolean isReplicateStatusContributing = lastRelevantStatus.get().equals(offchainCompleting);
+                boolean isReplicateStatusCompleting = lastRelevantStatus.get().equals(offchainCompleting);
 
-                if (isReplicateStatusContributing && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (isReplicateStatusCompleting && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
@@ -68,9 +68,9 @@ public class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                boolean isNotOffChainContributed = !lastRelevantStatus.get().equals(offchainCompleted);//avoid eth node call if already contributed
+                boolean isNotOffChainCompleted = !lastRelevantStatus.get().equals(offchainCompleted);//avoid eth node call if already contributed
 
-                if (isNotOffChainContributed && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (isNotOffChainCompleted && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
