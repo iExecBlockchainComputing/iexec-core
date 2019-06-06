@@ -4,7 +4,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.CoreConfiguration;
+import com.iexec.core.configuration.CoreConfigurationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -37,7 +37,7 @@ public class ContributionUnnotifiedDetectorTests {
     private IexecHubService iexecHubService;
 
     @Mock
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationService coreConfigurationService;
 
     @Spy
     @InjectMocks
@@ -60,10 +60,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -78,10 +78,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CAN_CONTRIBUTE, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -96,10 +96,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
-        contributionDetector.detectIfOnChainContributedHappenedAfterContributing();
+        contributionDetector.detectOnchainContributedWhenOffchainContributing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -117,10 +117,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -135,10 +135,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CAN_CONTRIBUTE, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(2))//Missed CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any());
@@ -153,10 +153,10 @@ public class ContributionUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER)));
 
-        when(coreConfiguration.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectIfOnChainContributedHappened();
+        contributionDetector.detectOnchainContributed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any());

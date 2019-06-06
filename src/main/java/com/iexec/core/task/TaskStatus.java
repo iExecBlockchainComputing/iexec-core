@@ -26,6 +26,15 @@ public enum TaskStatus {
     COMPLETED,
     FAILED;
 
+    public static List<TaskStatus> getWaitingContributionStatuses() {
+        return Arrays.asList(
+                //RECEIVED,
+                //INITIALIZING, -> contribution stage is only after INITIALIZED
+                INITIALIZED,
+                RUNNING
+        );
+    }
+
     public static List<TaskStatus> getWaitingRevealStatuses() {
         return Arrays.asList(
             CONSENSUS_REACHED,
@@ -37,12 +46,7 @@ public enum TaskStatus {
     }
 
     public static boolean isInContributionPhase(TaskStatus status) {
-        return Arrays.asList(
-            RECEIVED,
-            INITIALIZING,
-            INITIALIZED,
-            RUNNING
-        ).contains(status);
+        return getWaitingContributionStatuses().contains(status);
     }
 
     public static boolean isInRevealPhase(TaskStatus status) {

@@ -38,7 +38,7 @@ public class ReplicateListeners {
          * We should start a detector which will look for unnotified contributions and will upgrade task to consensus_reached
          */
         if (event.getNewReplicateStatus().equals(ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE)) {
-            contributionUnnotifiedDetector.detectIfOnChainContributedHappened();
+            contributionUnnotifiedDetector.detectOnchainContributed();
         }
     }
 
