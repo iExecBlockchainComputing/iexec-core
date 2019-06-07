@@ -99,11 +99,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 //FAILED,                       //no WORKER_LOST after FAILED
                 RECOVERING                      //could happen if completableStatus (-> RECOVERING) -> WORKER_LOST
         ), WORKER_LOST);
-        addTransition(Arrays.asList(
-                //COMPLETED,                    //no WORKER_LOST after COMPLETED
-                //FAILED,                       //no WORKER_LOST after FAILED
-                RECOVERING                      //could happen if completableStatus (-> RECOVERING) -> WORKER_LOST
-        ), WORKER_LOST);
 
         /*
          * TODO: From to RECOVERING
