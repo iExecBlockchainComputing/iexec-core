@@ -7,6 +7,7 @@ import com.iexec.common.dapp.DappType;
 import com.iexec.common.tee.TeeUtils;
 
 import lombok.*;
+import org.apache.commons.lang.time.DateUtils;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
+import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Getter
 @Setter
@@ -120,6 +122,10 @@ public class Task {
             }
         }
         return Optional.empty();
+    }
+
+    public boolean isContributionDeadlineReached(){
+        return new Date().after(contributionDeadline);
     }
 
 	public boolean inContributionPhase() {

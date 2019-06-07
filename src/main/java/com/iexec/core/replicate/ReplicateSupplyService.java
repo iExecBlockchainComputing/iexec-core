@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -84,18 +85,23 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
+        // return empty if the worker already has enough running tasks
+        if (!workerService.canAcceptMoreWorks(walletAddress)) {
+            return Optional.empty();
+        }
+
         // return empty if there is no task to contribute
         List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
         if (runningTasks.isEmpty()) {
             return Optional.empty();
         }
 
-        // return empty if the worker already has enough running tasks
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
-            return Optional.empty();
-        }
+        // filter the Tasks that have reached the contribution deadline
+        List<Task> validTasks = runningTasks.stream()
+                .filter(task -> !task.isContributionDeadlineReached())
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        for (Task task : runningTasks) {
+        for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
             // no need to ge further if the consensus is already reached on-chain

@@ -16,6 +16,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.utils.DateTimeUtils;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -301,6 +302,45 @@ public class ReplicateSupplyServiceTests {
         Mockito.verify(workerService, Mockito.times(0))
                 .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking();
+    }
+
+    @Test
+    public void shouldGetOnlyOneReplicateSinceOtherOneReachedConsensusDeadline() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(4)
+                .teeEnabled(false)
+                .lastAliveDate(new Date())
+                .build();
+
+        Task task1 = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        task1.setInitializationBlockNumber(initBlock);
+        task1.setMaxExecutionTime(maxExecutionTime);
+        task1.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        task1.changeStatus(RUNNING);
+        task1.setTag(NO_TEE_TAG);
+
+        Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        taskDeadlineReached.setInitializationBlockNumber(initBlock);
+        taskDeadlineReached.setMaxExecutionTime(maxExecutionTime);
+        taskDeadlineReached.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
+        taskDeadlineReached.changeStatus(RUNNING);
+        taskDeadlineReached.setTag(NO_TEE_TAG);
+
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        List<Task> tasks = new ArrayList<>();
+        tasks.add(task1);
+        tasks.add(taskDeadlineReached);
+        when(taskService.getInitializedOrRunningTasks()).thenReturn(tasks);
+        when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
+
+        replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+
+        // the call should only happen once over the two tasks
+        Mockito.verify(taskService, Mockito.times(1))
+                .isConsensusReached(any());
     }
 
     @Test
