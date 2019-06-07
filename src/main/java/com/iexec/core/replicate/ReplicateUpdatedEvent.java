@@ -4,6 +4,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import lombok.*;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
