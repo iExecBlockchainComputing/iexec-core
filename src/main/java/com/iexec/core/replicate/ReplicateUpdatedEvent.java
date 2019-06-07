@@ -11,5 +11,6 @@ import lombok.*;
 public class ReplicateUpdatedEvent {
 
     private String chainTaskId;
+    private String walletAddress;
     private ReplicateStatus newReplicateStatus;
 }
