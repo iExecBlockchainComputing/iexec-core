@@ -31,6 +31,12 @@ public class Workflow<T> {
         return possibleTransitions.put(from, to) != null;
     }
 
+    void addTransition(List<T> froms, T to) {
+        for (T from: froms){
+            addTransition(from, to);
+        }
+    }
+
     void addTransitionFromAllStatusesTo(T status) {
         for (T key : possibleTransitions.keySet()) {
             addTransition(key, status);

@@ -4,6 +4,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import lombok.*;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -11,5 +12,6 @@ import lombok.*;
 public class ReplicateUpdatedEvent {
 
     private String chainTaskId;
+    private String walletAddress;
     private ReplicateStatus newReplicateStatus;
 }

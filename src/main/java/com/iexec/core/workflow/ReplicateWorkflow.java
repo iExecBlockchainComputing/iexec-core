@@ -2,6 +2,9 @@ package com.iexec.core.workflow;
 
 import com.iexec.common.replicate.ReplicateStatus;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
 
@@ -75,21 +78,35 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
         addTransition(RESULT_UPLOADED, COMPLETED);
 
-        // worker_lost
-        addTransition(WORKER_LOST, toList(
-                ABORTED_ON_CONSENSUS_REACHED,
-                ABORTED_ON_CONTRIBUTION_TIMEOUT,
-                RESULT_UPLOAD_REQUEST_FAILED,
-                RESULT_UPLOAD_FAILED,
-                REVEAL_TIMEOUT,
-                COMPLETED,
-                RECOVERING));
+        /*
+        * From to FAILED
+        * From uncompletable status to generic FAILED
+        */
+        addTransition(getUncompletableStatuses(),FAILED);
+        addTransition(Arrays.asList(
+                WORKER_LOST,                    //could happen if uncompletableStatus (-> WORKER_LOST) -> FAILED
+                RECOVERING                      //could happen if uncompletableStatus (-> RECOVERING) -> FAILED
+        ),FAILED);
 
-        // from any status to WORKER_LOST or ERROR
-        addTransitionFromAllStatusesTo(WORKER_LOST);
-        addTransitionFromAllStatusesTo(FAILED);
+        /*
+        * From to WORKER_LOST
+        * From completable status to WORKER_LOST
+        * from2workerLost = allCompletableStatuses - from2failed
+        */
+        addTransition(getCompletableStatuses(), WORKER_LOST);
+        addTransition(Arrays.asList(
+                //COMPLETED,                    //no WORKER_LOST after COMPLETED
+                //FAILED,                       //no WORKER_LOST after FAILED
+                RECOVERING                      //could happen if completableStatus (-> RECOVERING) -> WORKER_LOST
+        ), WORKER_LOST);
 
+        /*
+         * TODO: From to RECOVERING
+         * From completable status to RECOVERING
+         */
         addTransitionFromStatusToAllStatuses(RECOVERING);
+
+
         addTransition(RECOVERING, COMPLETED);
     }
 
