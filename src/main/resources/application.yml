@@ -14,10 +14,11 @@ detector:
   resultuploadtimeout.period: 30000     # 30 s
   dealwatcherreplay.period: 60000       # 1 min
   reveal.timeout.period: ${REVEAL_TIMEOUT_PERIOD:120000}       # 2 min
-  reveal.unnotified.period: 30000       # 30s
-  contribution.unnotified.period: 30000 # 30s
+  reveal.unnotified.period: 30000       # 30 s
+  contribution.unnotified.period: 30000 # 30 s
   contribution.timeout.period: 120000   # 2 min
   unstartedtx.period: 300000            # 5 min
+  task.initialized.unnotified.period: 30000  # 30 s
 
 
 wallet:
