@@ -11,6 +11,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 
@@ -58,6 +60,7 @@ public class ReplicateSupplyServiceTests {
     @Mock private WorkerService workerService;
     @Mock private SmsService smsService;
     @Mock private Web3jService web3jService;
+    @Mock private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
@@ -339,6 +342,7 @@ public class ReplicateSupplyServiceTests {
         tasks.add(taskDeadlineReached);
         when(taskService.getInitializedOrRunningTasks()).thenReturn(tasks);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
+        doNothing().when(contributionTimeoutTaskDetector).detect();
 
         replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
