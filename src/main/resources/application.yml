@@ -18,7 +18,7 @@ detector:
   contribution.unnotified.period: 30000 # 30s
   contribution.timeout.period: 120000   # 2 min
   unstartedtx.period: 300000            # 5 min
-
+  task.finalized.unnotified.period: 30000  # 30 s
 
 wallet:
   encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
