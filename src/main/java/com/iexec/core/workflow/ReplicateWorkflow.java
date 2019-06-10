@@ -18,6 +18,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // This is where the whole workflow is defined
         addTransition(CREATED, toList(RUNNING, RECOVERING));
         addTransition(RUNNING, toList(APP_DOWNLOADING, RECOVERING));
+        addTransition(RUNNING, getCantContributeStatus());
 
         // app
         addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, RECOVERING));
@@ -31,6 +32,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 CAN_CONTRIBUTE));
 
         addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, RECOVERING));
+        addTransition(APP_DOWNLOADED, getCantContributeStatus());
 
         // data
         addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED, RECOVERING));
@@ -44,6 +46,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 CAN_CONTRIBUTE));
 
         addTransition(DATA_DOWNLOADED, toList(COMPUTING, RECOVERING));
+        addTransition(DATA_DOWNLOADED, getCantContributeStatus());
 
         // computation
         addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED, RECOVERING));
