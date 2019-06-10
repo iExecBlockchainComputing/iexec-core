@@ -395,7 +395,9 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
 
         taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
