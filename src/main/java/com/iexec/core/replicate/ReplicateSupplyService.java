@@ -10,6 +10,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -27,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,7 +41,7 @@ public class ReplicateSupplyService {
     private WorkerService workerService;
     private SmsService smsService;
     private Web3jService web3jService;
-
+    private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -47,7 +49,8 @@ public class ReplicateSupplyService {
                                   TaskService taskService,
                                   WorkerService workerService,
                                   SmsService smsService,
-                                  Web3jService web3jService) {
+                                  Web3jService web3jService,
+                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
@@ -55,6 +58,7 @@ public class ReplicateSupplyService {
         this.workerService = workerService;
         this.smsService = smsService;
         this.web3jService = web3jService;
+        this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
     }
 
     /*
@@ -84,18 +88,30 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
+        // return empty if the worker already has enough running tasks
+        if (!workerService.canAcceptMoreWorks(walletAddress)) {
+            return Optional.empty();
+        }
+
         // return empty if there is no task to contribute
         List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
         if (runningTasks.isEmpty()) {
             return Optional.empty();
         }
 
-        // return empty if the worker already has enough running tasks
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
-            return Optional.empty();
-        }
+        // filter the Tasks that have reached the contribution deadline
+        List<Task> validTasks = runningTasks.stream()
+                .filter(task -> {
+                    if (task.isContributionDeadlineReached()) {
+                        contributionTimeoutTaskDetector.detect();
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        for (Task task : runningTasks) {
+        for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
             // no need to ge further if the consensus is already reached on-chain

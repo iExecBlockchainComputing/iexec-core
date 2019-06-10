@@ -1,6 +1,7 @@
 package com.iexec.core.task;
 
 
+import com.iexec.core.utils.DateTimeUtils;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -126,4 +127,19 @@ public class TaskTests {
         assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isFalse();
     }
 
+    @Test
+    public void shouldContributionDeadlineBeReached() {
+        Task task = new Task();
+        // contribution deadline in the past
+        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
+        assertThat(task.isContributionDeadlineReached()).isTrue();
+    }
+
+    @Test
+    public void shouldContributionDeadlineNotBeReached() {
+        Task task = new Task();
+        // contribution deadline in the future
+        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        assertThat(task.isContributionDeadlineReached()).isFalse();
+    }
 }
