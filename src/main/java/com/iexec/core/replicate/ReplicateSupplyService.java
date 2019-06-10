@@ -10,6 +10,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -40,7 +41,7 @@ public class ReplicateSupplyService {
     private WorkerService workerService;
     private SmsService smsService;
     private Web3jService web3jService;
-
+    private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -48,7 +49,8 @@ public class ReplicateSupplyService {
                                   TaskService taskService,
                                   WorkerService workerService,
                                   SmsService smsService,
-                                  Web3jService web3jService) {
+                                  Web3jService web3jService,
+                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
@@ -56,6 +58,7 @@ public class ReplicateSupplyService {
         this.workerService = workerService;
         this.smsService = smsService;
         this.web3jService = web3jService;
+        this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
     }
 
     /*
@@ -98,7 +101,14 @@ public class ReplicateSupplyService {
 
         // filter the Tasks that have reached the contribution deadline
         List<Task> validTasks = runningTasks.stream()
-                .filter(task -> !task.isContributionDeadlineReached())
+                .filter(task -> {
+                    if (task.isContributionDeadlineReached()) {
+                        contributionTimeoutTaskDetector.detect();
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
                 .collect(Collectors.toCollection(ArrayList::new));
 
         for (Task task : validTasks) {
