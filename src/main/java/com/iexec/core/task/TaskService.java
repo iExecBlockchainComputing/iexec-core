@@ -257,15 +257,7 @@ public class TaskService {
                 task.getCurrentStatus().equals(RUNNING);
         boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
 
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()) {
-            return;
-        }
-        ChainTask chainTask = optional.get();
-
-        boolean isChainTaskActive = chainTask.getStatus() != null && chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
-
-        if (isInitializedOrRunningTask && isChainTaskActive && isNowAfterContributionDeadline) {
+        if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
             updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
