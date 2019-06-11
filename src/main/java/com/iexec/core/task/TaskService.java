@@ -141,7 +141,10 @@ public class TaskService {
                 resultUploading2UploadTimeout(task);
                 break;
             case RESULT_UPLOADED:
-                resultUploaded2Finalized2Completed(task);
+                resultUploaded2Finalizing(task);
+                break;
+            case FINALIZING:
+                finalizing2Finalized2Completed(task);
                 break;
         }
         return true;
@@ -363,7 +366,7 @@ public class TaskService {
             task.setResultLink(oUploadedReplicate.get().getResultLink());
             task.setChainCallbackData(oUploadedReplicate.get().getChainCallbackData());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
-            resultUploaded2Finalized2Completed(task);
+            resultUploaded2Finalizing(task);
             return;
         }
 
@@ -423,7 +426,7 @@ public class TaskService {
         }
     }
 
-    private void resultUploaded2Finalized2Completed(Task task) {
+    private void resultUploaded2Finalizing(Task task) {
         boolean isTaskInResultUploaded = task.getCurrentStatus().equals(RESULT_UPLOADED);
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
@@ -446,9 +449,20 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
 
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
         if (!optionalChainReceipt.isPresent()) {
+            return;
+        }
+        ChainReceipt chainReceipt = optionalChainReceipt.get();
+
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        chainTask = oChainTask.get();
+
+        if (chainTask.getStatus().equals(ChainTaskStatus.FAILLED)) {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
                     task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             updateTaskStatusAndSave(task, FINALIZE_FAILED);
@@ -456,10 +470,25 @@ public class TaskService {
             return;
         }
 
-        updateTaskStatusAndSave(task, FINALIZED, optionalChainReceipt.get());
+        finalizing2Finalized2Completed(task, chainReceipt);
+    }
 
-        updateTaskStatusAndSave(task, COMPLETED);
-        applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+    private void finalizing2Finalized2Completed(Task task) {
+        finalizing2Finalized2Completed(task, null);
+    }
+
+    private void finalizing2Finalized2Completed(Task task, ChainReceipt chainReceipt) {
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = oChainTask.get();
+
+        if (chainTask.getStatus().equals(ChainTaskStatus.COMPLETED)) {
+            updateTaskStatusAndSave(task, FINALIZED, chainReceipt);
+            updateTaskStatusAndSave(task, COMPLETED);
+            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+        }
     }
 
     public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {

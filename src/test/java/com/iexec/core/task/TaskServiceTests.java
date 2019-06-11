@@ -712,6 +712,10 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(new ChainReceipt()));
         when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.COMPLETED)
+                .revealCounter(1)
+                .build()));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
@@ -748,7 +752,6 @@ public class TaskServiceTests {
     public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
-        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.setResultLink(RESULT_LINK);
 
@@ -757,9 +760,12 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.empty());
+        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(ChainReceipt.builder().build()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.FAILLED)
+                .revealCounter(1)
+                .build()));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
