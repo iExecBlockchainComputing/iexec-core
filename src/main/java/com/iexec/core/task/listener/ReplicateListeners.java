@@ -58,7 +58,7 @@ public class ReplicateListeners {
          * Should release one CPU for this replicate if status is FAILED
          * */
         if (event.getNewReplicateStatus().equals(ReplicateStatus.FAILED)) {
-            workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
+            workerService.removeChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
     }
 

@@ -137,7 +137,7 @@ public class ReplicateListenersTests {
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
         Mockito.verify(workerService, Mockito.times(1))
-            .removeComputedChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+            .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
     @Test
@@ -156,7 +156,7 @@ public class ReplicateListenersTests {
         }
         
         Mockito.verify(workerService, Mockito.times(0))
-                .removeComputedChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
 
