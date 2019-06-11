@@ -120,6 +120,9 @@ public class TaskService {
             case RECEIVED:
                 received2Initialized(task);
                 break;
+            case INITIALIZING:
+                initializing2Initialized(task);
+                break;
             case INITIALIZED:
                 initialized2Running(task);
                 initializedOrRunning2ContributionTimeout(task);
@@ -185,6 +188,8 @@ public class TaskService {
         Optional<Pair<String, ChainReceipt>> optionalPair = iexecHubService.initialize(
                 task.getChainDealId(), task.getTaskIndex());
 
+        // In case there is chainReceipt (that could happen after a timeout if the init transaction takes too long
+        // to be mined, no status update is performed
         if (!optionalPair.isPresent()) {
             return;
         }
@@ -201,6 +206,15 @@ public class TaskService {
             return;
         }
 
+        initializing2Initialized(task, chainReceipt);
+    }
+
+    private void initializing2Initialized(Task task) {
+        initializing2Initialized(task, null);
+    }
+
+    private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
+        String chainTaskId = task.getChainTaskId();
         Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
         if (!optional.isPresent()) {
             return;
@@ -209,12 +223,15 @@ public class TaskService {
 
         task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
         task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
-        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
+        long currentBlockNumber = web3jService.getLatestBlockNumber();
+        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : currentBlockNumber;
         if (receiptBlockNumber != 0) {
             task.setInitializationBlockNumber(receiptBlockNumber);
         }
-        //TODO Put other fields?
 
+        if (chainReceipt == null) {
+            chainReceipt = ChainReceipt.builder().blockNumber(currentBlockNumber).build();
+        }
         updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
         replicatesService.createEmptyReplicateList(chainTaskId);
     }
