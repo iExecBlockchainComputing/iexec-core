@@ -139,6 +139,6 @@ public class Task {
     }
 
     public boolean isTeeNeeded() {
-        return TeeUtils.isTrustedExecutionTag(getTag());
+        return TeeUtils.isTeeTag(getTag());
     }
 }
