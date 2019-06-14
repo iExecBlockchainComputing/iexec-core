@@ -180,7 +180,7 @@ public class PredictionService {
                 ", allPredictionsWeight:{}]", chainTaskId, isConsensusPossibleNow, trust, distinctContributions,
                 bestPrediction.getContribution(), bestPredictionWeight, pendingWeight, pendingAndBestPredictionWeight, allPredictionsWeight);
 
-        return isConsensusPossibleNow;
+        return !isConsensusPossibleNow;
     }
 
 
