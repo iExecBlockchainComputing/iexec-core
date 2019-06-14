@@ -12,6 +12,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
+import com.iexec.core.prediction.PredictionService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -19,7 +20,6 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
@@ -42,6 +42,7 @@ public class ReplicateSupplyService {
     private Web3jService web3jService;
     private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
     private IexecHubService iexecHubService;
+    private PredictionService predictionService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -51,7 +52,8 @@ public class ReplicateSupplyService {
                                   SmsService smsService,
                                   Web3jService web3jService,
                                   ContributionTimeoutTaskDetector contributionTimeoutTaskDetector,
-                                  IexecHubService iexecHubService) {
+                                  IexecHubService iexecHubService,
+                                  PredictionService predictionService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
@@ -61,6 +63,7 @@ public class ReplicateSupplyService {
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
         this.iexecHubService = iexecHubService;
+        this.predictionService = predictionService;
     }
 
     /*
@@ -138,12 +141,9 @@ public class ReplicateSupplyService {
             boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
-            /*boolean moreReplicatesNeeded = replicatesService.moreReplicatesNeeded(chainTaskId,
-                    task.getNumWorkersNeeded(), task.getMaxExecutionTime());*/
 
-            boolean isConsensusPossibleNow = isConsensusPossibleNow(chainTaskId, task.getTrust(), task.getMaxExecutionTime());
-
-            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated && !isConsensusPossibleNow) {
+            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
+                    && !predictionService.isConsensusPossibleNow(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
                 if (enclaveChallenge.isEmpty()) {
@@ -164,7 +164,6 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
-
 
     private boolean isFewBlocksAfterInitialization(Task task) {
         long coreLastBlock = web3jService.getLatestBlockNumber();
@@ -442,131 +441,5 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
-
-
-    private Map<String, Integer> groups = new HashMap<>();
-
-    /*
-     *
-     * Estimating pending workers are going to contribute in the most probable group
-     *
-     * Return false means a consensus is not possible now, a new worker is welcome to add more weight
-     * Return true means a consensus is possible now, no need to add new workers
-     *
-     */
-    private boolean isConsensusPossibleNow(String chainTaskId, int trust, long maxExecutionTime) {
-        trust = Math.max(trust, 1);//ensure trust equals 1
-        int allPendingDeltaWeight = Math.max(getAllPendingDeltaWeight(chainTaskId, maxExecutionTime), 1);// ensure no pending doesn't affect potentialGroupWeight
-
-        int potentialGroupWeight = getMostProbableGroupWeight() * allPendingDeltaWeight;
-        int allGroupWeightSum = getAllOtherGroupsWeightSum() + potentialGroupWeight;
-
-        return potentialGroupWeight * trust > (1 + allGroupWeightSum) * (trust - 1);
-    }
-
-    //should exclude workers that have not CONTRIBUTED yet after t=date(CREATED)+1T
-    private int getAllPendingDeltaWeight(String chainTaskId, long maxExecutionTime) {
-        //multiply pending deltas
-        int allPendingDeltaWeight = 1;
-
-        for (Replicate replicate: replicatesService.getReplicates(chainTaskId)){
-            boolean isCreatedLessThanOnePeriodAgo = !replicate.isCreatedMoreThanNPeriodsAgo(1, maxExecutionTime);
-
-            Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (!lastRelevantStatus.isPresent()){
-                continue;
-            }
-
-            //warning lot of eth node calls here
-            Optional<Integer> workerScore = iexecHubService.getScore(replicate.getWalletAddress());
-            if (!workerScore.isPresent()){
-                continue;
-            }
-
-            boolean isNotContributed = !lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTED);
-            boolean isNotFailed = !lastRelevantStatus.get().equals(ReplicateStatus.FAILED);
-
-            if (isCreatedLessThanOnePeriodAgo && isNotContributed && isNotFailed){
-                allPendingDeltaWeight = allPendingDeltaWeight * getWorkerWeight(workerScore.get());
-            }
-        }
-
-        return allPendingDeltaWeight;
-    }
-
-    private int getWorkerWeight(int workerScore) {
-        return Math.max(workerScore / 3, 3) - 1;
-    }
-
-    public AbstractMap.SimpleEntry<String, Integer> getMostProbableGroup() {
-        String mostProbableGroupResult = "";
-        int mostProbableGroupWeight = 0;
-
-
-        for (Map.Entry<String, Integer> currentGroupEntry : groups.entrySet()){
-            String currentGroupResult = currentGroupEntry.getKey();
-            Integer currentGroupWeight = currentGroupEntry.getValue();
-
-            if (currentGroupWeight >= mostProbableGroupWeight){
-                mostProbableGroupResult = currentGroupResult;
-                mostProbableGroupWeight = currentGroupWeight;
-            }
-        }
-
-        return new AbstractMap.SimpleEntry<>(mostProbableGroupResult, mostProbableGroupWeight);
-    }
-
-    private String getMostProbableGroupResult() {
-        return getMostProbableGroup().getKey();
-    }
-
-    private Integer getMostProbableGroupWeight() {
-        return getMostProbableGroup().getValue();
-    }
-
-    private int getAllOtherGroupsWeightSum() {
-        if (groups.size() == 0 || groups.size() == 1){
-            return 0;
-        }
-
-        String mostProbableGroupResult = getMostProbableGroupResult();
-        int mostProbableGroupWeight = getMostProbableGroupWeight();
-        int allOtherGroupsWeight = 0;
-
-        for (Map.Entry<String, Integer> currentGroupEntry : groups.entrySet()){
-            String currentGroupResult = currentGroupEntry.getKey();
-            Integer currentGroupWeight = currentGroupEntry.getValue();
-
-            //sum all group weights but exclude most probable result weight
-            if (!currentGroupResult.equals(mostProbableGroupResult)){
-                allOtherGroupsWeight = allOtherGroupsWeight + currentGroupWeight;
-            }
-        }
-
-        return allOtherGroupsWeight;
-    }
-
-    private int getDeltaWeight(String result, int workerScore) {
-        int workerWeight = getWorkerWeight(workerScore);
-        int groupWeight = getGroupWeight(result);
-        return Math.max(groupWeight, 1) * workerWeight - groupWeight;
-    }
-
-    private int getGroupWeight(String result) {
-        return groups.get(result);
-    }
-
-    private void addContributedWeightToGroup(String result, int weightToAdd) {
-        if (!groups.containsKey(result)){
-            groups.put(result, weightToAdd);
-        }
-        else {
-            Integer newGroupWeight = getGroupWeight(result) * weightToAdd;
-            groups.replace(result, newGroupWeight);
-        }
-    }
-
-
-
 
 }
