@@ -44,7 +44,7 @@ public class Task {
     private long initializationBlockNumber;
     private TaskStatus currentStatus;
     private int trust;
-    private int numWorkersNeeded;
+    private int numWorkersNeeded;//TODO: Remove this field
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private long consensusReachedBlockNumber;
@@ -64,10 +64,6 @@ public class Task {
         this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
         this.currentStatus = TaskStatus.RECEIVED;
 
-        // the number of workers needed should satisfy is:
-        // 2**n > trust - 1
-        // a 20% additional number of workers is taken for safety
-        // a max(1, value) is used to cover hedge cases (low values to have at least one worker)
         this.numWorkersNeeded = Math.max(1, (int) Math.ceil((Math.log(trust - 1d) / Math.log(2) * 1.20) / 1.0));
     }
 

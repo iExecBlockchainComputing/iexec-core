@@ -162,7 +162,7 @@ public class PredictionService {
      * Return true means a consensus is possible now, no need to add new workers
      *
      */
-    public boolean isConsensusPossibleNow(String chainTaskId, int trust, long maxExecutionTime) {
+    public boolean needsMoreContributionsForConsensus(String chainTaskId, int trust, long maxExecutionTime) {
         trust = Math.max(trust, 1);//ensure trust equals 1
         Set<String> distinctContributions = getDistinctContributions(chainTaskId);
         Prediction bestPrediction = getBestPrediction(chainTaskId, distinctContributions);
@@ -175,7 +175,7 @@ public class PredictionService {
 
         boolean isConsensusPossibleNow = pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
 
-        log.info("Is consensus possible now? [chainTaskId:{}, isConsensusPossibleNow:{}, trust:{}, distinctContributions:{}, " +
+        log.info("Is DemandingMoreContributionsForConsensus? [chainTaskId:{}, needsMoreContributionsForConsensus:{}, trust:{}, distinctContributions:{}, " +
                 "bestPredictionContribution:{}, bestPredictionWeight:{}, pendingWeight:{}, pendingAndBestPredictionWeight:{}" +
                 ", allPredictionsWeight:{}]", chainTaskId, isConsensusPossibleNow, trust, distinctContributions,
                 bestPrediction.getContribution(), bestPredictionWeight, pendingWeight, pendingAndBestPredictionWeight, allPredictionsWeight);
