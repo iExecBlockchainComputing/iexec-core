@@ -3,6 +3,7 @@ package com.iexec.core.detector.replicate;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CoreConfigurationService;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
@@ -27,8 +28,9 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
     public RevealUnnotifiedDetector(TaskService taskService,
                                     ReplicatesService replicatesService,
                                     IexecHubService iexecHubService,
-                                    CoreConfigurationService coreConfigurationService) {
-        super(taskService, replicatesService, iexecHubService);
+                                    CoreConfigurationService coreConfigurationService,
+                                    Web3jService web3jService) {
+        super(taskService, replicatesService, iexecHubService, web3jService);
         this.coreConfigurationService = coreConfigurationService;
         dectectWhenTaskStatuses = TaskStatus.getWaitingContributionStatuses();
         offchainCompleting = ReplicateStatus.REVEALING;
