@@ -239,10 +239,9 @@ public class TaskService {
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getNumWorkersNeeded();
-        boolean condition3 = task.getCurrentStatus().equals(INITIALIZED);
+        boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
-        if (condition1 && condition2 && condition3) {
+        if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RUNNING);
         }
     }

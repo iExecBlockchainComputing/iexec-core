@@ -63,8 +63,6 @@ public class Task {
         this.dateStatusList = new ArrayList<>();
         this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
         this.currentStatus = TaskStatus.RECEIVED;
-
-        this.numWorkersNeeded = Math.max(1, (int) Math.ceil((Math.log(trust - 1d) / Math.log(2) * 1.20) / 1.0));
     }
 
     public Task(String dappName, String commandLine, int trust, String chainTaskId) {

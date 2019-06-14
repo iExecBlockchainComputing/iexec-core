@@ -23,6 +23,10 @@ public class PredictionService {
         this.iexecHubService = iexecHubService;
     }
 
+    private static boolean isConsensusPossibleNow(int trust, int pendingAndBestPredictionWeight, int allPredictionsWeight) {
+        return pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
+    }
+
     /*
      *
      * Get weight of a prediction
@@ -173,16 +177,15 @@ public class PredictionService {
         int allOtherPredictionsWeight = getAllOtherPredictionsWeight(chainTaskId, distinctContributions);
         int allPredictionsWeight = allOtherPredictionsWeight + pendingAndBestPredictionWeight;
 
-        boolean isConsensusPossibleNow = pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
+        boolean needsMoreContributions = !isConsensusPossibleNow(trust, pendingAndBestPredictionWeight, allPredictionsWeight);
 
-        log.info("Is DemandingMoreContributionsForConsensus? [chainTaskId:{}, needsMoreContributionsForConsensus:{}, trust:{}, distinctContributions:{}, " +
-                "bestPredictionContribution:{}, bestPredictionWeight:{}, pendingWeight:{}, pendingAndBestPredictionWeight:{}" +
-                ", allPredictionsWeight:{}]", chainTaskId, isConsensusPossibleNow, trust, distinctContributions,
+        log.info("Does it need more contributions? [chainTaskId:{}, needsMoreContributions:{}, trust:{}, distinctContributions:{}, " +
+                        "bestPredictionContribution:{}, bestPredictionWeight:{}, pendingWeight:{}, pendingAndBestPredictionWeight:{}" +
+                        ", allPredictionsWeight:{}]", chainTaskId, needsMoreContributions, trust, distinctContributions,
                 bestPrediction.getContribution(), bestPredictionWeight, pendingWeight, pendingAndBestPredictionWeight, allPredictionsWeight);
 
-        return !isConsensusPossibleNow;
+        return needsMoreContributions;
     }
-
 
 
 }
