@@ -264,7 +264,7 @@ public class TaskService {
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
-            long consensusBlockNumber = iexecHubService.getConsensusBlockNumber(task.getChainTaskId(), task.getInitializationBlockNumber());
+            long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
             task.setConsensusReachedBlockNumber(consensusBlockNumber);
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 

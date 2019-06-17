@@ -1,5 +1,6 @@
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -60,14 +61,17 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getRevealBlockNumber(anyString(), anyString(), anyLong())).thenReturn(10L);
+        when(iexecHubService.getRevealBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
+                .blockNumber(10L)
+                .txHash("0xabcef")
+                .build());
 
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
@@ -81,7 +85,7 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CAN_CONTRIBUTE, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
@@ -99,7 +103,7 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
@@ -120,14 +124,17 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getRevealBlockNumber(anyString(), anyString(), anyLong())).thenReturn(10L);
+        when(iexecHubService.getRevealBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
+                .blockNumber(10L)
+                .txHash("0xabcef")
+                .build());
 
         revealDetector.detectOnchainRevealed();
 
@@ -141,14 +148,17 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getRevealBlockNumber(anyString(), anyString(), anyLong())).thenReturn(10L);
+        when(iexecHubService.getRevealBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
+                .blockNumber(10L)
+                .txHash("0xabcef")
+                .build());
 
         revealDetector.detectOnchainRevealed();
 
@@ -162,7 +172,7 @@ public class RevealUnnotifiedDetectorTests {
         when(task.getChainTaskId()).thenReturn(any());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS,CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);

@@ -25,7 +25,7 @@ import java.util.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -561,7 +561,8 @@ public class TaskServiceTests {
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
-        when(web3jService.getLatestBlockNumber()).thenReturn(1L);
+        when(web3jService.getLatestBlockNumber()).thenReturn(2L);
+        when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());

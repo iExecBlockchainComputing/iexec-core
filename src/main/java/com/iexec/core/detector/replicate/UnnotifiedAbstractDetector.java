@@ -1,6 +1,7 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -12,6 +13,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Interceptor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -97,15 +99,15 @@ public abstract class UnnotifiedAbstractDetector {
             switch (statusToUpdate) {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
-                    long contributedBlock = iexecHubService.getContributionBlockNumber(chainTaskId, wallet, web3jService.getLatestBlockNumber());
+                    ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId, wallet, web3jService.getLatestBlockNumber());
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, new ReplicateDetails(contributedBlock));
+                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, ReplicateDetails.builder().chainReceipt(contributedBlock).build());
                     break;
                 case REVEALED:
                     // retrieve the reveal block for that wallet
-                    long revealedBlock = iexecHubService.getRevealBlockNumber(chainTaskId, wallet, web3jService.getLatestBlockNumber());
+                    ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet, web3jService.getLatestBlockNumber());
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, new ReplicateDetails(revealedBlock));
+                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, ReplicateDetails.builder().chainReceipt(revealedBlock).build());
                     break;
                 default:
                     // by default, no need to retrieve anything
