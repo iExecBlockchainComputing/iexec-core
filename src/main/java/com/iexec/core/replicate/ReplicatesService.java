@@ -129,11 +129,12 @@ public class ReplicatesService {
         return addressReplicates.size();
     }
 
-    public int getNbValidContributedWinners(String chainTaskId) {
+    public int getNbValidContributedWinners(String chainTaskId, String contributionHash) {
         int nbValidWinners = 0;
-        for(Replicate replicate:getReplicates(chainTaskId)) {
+        for (Replicate replicate : getReplicates(chainTaskId)) {
             Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-            if( oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)) {
+            if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
+                    && contributionHash.equals(replicate.getContributionHash())) {
                 nbValidWinners++;
             }
         }
