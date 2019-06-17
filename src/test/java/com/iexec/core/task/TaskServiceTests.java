@@ -564,7 +564,7 @@ public class TaskServiceTests {
                 .winnerCounter(2)
                 .build()));
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbValidContributedWinners(task.getChainTaskId())).thenReturn(2);
+        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());

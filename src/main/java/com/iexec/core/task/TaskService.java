@@ -93,7 +93,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbValidContributedWinners(task.getChainTaskId());
+        int offChainWinners = replicatesService.getNbValidContributedWinners(task.getChainTaskId(), task.getConsensus());
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;

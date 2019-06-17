@@ -419,10 +419,12 @@ public class ReplicatesService {
     }
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
-        if (replicate.getCurrentStatus().equals(REVEALING) ||
-                replicate.getCurrentStatus().equals(CONTRIBUTED) ||
-                replicate.isLostAfterStatus(REVEALING) ||
-                replicate.isLostAfterStatus(CONTRIBUTED)) {
+        Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
+        if(!oStatus.isPresent()){
+            return;
+        }
+        ReplicateStatus status = oStatus.get();
+        if (status.equals(REVEALING) || status.equals(CONTRIBUTED)) {
             updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
                     REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
         }
