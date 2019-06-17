@@ -11,6 +11,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
+import com.iexec.core.prediction.ContributionCheckerService;
 import com.iexec.core.prediction.PredictionService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
@@ -40,6 +41,7 @@ public class ReplicateSupplyService {
     private SmsService smsService;
     private Web3jService web3jService;
     private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    private ContributionCheckerService contributionCheckerService;
     private PredictionService predictionService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
@@ -50,7 +52,7 @@ public class ReplicateSupplyService {
                                   SmsService smsService,
                                   Web3jService web3jService,
                                   ContributionTimeoutTaskDetector contributionTimeoutTaskDetector,
-                                  PredictionService predictionService) {
+                                  ContributionCheckerService contributionCheckerService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
@@ -59,6 +61,7 @@ public class ReplicateSupplyService {
         this.smsService = smsService;
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
+        this.contributionCheckerService = contributionCheckerService;
         this.predictionService = predictionService;
     }
 
@@ -139,7 +142,7 @@ public class ReplicateSupplyService {
                     chainTaskId, walletAddress);
 
             if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
-                    && predictionService.needsMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
+                    && contributionCheckerService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
                 if (enclaveChallenge.isEmpty()) {
