@@ -18,8 +18,8 @@ public class ConsensusService {
      *
      * Estimating pending workers are going to contribute to the best prediction
      *
-     * Return false means a consensus is not possible now, a new worker is welcome to add more weight
-     * Return true means a consensus is possible now, no need to add new workers
+     * Return true means a consensus is not possible now, a new worker is welcome to add more weight
+     * Return false means a consensus is possible now, no need to add new workers
      *
      */
     public boolean doesTaskNeedMoreContributionsForConsensus(String chainTaskId, int trust, long maxExecutionTime) {
@@ -40,8 +40,8 @@ public class ConsensusService {
         return needsMoreContributions;
     }
 
-    private boolean isConsensusPossibleNow(int trust, int pendingAndBestPredictionWeight, int allPredictionsWeight) {
-        return pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
+    private boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
+        return pendingAndContributedBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
     }
 
 

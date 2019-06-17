@@ -59,7 +59,7 @@ public class PredictionService {
 
     /*
      *
-     * Sum all prediction weights but exclude best prediction weight
+     * Sum all prediction weights but exclude contributed best prediction weight
      *
      * */
     int getWorstPredictionsWeight(String chainTaskId) {
