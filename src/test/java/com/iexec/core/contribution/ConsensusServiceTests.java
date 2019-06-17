@@ -1,4 +1,4 @@
-package com.iexec.core.prediction;
+package com.iexec.core.contribution;
 
 import org.junit.Before;
 import org.junit.Test;

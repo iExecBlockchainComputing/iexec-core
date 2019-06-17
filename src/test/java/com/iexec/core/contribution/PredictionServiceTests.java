@@ -1,4 +1,4 @@
-package com.iexec.core.prediction;
+package com.iexec.core.contribution;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -112,7 +112,7 @@ public class PredictionServiceTests {
         int contributionWeightA = 5;
         int contributionWeightB = 10;
         int contributionWeightC = 20;
-        
+
         when(contributionService.getDistinctContributions(CHAIN_TASK_ID)).thenReturn(new HashSet<>(Arrays.asList(contributionA, contributionB, contributionC)));
         when(contributionService.getContributedWeight(CHAIN_TASK_ID, contributionA)).thenReturn(contributionWeightA);
         when(contributionService.getContributedWeight(CHAIN_TASK_ID, contributionB)).thenReturn(contributionWeightB);

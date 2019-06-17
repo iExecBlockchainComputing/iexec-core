@@ -1,4 +1,4 @@
-package com.iexec.core.prediction;
+package com.iexec.core.contribution;
 
 import lombok.Builder;
 import lombok.Data;

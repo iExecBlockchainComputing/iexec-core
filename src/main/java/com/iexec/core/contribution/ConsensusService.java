@@ -1,4 +1,4 @@
-package com.iexec.core.prediction;
+package com.iexec.core.contribution;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

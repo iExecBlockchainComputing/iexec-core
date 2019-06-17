@@ -1,4 +1,4 @@
-package com.iexec.core.prediction;
+package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;

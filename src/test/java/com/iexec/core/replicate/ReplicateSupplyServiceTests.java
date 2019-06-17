@@ -12,7 +12,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
-import com.iexec.core.prediction.ConsensusService;
+import com.iexec.core.contribution.ConsensusService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
