@@ -32,9 +32,10 @@ public class ConsensusService {
 
         boolean needsMoreContributions = !isConsensusPossibleNow(trust, bestPredictionWeight, allPredictionsWeight);
 
-        log.info("Does it need more contributions? [chainTaskId:{}, needsMoreContributions:{}, trust:{}, " +
-                        "bestPredictionWeight:{}, allPredictionsWeight:{}]",
-                chainTaskId,needsMoreContributions, trust, bestPredictionWeight, allPredictionsWeight);
+        if (needsMoreContributions){
+            log.info("More contributions needed [chainTaskId:{}, trust:{}, bestPredictionWeight:{}, " +
+                            "allPredictionsWeight:{}]", chainTaskId, trust, bestPredictionWeight, allPredictionsWeight);
+        }
 
         return needsMoreContributions;
     }

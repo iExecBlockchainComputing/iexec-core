@@ -186,21 +186,6 @@ public class ReplicatesService {
                 && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status);
     }
 
-    public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, long maxExecutionTime) {
-        int nbValidReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            //TODO think: When do we really need more replicates?
-            boolean isReplicateSuccessfullSoFar = ReplicateStatus.getSuccessStatuses().contains(replicate.getCurrentStatus());
-            boolean doesContributionTakesTooLong = !replicate.containsContributedStatus() &&
-                    replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime);
-
-            if (isReplicateSuccessfullSoFar && !doesContributionTakesTooLong) {
-                nbValidReplicates++;
-            }
-        }
-        return nbValidReplicates < nbWorkersNeeded;
-    }
-
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,

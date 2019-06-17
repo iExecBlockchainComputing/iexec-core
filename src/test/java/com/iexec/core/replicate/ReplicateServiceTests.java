@@ -330,62 +330,6 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNeedMoreReplicates(){
-        final long maxExecutionTime = 60000;
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
-        Replicate replicate3 = new Replicate(WALLET_WORKER_3, CHAIN_TASK_ID);
-        replicate3.updateStatus(ReplicateStatus.CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2, replicate3));
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        // numWorkersNeeded strictly bigger than the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, maxExecutionTime);
-        assertThat(res).isTrue();
-    }
-
-    @Test
-    public void shouldNeedMoreReplicates2(){
-        final long maxExecutionTime = 60000;
-        Replicate runningReplicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        runningReplicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
-        Replicate notRespondingReplicate1 = mock(Replicate.class);
-        when(notRespondingReplicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
-        when(notRespondingReplicate1.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
-        Replicate notRespondingReplicate2 = mock(Replicate.class);
-        when(notRespondingReplicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
-        when(notRespondingReplicate2.getCurrentStatus()).thenReturn(ReplicateStatus.RUNNING);
-
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(runningReplicate, notRespondingReplicate1, notRespondingReplicate2));
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        // numWorkersNeeded strictly bigger than the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 2, maxExecutionTime);
-        assertThat(res).isTrue();
-    }
-
-    @Test
-    public void shouldNotNeedMoreReplicates(){
-        final long maxExecutionTime = 60000;
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
-
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate, replicate2));
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        // numWorkersNeeded equals to the number of running replicates
-        boolean res = replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, 1, maxExecutionTime);
-        assertThat(res).isFalse();
-    }
-
-    @Test
     public void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
