@@ -133,7 +133,10 @@ public class TaskService {
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
-                consensusReached2Reopened(task);
+                consensusReached2Reopening(task);
+                break;
+            case REOPENING:
+                reopening2Reopened(task);
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
@@ -210,6 +213,7 @@ public class TaskService {
     }
 
     private void initializing2Initialized(Task task) {
+        // TODO: the block where initialization happened can be found
         initializing2Initialized(task, null);
     }
 
@@ -259,8 +263,8 @@ public class TaskService {
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
-            // TODO: Set real consensusBlockNumber
-            task.setConsensusReachedBlockNumber(web3jService.getLatestBlockNumber());
+            long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
+            task.setConsensusReachedBlockNumber(consensusBlockNumber);
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
@@ -295,7 +299,7 @@ public class TaskService {
         }
     }
 
-    public void consensusReached2Reopened(Task task) {
+    public void consensusReached2Reopening(Task task) {
         Date now = new Date();
 
         boolean isConsensusReachedStatus = task.getCurrentStatus().equals(CONSENSUS_REACHED);
@@ -317,17 +321,32 @@ public class TaskService {
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
 
         if (!optionalChainReceipt.isPresent()) {
-            log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas:{}]",
-                    task.getChainTaskId(), canReopen, hasEnoughGas);
+            log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());
             updateTaskStatusAndSave(task, REOPEN_FAILED);
             updateTaskStatusAndSave(task, FAILED);
             return;
         }
+        reopening2Reopened(task, optionalChainReceipt.get());
+    }
 
-        task.setConsensus(null);
-        task.setRevealDeadline(new Date(0));
-        updateTaskStatusAndSave(task, REOPENED, optionalChainReceipt.get());
-        updateTaskStatusAndSave(task, INITIALIZED, optionalChainReceipt.get());
+    public void reopening2Reopened(Task task) {
+        reopening2Reopened(task, null);
+    }
+
+    public void reopening2Reopened(Task task, ChainReceipt chainReceipt) {
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = oChainTask.get();
+
+        // re-initialize the task if it has been reopened
+        if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
+            task.setConsensus(null);
+            task.setRevealDeadline(new Date(0));
+            updateTaskStatusAndSave(task, REOPENED, chainReceipt);
+            updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
+        }
     }
 
     private void uploadRequested2UploadingResult(Task task) {

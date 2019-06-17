@@ -25,7 +25,7 @@ import java.util.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -169,7 +169,7 @@ public class TaskServiceTests {
         assertThat(foundTasks).isEmpty();
     }
 
-    // Tests on consensusReached2Reopened transition
+    // Tests on consensusReached2Reopening transition
 
     @Test
     public void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
@@ -183,7 +183,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
@@ -200,7 +200,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -217,7 +217,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -234,7 +234,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -251,7 +251,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -269,7 +269,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.empty());
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getLastButOneStatus()).isEqualTo(REOPEN_FAILED);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -286,8 +286,11 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .build()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(CONSENSUS_REACHED);
@@ -558,7 +561,8 @@ public class TaskServiceTests {
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
-        when(web3jService.getLatestBlockNumber()).thenReturn(1L);
+        when(web3jService.getLatestBlockNumber()).thenReturn(2L);
+        when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
