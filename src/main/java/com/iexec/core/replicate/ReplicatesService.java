@@ -38,7 +38,6 @@ public class ReplicatesService {
     private CredentialsService credentialsService;
     private ResultRepoService resultRepoService;
 
-
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
@@ -128,6 +127,18 @@ public class ReplicatesService {
             }
         }
         return addressReplicates.size();
+    }
+
+    public int getNbValidContributedWinners(String chainTaskId, String contributionHash) {
+        int nbValidWinners = 0;
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
+            if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
+                    && contributionHash.equals(replicate.getContributionHash())) {
+                nbValidWinners++;
+            }
+        }
+        return nbValidWinners;
     }
 
     public int getNbOffChainReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
@@ -405,5 +416,17 @@ public class ReplicatesService {
     public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
         return iexecHubService.doesWishedStatusMatchesOnChainStatus(
                 chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
+    }
+
+    public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
+        Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
+        if(!oStatus.isPresent()){
+            return;
+        }
+        ReplicateStatus status = oStatus.get();
+        if (status.equals(REVEALING) || status.equals(CONTRIBUTED)) {
+            updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
+                    REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+        }
     }
 }

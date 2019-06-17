@@ -7,6 +7,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.utils.DateTimeUtils;
@@ -63,6 +64,9 @@ public class TaskServiceTests {
 
     @Mock
     private Web3jService web3jService;
+
+    @Mock
+    private RevealTimeoutDetector revealTimeoutDetector;
 
     @InjectMocks
     private TaskService taskService;
@@ -289,6 +293,7 @@ public class TaskServiceTests {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
                 .build()));
+        doNothing().when(revealTimeoutDetector).detect();
 
         taskService.consensusReached2Reopening(task);
 
@@ -559,7 +564,7 @@ public class TaskServiceTests {
                 .winnerCounter(2)
                 .build()));
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());

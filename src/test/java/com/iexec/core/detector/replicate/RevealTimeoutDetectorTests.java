@@ -73,12 +73,10 @@ public class RevealTimeoutDetectorTests {
         revealDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
@@ -106,12 +104,10 @@ public class RevealTimeoutDetectorTests {
         revealDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
@@ -158,12 +154,10 @@ public class RevealTimeoutDetectorTests {
         revealDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
-                        ReplicateStatus.REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
