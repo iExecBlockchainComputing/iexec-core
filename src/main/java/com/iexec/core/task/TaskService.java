@@ -9,11 +9,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.event.ConsensusReachedEvent;
-import com.iexec.core.task.event.ContributionTimeoutEvent;
-import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.event.ResultUploadTimeoutEvent;
-import com.iexec.core.task.event.TaskCompletedEvent;
+import com.iexec.core.task.event.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,7 +34,6 @@ public class TaskService {
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService,
@@ -98,8 +93,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(),
-                ReplicateStatus.CONTRIBUTED);
+        int offChainWinners = replicatesService.getNbValidContributedWinners(task.getChainTaskId());
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
@@ -327,6 +321,7 @@ public class TaskService {
             updateTaskStatusAndSave(task, FAILED);
             return;
         }
+
         reopening2Reopened(task, optionalChainReceipt.get());
     }
 
@@ -343,8 +338,15 @@ public class TaskService {
 
         // re-initialize the task if it has been reopened
         if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
+
+            // set replicates to REVEAL_TIMEOUT
+            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
+                replicatesService.setRevealTimeoutStatusIfNeeded(task.getChainTaskId(), replicate);
+            }
+
             task.setConsensus(null);
             task.setRevealDeadline(new Date(0));
+
             updateTaskStatusAndSave(task, REOPENED, chainReceipt);
             updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
         }
