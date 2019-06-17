@@ -9,18 +9,18 @@ import java.util.Set;
 @Service
 public class PredictionService {
 
-    private ContributionWeightService contributionWeightService;
+    private ContributionService contributionService;
 
-    public PredictionService(ContributionWeightService contributionWeightService) {
-        this.contributionWeightService = contributionWeightService;
+    public PredictionService(ContributionService contributionService) {
+        this.contributionService = contributionService;
     }
 
-    private Prediction getContributedBestPrediction(String chainTaskId) {
-        Set<String> distinctContributions = contributionWeightService.getDistinctContributions(chainTaskId);
+    Prediction getContributedBestPrediction(String chainTaskId) {
+        Set<String> distinctContributions = contributionService.getDistinctContributions(chainTaskId);
         Prediction bestPrediction = Prediction.builder().contribution("").weight(0).build();
 
         for (String predictionContribution : distinctContributions) {
-            int predictionWeight = contributionWeightService.getContributedWeight(chainTaskId, predictionContribution);
+            int predictionWeight = contributionService.getContributedWeight(chainTaskId, predictionContribution);
 
             if (predictionWeight >= bestPrediction.getWeight()) {
                 bestPrediction.setContribution(predictionContribution);
@@ -31,7 +31,7 @@ public class PredictionService {
     }
 
     private int getContributedBestPredictionWeight(String chainTaskId) {
-        return getContributedBestPrediction(chainTaskId).getWeight();
+        return this.getContributedBestPrediction(chainTaskId).getWeight();
     }
 
     /*
@@ -42,7 +42,7 @@ public class PredictionService {
      * */
     int getBestPredictionWeight(String chainTaskId, long maxExecutionTime) {
         int contributedBestPredictionWeight = getContributedBestPredictionWeight(chainTaskId);
-        int pendingWeight = contributionWeightService.getPendingWeight(chainTaskId, maxExecutionTime);
+        int pendingWeight = contributionService.getPendingWeight(chainTaskId, maxExecutionTime);
 
         int bestPredictionWeight;
         if (pendingWeight == 0 && contributedBestPredictionWeight == 0) {
@@ -63,13 +63,13 @@ public class PredictionService {
      *
      * */
     int getWorstPredictionsWeight(String chainTaskId) {
-        Set<String> distinctContributions = contributionWeightService.getDistinctContributions(chainTaskId);
+        Set<String> distinctContributions = contributionService.getDistinctContributions(chainTaskId);
         String bestPredictionContribution = this.getContributedBestPrediction(chainTaskId).getContribution();
 
         int allOtherPredictionsWeight = 0;
 
         for (String contribution : distinctContributions) {
-            int predictionWeight = contributionWeightService.getContributedWeight(chainTaskId, contribution);
+            int predictionWeight = contributionService.getContributedWeight(chainTaskId, contribution);
 
             if (!contribution.equals(bestPredictionContribution)) {
                 allOtherPredictionsWeight = allOtherPredictionsWeight + predictionWeight;
@@ -77,6 +77,5 @@ public class PredictionService {
         }
         return allOtherPredictionsWeight;
     }
-
 
 }

@@ -58,7 +58,10 @@ public class ReplicatesService {
             Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
             if (optional.isPresent()) {
                 ReplicatesList replicatesList = optional.get();
-                replicatesList.getReplicates().add(new Replicate(walletAddress, chainTaskId));
+                Replicate replicate = new Replicate(walletAddress, chainTaskId);
+                replicate.setWorkerWeight(iexecHubService.getWorkerWeight(walletAddress));// workerWeight value for pendingWeight estimate
+                replicatesList.getReplicates().add(replicate);
+
                 replicatesRepository.save(replicatesList);
                 log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
             }
@@ -347,6 +350,7 @@ public class ReplicatesService {
         ChainContribution chainContribution = optional.get();
         if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)) {
             replicate.setContributionHash(chainContribution.getResultHash());
+            replicate.setWorkerWeight(iexecHubService.getWorkerWeight(replicate.getWalletAddress()));//Should update weight on contributed
         }
         return replicate;
     }

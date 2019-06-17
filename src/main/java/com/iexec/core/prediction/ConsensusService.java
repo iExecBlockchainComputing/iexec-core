@@ -5,16 +5,12 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class ContributionCheckerService {
+public class ConsensusService {
 
     private PredictionService predictionService;
 
-    public ContributionCheckerService(PredictionService predictionService) {
+    public ConsensusService(PredictionService predictionService) {
         this.predictionService = predictionService;
-    }
-
-    private boolean isConsensusPossibleNow(int trust, int pendingAndBestPredictionWeight, int allPredictionsWeight) {
-        return pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
     }
 
 
@@ -36,15 +32,20 @@ public class ContributionCheckerService {
 
         boolean needsMoreContributions = !isConsensusPossibleNow(trust, bestPredictionWeight, allPredictionsWeight);
 
-        /*
-        log.info("Does it need more contributions? [chainTaskId:{}, needsMoreContributions:{}, trust:{}, distinctContributions:{}, " +
-                        "bestPredictionContribution:{}, bestPredictionWeight:{}, pendingWeight:{}, predictionWeight:{}" +
-                        ", allPredictionsWeight:{}]", chainTaskId, needsMoreContributions, trust, distinctContributions,
-                bestPrediction.getContribution(), bestPredictionWeight, pendingWeight, predictionWeight, allPredictionsWeight);
-                */
+        log.info("Does it need more contributions? [chainTaskId:{}, needsMoreContributions:{}, trust:{}, " +
+                        "bestPredictionWeight:{}, allPredictionsWeight:{}]",
+                chainTaskId,needsMoreContributions, trust, bestPredictionWeight, allPredictionsWeight);
 
         return needsMoreContributions;
     }
+
+    private boolean isConsensusPossibleNow(int trust, int pendingAndBestPredictionWeight, int allPredictionsWeight) {
+        return pendingAndBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
+    }
+
+
+
+
 
 
 }
