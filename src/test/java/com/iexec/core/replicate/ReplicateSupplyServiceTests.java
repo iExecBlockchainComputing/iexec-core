@@ -12,6 +12,7 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
+import com.iexec.core.contribution.ConsensusService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -61,6 +62,7 @@ public class ReplicateSupplyServiceTests {
     @Mock private SmsService smsService;
     @Mock private Web3jService web3jService;
     @Mock private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    @Mock private ConsensusService consensusService;
 
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
@@ -106,7 +108,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
@@ -187,7 +189,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
@@ -228,7 +230,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(replicatesService.moreReplicatesNeeded(anyString(), anyInt(), anyLong()))
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(anyString(), anyInt(), anyLong()))
                 .thenReturn(true);
 
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
@@ -238,7 +240,7 @@ public class ReplicateSupplyServiceTests {
     }
 
     @Test
-    public void shouldNotGetReplicateSinceTaskDoesntNeedMoreReplicate() {
+    public void shouldNotGetReplicateSinceNeedsMoreContributionsForConsensus() {
         Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
@@ -261,7 +263,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 maxExecutionTime)).thenReturn(false);
 
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
@@ -294,7 +296,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
@@ -376,7 +378,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
@@ -418,7 +420,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
@@ -462,7 +464,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(),
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
@@ -538,7 +540,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(false);
-        when(replicatesService.moreReplicatesNeeded(CHAIN_TASK_ID, runningTask.getNumWorkersNeeded(), runningTask.getMaxExecutionTime())).thenReturn(true);
+        when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(), runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new ContributionAuthorization());

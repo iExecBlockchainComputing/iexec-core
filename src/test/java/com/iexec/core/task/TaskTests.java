@@ -27,42 +27,6 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldComputeCorrectNumberOfWorkersNeeded(){
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 0);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 1);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 3);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(2);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 4);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(2);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 5);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(3);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 6);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(3);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 7);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 8);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 9);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 20);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(6);
-    }
-
-    @Test
     public void shouldSetCurrentStatus() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
         assertThat(task.getDateStatusList().size()).isEqualTo(1);

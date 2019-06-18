@@ -826,7 +826,6 @@ public class TaskServiceTests {
                 .chainTaskId("chainTaskId")
                 .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
-                .numWorkersNeeded(2)
                 .dateStatusList(dateStatusList)
                 .build();
 

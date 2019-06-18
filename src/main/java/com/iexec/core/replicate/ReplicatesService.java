@@ -57,7 +57,10 @@ public class ReplicatesService {
             Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
             if (optional.isPresent()) {
                 ReplicatesList replicatesList = optional.get();
-                replicatesList.getReplicates().add(new Replicate(walletAddress, chainTaskId));
+                Replicate replicate = new Replicate(walletAddress, chainTaskId);
+                replicate.setWorkerWeight(iexecHubService.getWorkerWeight(walletAddress));// workerWeight value for pendingWeight estimate
+                replicatesList.getReplicates().add(replicate);
+
                 replicatesRepository.save(replicatesList);
                 log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
             }
@@ -192,21 +195,6 @@ public class ReplicatesService {
         return size >= 2
                 && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
                 && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status);
-    }
-
-    public boolean moreReplicatesNeeded(String chainTaskId, int nbWorkersNeeded, long maxExecutionTime) {
-        int nbValidReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            //TODO think: When do we really need more replicates?
-            boolean isReplicateSuccessfullSoFar = ReplicateStatus.getSuccessStatuses().contains(replicate.getCurrentStatus());
-            boolean doesContributionTakesTooLong = !replicate.containsContributedStatus() &&
-                    replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime);
-
-            if (isReplicateSuccessfullSoFar && !doesContributionTakesTooLong) {
-                nbValidReplicates++;
-            }
-        }
-        return nbValidReplicates < nbWorkersNeeded;
     }
 
     public void updateReplicateStatus(String chainTaskId,
@@ -358,6 +346,7 @@ public class ReplicatesService {
         ChainContribution chainContribution = optional.get();
         if (wishedChainStatus.equals(ChainContributionStatus.CONTRIBUTED)) {
             replicate.setContributionHash(chainContribution.getResultHash());
+            replicate.setWorkerWeight(iexecHubService.getWorkerWeight(replicate.getWalletAddress()));//Should update weight on contributed
         }
         return replicate;
     }

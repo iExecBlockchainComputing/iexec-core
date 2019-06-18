@@ -8,11 +8,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -27,6 +23,7 @@ public class Replicate {
     private String chainTaskId;
     private String contributionHash;
     private int credibility;
+    private int workerWeight;
 
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;

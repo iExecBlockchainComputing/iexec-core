@@ -11,6 +11,8 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
+import com.iexec.core.contribution.ConsensusService;
+import com.iexec.core.contribution.PredictionService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -23,10 +25,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -42,6 +41,8 @@ public class ReplicateSupplyService {
     private SmsService smsService;
     private Web3jService web3jService;
     private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    private ConsensusService consensusService;
+    private PredictionService predictionService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -50,7 +51,8 @@ public class ReplicateSupplyService {
                                   WorkerService workerService,
                                   SmsService smsService,
                                   Web3jService web3jService,
-                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
+                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector,
+                                  ConsensusService consensusService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
@@ -59,6 +61,8 @@ public class ReplicateSupplyService {
         this.smsService = smsService;
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
+        this.consensusService = consensusService;
+        this.predictionService = predictionService;
     }
 
     /*
@@ -136,10 +140,9 @@ public class ReplicateSupplyService {
             boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
-            boolean moreReplicatesNeeded = replicatesService.moreReplicatesNeeded(chainTaskId,
-                    task.getNumWorkersNeeded(), task.getMaxExecutionTime());
 
-            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
+            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
+                    && consensusService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
                 if (enclaveChallenge.isEmpty()) {
@@ -160,7 +163,6 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
-
 
     private boolean isFewBlocksAfterInitialization(Task task) {
         long coreLastBlock = web3jService.getLatestBlockNumber();
@@ -438,4 +440,5 @@ public class ReplicateSupplyService {
 
         return Optional.empty();
     }
+
 }
