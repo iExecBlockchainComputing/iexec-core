@@ -41,7 +41,7 @@ public class Replicate {
 
     @JsonIgnore
     public Optional<ReplicateStatus> getLastRelevantStatus() {
-        // ignore cases like: WORKER_LOST, RECOVERING, WORKER_LOST....
+        // ignore cases like: WORKER_LOST and RECOVERING
 
         List<ReplicateStatus> statusList = getStatusChangeList().stream()
                 .map(ReplicateStatusChange::getStatus)
