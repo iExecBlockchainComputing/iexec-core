@@ -6,14 +6,10 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.event.ConsensusReachedEvent;
-import com.iexec.core.task.event.ContributionTimeoutEvent;
-import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.event.ResultUploadTimeoutEvent;
-import com.iexec.core.task.event.TaskCompletedEvent;
+import com.iexec.core.task.event.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,6 +19,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -31,23 +28,23 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
+    private final ConcurrentHashMap<String, Boolean> taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
     private TaskRepository taskRepository;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
-    private ResultRepositoryConfiguration resultRepositoryConfig;
-
+    private Web3jService web3jService;
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService,
                        ReplicatesService replicatesService,
                        ApplicationEventPublisher applicationEventPublisher,
-                       ResultRepositoryConfiguration resultRepositoryConfig) {
+                       Web3jService web3jService) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.resultRepositoryConfig = resultRepositoryConfig;
+        this.web3jService = web3jService;
     }
 
     public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
@@ -96,12 +93,12 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED);
-        boolean offChainWinnersEqualsOnChainWinners = offChainWinners == onChainWinners;
+        int offChainWinners = replicatesService.getNbValidContributedWinners(task.getChainTaskId(), task.getConsensus());
+        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
-        return isChainTaskRevealing && offChainWinnersEqualsOnChainWinners;
+        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
     }
-
+ 
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
@@ -117,6 +114,9 @@ public class TaskService {
             case RECEIVED:
                 received2Initialized(task);
                 break;
+            case INITIALIZING:
+                initializing2Initialized(task);
+                break;
             case INITIALIZED:
                 initialized2Running(task);
                 initializedOrRunning2ContributionTimeout(task);
@@ -127,7 +127,10 @@ public class TaskService {
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
-                consensusReached2Reopened(task);
+                consensusReached2Reopening(task);
+                break;
+            case REOPENING:
+                reopening2Reopened(task);
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
@@ -138,7 +141,10 @@ public class TaskService {
                 resultUploading2UploadTimeout(task);
                 break;
             case RESULT_UPLOADED:
-                resultUploaded2Finalized2Completed(task);
+                resultUploaded2Finalizing(task);
+                break;
+            case FINALIZING:
+                finalizing2Finalized2Completed(task);
                 break;
         }
         return true;
@@ -179,6 +185,8 @@ public class TaskService {
         Optional<Pair<String, ChainReceipt>> optionalPair = iexecHubService.initialize(
                 task.getChainDealId(), task.getTaskIndex());
 
+        // In case there is chainReceipt (that could happen after a timeout if the init transaction takes too long
+        // to be mined, no status update is performed
         if (!optionalPair.isPresent()) {
             return;
         }
@@ -195,6 +203,16 @@ public class TaskService {
             return;
         }
 
+        initializing2Initialized(task, chainReceipt);
+    }
+
+    private void initializing2Initialized(Task task) {
+        // TODO: the block where initialization happened can be found
+        initializing2Initialized(task, null);
+    }
+
+    private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
+        String chainTaskId = task.getChainTaskId();
         Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
         if (!optional.isPresent()) {
             return;
@@ -203,12 +221,15 @@ public class TaskService {
 
         task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
         task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
-        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : 0;
+        long currentBlockNumber = web3jService.getLatestBlockNumber();
+        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : currentBlockNumber;
         if (receiptBlockNumber != 0) {
             task.setInitializationBlockNumber(receiptBlockNumber);
         }
-        //TODO Put other fields?
 
+        if (chainReceipt == null) {
+            chainReceipt = ChainReceipt.builder().blockNumber(currentBlockNumber).build();
+        }
         updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
         replicatesService.createEmptyReplicateList(chainTaskId);
     }
@@ -216,10 +237,9 @@ public class TaskService {
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
         boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.COMPUTED) < task.getNumWorkersNeeded();
-        boolean condition3 = task.getCurrentStatus().equals(INITIALIZED);
+        boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
-        if (condition1 && condition2 && condition3) {
+        if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RUNNING);
         }
     }
@@ -237,11 +257,14 @@ public class TaskService {
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
+            long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
+            task.setConsensusReachedBlockNumber(consensusBlockNumber);
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .consensus(task.getConsensus())
+                    .blockNumber(task.getConsensusReachedBlockNumber())
                     .build());
         }
     }
@@ -251,15 +274,7 @@ public class TaskService {
                 task.getCurrentStatus().equals(RUNNING);
         boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
 
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()) {
-            return;
-        }
-        ChainTask chainTask = optional.get();
-
-        boolean isChainTaskActive = chainTask.getStatus() != null && chainTask.getStatus().equals(ChainTaskStatus.ACTIVE);
-
-        if (isInitializedOrRunningTask && isChainTaskActive && isNowAfterContributionDeadline) {
+        if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
             updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
@@ -278,7 +293,7 @@ public class TaskService {
         }
     }
 
-    public void consensusReached2Reopened(Task task) {
+    public void consensusReached2Reopening(Task task) {
         Date now = new Date();
 
         boolean isConsensusReachedStatus = task.getCurrentStatus().equals(CONSENSUS_REACHED);
@@ -300,17 +315,40 @@ public class TaskService {
         Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
 
         if (!optionalChainReceipt.isPresent()) {
-            log.error("Reopen failed [chainTaskId:{}, canReopen:{}, hasEnoughGas:{}]",
-                    task.getChainTaskId(), canReopen, hasEnoughGas);
+            log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());
             updateTaskStatusAndSave(task, REOPEN_FAILED);
             updateTaskStatusAndSave(task, FAILED);
             return;
         }
 
-        task.setConsensus(null);
-        task.setRevealDeadline(new Date(0));
-        updateTaskStatusAndSave(task, REOPENED, optionalChainReceipt.get());
-        updateTaskStatusAndSave(task, INITIALIZED, optionalChainReceipt.get());
+        reopening2Reopened(task, optionalChainReceipt.get());
+    }
+
+    public void reopening2Reopened(Task task) {
+        reopening2Reopened(task, null);
+    }
+
+    public void reopening2Reopened(Task task, ChainReceipt chainReceipt) {
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = oChainTask.get();
+
+        // re-initialize the task if it has been reopened
+        if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
+
+            // set replicates to REVEAL_TIMEOUT
+            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
+                replicatesService.setRevealTimeoutStatusIfNeeded(task.getChainTaskId(), replicate);
+            }
+
+            task.setConsensus(null);
+            task.setRevealDeadline(new Date(0));
+
+            updateTaskStatusAndSave(task, REOPENED, chainReceipt);
+            updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
+        }
     }
 
     private void uploadRequested2UploadingResult(Task task) {
@@ -365,7 +403,7 @@ public class TaskService {
             task.setResultLink(oUploadedReplicate.get().getResultLink());
             task.setChainCallbackData(oUploadedReplicate.get().getChainCallbackData());
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
-            resultUploaded2Finalized2Completed(task);
+            resultUploaded2Finalizing(task);
             return;
         }
 
@@ -425,7 +463,7 @@ public class TaskService {
         }
     }
 
-    private void resultUploaded2Finalized2Completed(Task task) {
+    private void resultUploaded2Finalizing(Task task) {
         boolean isTaskInResultUploaded = task.getCurrentStatus().equals(RESULT_UPLOADED);
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
@@ -448,9 +486,20 @@ public class TaskService {
         }
 
         updateTaskStatusAndSave(task, FINALIZING);
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
 
+        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
         if (!optionalChainReceipt.isPresent()) {
+            return;
+        }
+        ChainReceipt chainReceipt = optionalChainReceipt.get();
+
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        chainTask = oChainTask.get();
+
+        if (chainTask.getStatus().equals(ChainTaskStatus.FAILLED)) {
             log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
                     task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
             updateTaskStatusAndSave(task, FINALIZE_FAILED);
@@ -458,9 +507,45 @@ public class TaskService {
             return;
         }
 
-        updateTaskStatusAndSave(task, FINALIZED, optionalChainReceipt.get());
-
-        updateTaskStatusAndSave(task, COMPLETED);
-        applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+        finalizing2Finalized2Completed(task, chainReceipt);
     }
+
+    private void finalizing2Finalized2Completed(Task task) {
+        finalizing2Finalized2Completed(task, null);
+    }
+
+    private void finalizing2Finalized2Completed(Task task, ChainReceipt chainReceipt) {
+        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
+        if (!oChainTask.isPresent()) {
+            return;
+        }
+        ChainTask chainTask = oChainTask.get();
+
+        if (chainTask.getStatus().equals(ChainTaskStatus.COMPLETED)) {
+            updateTaskStatusAndSave(task, FINALIZED, chainReceipt);
+            updateTaskStatusAndSave(task, COMPLETED);
+            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+        }
+    }
+
+    public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
+        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
+    }
+
+    public Boolean isTaskBeingAccessedForNewReplicate(String chainTaskId) {
+        return taskAccessForNewReplicateLock.get(chainTaskId);
+    }
+
+    public void lockTaskAccessForNewReplicate(String chainTaskId) {
+        setTaskAccessForNewReplicateLock(chainTaskId, true);
+    }
+
+    public void unlockTaskAccessForNewReplicate(String chainTaskId) {
+        setTaskAccessForNewReplicateLock(chainTaskId, false);
+    }
+
+    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
+        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
+    }
+
 }

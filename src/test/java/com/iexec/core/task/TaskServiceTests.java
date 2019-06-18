@@ -5,7 +5,9 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.utils.DateTimeUtils;
@@ -24,7 +26,7 @@ import java.util.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +61,12 @@ public class TaskServiceTests {
 
     @Mock
     private ResultRepositoryConfiguration resulRepositoryConfig;
+
+    @Mock
+    private Web3jService web3jService;
+
+    @Mock
+    private RevealTimeoutDetector revealTimeoutDetector;
 
     @InjectMocks
     private TaskService taskService;
@@ -165,7 +173,7 @@ public class TaskServiceTests {
         assertThat(foundTasks).isEmpty();
     }
 
-    // Tests on consensusReached2Reopened transition
+    // Tests on consensusReached2Reopening transition
 
     @Test
     public void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
@@ -179,7 +187,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
@@ -196,7 +204,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -213,7 +221,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -230,7 +238,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -247,7 +255,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
@@ -265,7 +273,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.empty());
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getLastButOneStatus()).isEqualTo(REOPEN_FAILED);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -282,8 +290,12 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .build()));
+        doNothing().when(revealTimeoutDetector).detect();
 
-        taskService.consensusReached2Reopened(task);
+        taskService.consensusReached2Reopening(task);
 
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(CONSENSUS_REACHED);
@@ -391,7 +403,9 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
 
         taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
@@ -550,8 +564,10 @@ public class TaskServiceTests {
                 .winnerCounter(2)
                 .build()));
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
+        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
+        when(web3jService.getLatestBlockNumber()).thenReturn(2L);
+        when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
@@ -705,6 +721,10 @@ public class TaskServiceTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(new ChainReceipt()));
         when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.COMPLETED)
+                .revealCounter(1)
+                .build()));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
@@ -741,7 +761,6 @@ public class TaskServiceTests {
     public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2, CHAIN_TASK_ID);
         task.changeStatus(RESULT_UPLOADING);
-        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.setResultLink(RESULT_LINK);
 
@@ -750,9 +769,12 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADED)).thenReturn(1);
         when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.empty());
+        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(ChainReceipt.builder().build()));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.FAILLED)
+                .revealCounter(1)
+                .build()));
 
         taskService.tryUpgradeTaskStatus(task.getChainTaskId());
 
@@ -804,7 +826,6 @@ public class TaskServiceTests {
                 .chainTaskId("chainTaskId")
                 .currentStatus(TaskStatus.RUNNING)
                 .commandLine("ls")
-                .numWorkersNeeded(2)
                 .dateStatusList(dateStatusList)
                 .build();
 

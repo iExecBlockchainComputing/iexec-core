@@ -2,12 +2,17 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
-import com.iexec.common.disconnection.InterruptedReplicateModel;
-import com.iexec.common.disconnection.RecoveryAction;
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationExtra;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.chain.Web3jService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
+import com.iexec.core.contribution.ConsensusService;
+import com.iexec.core.contribution.PredictionService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -20,11 +25,11 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ReplicateSupplyService {
 
@@ -34,25 +39,45 @@ public class ReplicateSupplyService {
     private TaskService taskService;
     private WorkerService workerService;
     private SmsService smsService;
-
+    private Web3jService web3jService;
+    private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    private ConsensusService consensusService;
+    private PredictionService predictionService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
-                                 SignatureService signatureService,
-                                 TaskExecutorEngine taskExecutorEngine,
-                                 TaskService taskService,
-                                 WorkerService workerService,
-                                 SmsService smsService) {
+                                  SignatureService signatureService,
+                                  TaskExecutorEngine taskExecutorEngine,
+                                  TaskService taskService,
+                                  WorkerService workerService,
+                                  SmsService smsService,
+                                  Web3jService web3jService,
+                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector,
+                                  ConsensusService consensusService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskExecutorEngine = taskExecutorEngine;
         this.taskService = taskService;
         this.workerService = workerService;
         this.smsService = smsService;
+        this.web3jService = web3jService;
+        this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
+        this.consensusService = consensusService;
+        this.predictionService = predictionService;
     }
 
-    // in case the task has been modified between reading and writing it, it is retried up to 5 times
+    /*
+     * #1 Retryable - In case the task has been modified between reading and writing it, it is retried up to 5 times
+     *
+     * #2 TaskAccessForNewReplicateLock - To avoid the case where only 1 replicate is required but 2 replicates are
+     * created since 2 workers are calling getAvailableReplicate() and reading the database at the same time, we need a
+     *  'TaskAccessForNewReplicateLock' which should be:
+     *  - locked before `replicatesService.moreReplicatesNeeded(..)`
+     *  - released after `replicatesService.addNewReplicate(..)` in the best scenario
+     *  - released before any `continue` or  `return`
+     *
+     */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long blockNumber, String walletAddress) {
+    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
@@ -60,9 +85,10 @@ public class ReplicateSupplyService {
         }
         Worker worker = optional.get();
 
-        // return empty if there is no task to contribute
-        List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
-        if (runningTasks.isEmpty()) {
+        // return empty if the worker is not sync
+        //TODO Check if worker node is sync
+        boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
+        if (!isWorkerLastBlockAvailable) {
             return Optional.empty();
         }
 
@@ -71,44 +97,85 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
-        for (Task task : runningTasks) {
-            // skip the task if it needs TEE and the worker doesn't support it
-            boolean doesTaskNeedTEE = task.isTeeNeeded();
-            if(doesTaskNeedTEE && !worker.isTeeEnabled()) {
+        // return empty if there is no task to contribute
+        List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
+        if (runningTasks.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // filter the Tasks that have reached the contribution deadline
+        List<Task> validTasks = runningTasks.stream()
+                .filter(task -> {
+                    if (task.isContributionDeadlineReached()) {
+                        contributionTimeoutTaskDetector.detect();
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        for (Task task : validTasks) {
+            String chainTaskId = task.getChainTaskId();
+
+            // no need to ge further if the consensus is already reached on-chain
+            // the task should be updated since the consensus is reached but it is still in RUNNING status
+            if (taskService.isConsensusReached(task)) {
+                taskExecutorEngine.updateTask(chainTaskId);
                 continue;
             }
 
-            String chainTaskId = task.getChainTaskId();
+            // skip the task if it needs TEE and the worker doesn't support it
+            boolean doesTaskNeedTEE = task.isTeeNeeded();
+            if (doesTaskNeedTEE && !worker.isTeeEnabled()) {
+                continue;
+            }
 
-            boolean blockNumberAvailable = task.getInitializationBlockNumber() != 0
-                    && task.getInitializationBlockNumber() <= blockNumber;
+            taskService.initializeTaskAccessForNewReplicateLock(chainTaskId);
+            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)) {
+                continue;//skip task if being accessed
+            }
+            taskService.lockTaskAccessForNewReplicate(chainTaskId);
+
+            boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
-            boolean moreReplicatesNeeded = replicatesService.moreReplicatesNeeded(chainTaskId,
-                    task.getNumWorkersNeeded(), task.getMaxExecutionTime());
 
-            if (blockNumberAvailable && !hasWorkerAlreadyParticipated && moreReplicatesNeeded) {
+            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
+                    && consensusService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
-                if (enclaveChallenge.isEmpty()) continue;
+                if (enclaveChallenge.isEmpty()) {
+                    taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
+                    continue;
+                }
 
                 replicatesService.addNewReplicate(chainTaskId, walletAddress);
+                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
                 workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
                 // generate contribution authorization
                 return Optional.of(signatureService.createAuthorization(
                         walletAddress, chainTaskId, enclaveChallenge));
             }
+            taskService.unlockTaskAccessForNewReplicate(chainTaskId);
         }
 
         return Optional.empty();
     }
 
-    public List<InterruptedReplicateModel> getInterruptedReplicates(long blockNumber, String walletAddress) {
+    private boolean isFewBlocksAfterInitialization(Task task) {
+        long coreLastBlock = web3jService.getLatestBlockNumber();
+        long initializationBlock = task.getInitializationBlockNumber();
+        boolean isFewBlocksAfterInitialization = coreLastBlock >= initializationBlock + 2;
+        return coreLastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
+    }
+
+    public List<TaskNotification> getMissedTaskNotifications(long blockNumber, String walletAddress) {
 
         List<String> chainTaskIdList = workerService.getChainTaskIds(walletAddress);
         List<Task> tasksWithWorkerParticipation = taskService.getTasksByChainTaskIds(chainTaskIdList);
-        List<InterruptedReplicateModel> interruptedReplicates = new ArrayList<>();
+        List<TaskNotification> taskNotifications = new ArrayList<>();
 
         for (Task task : tasksWithWorkerParticipation) {
             String chainTaskId = task.getChainTaskId();
@@ -124,43 +191,62 @@ public class ReplicateSupplyService {
             String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeNeeded());
             if (task.isTeeNeeded() && enclaveChallenge.isEmpty()) continue;
 
-            Optional<RecoveryAction> oRecoveryAction = getAppropriateRecoveryAction(task, replicate, blockNumber);
-            if (!oRecoveryAction.isPresent()) continue;
+            Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
+            if (!taskNotificationType.isPresent()) continue;
 
-            // generate contribution authorization
-            ContributionAuthorization authorization = signatureService.createAuthorization(
-                    walletAddress, chainTaskId, enclaveChallenge);
+            TaskNotificationExtra taskNotificationExtra =
+                    getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
 
-            InterruptedReplicateModel interruptedReplicate = InterruptedReplicateModel.builder()
-                    .contributionAuthorization(authorization)
-                    .recoveryAction(oRecoveryAction.get())
+            TaskNotification taskNotification = TaskNotification.builder()
+                    .chainTaskId(chainTaskId)
+                    .workersAddress(Collections.singletonList(walletAddress))
+                    .taskNotificationType(taskNotificationType.get())
+                    .taskNotificationExtra(taskNotificationExtra)
                     .build();
 
             // change replicate status
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
                     ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
 
-            interruptedReplicates.add(interruptedReplicate);
+            taskNotifications.add(taskNotification);
         }
 
-        return interruptedReplicates;
+        return taskNotifications;
     }
 
-    public Optional<RecoveryAction> getAppropriateRecoveryAction(Task task, Replicate replicate, long blockNumber) {
+    private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
+        TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
+
+        switch (taskNotificationType){
+            case PLEASE_CONTRIBUTE:
+                ContributionAuthorization authorization = signatureService.createAuthorization(
+                        walletAddress, task.getChainTaskId(), enclaveChallenge);
+                taskNotificationExtra.setContributionAuthorization(authorization);
+                break;
+            case PLEASE_REVEAL:
+                taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
+                break;
+            default:
+                break;
+        }
+        return taskNotificationExtra;
+    }
+
+    public Optional<TaskNotificationType> getTaskNotificationType(Task task, Replicate replicate, long blockNumber) {
 
         if (task.inContributionPhase()) {
             return recoverReplicateInContributionPhase(task, replicate, blockNumber);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)) {
-            return Optional.of(RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT);
+            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
         }
 
         if (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED) && !replicate.containsContributedStatus()) {
-            return Optional.of(RecoveryAction.ABORT_CONSENSUS_REACHED);
+            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
         }
 
-        Optional<RecoveryAction> oRecoveryAction = Optional.empty();
+        Optional<TaskNotificationType> oRecoveryAction = Optional.empty();
 
         if (task.inRevealPhase()) {
             oRecoveryAction = recoverReplicateInRevealPhase(task, replicate, blockNumber);
@@ -178,14 +264,14 @@ public class ReplicateSupplyService {
     }
 
     /**
-     * CREATED, ..., CAN_CONTRIBUTE         => RecoveryAction.CONTRIBUTE
-     * CONTRIBUTING + !onChain              => RecoveryAction.CONTRIBUTE
+     * CREATED, ..., CAN_CONTRIBUTE         => TaskNotificationType.PLEASE_CONTRIBUTE
+     * CONTRIBUTING + !onChain              => TaskNotificationType.PLEASE_CONTRIBUTE
      * CONTRIBUTING + done onChain          => updateStatus to CONTRIBUTED & go to next case
-     * CONTRIBUTED + !CONSENSUS_REACHED     => RecoveryAction.WAIT
-     * CONTRIBUTED + CONSENSUS_REACHED      => RecoveryAction.REVEAL
+     * CONTRIBUTED + !CONSENSUS_REACHED     => TaskNotificationType.PLEASE_WAIT
+     * CONTRIBUTED + CONSENSUS_REACHED      => TaskNotificationType.PLEASE_REVEAL
      */
 
-    private Optional<RecoveryAction> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
+    private Optional<TaskNotificationType> recoverReplicateInContributionPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -196,11 +282,11 @@ public class ReplicateSupplyService {
         boolean didReplicateContributeOnChain = replicatesService.didReplicateContributeOnchain(chainTaskId, walletAddress);
 
         if (beforeContributing) {
-            return Optional.of(RecoveryAction.CONTRIBUTE);
+            return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
         if (didReplicateStartContributing && !didReplicateContributeOnChain) {
-            return Optional.of(RecoveryAction.CONTRIBUTE);
+            return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
         if (didReplicateStartContributing && didReplicateContributeOnChain) {
@@ -223,25 +309,25 @@ public class ReplicateSupplyService {
         if (didReplicateContribute) {
 
             if (!taskService.isConsensusReached(task)) {
-                return Optional.of(RecoveryAction.WAIT);
+                return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 
             taskExecutorEngine.updateTask(chainTaskId);
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         return Optional.empty();
     }
 
     /**
-     * CONTRIBUTED                      => RecoveryAction.REVEAL
-     * REVEALING + !onChain             => RecoveryAction.REVEAL
+     * CONTRIBUTED                      => TaskNotificationType.PLEASE_REVEAL
+     * REVEALING + !onChain             => TaskNotificationType.PLEASE_REVEAL
      * REVEALING + done onChain         => update replicateStatus to REVEALED, update task & go to next case
-     * REVEALED (no upload req)         => RecoveryAction.WAIT
-     * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
+     * REVEALED (no upload req)         => TaskNotificationType.PLEASE_WAIT
+     * RESULT_UPLOAD_REQUESTED          => TaskNotificationType.PLEASE_UPLOAD_RESULT
      */
 
-    private Optional<RecoveryAction> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
+    private Optional<TaskNotificationType> recoverReplicateInRevealPhase(Task task, Replicate replicate, long blockNumber) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -252,11 +338,11 @@ public class ReplicateSupplyService {
         boolean didReplicateRevealOnChain = replicatesService.didReplicateRevealOnchain(chainTaskId, walletAddress);
 
         if (isInStatusContributed) {
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         if (didReplicateStartRevealing && !didReplicateRevealOnChain) {
-            return Optional.of(RecoveryAction.REVEAL);
+            return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
@@ -281,25 +367,25 @@ public class ReplicateSupplyService {
                 .equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
         if (didReplicateReveal) {
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         if (wasReplicateRequestedToUpload) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         return Optional.empty();
     }
 
     /**
-     * RESULT_UPLOAD_REQUESTED          => RecoveryAction.UPLOAD_RESULT
-     * RESULT_UPLOADING + !done yet     => RecoveryAction.UPLOAD_RESULT
-     * RESULT_UPLOADING + done          => RecoveryAction.WAIT
+     * RESULT_UPLOAD_REQUESTED          => TaskNotificationType.PLEASE_UPLOAD_RESULT
+     * RESULT_UPLOADING + !done yet     => TaskNotificationType.PLEASE_UPLOAD_RESULT
+     * RESULT_UPLOADING + done          => TaskNotificationType.PLEASE_WAIT
      * update to ReplicateStatus.RESULT_UPLOADED
-     * RESULT_UPLOADED                  => RecoveryAction.WAIT
+     * RESULT_UPLOADED                  => TaskNotificationType.PLEASE_WAIT
      */
 
-    private Optional<RecoveryAction> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
+    private Optional<TaskNotificationType> recoverReplicateInResultUploadPhase(Task task, Replicate replicate) {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
@@ -311,11 +397,11 @@ public class ReplicateSupplyService {
         boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADED);
 
         if (wasReplicateRequestedToUpload) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         if (didReplicateStartUploading && !didReplicateUploadWithoutNotifying) {
-            return Optional.of(RecoveryAction.UPLOAD_RESULT);
+            return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
@@ -323,35 +409,36 @@ public class ReplicateSupplyService {
                     ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
 
             taskExecutorEngine.updateTask(chainTaskId);
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         if (hasReplicateAlreadyUploaded) {
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         return Optional.empty();
     }
 
     /**
-     * REVEALED + task in COMPLETED status          => RecoveryAction.COMPLETE
-     * REVEALED + task not in COMPLETED status      => RecoveryAction.WAIT
+     * REVEALED + task in COMPLETED status          => TaskNotificationType.PLEASE_COMPLETE
+     * REVEALED + task not in COMPLETED status      => TaskNotificationType.PLEASE_WAIT
      * !REVEALED                                    => null
      */
 
-    private Optional<RecoveryAction> recoverReplicateIfRevealed(Replicate replicate) {
+    private Optional<TaskNotificationType> recoverReplicateIfRevealed(Replicate replicate) {
         // refresh task
         Optional<Task> oTask = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
         if (!oTask.isPresent()) return Optional.empty();
 
         if (replicate.containsRevealedStatus()) {
             if (oTask.get().getCurrentStatus().equals(TaskStatus.COMPLETED)) {
-                return Optional.of(RecoveryAction.COMPLETE);
+                return Optional.of(TaskNotificationType.PLEASE_COMPLETE);
             }
 
-            return Optional.of(RecoveryAction.WAIT);
+            return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 
         return Optional.empty();
     }
+
 }
