@@ -32,7 +32,6 @@ public class TaskModel {
     private long initializationBlockNumber;
     private TaskStatus currentStatus;
     private int trust;
-    private int numWorkersNeeded;
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private Date contributionDeadline;
@@ -55,7 +54,6 @@ public class TaskModel {
         this.initializationBlockNumber = task.getInitializationBlockNumber();
         this.currentStatus = task.getCurrentStatus();
         this.trust = task.getTrust();
-        this.numWorkersNeeded = task.getNumWorkersNeeded();
         this.uploadingWorkerWalletAddress = task.getUploadingWorkerWalletAddress();
         this.consensus = task.getConsensus();
         this.contributionDeadline = task.getContributionDeadline();

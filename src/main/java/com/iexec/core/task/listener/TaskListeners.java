@@ -1,6 +1,7 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
@@ -80,10 +81,14 @@ public class TaskListeners {
 
         // winners: please reveal
         if (!winners.isEmpty()) {
+            TaskNotificationExtra notificationExtra = TaskNotificationExtra.builder()
+                    .blockNumber(event.getBlockNumber())
+                    .build();
+
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
                     .chainTaskId(chainTaskId)
-                    .blockNumber(event.getBlockNumber())
+                    .taskNotificationExtra(notificationExtra)
                     .workersAddress(winners).build()
             );
         }
@@ -130,7 +135,7 @@ public class TaskListeners {
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
-                .taskNotificationType(TaskNotificationType.COMPLETED)
+                .taskNotificationType(TaskNotificationType.PLEASE_COMPLETE)
                 .workersAddress(Collections.emptyList())
                 .build());
 

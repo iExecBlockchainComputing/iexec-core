@@ -1,6 +1,7 @@
 package com.iexec.core.task;
 
 
+import com.iexec.core.utils.DateTimeUtils;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -23,42 +24,6 @@ public class TaskTests {
 
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
-    }
-
-    @Test
-    public void shouldComputeCorrectNumberOfWorkersNeeded(){
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 0);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 1);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(1);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 3);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(2);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 4);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(2);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 5);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(3);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 6);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(3);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 7);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 8);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 9);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(4);
-
-        task = new Task(DAPP_NAME, COMMAND_LINE, 20);
-        assertThat(task.getNumWorkersNeeded()).isEqualTo(6);
     }
 
     @Test
@@ -126,4 +91,19 @@ public class TaskTests {
         assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isFalse();
     }
 
+    @Test
+    public void shouldContributionDeadlineBeReached() {
+        Task task = new Task();
+        // contribution deadline in the past
+        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
+        assertThat(task.isContributionDeadlineReached()).isTrue();
+    }
+
+    @Test
+    public void shouldContributionDeadlineNotBeReached() {
+        Task task = new Task();
+        // contribution deadline in the future
+        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        assertThat(task.isContributionDeadlineReached()).isFalse();
+    }
 }

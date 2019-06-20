@@ -7,6 +7,7 @@ import com.iexec.common.dapp.DappType;
 import com.iexec.common.tee.TeeUtils;
 
 import lombok.*;
+import org.apache.commons.lang.time.DateUtils;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
+import static com.iexec.core.utils.DateTimeUtils.now;
 
 @Getter
 @Setter
@@ -42,7 +44,7 @@ public class Task {
     private long initializationBlockNumber;
     private TaskStatus currentStatus;
     private int trust;
-    private int numWorkersNeeded;
+    private int numWorkersNeeded;//TODO: Remove this field
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private long consensusReachedBlockNumber;
@@ -61,12 +63,6 @@ public class Task {
         this.dateStatusList = new ArrayList<>();
         this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
         this.currentStatus = TaskStatus.RECEIVED;
-
-        // the number of workers needed should satisfy is:
-        // 2**n > trust - 1
-        // a 20% additional number of workers is taken for safety
-        // a max(1, value) is used to cover hedge cases (low values to have at least one worker)
-        this.numWorkersNeeded = Math.max(1, (int) Math.ceil((Math.log(trust - 1d) / Math.log(2) * 1.20) / 1.0));
     }
 
     public Task(String dappName, String commandLine, int trust, String chainTaskId) {
@@ -122,6 +118,10 @@ public class Task {
         return Optional.empty();
     }
 
+    public boolean isContributionDeadlineReached(){
+        return new Date().after(contributionDeadline);
+    }
+
 	public boolean inContributionPhase() {
 		return TaskStatus.isInContributionPhase(getCurrentStatus());
 	}
@@ -138,7 +138,7 @@ public class Task {
 		return TaskStatus.isInCompletionPhase(getCurrentStatus());
     }
 
-    public boolean isTeeNeeded() {
+    public boolean isTeeTask() {
         return TeeUtils.isTeeTag(getTag());
     }
 }

@@ -2,70 +2,67 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.detector.Detector;
-import com.iexec.core.replicate.Replicate;
+import com.iexec.core.chain.Web3jService;
+import com.iexec.core.configuration.CoreConfigurationService;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
-
-import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
-public class ContributionUnnotifiedDetector implements Detector {
+public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
-    private IexecHubService iexecHubService;
+    private static final int DETECTOR_MULTIPLIER = 10;
+    private final List<TaskStatus> dectectWhenOffchainTaskStatuses;
+    private final ReplicateStatus offchainCompleting;
+    private final ReplicateStatus offchainCompleted;
+    private final ChainContributionStatus onchainCompleted;
+    private final CoreConfigurationService coreConfigurationService;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
-                                          IexecHubService iexecHubService) {
-        this.taskService = taskService;
-        this.replicatesService = replicatesService;
-        this.iexecHubService = iexecHubService;
+                                          IexecHubService iexecHubService,
+                                          CoreConfigurationService coreConfigurationService,
+                                          Web3jService web3jService) {
+        super(taskService, replicatesService, iexecHubService, web3jService);
+        this.coreConfigurationService = coreConfigurationService;
+        dectectWhenOffchainTaskStatuses = TaskStatus.getWaitingContributionStatuses();
+        offchainCompleting = ReplicateStatus.CONTRIBUTING;
+        offchainCompleted = ReplicateStatus.CONTRIBUTED;
+        onchainCompleted = ChainContributionStatus.CONTRIBUTED;
     }
 
-    @Scheduled(fixedRateString = "${detector.contribution.unnotified.period}")
-    @Override
-    public void detect() {
-        log.debug("Trying to detect un-notified contributed");
-        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                //check if a worker has contributed on-chain but hasn't notified off-chain
-                boolean hasReplicateContributedOffChain = replicate.containsContributedStatus();
-                boolean isReplicateOld = replicate.isCreatedMoreThanNPeriodsAgo(1, task.getMaxExecutionTime());
-
-                if (!hasReplicateContributedOffChain && isReplicateOld &&
-                        iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), ChainContributionStatus.CONTRIBUTED)) {
-                    updateReplicateStatuses(task.getChainTaskId(), replicate);
-                }
-            }
-        }
+    /*
+     * Detecting onchain CONTRIBUTED only if replicates are offchain CONTRIBUTING
+     * (worker didn't notify last offchain CONTRIBUTED)
+     * We want to detect them very often since it's highly probable
+     */
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod}")
+    public void detectOnchainContributedWhenOffchainContributing() {
+        log.debug("Detect onchain Contributed (when offchain Contributing) [retryIn:{}]",
+                coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
+        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
-    private void updateReplicateStatuses(String chainTaskId, Replicate replicate) {
-        List<ReplicateStatus> statusesToUpdate;
-        if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
-            statusesToUpdate = getMissingStatuses(replicate.getLastButOneStatus(), CONTRIBUTED);
-        } else {
-            statusesToUpdate = getMissingStatuses(replicate.getCurrentStatus(), CONTRIBUTED);
-        }
+    /*
+     * Detecting onchain CONTRIBUTED if replicates are not CONTRIBUTED
+     * (worker didn't notify any status)
+     * We want to detect them:
+     * - Frequently but no so often since it's eth node resource consuming and less probable
+     * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
+     */
+    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
+    public void detectOnchainContributed() {
+        log.debug("Detect onchain Contributed [retryIn:{}]",
+                coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
 
-        for (ReplicateStatus statusToUpdate : statusesToUpdate) {
-            replicatesService.updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                    statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
-        }
+        dectectOnchainCompleted(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
-
 
 }
