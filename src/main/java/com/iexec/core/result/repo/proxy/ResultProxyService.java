@@ -40,7 +40,7 @@ public class ResultProxyService {
         }
 
         // ContributionStatus of chainTask should be REVEALED
-        boolean isChainContributionStatusSetToRevealed = iexecHubService.doesWishedStatusMatchesOnChainStatus(chainTaskId,
+        boolean isChainContributionStatusSetToRevealed = iexecHubService.isStatusTrueOnChain(chainTaskId,
                 walletAddress, ChainContributionStatus.REVEALED);
         if (!isChainContributionStatusSetToRevealed) {
             log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
