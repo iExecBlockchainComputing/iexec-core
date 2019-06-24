@@ -206,7 +206,7 @@ public class ReplicatesService {
     // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public void updateReplicateStatus(String chainTaskId,String walletAddress, ReplicateStatus newStatus,
+        public void updateReplicateStatus(String chainTaskId,String walletAddress, ReplicateStatus newStatus,
                                       ReplicateStatusModifier modifier, ReplicateDetails details) {
         ReplicateStatus currentStatus = null;
         Replicate replicate;
@@ -253,7 +253,6 @@ public class ReplicatesService {
             long receiptBlockNumber = details.getChainReceipt() != null ? details.getChainReceipt().getBlockNumber() : 0;
             if (!web3jService.isBlockAvailable(receiptBlockNumber)) {
                 log.error(getReplicateFieldsErrorLog("core block not available", chainTaskId, walletAddress));
-                log.error(getReplicateFieldsErrorLog("", chainTaskId, walletAddress));
                 return null;
             }
 
