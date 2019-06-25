@@ -55,7 +55,7 @@ sms:
 
 scone:
   cas:
-    host: ${IEXEC_SCONE_CAS_HOST:sgx-server.iex.ec}
+    host: ${IEXEC_SCONE_CAS_HOST:localhost}
     port: ${IEXEC_SCONE_CAS_PORT:18765}
 
 management:
