@@ -138,7 +138,7 @@ public class Task {
 		return TaskStatus.isInCompletionPhase(getCurrentStatus());
     }
 
-    public boolean isTeeNeeded() {
-        return TeeUtils.isTrustedExecutionTag(getTag());
+    public boolean isTeeTask() {
+        return TeeUtils.isTeeTag(getTag());
     }
 }

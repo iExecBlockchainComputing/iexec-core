@@ -12,6 +12,7 @@ services:
     - MONGO_HOST=mongo
     - IEXEC_IPFS_HOST=ipfs
     - IEXEC_SMS_HOST=sms
+    - IEXEC_SCONE_CAS_HOST=iexec-cas
     volumes:
       - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
     ports:
@@ -68,3 +69,13 @@ services:
       - 5000:5000
     depends_on:
       - chain
+
+  iexec-cas:
+    image: nexus.iex.ec/iexec-cas:${IEXEC_CAS_VERSION}
+    container_name: iexec-cas
+    ports:
+      - 18765:18765
+    networks:
+      - iexec-net
+    devices:
+      - /dev/isgx
