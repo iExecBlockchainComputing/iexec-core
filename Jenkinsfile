@@ -4,12 +4,14 @@ pipeline {
 
     stages {
         stage('Test') {
-             withCredentials([
-             string(credentialsId: 'ADDRESS_SONAR', variable: 'address_sonar'),
-             string(credentialsId: 'SONAR_CORE_TOKEN', variable: 'core_token')]){
-                sh './gradlew clean test sonarqube -Dsonar.projectKey=iexec-core -Dsonar.host.url=$address_sonar -Dsonar.login=$core_token --refresh-dependencies --no-daemon'
+             steps {
+                 withCredentials([
+                     string(credentialsId: 'ADDRESS_SONAR', variable: 'address_sonar'),
+                     string(credentialsId: 'SONAR_CORE_TOKEN', variable: 'core_token')]){
+                    sh './gradlew clean test sonarqube -Dsonar.projectKey=iexec-core -Dsonar.host.url=$address_sonar -Dsonar.login=$core_token --refresh-dependencies --no-daemon'
+                 }
+                 junit 'build/test-results/**/*.xml'
              }
-             junit 'build/test-results/**/*.xml'
         }
 
         stage('Build') {
