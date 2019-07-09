@@ -93,12 +93,12 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = replicatesService.getNbValidContributedWinners(task.getChainTaskId(), task.getConsensus());
+        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
     }
- 
+
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }

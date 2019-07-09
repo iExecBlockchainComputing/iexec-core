@@ -2,7 +2,7 @@ server:
   port: ${IEXEC_CORE_PORT:18090}
   ssl:
     key-store: ${IEXEC_CORE_SSL_KEYSTORE:./src/main/resources/ssl-keystore-dev.p12}
-    key-store-password: ${IEXEC_CORE_SSL_PASSWORD:whatever}
+    key-store-password: ${IEXEC_CORE_SSL_KEYSTORE_PASSWORD:whatever}
     keyStoreType: PKCS12
     keyAlias: ${IEXEC_CORE_SSL_ALIAS:iexec-core}
 
@@ -26,6 +26,10 @@ detector:
   task.initialized.unnotified.period: 30000  # 30 s
   task.finalized.unnotified.period: 30000  # 30 s
 
+workers:
+  askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
+  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
+
 wallet:
   encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
@@ -40,23 +44,24 @@ chain:
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
-workers:
-  askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
-  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
-
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:https}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
+
+ipfs:
+  host: ${IEXEC_IPFS_HOST:127.0.0.1}
+  port: ${IEXEC_IPFS_PORT:5001}
 
 sms:
   protocol: ${IEXEC_SMS_PROTOCOL:http}
   host: ${IEXEC_SMS_HOST:localhost}
   port: ${IEXEC_SMS_PORT:5000}
 
-ipfs:
-  host: ${IEXEC_IPFS_HOST:127.0.0.1}
-  port: ${IEXEC_IPFS_PORT:5001}
+scone:
+  cas:
+    host: ${IEXEC_SCONE_CAS_HOST:localhost}
+    port: ${IEXEC_SCONE_CAS_PORT:18765}
 
 management:
   endpoints:
