@@ -81,10 +81,14 @@ public class TaskListeners {
 
         // winners: please reveal
         if (!winners.isEmpty()) {
+            TaskNotificationExtra notificationExtra = TaskNotificationExtra.builder()
+                    .blockNumber(event.getBlockNumber())
+                    .build();
+
             notificationService.sendTaskNotification(TaskNotification.builder()
                     .taskNotificationType(TaskNotificationType.PLEASE_REVEAL)
                     .chainTaskId(chainTaskId)
-                    .taskNotificationExtra(TaskNotificationExtra.builder().blockNumber(event.getBlockNumber()).build())
+                    .taskNotificationExtra(notificationExtra)
                     .workersAddress(winners).build()
             );
         }

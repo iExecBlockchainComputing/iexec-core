@@ -98,7 +98,7 @@ public class TaskService {
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
     }
- 
+
     private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
         return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }

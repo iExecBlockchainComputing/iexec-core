@@ -9,6 +9,7 @@ import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.configuration.SconeCasConfiguration;
 import com.iexec.core.configuration.SessionService;
 import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
@@ -40,6 +41,7 @@ public class WorkerController {
     private WorkerConfiguration workerConfiguration;
     private ResultRepositoryConfiguration resultRepoConfig;
     private SmsConfiguration smsConfiguration;
+    private SconeCasConfiguration sconeCasConfiguration;
 
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
@@ -48,7 +50,8 @@ public class WorkerController {
                             ChallengeService challengeService,
                             WorkerConfiguration workerConfiguration,
                             ResultRepositoryConfiguration resultRepoConfig,
-                            SmsConfiguration smsConfiguration) {
+                            SmsConfiguration smsConfiguration,
+                            SconeCasConfiguration sconeCasConfiguration) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
@@ -57,6 +60,7 @@ public class WorkerController {
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
         this.smsConfiguration = smsConfiguration;
+        this.sconeCasConfiguration = sconeCasConfiguration;
     }
 
     @PostMapping(path = "/workers/ping")
@@ -130,6 +134,7 @@ public class WorkerController {
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .smsURL(smsConfiguration.getSmsURL())
+                .sconeCasURL(sconeCasConfiguration.getURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();

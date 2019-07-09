@@ -126,8 +126,8 @@ public class ReplicateSupplyService {
             }
 
             // skip the task if it needs TEE and the worker doesn't support it
-            boolean doesTaskNeedTEE = task.isTeeNeeded();
-            if (doesTaskNeedTEE && !worker.isTeeEnabled()) {
+            boolean isTeeTask = task.isTeeTask();
+            if (isTeeTask && !worker.isTeeEnabled()) {
                 continue;
             }
 
@@ -144,7 +144,7 @@ public class ReplicateSupplyService {
             if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
                     && consensusService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
-                String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, doesTaskNeedTEE);
+                String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
                     continue;
@@ -188,8 +188,8 @@ public class ReplicateSupplyService {
             boolean isRecoverable = replicate.isRecoverable();
             if (!isRecoverable) continue;
 
-            String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeNeeded());
-            if (task.isTeeNeeded() && enclaveChallenge.isEmpty()) continue;
+            String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+            if (task.isTeeTask() && enclaveChallenge.isEmpty()) continue;
 
             Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
             if (!taskNotificationType.isPresent()) continue;
