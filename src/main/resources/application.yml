@@ -1,10 +1,14 @@
 server:
-  port: ${IEXEC_CORE_PORT:18090}
+  port: ${IEXEC_CORE_HTTPS_PORT:18443}
+  http:
+    enabled: ${IEXEC_CORE_HTTP_ENABLED:true}
+    port: ${IEXEC_CORE_HTTP_PORT:18090}
   ssl:
+    # Default certificate will only be valid at 'https://localhost:[...]' (and not at 'https://core:[...]' for e.g.)
     key-store: ${IEXEC_CORE_SSL_KEYSTORE:./src/main/resources/ssl-keystore-dev.p12}
     key-store-password: ${IEXEC_CORE_SSL_KEYSTORE_PASSWORD:whatever}
-    keyStoreType: PKCS12
-    keyAlias: ${IEXEC_CORE_SSL_ALIAS:iexec-core}
+    keyStoreType: ${IEXEC_CORE_SSL_KEYSTORE_TYPE:PKCS12}
+    keyAlias: ${IEXEC_CORE_SSL_KEYSTORE_ALIAS:iexec-core}
 
 spring:
   data:
@@ -47,7 +51,7 @@ chain:
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:https}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
-  port: ${IEXEC_RESULT_REPOSITORY_PORT:18090}
+  port: ${IEXEC_RESULT_REPOSITORY_PORT:18443}
 
 ipfs:
   host: ${IEXEC_IPFS_HOST:127.0.0.1}
