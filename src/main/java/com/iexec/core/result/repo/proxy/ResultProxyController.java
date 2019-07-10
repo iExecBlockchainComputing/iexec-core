@@ -101,7 +101,7 @@ public class ResultProxyController {
         }
         Optional<byte[]> zip = resultProxyService.getResult(chainTaskId);
         if (!zip.isPresent()) {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
         }
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(chainTaskId) + ".zip")
@@ -132,14 +132,14 @@ public class ResultProxyController {
 
             Optional<byte[]> zip = resultProxyService.getResult(chainTaskId);
             if (!zip.isPresent()) {
-                return new ResponseEntity(HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
             }
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(chainTaskId) + ".zip")
                     .body(zip.get());
         }
 
-        return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
     }
 
     /*
@@ -149,7 +149,7 @@ public class ResultProxyController {
     public ResponseEntity<byte[]> getResult(@PathVariable("ipfsHash") String ipfsHash) {
         Optional<byte[]> zip = ipfsService.get(ipfsHash);
         if (!zip.isPresent()) {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
         }
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + ResultRepo.getResultFilename(ipfsHash) + ".zip")
