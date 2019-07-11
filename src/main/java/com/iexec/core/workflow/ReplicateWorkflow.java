@@ -25,12 +25,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         addTransition(APP_DOWNLOAD_FAILED, toList(
                 // DATA_DOWNLOADING,
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CANT_CONTRIBUTE,
                 CAN_CONTRIBUTE));
 
         addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, RECOVERING));
@@ -41,12 +36,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         addTransition(DATA_DOWNLOAD_FAILED, toList(
                 // COMPUTING,
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CANT_CONTRIBUTE,
                 CAN_CONTRIBUTE));
 
         addTransition(DATA_DOWNLOADED, toList(COMPUTING, RECOVERING));
@@ -56,24 +46,12 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED, RECOVERING));
 
         addTransition(COMPUTED, toList(
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_TEE_EXECUTION_NOT_VERIFIED,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CANT_CONTRIBUTE,
                 CAN_CONTRIBUTE,
                 RECOVERING));
 
         addTransition(COMPUTE_FAILED, toList(
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_TEE_EXECUTION_NOT_VERIFIED,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
+                CANT_CONTRIBUTE,
                 CAN_CONTRIBUTE,
                 RECOVERING));
 

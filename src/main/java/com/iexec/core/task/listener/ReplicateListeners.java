@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
+
 @Slf4j
 @Component
 public class ReplicateListeners {
@@ -43,7 +45,7 @@ public class ReplicateListeners {
          * (but cant) while we had a consensus_reached onchain but not in database (meaning another didnt notified he had contributed).
          * We should start a detector which will look for unnotified contributions and will upgrade task to consensus_reached
          */
-        if (event.getNewReplicateStatus().equals(ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE)) {
+        if (event.getNewReplicateStatusCause() != null && event.getNewReplicateStatusCause().equals(TASK_NOT_ACTIVE)) {
             contributionUnnotifiedDetector.detectOnchainContributed();
         }
 

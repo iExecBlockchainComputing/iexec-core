@@ -15,8 +15,9 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE;
+import static com.iexec.common.replicate.ReplicateStatus.CANT_CONTRIBUTE;
 import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.mockito.ArgumentMatchers.any;
 
 public class ReplicateListenersTests {
@@ -64,7 +65,8 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .newReplicateStatus(ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE)
+                .newReplicateStatus(CANT_CONTRIBUTE)
+                .newReplicateStatusCause(TASK_NOT_ACTIVE)
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -75,13 +77,14 @@ public class ReplicateListenersTests {
     @Test
     public void shouldNotTriggerDetectOnchain() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
-        someStatuses.remove(CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
+        someStatuses.remove(CANT_CONTRIBUTE);
 
         for (ReplicateStatus randomStatus: someStatuses){
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
                     .newReplicateStatus(randomStatus)
+                    .newReplicateStatusCause(null)
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
