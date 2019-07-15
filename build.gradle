@@ -207,7 +207,8 @@ task prepareDockerFile(type: Copy) {
 
 task buildImage(type: Exec) {
     description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageNameFull() + " .")
+    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageNameFull() + " . &&" +
+            "docker tag " + getDockerImageNameFull() + " " + imageName + ":dev")
 }
 
 buildImage.dependsOn prepareDockerFile
