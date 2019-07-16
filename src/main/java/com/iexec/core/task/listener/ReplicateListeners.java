@@ -40,6 +40,10 @@ public class ReplicateListeners {
         log.info("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
         taskExecutorEngine.updateTask(event.getChainTaskId());
 
+        if (event.getNewReplicateStatus().equals(ReplicateStatus.COMPUTED)) {
+            workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
+        }
+
         /*
          * A CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE status means this new worker have been authorized to contribute
          * (but cant) while we had a consensus_reached onchain but not in database (meaning another didnt notified he had contributed).
@@ -64,11 +68,4 @@ public class ReplicateListeners {
         }
     }
 
-    @EventListener
-    public void onReplicateComputedEvent(ReplicateComputedEvent event) {
-        Replicate replicate = event.getReplicate();
-        log.info("Received ReplicateComputedEvent [chainTaskId:{}, walletAddress:{}] ",
-                replicate.getChainTaskId(), replicate.getWalletAddress());
-        workerService.removeComputedChainTaskIdFromWorker(replicate.getChainTaskId(), replicate.getWalletAddress());
-    }
 }

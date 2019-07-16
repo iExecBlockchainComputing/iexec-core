@@ -13,7 +13,6 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Interceptor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -56,7 +55,7 @@ public abstract class UnnotifiedAbstractDetector {
 
                 boolean isReplicateStatusCompleting = lastRelevantStatus.get().equals(offchainCompleting);
 
-                if (isReplicateStatusCompleting && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (isReplicateStatusCompleting && iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
@@ -77,7 +76,7 @@ public abstract class UnnotifiedAbstractDetector {
 
                 boolean isNotOffChainCompleted = !lastRelevantStatus.get().equals(offchainCompleted);//avoid eth node call if already contributed
 
-                if (isNotOffChainCompleted && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (isNotOffChainCompleted && iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
