@@ -69,7 +69,7 @@ public class ResultProxyServiceTest {
     public void isNotAbleToUploadSinceChainStatusIsNotRevealedWithMongo() {
         when(iexecHubService.isPublicResult(chainTaskId, 0)).thenReturn(false);
         when(mongoResultService.doesResultExist(chainTaskId)).thenReturn(true);
-        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
 
         assertThat(resultProxyService.canUploadResult(chainTaskId, walletAddress, zip)).isFalse();
     }
@@ -78,7 +78,7 @@ public class ResultProxyServiceTest {
     public void isNotAbleToUploadSinceChainStatusIsNotRevealedWithIpfs() {
         when(iexecHubService.isPublicResult(chainTaskId, 0)).thenReturn(true);
         when(ipfsResultService.doesResultExist(chainTaskId)).thenReturn(true);
-        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
 
         assertThat(resultProxyService.canUploadResult(chainTaskId, walletAddress, zip)).isFalse();
     }
@@ -87,7 +87,7 @@ public class ResultProxyServiceTest {
     public void isAbleToUploadWithMongo() {
         when(iexecHubService.isPublicResult(chainTaskId, 0)).thenReturn(false);
         when(mongoResultService.doesResultExist(chainTaskId)).thenReturn(false);
-        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
 
         assertThat(resultProxyService.canUploadResult(chainTaskId, walletAddress, zip)).isTrue();
     }
@@ -96,7 +96,7 @@ public class ResultProxyServiceTest {
     public void isAbleToUploadWithIpfs() {
         when(iexecHubService.isPublicResult(chainTaskId, 0)).thenReturn(true);
         when(ipfsResultService.doesResultExist(chainTaskId)).thenReturn(false);
-        when(iexecHubService.doesWishedStatusMatchesOnChainStatus(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
 
         assertThat(resultProxyService.canUploadResult(chainTaskId, walletAddress, zip)).isTrue();
     }
