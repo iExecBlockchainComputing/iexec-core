@@ -43,7 +43,7 @@ public class DataSetController {
                     .body(dataSet.get().getZip());
         }
 
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
     }
 
 }

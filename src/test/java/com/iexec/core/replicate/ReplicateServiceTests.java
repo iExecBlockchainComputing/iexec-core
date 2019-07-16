@@ -351,6 +351,7 @@ public class ReplicateServiceTests {
                 ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
+        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, ReplicateStatus.CONTRIBUTED));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
@@ -492,6 +493,7 @@ public class ReplicateServiceTests {
 
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
+        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
         assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, REVEALED));
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
