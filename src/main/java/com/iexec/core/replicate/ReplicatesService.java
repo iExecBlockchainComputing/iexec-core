@@ -2,10 +2,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.replicate.ReplicateDetails;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
-import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.*;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
 import com.iexec.core.chain.CredentialsService;
@@ -285,7 +282,7 @@ public class ReplicatesService {
             replicate.setChainCallbackData(details.getChainCallbackData());
         }
 
-        replicate.updateStatus(newStatus, modifier, details.getChainReceipt());
+        replicate.updateStatus(newStatus, details.getReplicateStatusCause(), modifier, details.getChainReceipt());
         return replicate;
     }
 
