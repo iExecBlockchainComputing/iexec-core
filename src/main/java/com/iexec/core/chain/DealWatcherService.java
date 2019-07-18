@@ -73,7 +73,7 @@ public class DealWatcherService {
             for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
                 Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
                         BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
-                        chainDeal.getParams().get(taskIndex),
+                        chainDeal.getParams().getIexecArgs(),
                         chainDeal.getTrust().intValue(),
                         chainDeal.getChainCategory().getMaxExecutionTime(),
                         chainDeal.getTag());
