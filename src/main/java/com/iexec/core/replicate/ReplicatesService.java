@@ -2,6 +2,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
@@ -203,20 +204,20 @@ public class ReplicatesService {
     // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-        public void updateReplicateStatus(String chainTaskId,String walletAddress, ReplicateStatus newStatus,
-                                      ReplicateStatusModifier modifier, ReplicateDetails details) {
+        public TaskNotificationType updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus,
+                                                          ReplicateStatusModifier modifier, ReplicateDetails details) {
         ReplicateStatus currentStatus = null;
         Replicate replicate;
         Optional<ReplicatesList> replicates = getReplicatesList(chainTaskId);
         if (!replicates.isPresent()) {
             log.error(getReplicateStatusErrorLog("replicateList missing",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-            return;
+            return null;
         }
 
         Optional<Replicate> optionalReplicate = replicates.get().getReplicateOfWorker(walletAddress);
         if (!optionalReplicate.isPresent()) {
             log.error(getReplicateStatusErrorLog("replicate missing",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-            return;
+            return null;
         }
         replicate = optionalReplicate.get();
         currentStatus = replicate.getCurrentStatus();
@@ -224,20 +225,20 @@ public class ReplicatesService {
         if (modifier.equals(ReplicateStatusModifier.WORKER) &&
                 !ReplicateWorkflow.getInstance().isValidTransition(currentStatus, newStatus)) {
             log.error(getReplicateStatusErrorLog("bad workflow transition",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-            return;
+            return null;
         }
 
         replicate = updateReplicateFields(chainTaskId, walletAddress, newStatus, modifier, details, replicate);
 
         if (replicate == null){
             log.error(getReplicateStatusErrorLog("updateReplicateFields failed",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-            return;
+            return null;
         }
 
         replicatesRepository.save(replicates.get());
         log.info(getReplicateStatusSuccessLog(chainTaskId, walletAddress, currentStatus, newStatus, modifier));
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(), replicate.getWalletAddress(), newStatus, details.getReplicateStatusCause()));
-
+        return ReplicateWorkflow.getInstance().getNextAction(newStatus);
     }
 
     private Replicate updateReplicateFields(String chainTaskId, String walletAddress, ReplicateStatus newStatus, ReplicateStatusModifier modifier, ReplicateDetails details, Replicate replicate) {
