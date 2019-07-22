@@ -13,142 +13,15 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-
-    HashMap<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
-
-
-    private void setNextActionWhenStatus(TaskNotificationType actionTodo, ReplicateStatus whenStatus) {
-        actionMap.putIfAbsent(whenStatus, actionTodo);
-    }
-
-    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
-        if (actionMap.containsKey(whenStatus)){
-            return actionMap.get(whenStatus);
-        }
-        return null;
-    }
-
-    private void setNextActionWhenStatus(TaskNotificationType actionTodo, ReplicateStatus... whenStatuses) {
-        for (ReplicateStatus whenStatus : whenStatuses){
-            setNextActionWhenStatus(actionTodo, whenStatus);
-        }
-    }
-
+    private HashMap<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
 
     private ReplicateWorkflow() {
         super();
-        ReplicateStatus current;
-        TaskNotificationType next;
+        setTransitions();
+        setNextActions();
+    }
 
-/*
-        switch (current){
-            case CREATED:
-                next = PLEASE_START;
-                break;
-            case RUNNING:
-            case APP_DOWNLOADING:
-                next = PLEASE_DOWNLOAD_APP;
-                break;
-            case APP_DOWNLOADED:
-            case DATA_DOWNLOADING:
-                next = PLEASE_DOWNLOAD_DATA;
-                break;
-
-                default:
-                break;
-
-        }*/
-
-actionMap.put(RUNNING, PLEASE_CONTINUE);
-actionMap.put(STARTED, PLEASE_DOWNLOAD_APP);
-actionMap.put(START_FAILED, PLEASE_ABORT);
-
-actionMap.put(APP_DOWNLOADING, PLEASE_CONTINUE);
-actionMap.put(APP_DOWNLOADED, PLEASE_DOWNLOAD_DATA);
-actionMap.put(APP_DOWNLOAD_FAILED, PLEASE_ABORT);
-
-actionMap.put(DATA_DOWNLOADING, PLEASE_CONTINUE);
-actionMap.put(DATA_DOWNLOADED, PLEASE_COMPUTE);
-actionMap.put(DATA_DOWNLOAD_FAILED, PLEASE_ABORT);
-
-actionMap.put(COMPUTING, PLEASE_CONTINUE);
-actionMap.put(COMPUTED, PLEASE_CONTRIBUTE);
-actionMap.put(COMPUTE_FAILED, PLEASE_ABORT);
-
-actionMap.put(CONTRIBUTING, PLEASE_CONTINUE);
-actionMap.put(CONTRIBUTED, PLEASE_WAIT);
-actionMap.put(CONTRIBUTE_FAILED, PLEASE_ABORT);
-
-actionMap.put(REVEALING, PLEASE_CONTINUE);
-actionMap.put(REVEALED, PLEASE_WAIT);
-actionMap.put(REVEAL_FAILED, PLEASE_ABORT);
-
-actionMap.put(RESULT_UPLOADING, PLEASE_CONTINUE);
-actionMap.put(RESULT_UPLOADED, PLEASE_WAIT);
-actionMap.put(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
-
-actionMap.put(COMPLETING, PLEASE_CONTINUE);
-actionMap.put(COMPLETED, PLEASE_WAIT);
-actionMap.put(COMPLETE_FAILED, PLEASE_ABORT);
-
-
-//setNextActionWhenStatus(PLEASE_WAIT, );
-        /*
-setNextActionWhenStatus(PLEASE_START, CREATED);
-setNextActionWhenStatus(PLEASE_DOWNLOAD_APP, STARTED);//, APP_DOWNLOADING);
-setNextActionWhenStatus(PLEASE_DOWNLOAD_DATA, APP_DOWNLOADED);//, DATA_DOWNLOADING);
-setNextActionWhenStatus(PLEASE_COMPUTE, DATA_DOWNLOADED);//, COMPUTING);
-setNextActionWhenStatus(PLEASE_CONTRIBUTE, COMPUTED);//, COMPUTING);
-setNextActionWhenStatus(PLEASE_REVEAL, CONTRIBUTED);//, REVEALING);
-setNextActionWhenStatus(PLEASE_WAIT, REVEALED);
-setNextActionWhenStatus(PLEASE_UPLOAD, RESULT_UPLOAD_REQUESTED);//, RESULT_UPLOADING);
-setNextActionWhenStatus(PLEASE_ABORT, APP_DOWNLOAD_FAILED, DATA_DOWNLOAD_FAILED, COMPUTE_FAILED, CONTRIBUTE_FAILED, REVEAL_FAILED, RESULT_UPLOAD_FAILED);
-setNextActionWhenStatus(PLEASE_CONTINUE, APP_DOWNLOADING, DATA_DOWNLOADING, COMPUTING, COMPUTING, REVEALING);
-*/
-/*
-setNextActionWhenStatus(PLEASE_ABORT_CONSENSUS_REACHED,);
-setNextActionWhenStatus(PLEASE_ABORT_CONTRIBUTION_TIMEOUT,);
-setNextActionWhenStatus(PLEASE_COMPLETE);
-*/
-
-
-
-
-
-        /*
-
-        setNextActionWhenStatus(PLEASE_START,xœ
-                CREATED);
-        setNextActionWhenStatus(PLEASE_DOWNLOAD_APP,
-                RUNNING,
-                APP_DOWNLOADING);
-        doActionWhen()
-
-setNextAction(CREATED, PLEASE_START);
-setNextAction(RUNNING, PLEASE_DOWNLOAD_APP);
-setNextAction(APP_DOWNLOADING,PLEASE_DOWNLOAD_APP);
-setNextAction(APP_DOWNLOADED,PLEASE_DOWNLOAD_DATA);
-setNextAction(DATA_DOWNLOADING,PLEASE_DOWNLOAD_DATA);
-setNextAction(DATA_DOWNLOADED,PLEASE_COMPUTE);
-setNextAction(COMPUTING,PLEASE_COMPUTE);
-setNextAction(COMPUTED,PLEASE_CONTRIBUTE);
-setNextAction(CAN_CONTRIBUTE,PLEASE_START);
-setNextAction(CONTRIBUTING,PLEASE_START);
-setNextAction(CONTRIBUTED,PLEASE_START);
-setNextAction(REVEALING,PLEASE_START);
-setNextAction(REVEALED,PLEASE_START);
-setNextAction(RESULT_UPLOAD_REQUESTED,PLEASE_START);
-setNextAction(RESULT_UPLOAD_REQUEST_FAILED,PLEASE_START);
-setNextAction(RESULT_UPLOADING,PLEASE_START);
-setNextAction(RESULT_UPLOADED,PLEASE_START);
-setNextAction(RESULT_UPLOAD_FAILED,PLEASE_START);
-        setNextAction();
-
-
-*/
-
-
-
+    private void setTransitions() {
         // This is where the whole workflow is defined
         addTransition(CREATED, toList(RUNNING, RECOVERING));
 
@@ -257,5 +130,50 @@ setNextAction(RESULT_UPLOAD_FAILED,PLEASE_START);
         addTransition(CONTRIBUTED, to);
         addTransition(OUT_OF_GAS, to);
         addTransition(WORKER_LOST, to);
+    }
+
+    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
+        actionMap.putIfAbsent(whenStatus, nextAction);
+    }
+
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
+        if (actionMap.containsKey(whenStatus)){
+            return actionMap.get(whenStatus);
+        }
+        return null;
+    }
+
+    private void setNextActions() {
+        setNextAction(RUNNING, PLEASE_CONTINUE);
+        setNextAction(STARTED, PLEASE_DOWNLOAD_APP);
+        setNextAction(START_FAILED, PLEASE_ABORT);
+
+        setNextAction(APP_DOWNLOADING, PLEASE_CONTINUE);
+        setNextAction(APP_DOWNLOADED, PLEASE_DOWNLOAD_DATA);
+        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_ABORT);
+
+        setNextAction(DATA_DOWNLOADING, PLEASE_CONTINUE);
+        setNextAction(DATA_DOWNLOADED, PLEASE_COMPUTE);
+        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_ABORT);
+
+        setNextAction(COMPUTING, PLEASE_CONTINUE);
+        setNextAction(COMPUTED, PLEASE_CONTRIBUTE);
+        setNextAction(COMPUTE_FAILED, PLEASE_ABORT);
+
+        setNextAction(CONTRIBUTING, PLEASE_CONTINUE);
+        setNextAction(CONTRIBUTED, PLEASE_WAIT);
+        setNextAction(CONTRIBUTE_FAILED, PLEASE_ABORT);
+
+        setNextAction(REVEALING, PLEASE_CONTINUE);
+        setNextAction(REVEALED, PLEASE_WAIT);
+        setNextAction(REVEAL_FAILED, PLEASE_ABORT);
+
+        setNextAction(RESULT_UPLOADING, PLEASE_CONTINUE);
+        setNextAction(RESULT_UPLOADED, PLEASE_WAIT);
+        setNextAction(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
+
+        setNextAction(COMPLETING, PLEASE_CONTINUE);
+        setNextAction(COMPLETED, PLEASE_WAIT);
+        setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
     }
 }
