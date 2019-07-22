@@ -33,9 +33,10 @@ detector:
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
   requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
-  # the whitelist should format should be as follow (comma separated:
+  # the whitelist should format should be as follow (comma separated on one or multiple lines:
   # whitelist: ${IEXEC_WHITELIST:address1,
-  #     address2}
+  #     address2,}
+  #     address3}
   whitelist: ${IEXEC_WORKERS_WHITELIST:}
 
 wallet:
