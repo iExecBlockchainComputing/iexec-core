@@ -21,10 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
@@ -78,8 +75,10 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/challenge")
     public ResponseEntity getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
-        String challenge = challengeService.getChallenge(walletAddress);
-        return ok(challenge);
+        if (!workerService.isAllowedToJoin(walletAddress)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        }
+        return ok(challengeService.getChallenge(walletAddress));
     }
 
     @PostMapping(path = "/workers/login")
@@ -102,7 +101,7 @@ public class WorkerController {
     public ResponseEntity registerWorker(@RequestHeader("Authorization") String bearerToken,
                                          @RequestBody WorkerConfigurationModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (workerWalletAddress.isEmpty()) {
+        if (workerWalletAddress.isEmpty() || !workerService.isAllowedToJoin(workerWalletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
