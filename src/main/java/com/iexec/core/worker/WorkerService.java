@@ -65,6 +65,42 @@ public class WorkerService {
         return Optional.empty();
     }
 
+    public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
+        Optional<Date> oDate = getLastReplicateDemand(walletAddress);
+        if (!oDate.isPresent()) {
+            return true;
+        }
+
+        // the difference between now and the last time the worker asked for work should be less than the period allowed
+        // in the configuration (500ms since (now - lastAsk) can still be slightly too small even if the worker behave nicely)
+        long now = new Date().getTime();
+        long lastAsk = oDate.get().getTime();
+
+        return (now - lastAsk) + 500 > workerConfiguration.getAskForReplicatePeriod();
+    }
+
+    public Optional<Date> getLastReplicateDemand(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isEmpty()) {
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
+
+        return Optional.ofNullable(worker.getLastReplicateDemandDate());
+    }
+
+    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.setLastReplicateDemandDate(new Date());
+            workerRepository.save(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
+    }
+
     public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
