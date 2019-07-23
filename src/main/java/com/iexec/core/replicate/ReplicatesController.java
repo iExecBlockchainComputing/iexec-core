@@ -92,11 +92,9 @@ public class ReplicatesController {
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                 chainTaskId, replicateStatus, walletAddress);
 
-        TaskNotificationType taskNotificationType = replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
+        Optional<TaskNotificationType> taskNotificationType = replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
 
-        if (taskNotificationType != null){
-            return ResponseEntity.ok(taskNotificationType);
-        }
-        return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+        return taskNotificationType.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build());
     }
 }

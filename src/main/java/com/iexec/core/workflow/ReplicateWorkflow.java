@@ -5,6 +5,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -13,7 +14,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-    private HashMap<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
+    private Map<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
 
     private ReplicateWorkflow() {
         super();
