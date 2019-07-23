@@ -44,6 +44,15 @@ public class WorkerService {
         return workerRepository.save(worker);
     }
 
+    public boolean isAllowedToJoin(String workerAddress){
+        List<String> whitelist = workerConfiguration.getWhitelist();
+        // if the whitelist is empty, there is no restriction on the workers
+        if (whitelist.isEmpty()){
+            return true;
+        }
+        return whitelist.contains(workerAddress);
+    }
+
     public Optional<Worker> updateLastAlive(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
