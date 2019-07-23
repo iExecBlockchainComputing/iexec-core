@@ -48,7 +48,7 @@ public class ReplicatesController {
         if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)){
             return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
         }
-        workerService.updateLastReplicateDemand(workerWalletAddress);
+        workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
         // get contributionAuthorization if a replicate is available
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService

@@ -89,7 +89,7 @@ public class WorkerService {
         return Optional.ofNullable(worker.getLastReplicateDemandDate());
     }
 
-    public Optional<Worker> updateLastReplicateDemand(String walletAddress) {
+    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
