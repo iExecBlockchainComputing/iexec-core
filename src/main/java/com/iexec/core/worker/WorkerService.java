@@ -1,5 +1,6 @@
 package com.iexec.core.worker;
 
+import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +16,12 @@ import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 public class WorkerService {
 
     private WorkerRepository workerRepository;
+    private WorkerConfiguration workerConfiguration;
 
-    public WorkerService(WorkerRepository workerRepository) {
+    public WorkerService(WorkerRepository workerRepository,
+                         WorkerConfiguration workerConfiguration) {
         this.workerRepository = workerRepository;
+        this.workerConfiguration = workerConfiguration;
     }
 
     public Optional<Worker> getWorker(String walletAddress) {
@@ -40,11 +44,56 @@ public class WorkerService {
         return workerRepository.save(worker);
     }
 
+    public boolean isAllowedToJoin(String workerAddress){
+        List<String> whitelist = workerConfiguration.getWhitelist();
+        // if the whitelist is empty, there is no restriction on the workers
+        if (whitelist.isEmpty()){
+            return true;
+        }
+        return whitelist.contains(workerAddress);
+    }
+
     public Optional<Worker> updateLastAlive(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
             worker.setLastAliveDate(new Date());
+            workerRepository.save(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
+        Optional<Date> oDate = getLastReplicateDemand(walletAddress);
+        if (!oDate.isPresent()) {
+            return true;
+        }
+
+        // the difference between now and the last time the worker asked for work should be less than the period allowed
+        // in the configuration (500ms since (now - lastAsk) can still be slightly too small even if the worker behave nicely)
+        long now = new Date().getTime();
+        long lastAsk = oDate.get().getTime();
+
+        return (now - lastAsk) + 500 > workerConfiguration.getAskForReplicatePeriod();
+    }
+
+    public Optional<Date> getLastReplicateDemand(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isEmpty()) {
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
+
+        return Optional.ofNullable(worker.getLastReplicateDemandDate());
+    }
+
+    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.setLastReplicateDemandDate(new Date());
             workerRepository.save(worker);
             return Optional.of(worker);
         }
