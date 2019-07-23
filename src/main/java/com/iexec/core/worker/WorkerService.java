@@ -1,5 +1,6 @@
 package com.iexec.core.worker;
 
+import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +16,12 @@ import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 public class WorkerService {
 
     private WorkerRepository workerRepository;
+    private WorkerConfiguration workerConfiguration;
 
-    public WorkerService(WorkerRepository workerRepository) {
+    public WorkerService(WorkerRepository workerRepository,
+                         WorkerConfiguration workerConfiguration) {
         this.workerRepository = workerRepository;
+        this.workerConfiguration = workerConfiguration;
     }
 
     public Optional<Worker> getWorker(String walletAddress) {
@@ -45,6 +49,42 @@ public class WorkerService {
         if (optional.isPresent()) {
             Worker worker = optional.get();
             worker.setLastAliveDate(new Date());
+            workerRepository.save(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
+        Optional<Date> oDate = getLastReplicateDemand(walletAddress);
+        if (!oDate.isPresent()) {
+            return true;
+        }
+
+        // the difference between now and the last time the worker asked for work should be less than the period allowed
+        // in the configuration (500ms are added for security margin)
+        long now = new Date().getTime();
+        long lastAsk = oDate.get().getTime();
+
+        return (now - lastAsk) + 500 > workerConfiguration.getAskForReplicatePeriod();
+    }
+
+    public Optional<Date> getLastReplicateDemand(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isEmpty()) {
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
+
+        return Optional.ofNullable(worker.getLastReplicateDemandDate());
+    }
+
+    public Optional<Worker> updateLastReplicateDemand(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.setLastReplicateDemandDate(new Date());
             workerRepository.save(worker);
             return Optional.of(worker);
         }

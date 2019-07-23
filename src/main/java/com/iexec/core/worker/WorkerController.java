@@ -70,7 +70,9 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
+
         Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
+
         return optional.
                 <ResponseEntity>map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());

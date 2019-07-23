@@ -6,6 +6,7 @@ import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.security.JwtTokenProvider;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,13 +25,16 @@ public class ReplicatesController {
     private ReplicatesService replicatesService;
     private ReplicateSupplyService replicateSupplyService;
     private JwtTokenProvider jwtTokenProvider;
+    private WorkerService workerService;
 
     public ReplicatesController(ReplicatesService replicatesService,
                                 ReplicateSupplyService replicateSupplyService,
-                                JwtTokenProvider jwtTokenProvider) {
+                                JwtTokenProvider jwtTokenProvider,
+                                WorkerService workerService) {
         this.replicatesService = replicatesService;
         this.replicateSupplyService = replicateSupplyService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.workerService = workerService;
     }
 
     @GetMapping("/replicates/available")
@@ -40,6 +44,11 @@ public class ReplicatesController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
+
+        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)){
+            return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
+        }
+        workerService.updateLastReplicateDemand(workerWalletAddress);
 
         // get contributionAuthorization if a replicate is available
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService
