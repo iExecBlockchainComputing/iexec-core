@@ -2,6 +2,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
@@ -76,7 +77,7 @@ public class ReplicatesController {
     }
 
     @PostMapping("/replicates/{chainTaskId}/updateStatus")
-    public ResponseEntity<String> updateReplicateStatus(
+    public ResponseEntity<TaskNotificationType> updateReplicateStatus(
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
             @RequestHeader("Authorization") String bearerToken,
@@ -91,7 +92,9 @@ public class ReplicatesController {
         log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
                 chainTaskId, replicateStatus, walletAddress);
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
-        return ResponseEntity.ok().build();
+        Optional<TaskNotificationType> taskNotificationType = replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
+
+        return taskNotificationType.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build());
     }
 }
