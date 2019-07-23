@@ -63,7 +63,7 @@ public class WorkerService {
         }
 
         // the difference between now and the last time the worker asked for work should be less than the period allowed
-        // in the configuration (500ms are added for security margin)
+        // in the configuration (500ms since (now - lastAsk) can still be slightly too small even if the worker behave nicely)
         long now = new Date().getTime();
         long lastAsk = oDate.get().getTime();
 
