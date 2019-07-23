@@ -1,5 +1,6 @@
 package com.iexec.core.worker;
 
+import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +16,12 @@ import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 public class WorkerService {
 
     private WorkerRepository workerRepository;
+    private WorkerConfiguration workerConfiguration;
 
-    public WorkerService(WorkerRepository workerRepository) {
+    public WorkerService(WorkerRepository workerRepository,
+                         WorkerConfiguration workerConfiguration) {
         this.workerRepository = workerRepository;
+        this.workerConfiguration = workerConfiguration;
     }
 
     public Optional<Worker> getWorker(String walletAddress) {
@@ -38,6 +42,15 @@ public class WorkerService {
         }
 
         return workerRepository.save(worker);
+    }
+
+    public boolean isAllowedToJoin(String workerAddress){
+        List<String> whitelist = workerConfiguration.getWhitelist();
+        // if the whitelist is empty, there is no restriction on the workers
+        if (whitelist.isEmpty()){
+            return true;
+        }
+        return whitelist.contains(workerAddress);
     }
 
     public Optional<Worker> updateLastAlive(String walletAddress) {
