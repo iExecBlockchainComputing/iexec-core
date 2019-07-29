@@ -2,7 +2,7 @@ package com.iexec.core.worker;
 
 
 import com.iexec.common.config.PublicConfiguration;
-import com.iexec.common.config.WorkerConfigurationModel;
+import com.iexec.common.config.WorkerModel;
 import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
@@ -104,7 +104,7 @@ public class WorkerController {
 
     @PostMapping(path = "/workers/register")
     public ResponseEntity registerWorker(@RequestHeader("Authorization") String bearerToken,
-                                         @RequestBody WorkerConfigurationModel model) {
+                                         @RequestBody WorkerModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (workerWalletAddress.isEmpty()){
