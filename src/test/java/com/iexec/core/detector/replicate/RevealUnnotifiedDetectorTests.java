@@ -57,8 +57,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedRevealedAfterRevealing() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -81,8 +80,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedRevealedAfterRevealingSinceBeforeRevealing() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -99,8 +97,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldNotDetectUnNotifiedRevealedAfterRevealingSinceNotRevealedOnChain() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -120,8 +117,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedRevealed1() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -144,8 +140,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedRevealed2() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -168,8 +163,7 @@ public class RevealUnnotifiedDetectorTests {
 
     @Test
     public void shouldNotDetectUnNotifiedRevealedSinceRevealed() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
