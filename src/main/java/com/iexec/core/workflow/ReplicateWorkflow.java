@@ -3,23 +3,30 @@ package com.iexec.core.workflow;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
 import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-    private Map<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
+    private Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
 
     private ReplicateWorkflow() {
         super();
         setTransitions();
         setNextActions();
+    }
+
+    public static synchronized ReplicateWorkflow getInstance() {
+        if (instance == null) {
+            instance = new ReplicateWorkflow();
+        }
+        return instance;
     }
 
     private void setTransitions() {
@@ -116,13 +123,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RECOVERING, COMPLETED);
     }
 
-    public static synchronized ReplicateWorkflow getInstance() {
-        if (instance == null) {
-            instance = new ReplicateWorkflow();
-        }
-        return instance;
-    }
-
     private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus to) {
         for (ReplicateStatus from : getStatusesBeforeContributed()) {
             addTransition(from, to);
@@ -131,17 +131,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(CONTRIBUTED, to);
         addTransition(OUT_OF_GAS, to);
         addTransition(WORKER_LOST, to);
-    }
-
-    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
-        actionMap.putIfAbsent(whenStatus, nextAction);
-    }
-
-    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
-        if (actionMap.containsKey(whenStatus)){
-            return actionMap.get(whenStatus);
-        }
-        return null;
     }
 
     private void setNextActions() {
@@ -176,5 +165,29 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
         setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
+    }
+
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
+        if (actionMap.containsKey(whenStatus)){
+            return actionMap.get(whenStatus);
+        }
+        return null;
+    }
+
+    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
+        actionMap.putIfAbsent(whenStatus, nextAction);
+    }
+
+    /*
+     * Use this to update the json files when transitions
+     * or actions are changed. 
+     */
+    public static void main(String[] args) throws Exception {
+        String transitionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-transitions.json";
+        String actionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-actions.json";
+        ReplicateWorkflow rw = ReplicateWorkflow.getInstance();
+        
+        rw.saveWorkflowAsJsonFile(transitionsFilePath, rw.getTransitions());
+        rw.saveWorkflowAsJsonFile(actionsFilePath, rw.actionMap);
     }
 }
