@@ -131,6 +131,17 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(WORKER_LOST, to);
     }
 
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
+        if (actionMap.containsKey(whenStatus)){
+            return actionMap.get(whenStatus);
+        }
+        return null;
+    }
+
+    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
+        actionMap.putIfAbsent(whenStatus, nextAction);
+    }
+
     private void setNextActions() {
         setNextAction(RUNNING, PLEASE_CONTINUE);
         setNextAction(STARTED, PLEASE_DOWNLOAD_APP);
@@ -163,17 +174,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
         setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
-    }
-
-    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
-        if (actionMap.containsKey(whenStatus)){
-            return actionMap.get(whenStatus);
-        }
-        return null;
-    }
-
-    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
-        actionMap.putIfAbsent(whenStatus, nextAction);
     }
 
     /*
