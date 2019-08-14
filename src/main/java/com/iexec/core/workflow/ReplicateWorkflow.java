@@ -131,15 +131,15 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(WORKER_LOST, to);
     }
 
+    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
+        actionMap.putIfAbsent(whenStatus, nextAction);
+    }
+
     public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
         if (actionMap.containsKey(whenStatus)){
             return actionMap.get(whenStatus);
         }
         return null;
-    }
-
-    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
-        actionMap.putIfAbsent(whenStatus, nextAction);
     }
 
     private void setNextActions() {
