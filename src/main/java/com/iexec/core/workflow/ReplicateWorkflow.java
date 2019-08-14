@@ -84,12 +84,12 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // reveal - completed
         addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
         addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED, REVEAL_TIMEOUT, RECOVERING));
-        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETED, RECOVERING));
+        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING, RECOVERING));
         addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
         addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
 
-        addTransition(RESULT_UPLOADED, COMPLETING);
-        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED));
+        addTransition(RESULT_UPLOADED, toList(COMPLETING, RECOVERING));
+        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED, RECOVERING));
 
         /*
         * From to FAILED
@@ -118,8 +118,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
          * From completable status to RECOVERING
          */
         addTransitionFromStatusToAllStatuses(RECOVERING);
-
-
         addTransition(RECOVERING, COMPLETED);
     }
 
