@@ -29,6 +29,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         return instance;
     }
 
+    public Map<ReplicateStatus, TaskNotificationType> getActionMap() {
+        return actionMap;
+    }
+
     private void setWorkflow() {
         setDefaultWorkflowTransitions();
         // set recoverable transitions
