@@ -60,7 +60,7 @@ public class WorkerLostDetectorTests {
 
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
@@ -83,7 +83,7 @@ public class WorkerLostDetectorTests {
                 .build();
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));

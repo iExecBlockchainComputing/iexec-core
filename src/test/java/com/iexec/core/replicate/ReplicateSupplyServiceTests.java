@@ -767,7 +767,7 @@ public class ReplicateSupplyServiceTests {
         long blockNumber = 3;
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.CONSENSUS_REACHED);
-        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.RUNNING);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.STARTING);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
