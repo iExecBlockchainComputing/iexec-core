@@ -29,55 +29,61 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         return instance;
     }
 
-    // set default workflow
-    // set recoverable transitions
-    // set failed transitions
-    // set aborted transitions
+    private void setWorkflow() {
+        setDefaultWorkflowTransitions();
+        // set recoverable transitions
+        // set failed transitions
+        // set aborted transitions
+    }
 
-    // public void setDefaultWorkflowTransitions() {
-    //     addTransition(CREATED, RUNNING);
+    public void setDefaultWorkflowTransitions() {
+        addTransition(CREATED, toList(RUNNING, ABORTED));
 
-    //     addTransition(RUNNING, toList(STARTED, START_FAILED, CANT_CONTRIBUTE));
+        addTransition(RUNNING, toList(STARTED, START_FAILED, ABORTED));
 
-    //     addTransition(STARTED, toList(APP_DOWNLOADING));
+        addTransition(STARTED, toList(APP_DOWNLOADING, ABORTED));
 
-    //     // app
-    //     addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+        // app
+        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, ABORTED));
 
-    //     addTransition(APP_DOWNLOAD_FAILED, toList(CANT_CONTRIBUTE, CAN_CONTRIBUTE));
+        addTransition(APP_DOWNLOAD_FAILED, toList(CONTRIBUTING, ABORTED));
 
-    //     addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, CANT_CONTRIBUTE));
+        addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, ABORTED));
 
-    //     // data
-    //     addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
+        // data
+        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
 
-    //     addTransition(DATA_DOWNLOAD_FAILED, toList(CANT_CONTRIBUTE, CAN_CONTRIBUTE));
+        addTransition(DATA_DOWNLOAD_FAILED, toList(CONTRIBUTING));
 
-    //     addTransition(DATA_DOWNLOADED, toList(COMPUTING, CANT_CONTRIBUTE));
+        addTransition(DATA_DOWNLOADED, toList(COMPUTING));
 
-    //     // computation
-    //     addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
+        // computation
+        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
 
-    //     addTransition(COMPUTED, CONTRIBUTING);
+        addTransition(COMPUTE_FAILED, toList(FAILED));
 
-    //     addTransition(COMPUTE_FAILED, toList(CANT_CONTRIBUTE, CAN_CONTRIBUTE));
+        addTransition(COMPUTED, CONTRIBUTING);
 
-    //     // contribution
-    //     addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS));
-    //     addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
-    //     addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
-    //     addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
+        // contribution
+        // addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS));
+        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
+        // addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
+        // addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
 
-    //     // reveal - completed
-    //     addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
-    //     addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED, REVEAL_TIMEOUT, RECOVERING));
-    //     addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING, RECOVERING));
-    //     addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
-    //     addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
+        // reveal - completed
+        // addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
+        addTransition(CONTRIBUTED, toList(REVEALING));
+        addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED));
 
-    //     addTransition(RESULT_UPLOADED, toList(COMPLETING, RECOVERING));
-    //     addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED, RECOVERING));        
-    // }
+        addTransition(REVEAL_FAILED, toList(ABORTED));
+
+        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING, RECOVERING));
+        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
+        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
+
+        addTransition(RESULT_UPLOADED, toList(COMPLETING, RECOVERING));
+        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED, RECOVERING));        
+    }
 
     private void setTransitions() {
         // This is where the whole workflow is defined
@@ -224,18 +230,5 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
         setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
-    }
-
-    /*
-     * Use this to update the json files when transitions
-     * or actions are modified. 
-     */
-    public static void main(String[] args) throws Exception {
-        String transitionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-transitions.json";
-        String actionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-actions.json";
-        ReplicateWorkflow rw = ReplicateWorkflow.getInstance();
-        
-        rw.saveWorkflowAsJsonFile(transitionsFilePath, rw.getTransitions());
-        rw.saveWorkflowAsJsonFile(actionsFilePath, rw.actionMap);
     }
 }
