@@ -1,18 +1,26 @@
 package com.iexec.core.workflow;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+
+import lombok.extern.slf4j.Slf4j;
 
 
+@Slf4j
 @SuppressWarnings("unchecked")
 public class Workflow<T> {
 
-    private HashMap<T, List<T>> possibleTransitions;
+    private Map<T, List<T>> possibleTransitions;
 
     public Workflow() {
-        possibleTransitions = new HashMap<T, List<T>>();
+        possibleTransitions = new LinkedHashMap<T, List<T>>();
     }
 
     boolean addTransition(T from, T to) {
@@ -57,5 +65,22 @@ public class Workflow<T> {
 
     List<T> toList(T... statuses) {
         return new ArrayList<T>(Arrays.asList(statuses));
+    }
+
+    Map<T, List<T>> getTransitions() {
+        return possibleTransitions;
+    }
+
+    void saveWorkflowAsJsonFile(String filePath, Object workflowObject) {
+        ObjectWriter ow = new ObjectMapper().writerWithDefaultPrettyPrinter();
+
+        try (PrintWriter out = new PrintWriter(filePath)) {
+            String transitionsJson = ow.writeValueAsString(workflowObject);
+            out.println(transitionsJson);
+        } catch (Exception e) {
+            log.error("Could not save object as json files [filePath:{}, object:{}]",
+                    filePath, workflowObject);
+            e.printStackTrace();
+        }
     }
 }

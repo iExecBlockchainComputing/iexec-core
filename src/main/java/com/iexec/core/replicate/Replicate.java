@@ -132,7 +132,7 @@ public class Replicate {
     public boolean isRecoverable() {
         Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
         if (!currentStatus.isPresent()) return false;
-        return ReplicateStatus.isRecoverableStatus(currentStatus.get());
+        return ReplicateStatus.isRecoverable(currentStatus.get());
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {

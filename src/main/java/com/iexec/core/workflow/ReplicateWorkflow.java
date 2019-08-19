@@ -3,23 +3,34 @@ package com.iexec.core.workflow;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
 import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-    private Map<ReplicateStatus, TaskNotificationType> actionMap = new HashMap<>();
+    private Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
 
     private ReplicateWorkflow() {
         super();
         setTransitions();
         setNextActions();
+    }
+
+    public static synchronized ReplicateWorkflow getInstance() {
+        if (instance == null) {
+            instance = new ReplicateWorkflow();
+        }
+        return instance;
+    }
+
+    public Map<ReplicateStatus, TaskNotificationType> getActionMap() {
+        return actionMap;
     }
 
     private void setTransitions() {
@@ -77,12 +88,12 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // reveal - completed
         addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
         addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED, REVEAL_TIMEOUT, RECOVERING));
-        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETED, RECOVERING));
+        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING, RECOVERING));
         addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
         addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
 
-        addTransition(RESULT_UPLOADED, COMPLETING);
-        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED));
+        addTransition(RESULT_UPLOADED, toList(COMPLETING, RECOVERING));
+        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED, RECOVERING));
 
         /*
         * From to FAILED
@@ -111,16 +122,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
          * From completable status to RECOVERING
          */
         addTransitionFromStatusToAllStatuses(RECOVERING);
-
-
         addTransition(RECOVERING, COMPLETED);
-    }
-
-    public static synchronized ReplicateWorkflow getInstance() {
-        if (instance == null) {
-            instance = new ReplicateWorkflow();
-        }
-        return instance;
     }
 
     private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus to) {

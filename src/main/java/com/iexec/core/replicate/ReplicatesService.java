@@ -204,8 +204,9 @@ public class ReplicatesService {
     // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-        public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId, String walletAddress, ReplicateStatus newStatus,
-                                                      ReplicateStatusModifier modifier, ReplicateDetails details) {
+        public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId, String walletAddress,
+                ReplicateStatus newStatus, ReplicateStatusModifier modifier, ReplicateDetails details) {
+
         ReplicateStatus currentStatus = null;
         Replicate replicate;
         Optional<ReplicatesList> replicates = getReplicatesList(chainTaskId);
