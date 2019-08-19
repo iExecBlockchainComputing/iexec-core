@@ -29,6 +29,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         return instance;
     }
 
+    public Map<ReplicateStatus, TaskNotificationType> getActionMap() {
+        return actionMap;
+    }
+
     private void setTransitions() {
         // This is where the whole workflow is defined
         addTransition(CREATED, toList(RUNNING, RECOVERING));
@@ -174,18 +178,5 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
         setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
-    }
-
-    /*
-     * Use this to update the json files when transitions
-     * or actions are changed. 
-     */
-    public static void main(String[] args) throws Exception {
-        String transitionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-transitions.json";
-        String actionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-actions.json";
-        ReplicateWorkflow rw = ReplicateWorkflow.getInstance();
-        
-        rw.saveWorkflowAsJsonFile(transitionsFilePath, rw.getTransitions());
-        rw.saveWorkflowAsJsonFile(actionsFilePath, rw.actionMap);
     }
 }
