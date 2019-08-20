@@ -236,7 +236,7 @@ public class TaskService {
 
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2) {

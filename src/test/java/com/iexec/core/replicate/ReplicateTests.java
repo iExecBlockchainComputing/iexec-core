@@ -10,8 +10,6 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ReplicateTests {
 
@@ -34,14 +32,14 @@ public class ReplicateTests {
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
 
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
 
         ReplicateStatusChange initialStatus = replicate.getStatusChangeList().get(0);
         assertThat(initialStatus.getStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         ReplicateStatusChange updatedStatus = replicate.getStatusChangeList().get(1);
-        assertThat(updatedStatus.getStatus()).isEqualTo(ReplicateStatus.RUNNING);
+        assertThat(updatedStatus.getStatus()).isEqualTo(ReplicateStatus.STARTING);
 
         Date now = new Date();
         long duration = now.getTime() - updatedStatus.getDate().getTime();
@@ -55,16 +53,16 @@ public class ReplicateTests {
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
 
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
-        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.RUNNING);
+        assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.STARTING);
     }
 
 
     @Test
     public void shouldReturnTrueWhenContributed(){
         Replicate replicate = new Replicate("0x1", "taskId");
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
@@ -76,7 +74,7 @@ public class ReplicateTests {
     @Test
     public void shouldReturnFalseWhenContributedMissing(){
         Replicate replicate = new Replicate("0x1", "taskId");
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
@@ -112,7 +110,7 @@ public class ReplicateTests {
     public void shouldBeBusyComputing() {
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         assertThat(replicate.isBusyComputing()).isTrue();
         replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
         assertThat(replicate.isBusyComputing()).isTrue();
