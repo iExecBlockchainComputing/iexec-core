@@ -35,13 +35,13 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private void setTransitions() {
         // This is where the whole workflow is defined
-        addTransition(CREATED, toList(RUNNING, RECOVERING));
+        addTransition(CREATED, toList(STARTING, RECOVERING));
 
-        addTransition(RUNNING, toList(STARTED, START_FAILED, RECOVERING));
+        addTransition(STARTING, toList(STARTED, START_FAILED, RECOVERING));
 
         addTransition(STARTED, toList(APP_DOWNLOADING, RECOVERING));
 
-        addTransition(RUNNING, CANT_CONTRIBUTE);
+        addTransition(STARTING, CANT_CONTRIBUTE);
 
         // app
         addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, RECOVERING));
@@ -147,7 +147,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
     }
 
     private void setNextActions() {
-        setNextAction(RUNNING, PLEASE_CONTINUE);
+        setNextAction(STARTING, PLEASE_CONTINUE);
         setNextAction(STARTED, PLEASE_DOWNLOAD_APP);
         setNextAction(START_FAILED, PLEASE_ABORT);
 

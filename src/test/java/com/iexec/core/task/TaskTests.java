@@ -11,7 +11,6 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static com.iexec.core.utils.DateTimeUtils.now;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class TaskTests {
 

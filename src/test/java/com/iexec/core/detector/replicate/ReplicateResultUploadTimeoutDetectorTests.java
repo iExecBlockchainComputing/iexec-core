@@ -49,11 +49,11 @@ public class ReplicateResultUploadTimeoutDetectorTests {
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate2.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate2.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
@@ -80,7 +80,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
 
@@ -114,7 +114,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.RESULT_UPLOADING, ReplicateStatusModifier.POOL_MANAGER);
 
@@ -148,7 +148,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.RUNNING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         // we suppose that the status has already been set in a previous detect
