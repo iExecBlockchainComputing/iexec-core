@@ -238,17 +238,21 @@ public class ReplicatesService {
 
         replicatesRepository.save(replicates.get());
         log.info(getReplicateStatusSuccessLog(chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(), replicate.getWalletAddress(), newStatus, details.getReplicateStatusCause()));
+        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(),
+                replicate.getWalletAddress(), newStatus, details.getReplicateStatusCause()));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
-        if (nextAction != null){
+        if (nextAction != null) {
             return Optional.of(nextAction);
         }
 
-        log.error(getReplicateStatusErrorLog("next action missing",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
+        log.error(getReplicateStatusWarningLog("no nextAction found", chainTaskId, walletAddress, currentStatus,
+                newStatus, modifier));
         return Optional.empty();
     }
 
-    private Replicate updateReplicateFields(String chainTaskId, String walletAddress, ReplicateStatus newStatus, ReplicateStatusModifier modifier, ReplicateDetails details, Replicate replicate) {
+    private Replicate updateReplicateFields(String chainTaskId, String walletAddress, ReplicateStatus newStatus,
+                                            ReplicateStatusModifier modifier, ReplicateDetails details,
+                                            Replicate replicate) {
         ChainContributionStatus onChainStatus = getChainStatus(newStatus);
         if (isSuccessBlockchainStatus(newStatus)) {
             if (!iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress, onChainStatus)){
@@ -296,6 +300,12 @@ public class ReplicatesService {
 
     private String getReplicateStatusErrorLog(String error, String chainTaskId, String walletAddress, ReplicateStatus currentStatus, ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
         return getUpdateReplicateStatusLogMessage("Failed to updateReplicateStatus", error, chainTaskId, walletAddress, currentStatus, newStatus, modifier);
+    }
+
+    private String getReplicateStatusWarningLog(String warning, String chainTaskId, String walletAddress,
+                                                ReplicateStatus currentStatus, ReplicateStatus newStatus,
+                                                ReplicateStatusModifier modifier) {
+        return getUpdateReplicateStatusLogMessage("Replicate status updated", warning, chainTaskId, walletAddress, currentStatus, newStatus, modifier);
     }
 
     private String getReplicateStatusSuccessLog(String chainTaskId, String walletAddress, ReplicateStatus currentStatus, ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
