@@ -41,31 +41,25 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
     }
 
     public void setDefaultWorkflowTransitions() {
-        addTransition(CREATED, toList(RUNNING, ABORTED));
 
-        addTransition(RUNNING, toList(STARTED, START_FAILED, ABORTED));
-
-        addTransition(STARTED, toList(APP_DOWNLOADING, ABORTED));
+        addTransition(CREATED,      toList(STARTING));
+        addTransition(STARTING,     toList(STARTED, START_FAILED));
+        addTransition(START_FAILED, toList(FAILED));
+        addTransition(STARTED,      toList(APP_DOWNLOADING));
 
         // app
-        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, ABORTED));
-
-        addTransition(APP_DOWNLOAD_FAILED, toList(CONTRIBUTING, ABORTED));
-
-        addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, ABORTED));
+        addTransition(APP_DOWNLOADING,      toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+        addTransition(APP_DOWNLOAD_FAILED,  toList(CONTRIBUTING, FAILED));
+        addTransition(APP_DOWNLOADED,       toList(DATA_DOWNLOADING));
 
         // data
         addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
-
-        addTransition(DATA_DOWNLOAD_FAILED, toList(CONTRIBUTING));
-
+        addTransition(DATA_DOWNLOAD_FAILED, toList(CONTRIBUTING, FAILED));
         addTransition(DATA_DOWNLOADED, toList(COMPUTING));
 
         // computation
         addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
-
         addTransition(COMPUTE_FAILED, toList(FAILED));
-
         addTransition(COMPUTED, CONTRIBUTING);
 
         // contribution
