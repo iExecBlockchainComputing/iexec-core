@@ -1,6 +1,5 @@
 package com.iexec.core.sms;
 
-import com.iexec.common.security.Attestation;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.feign.SmsClient;
 import feign.FeignException;
@@ -28,14 +27,14 @@ public class SmsService {
 
     @Retryable(value = FeignException.class)
     public String generateEnclaveChallenge(String chainTaskId) {
-        Attestation attestation = smsClient.generateEnclaveChallenge(chainTaskId);
+        String attestingEnclave = smsClient.generateEnclaveChallenge(chainTaskId);
 
-        if (attestation == null || attestation.getCredentials() == null) {
+        if (attestingEnclave == null || attestingEnclave.isEmpty()) {
             log.error("An error occured while getting enclaveChallenge [chainTaskId:{}]", chainTaskId);
             return "";
         }
 
-        return attestation.getCredentials().getAddress();
+        return attestingEnclave;
     }
 
     @Recover
