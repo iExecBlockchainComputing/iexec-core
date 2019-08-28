@@ -104,8 +104,8 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
      * (*) except COMPLETED and FAILED
      */
     private void addWorkerLostTransitions() {
-        List<ReplicateStatus> defaultStatuses = getDefaultStatuses();
-        List<ReplicateStatus> defaultNonFinal = getNonFinalDefaultStatuses();
+        List<ReplicateStatus> defaultStatuses = getWorkflowStatuses();
+        List<ReplicateStatus> defaultNonFinal = getNonFinalWorkflowStatuses();
 
         addTransition(defaultNonFinal, WORKER_LOST);
         addTransition(RECOVERING, WORKER_LOST);
