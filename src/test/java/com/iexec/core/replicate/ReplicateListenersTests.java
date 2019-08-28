@@ -15,7 +15,6 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.CANT_CONTRIBUTE;
 import static com.iexec.common.replicate.ReplicateStatus.FAILED;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.mockito.ArgumentMatchers.any;
