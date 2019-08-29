@@ -1,9 +1,7 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
-import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CoreConfigurationService;
@@ -18,6 +16,8 @@ import org.mockito.*;
 
 import java.util.Collections;
 
+import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -62,7 +62,7 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(REVEALING)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -76,7 +76,7 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
-                .updateReplicateStatus(any(), any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CAN_CONTRIBUTE, ReplicateStatusModifier.WORKER)));
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTING)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -94,7 +94,7 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(REVEALING)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -112,7 +112,7 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
 
@@ -125,7 +125,7 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER)));
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(REVEALING)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -139,7 +139,7 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
-                .updateReplicateStatus(any(), any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -149,7 +149,8 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER)));
+        ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTED, details)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -163,7 +164,7 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALING & REVEALED
-                .updateReplicateStatus(any(), any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -173,7 +174,7 @@ public class RevealUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusChangeList(Collections.singletonList(new ReplicateStatusChange(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER)));
+        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(REVEALED)));
 
         when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -181,6 +182,6 @@ public class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainRevealed();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 }
