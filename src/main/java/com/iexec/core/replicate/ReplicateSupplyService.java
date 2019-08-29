@@ -1,18 +1,16 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.contribution.ConsensusService;
-import com.iexec.core.contribution.PredictionService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -20,7 +18,6 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -29,7 +26,9 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-@Slf4j
+import static com.iexec.common.replicate.ReplicateStatus.*;
+
+
 @Service
 public class ReplicateSupplyService {
 
@@ -42,7 +41,6 @@ public class ReplicateSupplyService {
     private Web3jService web3jService;
     private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
     private ConsensusService consensusService;
-    private PredictionService predictionService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -62,7 +60,6 @@ public class ReplicateSupplyService {
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
         this.consensusService = consensusService;
-        this.predictionService = predictionService;
     }
 
     /*
@@ -205,8 +202,8 @@ public class ReplicateSupplyService {
                     .build();
 
             // change replicate status
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
-                    ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+            ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RECOVERING);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
             taskNotifications.add(taskNotification);
         }
@@ -290,10 +287,8 @@ public class ReplicateSupplyService {
         }
 
         if (didReplicateStartContributing && didReplicateContributeOnChain) {
-
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
-                    ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                    ReplicateDetails.builder().chainReceipt(new ChainReceipt(blockNumber, "")).build());
+            ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, CONTRIBUTED, details);
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -346,9 +341,8 @@ public class ReplicateSupplyService {
         }
 
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
-                    ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                    ReplicateDetails.builder().chainReceipt(new ChainReceipt(blockNumber, "")).build());
+            ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
 
             CompletableFuture<Boolean> completableFuture = taskExecutorEngine.updateTask(chainTaskId);
             completableFuture.join();
@@ -405,8 +399,7 @@ public class ReplicateSupplyService {
         }
 
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress,
-                    ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
 
             taskExecutorEngine.updateTask(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);

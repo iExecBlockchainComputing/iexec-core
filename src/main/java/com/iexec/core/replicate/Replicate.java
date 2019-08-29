@@ -4,20 +4,25 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
+
 
 @Data
 @NoArgsConstructor
 public class Replicate {
 
-    private List<ReplicateStatusChange> statusChangeList;
+    private List<ReplicateStatusUpdate> statusUpdateList;
     private String walletAddress;
     private String resultLink;
     private String chainCallbackData;
@@ -29,23 +34,23 @@ public class Replicate {
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;
         this.walletAddress = walletAddress;
-        this.statusChangeList = new ArrayList<>();
+        this.statusUpdateList = new ArrayList<>();
         // a new replicate should only be create by the scheduler
-        this.statusChangeList.add(new ReplicateStatusChange(ReplicateStatus.CREATED, ReplicateStatusModifier.POOL_MANAGER));
+        this.statusUpdateList.add(poolManagerRequest(CREATED));
         this.contributionHash = "";
     }
 
     @JsonIgnore
     public ReplicateStatus getCurrentStatus() {
-        return this.getLatestStatusChange().getStatus();
+        return this.getLatestStatusUpdate().getStatus();
     }
 
     @JsonIgnore
     public Optional<ReplicateStatus> getLastRelevantStatus() {
         // ignore cases like: WORKER_LOST and RECOVERING
 
-        List<ReplicateStatus> statusList = getStatusChangeList().stream()
-                .map(ReplicateStatusChange::getStatus)
+        List<ReplicateStatus> statusList = getStatusUpdateList().stream()
+                .map(ReplicateStatusUpdate::getStatus)
                 .collect(Collectors.toList());
 
         List<ReplicateStatus> ignoredStatuses = Arrays.asList(
@@ -63,20 +68,32 @@ public class Replicate {
 
     @JsonIgnore
     public ReplicateStatus getLastButOneStatus() {
-        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 2).getStatus();
+        return this.getStatusUpdateList().get(this.getStatusUpdateList().size() - 2).getStatus();
     }
 
     @JsonIgnore
-    private ReplicateStatusChange getLatestStatusChange() {
-        return this.getStatusChangeList().get(this.getStatusChangeList().size() - 1);
+    private ReplicateStatusUpdate getLatestStatusUpdate() {
+        return this.getStatusUpdateList().get(this.getStatusUpdateList().size() - 1);
     }
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
-        return statusChangeList.add(new ReplicateStatusChange(newStatus, modifier));
+        ReplicateStatusUpdate statusUpdate = new ReplicateStatusUpdate(newStatus, modifier);
+        return statusUpdateList.add(statusUpdate);
     }
 
-    public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusCause newStatusCause, ReplicateStatusModifier modifier, ChainReceipt  chainReceipt) {
-        return statusChangeList.add(new ReplicateStatusChange(newStatus, newStatusCause, modifier, chainReceipt));
+    public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusCause cause,
+                                ReplicateStatusModifier modifier, ChainReceipt  chainReceipt) {
+        ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .chainReceipt(chainReceipt)
+                .cause(cause)
+                .build();
+
+        ReplicateStatusUpdate statusUpdate = new ReplicateStatusUpdate(newStatus, modifier, details);
+        return statusUpdateList.add(statusUpdate);
+    }
+
+    public boolean updateStatus(ReplicateStatusUpdate statusUpdate) {
+        return statusUpdateList.add(statusUpdate);
     }
 
     public String getContributionHash() {
@@ -96,8 +113,8 @@ public class Replicate {
     }
 
     public boolean containsStatus(ReplicateStatus replicateStatus) {
-        for (ReplicateStatusChange replicateStatusChange : this.getStatusChangeList()) {
-            if (replicateStatusChange.getStatus().equals(replicateStatus)) {
+        for (ReplicateStatusUpdate replicateStatusUpdate : this.getStatusUpdateList()) {
+            if (replicateStatusUpdate.getStatus().equals(replicateStatus)) {
                 return true;
             }
         }
@@ -113,7 +130,7 @@ public class Replicate {
     }
 
     public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, long maxExecutionTime) {
-        Date creationDate = this.getStatusChangeList().get(0).getDate();
+        Date creationDate = this.getStatusUpdateList().get(0).getDate();
         Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * maxExecutionTime);
         Date now = new Date();
 
