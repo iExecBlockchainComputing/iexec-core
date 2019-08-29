@@ -68,6 +68,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         // contribution
         addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
         addTransition(CONTRIBUTED, toList(REVEALING));
+        // addTransition(CONTRIBUTED, toList(REVEAL_FAILED));
 
         // reveal
         addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED));
