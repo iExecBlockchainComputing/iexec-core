@@ -1,10 +1,7 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
-import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicateComputedEvent;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskExecutorEngine;
@@ -57,7 +54,8 @@ public class ReplicateListeners {
          * Should add FAILED status if not completable
          * */
         if (ReplicateStatus.getUncompletableStatuses().contains(event.getNewReplicateStatus())) {
-            replicatesService.updateReplicateStatus(event.getChainTaskId(), event.getWalletAddress(), ReplicateStatus.FAILED, ReplicateStatusModifier.POOL_MANAGER);
+            replicatesService.updateReplicateStatus(event.getChainTaskId(),
+                    event.getWalletAddress(), ReplicateStatus.FAILED);
         }
 
         /*
