@@ -53,10 +53,12 @@ public abstract class UnnotifiedAbstractDetector {
                 }
 
                 boolean isReplicateStatusCompleting = lastRelevantStatus.get().equals(offchainCompleting);
-                boolean isStatusTrueOnchain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(),
-                        replicate.getWalletAddress(), onchainCompleted);
 
-                if (isReplicateStatusCompleting && isStatusTrueOnchain) {
+                boolean isReplicateStatusCompletingAndStatusTrueOnchain = isReplicateStatusCompleting &&
+                        iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(),
+                                                            onchainCompleted);
+
+                if (isReplicateStatusCompletingAndStatusTrueOnchain) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
