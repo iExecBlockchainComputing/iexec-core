@@ -351,8 +351,14 @@ public class ReplicateServiceTests {
 
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
-        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, CONTRIBUTED, null));
+
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(CONTRIBUTED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
+                .isEqualTo(10);
+
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
 
@@ -488,8 +494,14 @@ public class ReplicateServiceTests {
 
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
-        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, REVEALED, null));
+
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(REVEALED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
+                .isEqualTo(10);
+
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 
