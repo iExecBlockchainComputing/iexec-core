@@ -280,7 +280,9 @@ public class ReplicatesService {
                 log.error(getReplicateFieldsErrorLog("wrong onchain status", chainTaskId, walletAddress));
                 return null;
             }
-            long receiptBlockNumber = details.getChainReceipt() != null ? details.getChainReceipt().getBlockNumber() : 0;
+            long receiptBlockNumber = details != null && details.getChainReceipt() != null
+                    ? details.getChainReceipt().getBlockNumber() : 0;
+
             if (!web3jService.isBlockAvailable(receiptBlockNumber)) {
                 log.error(getReplicateFieldsErrorLog("core block not available", chainTaskId, walletAddress));
                 return null;
