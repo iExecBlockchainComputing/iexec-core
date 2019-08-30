@@ -195,6 +195,9 @@ public class ReplicatesService {
                 && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
     }
 
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus) {
@@ -202,14 +205,9 @@ public class ReplicatesService {
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
-    // public void updateReplicateStatus(String chainTaskId,
-    //                                 String walletAddress,
-    //                                 ReplicateStatus newStatus,
-    //                                 ReplicateStatusCause cause) {
-    //     ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, cause);
-    //     updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    // }
-
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
@@ -217,20 +215,6 @@ public class ReplicatesService {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
-
-    // public void updateReplicateStatus(String chainTaskId,
-    //                                   String walletAddress,
-    //                                   ReplicateStatus newStatus,
-    //                                   ReplicateStatusModifier modifier,
-    //                                   ReplicateStatusDetails details) {
-    //     ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
-    //             .status(newStatus)
-    //             .modifier(modifier)
-    //             .date(new Date())
-    //             .details(details)
-    //             .build();
-    //     updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    // }
 
     // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
