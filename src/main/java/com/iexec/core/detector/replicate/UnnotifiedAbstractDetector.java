@@ -84,6 +84,14 @@ public abstract class UnnotifiedAbstractDetector {
         }
     }
 
+    /*
+     * This method should stay private. We need to insure that
+     * it is only called by the POOL_MANAGER.
+     * The POOL_MANAGER has already verified the status onchain
+     * in the caller method so this update can happen even if
+     * we couldn't get the metadata (block number) of the tx.
+     * In this case we put 0 as default block number.
+     */
     private void updateReplicateStatuses(String chainTaskId, Replicate replicate, ReplicateStatus offchainCompleted) {
         List<ReplicateStatus> statusesToUpdate;
         if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
