@@ -1,5 +1,6 @@
 package com.iexec.core.detector.task;
 
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -53,7 +54,7 @@ public class ContributionTimeoutTaskDetectorTests {
                 .removeChainTaskIdFromWorker(any(), any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
         Mockito.verify(taskExecutorEngine, Mockito.times(0))
                 .updateTask(any());
@@ -75,7 +76,7 @@ public class ContributionTimeoutTaskDetectorTests {
                 .removeChainTaskIdFromWorker(any(), any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
         Mockito.verify(taskExecutorEngine, Mockito.times(0))
                 .updateTask(any());

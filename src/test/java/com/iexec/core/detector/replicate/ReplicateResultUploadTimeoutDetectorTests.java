@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
@@ -66,9 +67,9 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.WORKER_LOST);
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.WORKER_LOST);
     }
 
     @Test
@@ -99,8 +100,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_REQUEST_FAILED);
 
         Mockito.verify(taskExecutorEngine, Mockito.times(1)).updateTask(CHAIN_TASK_ID);
     }
@@ -133,8 +133,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
 
         Mockito.verify(taskExecutorEngine, Mockito.times(1)).updateTask(CHAIN_TASK_ID);
     }
@@ -168,7 +167,6 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_REQUEST_FAILED);
     }
 }

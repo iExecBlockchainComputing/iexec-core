@@ -10,8 +10,8 @@ public class WorkflowToJson {
      */
     @Test
     public void workflowToJson() {
-        String transitionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-transitions.json";
-        String actionsFilePath = "src/main/java/com/iexec/core/workflow/replicate-actions.json";
+        String transitionsFilePath = "src/main/resources/workflow/replicate-transitions.json";
+        String actionsFilePath = "src/main/resources/workflow/replicate-actions.json";
         ReplicateWorkflow rw = ReplicateWorkflow.getInstance();
         
         rw.saveWorkflowAsJsonFile(transitionsFilePath, rw.getTransitions());

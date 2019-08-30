@@ -2,6 +2,7 @@ package com.iexec.core.detector;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
@@ -18,6 +19,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
 public class WorkerLostDetectorTests {
@@ -44,7 +46,7 @@ public class WorkerLostDetectorTests {
         when(workerService.getLostWorkers()).thenReturn(Collections.emptyList());
         workerLostDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusUpdate.class));
 
     }
 
@@ -68,7 +70,7 @@ public class WorkerLostDetectorTests {
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
     }
 
     // similar test with previous except that the Replicate is already is WORKER_LOST status.
@@ -92,7 +94,7 @@ public class WorkerLostDetectorTests {
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(0))

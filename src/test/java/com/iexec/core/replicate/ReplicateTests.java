@@ -1,8 +1,9 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+
 import org.junit.Test;
 
 import java.util.Collections;
@@ -16,9 +17,9 @@ public class ReplicateTests {
     @Test
     public void shouldInitializeStatusProperly(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
-        ReplicateStatusChange statusChange = replicate.getStatusChangeList().get(0);
+        ReplicateStatusUpdate statusChange = replicate.getStatusUpdateList().get(0);
         assertThat(statusChange.getStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         Date now = new Date();
@@ -30,15 +31,15 @@ public class ReplicateTests {
     @Test
     public void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(2);
 
-        ReplicateStatusChange initialStatus = replicate.getStatusChangeList().get(0);
+        ReplicateStatusUpdate initialStatus = replicate.getStatusUpdateList().get(0);
         assertThat(initialStatus.getStatus()).isEqualTo(ReplicateStatus.CREATED);
 
-        ReplicateStatusChange updatedStatus = replicate.getStatusChangeList().get(1);
+        ReplicateStatusUpdate updatedStatus = replicate.getStatusUpdateList().get(1);
         assertThat(updatedStatus.getStatus()).isEqualTo(ReplicateStatus.STARTING);
 
         Date now = new Date();
@@ -50,11 +51,11 @@ public class ReplicateTests {
     @Test
     public void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
-        assertThat(replicate.getStatusChangeList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.getStatusChangeList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(2);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.STARTING);
     }
 
@@ -87,9 +88,9 @@ public class ReplicateTests {
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
-        ReplicateStatusChange oldCreationDate = replicate.getStatusChangeList().get(0);
+        ReplicateStatusUpdate oldCreationDate = replicate.getStatusUpdateList().get(0);
         oldCreationDate.setDate(new Date(now.getTime() - 3 * maxExecutionTime));
-        replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
+        replicate.setStatusUpdateList(Collections.singletonList(oldCreationDate));
 
         assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isTrue();
     }
@@ -99,9 +100,9 @@ public class ReplicateTests {
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
-        ReplicateStatusChange oldCreationDate = replicate.getStatusChangeList().get(0);
+        ReplicateStatusUpdate oldCreationDate = replicate.getStatusUpdateList().get(0);
         oldCreationDate.setDate(new Date(now.getTime() - maxExecutionTime));
-        replicate.setStatusChangeList(Collections.singletonList(oldCreationDate));
+        replicate.setStatusUpdateList(Collections.singletonList(oldCreationDate));
 
         assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isFalse();
     }

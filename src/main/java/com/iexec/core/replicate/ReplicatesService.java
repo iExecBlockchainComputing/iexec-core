@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusCause.*;
 
 @Slf4j
 @Service
@@ -117,8 +118,8 @@ public class ReplicatesService {
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
         Set<String> addressReplicates = new HashSet<>();
         for (Replicate replicate : getReplicates(chainTaskId)) {
-            List<ReplicateStatus> listReplicateStatus = replicate.getStatusChangeList().stream()
-                    .map(ReplicateStatusChange::getStatus)
+            List<ReplicateStatus> listReplicateStatus = replicate.getStatusUpdateList().stream()
+                    .map(ReplicateStatusUpdate::getStatus)
                     .collect(Collectors.toList());
             for (ReplicateStatus status : listStatus) {
                 if (listReplicateStatus.contains(status)) {
@@ -188,24 +189,42 @@ public class ReplicatesService {
     }
 
     private boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
-        int size = replicate.getStatusChangeList().size();
+        int size = replicate.getStatusUpdateList().size();
         return size >= 2
-                && replicate.getStatusChangeList().get(size - 1).getStatus().equals(WORKER_LOST)
-                && replicate.getStatusChangeList().get(size - 2).getStatus().equals(status);
+                && replicate.getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
+                && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
     }
 
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus) {
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus);
+        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
+    }
+
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
     public void updateReplicateStatus(String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatus newStatus,
-                                      ReplicateStatusModifier modifier) {
-        updateReplicateStatus(chainTaskId, walletAddress, newStatus, modifier, ReplicateDetails.builder().build());
+                                      ReplicateStatusDetails details) {
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
+        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
     // TODO: this method needs to be refactored !
     // in case the task has been modified between reading and writing it, it is retried up to 100 times
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-        public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId, String walletAddress,
-                ReplicateStatus newStatus, ReplicateStatusModifier modifier, ReplicateDetails details) {
+    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
+                                                                String walletAddress,
+                                                                ReplicateStatusUpdate statusUpdate) {
+
+        ReplicateStatus newStatus = statusUpdate.getStatus();
+        ReplicateStatusModifier modifier = statusUpdate.getModifier();
 
         ReplicateStatus currentStatus = null;
         Replicate replicate;
@@ -217,7 +236,7 @@ public class ReplicatesService {
 
         Optional<Replicate> optionalReplicate = replicates.get().getReplicateOfWorker(walletAddress);
         if (optionalReplicate.isEmpty()) {
-            log.error(getReplicateStatusErrorLog("replicate missing",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
+            log.error(getReplicateStatusErrorLog("replicate missing", chainTaskId, walletAddress, currentStatus, newStatus, modifier));
             return Optional.empty();
         }
         replicate = optionalReplicate.get();
@@ -229,7 +248,7 @@ public class ReplicatesService {
             return Optional.empty();
         }
 
-        replicate = updateReplicateFields(chainTaskId, walletAddress, newStatus, modifier, details, replicate);
+        replicate = updateReplicateFields(chainTaskId, replicate, statusUpdate);
 
         if (replicate == null){
             log.error(getReplicateStatusErrorLog("updateReplicateFields failed",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
@@ -238,17 +257,23 @@ public class ReplicatesService {
 
         replicatesRepository.save(replicates.get());
         log.info(getReplicateStatusSuccessLog(chainTaskId, walletAddress, currentStatus, newStatus, modifier));
-        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(), replicate.getWalletAddress(), newStatus, details.getReplicateStatusCause()));
+        applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(),
+                replicate.getWalletAddress(), newStatus, statusUpdate.getDetails().getCause()));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
-        if (nextAction != null){
+        if (nextAction != null) {
             return Optional.of(nextAction);
         }
 
-        log.error(getReplicateStatusErrorLog("next action missing",chainTaskId, walletAddress, currentStatus, newStatus, modifier));
+        log.error(getReplicateStatusWarningLog("no nextAction found", chainTaskId, walletAddress, currentStatus,
+                newStatus, modifier));
         return Optional.empty();
     }
 
-    private Replicate updateReplicateFields(String chainTaskId, String walletAddress, ReplicateStatus newStatus, ReplicateStatusModifier modifier, ReplicateDetails details, Replicate replicate) {
+    private Replicate updateReplicateFields(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
+        String walletAddress = replicate.getWalletAddress();
+        ReplicateStatus newStatus = statusUpdate.getStatus();
+        ReplicateStatusDetails details = statusUpdate.getDetails();
+
         ChainContributionStatus onChainStatus = getChainStatus(newStatus);
         if (isSuccessBlockchainStatus(newStatus)) {
             if (!iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress, onChainStatus)){
@@ -290,12 +315,18 @@ public class ReplicatesService {
             replicate.setChainCallbackData(details.getChainCallbackData());
         }
 
-        replicate.updateStatus(newStatus, details.getReplicateStatusCause(), modifier, details.getChainReceipt());
+        replicate.updateStatus(statusUpdate);
         return replicate;
     }
 
     private String getReplicateStatusErrorLog(String error, String chainTaskId, String walletAddress, ReplicateStatus currentStatus, ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
         return getUpdateReplicateStatusLogMessage("Failed to updateReplicateStatus", error, chainTaskId, walletAddress, currentStatus, newStatus, modifier);
+    }
+
+    private String getReplicateStatusWarningLog(String warning, String chainTaskId, String walletAddress,
+                                                ReplicateStatus currentStatus, ReplicateStatus newStatus,
+                                                ReplicateStatusModifier modifier) {
+        return getUpdateReplicateStatusLogMessage("Replicate status updated", warning, chainTaskId, walletAddress, currentStatus, newStatus, modifier);
     }
 
     private String getReplicateStatusSuccessLog(String chainTaskId, String walletAddress, ReplicateStatus currentStatus, ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
@@ -319,9 +350,7 @@ public class ReplicatesService {
     public void updateReplicateStatus(OptimisticLockingFailureException exception,
                                       String chainTaskId,
                                       String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusModifier modifier,
-                                      ReplicateDetails details) {
+                                      ReplicateStatusUpdate statusUpdate) {
         log.error("Maximum number of tries reached [exception:{}]", exception.getMessage());
         exception.printStackTrace();
     }
@@ -375,8 +404,8 @@ public class ReplicatesService {
         }
         ReplicateStatus status = oStatus.get();
         if (status.equals(REVEALING) || status.equals(CONTRIBUTED)) {
-            updateReplicateStatus(chainTaskId, replicate.getWalletAddress(),
-                    REVEAL_TIMEOUT, ReplicateStatusModifier.POOL_MANAGER);
+            ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(FAILED, REVEAL_TIMEOUT);
+            updateReplicateStatus(chainTaskId, replicate.getWalletAddress(), statusUpdate);
         }
     }
 }
