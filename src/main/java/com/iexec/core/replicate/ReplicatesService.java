@@ -258,7 +258,7 @@ public class ReplicatesService {
         replicatesRepository.save(replicates.get());
         log.info(getReplicateStatusSuccessLog(chainTaskId, walletAddress, currentStatus, newStatus, modifier));
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(replicate.getChainTaskId(),
-                replicate.getWalletAddress(), newStatus, statusUpdate.getDetails().getCause()));
+                replicate.getWalletAddress(), statusUpdate));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
         if (nextAction != null) {
             return Optional.of(nextAction);
