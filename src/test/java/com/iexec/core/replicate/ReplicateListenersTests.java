@@ -1,6 +1,7 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.listener.ReplicateListeners;
@@ -49,7 +50,7 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)
+                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -63,8 +64,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .newReplicateStatus(CONTRIBUTING)
-                .newReplicateStatusCause(TASK_NOT_ACTIVE)
+                .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(CONTRIBUTING, TASK_NOT_ACTIVE))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -81,8 +81,7 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)
-                    .newReplicateStatusCause(null)
+                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -99,7 +98,8 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(uncompletableStatus)//CANT_CONTRIBUTE_SINCE_*, ...
+                    // CANT_CONTRIBUTE_SINCE_*, ...
+                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(uncompletableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -117,7 +117,8 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(completableStatus)//CREATED, ...
+                    // CREATED, ...
+                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(completableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -132,7 +133,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .newReplicateStatus(FAILED)
+                .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(FAILED))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -150,7 +151,8 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)//CREATED, ...
+                    // CREATED, ...
+                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
