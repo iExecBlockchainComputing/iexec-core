@@ -33,7 +33,8 @@ public class ReplicateTests {
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
-        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
+        // only pool manager sets date of the update
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.POOL_MANAGER);
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(2);
 
         ReplicateStatusUpdate initialStatus = replicate.getStatusUpdateList().get(0);
