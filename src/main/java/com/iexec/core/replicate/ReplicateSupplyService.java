@@ -94,6 +94,10 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
+        if (!web3jService.hasEnoughGas(walletAddress)) {
+            return Optional.empty();
+        }
+
         // return empty if there is no task to contribute
         List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
         if (runningTasks.isEmpty()) {
