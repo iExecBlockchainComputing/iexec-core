@@ -1,7 +1,6 @@
 package com.iexec.core.feign;
 
 
-import feign.FeignException;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 )
 public interface SmsClient {
 
-    @PostMapping("/executions/challenge/generate/{chainTaskId}")
-    String generateEnclaveChallenge(@PathVariable("chainTaskId") String chainTaskId)
-            throws FeignException;
+    @PostMapping("/tee/challenges/{chainTaskId}")
+    String generateTeeChallenge(@PathVariable("chainTaskId") String chainTaskId);
+
 }

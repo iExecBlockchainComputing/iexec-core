@@ -27,14 +27,15 @@ public class SmsService {
 
     @Retryable(value = FeignException.class)
     public String generateEnclaveChallenge(String chainTaskId) {
-        String attestingEnclave = smsClient.generateEnclaveChallenge(chainTaskId);
 
-        if (attestingEnclave == null || attestingEnclave.isEmpty()) {
-            log.error("An error occured while getting enclaveChallenge [chainTaskId:{}]", chainTaskId);
+        String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+
+        if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
+            log.error("An error occured while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
             return "";
         }
 
-        return attestingEnclave;
+        return teeChallengePublicKey;
     }
 
     @Recover
