@@ -3,6 +3,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.security.JwtTokenProvider;
@@ -93,6 +94,8 @@ public class ReplicatesController {
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
+        statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
+
         Optional<TaskNotificationType> taskNotificationType =
                 replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
