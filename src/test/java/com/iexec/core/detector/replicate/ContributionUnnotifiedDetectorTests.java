@@ -2,6 +2,7 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CoreConfigurationService;
@@ -18,7 +19,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,7 +63,8 @@ public class ContributionUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTING)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -86,7 +87,8 @@ public class ContributionUnnotifiedDetectorTests {
                 .thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(COMPUTED)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(COMPUTED).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -105,7 +107,8 @@ public class ContributionUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTING)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -126,7 +129,8 @@ public class ContributionUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTING)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -150,7 +154,8 @@ public class ContributionUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTING)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
@@ -174,7 +179,8 @@ public class ContributionUnnotifiedDetectorTests {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(Collections.singletonList(workerRequest(CONTRIBUTED)));
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTED).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
