@@ -50,7 +50,7 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -64,7 +64,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(CONTRIBUTING, TASK_NOT_ACTIVE))
+                .replicateStatusUpdate(new ReplicateStatusUpdate(CONTRIBUTING, TASK_NOT_ACTIVE))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -81,7 +81,7 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -99,7 +99,7 @@ public class ReplicateListenersTests {
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
                     // CANT_CONTRIBUTE_SINCE_*, ...
-                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(uncompletableStatus))
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(uncompletableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -118,7 +118,7 @@ public class ReplicateListenersTests {
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
                     // CREATED, ...
-                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(completableStatus))
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(completableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -133,7 +133,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(FAILED))
+                .replicateStatusUpdate(new ReplicateStatusUpdate(FAILED))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -152,7 +152,7 @@ public class ReplicateListenersTests {
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
                     // CREATED, ...
-                    .replicateStatusUpdate(ReplicateStatusUpdate.workerRequest(randomStatus))
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
