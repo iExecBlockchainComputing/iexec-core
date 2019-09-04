@@ -156,6 +156,31 @@ public class ReplicateSupplyServiceTests {
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(false);
+        when(taskService.getInitializedOrRunningTasks())
+                .thenReturn(Collections.singletonList(runningTask1));
+
+        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        assertThat(oAuthorization).isEmpty();
+        assertTaskAccessForNewReplicateLockNeverUsed();
+    }
+
+    @Test
+    public void shouldNotGetAnyReplicateSinceWorkerDoesNotHaveEnoughGas() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(1)
+                .lastAliveDate(new Date())
+                .build();
+
+        when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        runningTask1.changeStatus(RUNNING);
+
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(false);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
 
@@ -187,6 +212,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -225,6 +251,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -258,6 +285,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -294,6 +322,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -339,6 +368,7 @@ public class ReplicateSupplyServiceTests {
 
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         List<Task> tasks = new ArrayList<>();
         tasks.add(task1);
         tasks.add(taskDeadlineReached);
@@ -418,6 +448,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -436,8 +467,6 @@ public class ReplicateSupplyServiceTests {
                 .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking();
     }
-
-
 
     @Test
     public void shouldGetReplicateWithTee() {
@@ -462,6 +491,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -536,6 +566,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
