@@ -169,11 +169,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         setNextAction(APP_DOWNLOADING, PLEASE_CONTINUE);
         setNextAction(APP_DOWNLOADED, PLEASE_DOWNLOAD_DATA);
-        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_ABORT);
+        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
 
         setNextAction(DATA_DOWNLOADING, PLEASE_CONTINUE);
         setNextAction(DATA_DOWNLOADED, PLEASE_COMPUTE);
-        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_ABORT);
+        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
 
         setNextAction(COMPUTING, PLEASE_CONTINUE);
         setNextAction(COMPUTED, PLEASE_CONTRIBUTE);
