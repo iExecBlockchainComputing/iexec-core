@@ -94,7 +94,7 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
-        if (web3jService.hasEnoughGas(walletAddress)) {
+        if (!web3jService.hasEnoughGas(walletAddress)) {
             return Optional.empty();
         }
 
