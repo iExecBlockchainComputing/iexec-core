@@ -36,7 +36,7 @@ public class ReplicateListeners {
 
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
-        log.info("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
+        log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
         ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
         ReplicateStatus newStatus = statusUpdate.getStatus();
         ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause(): null;

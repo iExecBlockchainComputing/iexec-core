@@ -230,6 +230,9 @@ public class ReplicatesService {
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
+        log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetails());
+
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
@@ -249,7 +252,7 @@ public class ReplicatesService {
             return Optional.empty();
         }
 
-        boolean canUpdate = false;
+        boolean canUpdate = true;
 
         switch (newStatus) {
             case CONTRIBUTE_FAILED:
@@ -274,16 +277,13 @@ public class ReplicatesService {
 
         replicate.updateStatus(statusUpdate);
         replicatesRepository.save(replicatesList);
-        log.info("Replicate updated successfully {}", getLogDetails(chainTaskId, replicate, statusUpdate));
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
-        if (nextAction == null) {
-            log.error("Replicate updated but next action not found {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
-            return Optional.empty(); // should we return a default action? (continue)
-        }
 
-        return Optional.of(nextAction);
+        log.info("Replicate updated successfully [nextAction:{}, chainTaskId:{}, walletAddress:{}]",
+                getLogDetails(chainTaskId, replicate, statusUpdate));
+
+        return Optional.ofNullable(nextAction); // should we return a default action when null?
     }
 
     @Recover

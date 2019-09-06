@@ -89,20 +89,12 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetails());
-
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
         Optional<TaskNotificationType> oTaskNotificationType =
                 replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-
-        if (oTaskNotificationType.isPresent()) {
-            log.info("Replicate update response [action:{}, chainTaskId:{}, walletAddress:{}]",
-                    oTaskNotificationType.get(), chainTaskId , walletAddress);
-        }
 
         return oTaskNotificationType.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build());
