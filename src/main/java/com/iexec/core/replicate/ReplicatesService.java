@@ -257,7 +257,8 @@ public class ReplicatesService {
         switch (newStatus) {
             case CONTRIBUTE_FAILED:
             case REVEAL_FAILED:
-                return Optional.of(ReplicateWorkflow.getInstance().getNextAction(newStatus));
+                canUpdate = false;
+                break;
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
                 break;
