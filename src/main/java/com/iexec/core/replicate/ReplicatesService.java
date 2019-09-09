@@ -257,6 +257,8 @@ public class ReplicatesService {
         switch (newStatus) {
             case CONTRIBUTE_FAILED:
             case REVEAL_FAILED:
+                canUpdate = false;
+                break;
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
                 break;
@@ -352,15 +354,9 @@ public class ReplicatesService {
             case CONTRIBUTED:
                 return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
                         ChainContributionStatus.CONTRIBUTED);
-            case CONTRIBUTE_FAILED:
-                return !iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
-                        ChainContributionStatus.CONTRIBUTED);
             case REVEALED:
                 return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
                         ChainContributionStatus.REVEALED);                
-            case REVEAL_FAILED:
-                return !iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
-                        ChainContributionStatus.REVEALED);
             case RESULT_UPLOADED:
                 return isResultUploaded(chainTaskId);        
             case RESULT_UPLOAD_FAILED:
