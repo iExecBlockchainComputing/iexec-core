@@ -257,8 +257,7 @@ public class ReplicatesService {
         switch (newStatus) {
             case CONTRIBUTE_FAILED:
             case REVEAL_FAILED:
-                canUpdate = false;
-                break;
+                return Optional.of(ReplicateWorkflow.getInstance().getNextAction(newStatus));
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
                 break;
@@ -358,7 +357,7 @@ public class ReplicatesService {
                 return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
                         ChainContributionStatus.REVEALED);
             case RESULT_UPLOADED:
-                return isResultUploaded(chainTaskId);        
+                return isResultUploaded(chainTaskId);
             case RESULT_UPLOAD_FAILED:
                 return !isResultUploaded(chainTaskId);
             default:
