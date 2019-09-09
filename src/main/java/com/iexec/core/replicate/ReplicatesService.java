@@ -356,7 +356,7 @@ public class ReplicatesService {
                         ChainContributionStatus.CONTRIBUTED);
             case REVEALED:
                 return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
-                        ChainContributionStatus.REVEALED);                
+                        ChainContributionStatus.REVEALED);
             case RESULT_UPLOADED:
                 return isResultUploaded(chainTaskId);        
             case RESULT_UPLOAD_FAILED:
