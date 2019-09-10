@@ -58,8 +58,7 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedContributedAfterContributing() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -80,11 +79,9 @@ public class ContributionUnnotifiedDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectUnNotifiedContributedAfterContributingSinceBeforeContributing() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING)))
-                .thenReturn(Collections.singletonList(task));
+    public void shouldDetectUnNotifiedContributedAfterContributingSinceBeforeContributing() {
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(COMPUTED).build();
@@ -102,8 +99,7 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Test
     public void shouldNotDetectUnNotifiedContributedAfterContributingSinceNotContributedOnChain() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -124,8 +120,7 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedContributed1() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -149,8 +144,7 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Test
     public void shouldDetectUnNotifiedContributed2() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
@@ -174,8 +168,7 @@ public class ContributionUnnotifiedDetectorTests {
 
     @Test
     public void shouldNotDetectUnNotifiedContributedSinceContributed() {
-        Task task = mock(Task.class);
-        when(task.getChainTaskId()).thenReturn(any());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);

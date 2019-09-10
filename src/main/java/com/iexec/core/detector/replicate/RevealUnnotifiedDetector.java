@@ -32,7 +32,7 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
                                     Web3jService web3jService) {
         super(taskService, replicatesService, iexecHubService, web3jService);
         this.coreConfigurationService = coreConfigurationService;
-        dectectWhenTaskStatuses = TaskStatus.getWaitingContributionStatuses();
+        dectectWhenTaskStatuses = TaskStatus.getWaitingRevealStatuses();
         offchainCompleting = ReplicateStatus.REVEALING;
         offchainCompleted = ReplicateStatus.REVEALED;
         onchainCompleted = ChainContributionStatus.REVEALED;
