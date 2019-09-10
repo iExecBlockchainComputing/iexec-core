@@ -40,3 +40,13 @@ Since the core will perform some transactions on the blockchain and handle some 
 ## Documentation
 
 A more exhaustive documentation is available on [the official documentation of iExec](https://docs.iex.ec/)
+
+
+
+## HTTPS
+
+* Self-signed certificate (dev purpose only)
+
+`keytool -genkey -alias iexec-core -storetype PKCS12 -keyalg RSA -keysize 2048 -keystore ./src/main/resources/ssl-keystore-dev.p12 -validity 3650`
+
+* Replace it with a real certificate in production

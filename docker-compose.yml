@@ -13,8 +13,11 @@ services:
     - IEXEC_IPFS_HOST=ipfs
     - IEXEC_SMS_HOST=sms
     - IEXEC_SCONE_CAS_HOST=iexec-cas
+    - IEXEC_CORE_SSL_KEYSTORE=/iexec/ssl-keystore-dev.p12
+    - IEXEC_CORE_SSL_PASSWORD=whatever
     volumes:
-      - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./ssl-keystore-dev.p12:/iexec/ssl-keystore-dev.p12
     ports:
     - 18090:18090
     restart: on-failure

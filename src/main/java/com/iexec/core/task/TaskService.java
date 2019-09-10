@@ -4,7 +4,6 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
@@ -236,7 +235,7 @@ public class TaskService {
 
     private void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.RUNNING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED) > 0;
         boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2) {
@@ -457,7 +456,7 @@ public class TaskService {
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
             replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                    ReplicateStatus.RESULT_UPLOAD_REQUESTED, ReplicateStatusModifier.POOL_MANAGER);
+                    ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }

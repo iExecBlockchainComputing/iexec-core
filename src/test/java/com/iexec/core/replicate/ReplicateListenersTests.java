@@ -1,7 +1,7 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.listener.ReplicateListeners;
@@ -15,8 +15,8 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE;
-import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.mockito.ArgumentMatchers.any;
 
 public class ReplicateListenersTests {
@@ -50,7 +50,7 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -64,7 +64,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .newReplicateStatus(ReplicateStatus.CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE)
+                .replicateStatusUpdate(new ReplicateStatusUpdate(CONTRIBUTING, TASK_NOT_ACTIVE))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -75,13 +75,13 @@ public class ReplicateListenersTests {
     @Test
     public void shouldNotTriggerDetectOnchain() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
-        someStatuses.remove(CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE);
+        someStatuses.remove(CONTRIBUTING);
 
         for (ReplicateStatus randomStatus: someStatuses){
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -98,14 +98,15 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(uncompletableStatus)//CANT_CONTRIBUTE_SINCE_*, ...
+                    // CANT_CONTRIBUTE_SINCE_*, ...
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(uncompletableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
         Mockito.verify(replicatesService, Mockito.times(uncompletableStatuses.size()))
-                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED);
     }
 
     @Test
@@ -116,14 +117,15 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(completableStatus)//CREATED, ...
+                    // CREATED, ...
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(completableStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED);
     }
 
     @Test
@@ -131,7 +133,7 @@ public class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
-                .newReplicateStatus(FAILED)
+                .replicateStatusUpdate(new ReplicateStatusUpdate(FAILED))
                 .build();
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -149,7 +151,8 @@ public class ReplicateListenersTests {
             ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                     .chainTaskId(CHAIN_TASK_ID)
                     .walletAddress(WORKER_WALLET)
-                    .newReplicateStatus(randomStatus)//CREATED, ...
+                    // CREATED, ...
+                    .replicateStatusUpdate(new ReplicateStatusUpdate(randomStatus))
                     .build();
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);

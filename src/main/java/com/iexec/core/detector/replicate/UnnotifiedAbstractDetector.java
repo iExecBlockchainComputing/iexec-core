@@ -2,9 +2,8 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainReceipt;
-import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
@@ -13,7 +12,6 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Interceptor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,7 +20,6 @@ import java.util.Optional;
 import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
 
-@Slf4j
 @Service
 public abstract class UnnotifiedAbstractDetector {
 
@@ -46,6 +43,7 @@ public abstract class UnnotifiedAbstractDetector {
                                                        ReplicateStatus offchainCompleting,
                                                        ReplicateStatus offchainCompleted,
                                                        ChainContributionStatus onchainCompleted) {
+
         for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
@@ -56,7 +54,11 @@ public abstract class UnnotifiedAbstractDetector {
 
                 boolean isReplicateStatusCompleting = lastRelevantStatus.get().equals(offchainCompleting);
 
-                if (isReplicateStatusCompleting && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                boolean isReplicateStatusCompletingAndStatusTrueOnchain = isReplicateStatusCompleting &&
+                        iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(),
+                                                            onchainCompleted);
+
+                if (isReplicateStatusCompletingAndStatusTrueOnchain) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
@@ -77,13 +79,21 @@ public abstract class UnnotifiedAbstractDetector {
 
                 boolean isNotOffChainCompleted = !lastRelevantStatus.get().equals(offchainCompleted);//avoid eth node call if already contributed
 
-                if (isNotOffChainCompleted && iexecHubService.doesWishedStatusMatchesOnChainStatus(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (isNotOffChainCompleted && iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
         }
     }
 
+    /*
+     * This method should stay private. We need to insure that
+     * it is only called by the POOL_MANAGER.
+     * The POOL_MANAGER has already verified the status onchain
+     * in the caller method so this update can happen even if
+     * we couldn't get the metadata (block number) of the tx.
+     * In this case we put 0 as default block number.
+     */
     private void updateReplicateStatuses(String chainTaskId, Replicate replicate, ReplicateStatus offchainCompleted) {
         List<ReplicateStatus> statusesToUpdate;
         if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
@@ -99,20 +109,23 @@ public abstract class UnnotifiedAbstractDetector {
             switch (statusToUpdate) {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
-                    ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId, wallet, web3jService.getLatestBlockNumber());
+                    ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
+                            wallet, web3jService.getLatestBlockNumber());
+                    long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber(): 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, ReplicateDetails.builder().chainReceipt(contributedBlock).build());
+                            statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
                     break;
                 case REVEALED:
                     // retrieve the reveal block for that wallet
-                    ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet, web3jService.getLatestBlockNumber());
+                    ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
+                            web3jService.getLatestBlockNumber());
+                    long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER, ReplicateDetails.builder().chainReceipt(revealedBlock).build());
+                            statusToUpdate, new ReplicateStatusDetails(revealedBlockNumber));
                     break;
                 default:
                     // by default, no need to retrieve anything
-                    replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, ReplicateStatusModifier.POOL_MANAGER);
+                    replicatesService.updateReplicateStatus(chainTaskId, wallet, statusToUpdate);
 
             }
 

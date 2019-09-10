@@ -27,6 +27,7 @@ public class Worker {
     private List<String> computingChainTaskIds;
 
     private Date lastAliveDate;
+    private Date lastReplicateDemandDate;
 
     public Worker() {
         participatingChainTaskIds = new ArrayList<>();

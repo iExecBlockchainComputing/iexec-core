@@ -2,15 +2,18 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.notification.TaskNotification;
-import com.iexec.common.replicate.ReplicateDetails;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.security.JwtTokenProvider;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,13 +27,16 @@ public class ReplicatesController {
     private ReplicatesService replicatesService;
     private ReplicateSupplyService replicateSupplyService;
     private JwtTokenProvider jwtTokenProvider;
+    private WorkerService workerService;
 
     public ReplicatesController(ReplicatesService replicatesService,
                                 ReplicateSupplyService replicateSupplyService,
-                                JwtTokenProvider jwtTokenProvider) {
+                                JwtTokenProvider jwtTokenProvider,
+                                WorkerService workerService) {
         this.replicatesService = replicatesService;
         this.replicateSupplyService = replicateSupplyService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.workerService = workerService;
     }
 
     @GetMapping("/replicates/available")
@@ -40,6 +46,11 @@ public class ReplicatesController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
+
+        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)){
+            return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
+        }
+        workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
         // get contributionAuthorization if a replicate is available
         Optional<ContributionAuthorization> oAuthorization = replicateSupplyService
@@ -67,11 +78,10 @@ public class ReplicatesController {
     }
 
     @PostMapping("/replicates/{chainTaskId}/updateStatus")
-    public ResponseEntity<String> updateReplicateStatus(
-            @PathVariable(name = "chainTaskId") String chainTaskId,
-            @RequestParam(name = "replicateStatus") ReplicateStatus replicateStatus,
+    public ResponseEntity<TaskNotificationType> updateReplicateStatus(
             @RequestHeader("Authorization") String bearerToken,
-            @RequestBody ReplicateDetails details) {
+            @PathVariable(name = "chainTaskId") String chainTaskId,
+            @RequestBody ReplicateStatusUpdate statusUpdate) {
 
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
@@ -79,10 +89,14 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
-        log.info("UpdateReplicateStatus requested [chainTaskId:{}, replicateStatus:{}, walletAddress:{}]",
-                chainTaskId, replicateStatus, walletAddress);
+        statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
+        statusUpdate.setDate(new Date());
+        statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        replicatesService.updateReplicateStatus(chainTaskId, walletAddress, replicateStatus, ReplicateStatusModifier.WORKER, details);
-        return ResponseEntity.ok().build();
+        Optional<TaskNotificationType> oTaskNotificationType =
+                replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
+
+        return oTaskNotificationType.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build());
     }
 }

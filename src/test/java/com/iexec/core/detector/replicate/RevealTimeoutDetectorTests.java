@@ -1,6 +1,7 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
@@ -126,7 +127,7 @@ public class RevealTimeoutDetectorTests {
                 .getReplicates(Mockito.any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
         Mockito.verify(iexecHubService, Mockito.times(0))
                 .reOpen(Mockito.any());
@@ -181,6 +182,6 @@ public class RevealTimeoutDetectorTests {
         revealDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 }

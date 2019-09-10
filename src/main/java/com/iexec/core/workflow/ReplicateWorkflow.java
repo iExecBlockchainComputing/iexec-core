@@ -1,126 +1,26 @@
 package com.iexec.core.workflow;
 
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 
-import java.util.Arrays;
-import java.util.List;
-
+import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
+    private Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
 
     private ReplicateWorkflow() {
         super();
-
-        // This is where the whole workflow is defined
-        addTransition(CREATED, toList(RUNNING, RECOVERING));
-        addTransition(RUNNING, toList(APP_DOWNLOADING, RECOVERING));
-        addTransition(RUNNING, getCantContributeStatus());
-
-        // app
-        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED, RECOVERING));
-
-        addTransition(APP_DOWNLOAD_FAILED, toList(
-                // DATA_DOWNLOADING,
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
-                CAN_CONTRIBUTE));
-
-        addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING, RECOVERING));
-        addTransition(APP_DOWNLOADED, getCantContributeStatus());
-
-        // data
-        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED, RECOVERING));
-
-        addTransition(DATA_DOWNLOAD_FAILED, toList(
-                // COMPUTING,
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
-                CAN_CONTRIBUTE));
-
-        addTransition(DATA_DOWNLOADED, toList(COMPUTING, RECOVERING));
-        addTransition(DATA_DOWNLOADED, getCantContributeStatus());
-
-        // computation
-        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED, RECOVERING));
-
-        addTransition(COMPUTED, toList(
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_TEE_EXECUTION_NOT_VERIFIED,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
-                CAN_CONTRIBUTE,
-                RECOVERING));
-
-        addTransition(COMPUTE_FAILED, toList(
-                CANT_CONTRIBUTE_SINCE_DETERMINISM_HASH_NOT_FOUND,
-                CANT_CONTRIBUTE_SINCE_TEE_EXECUTION_NOT_VERIFIED,
-                CANT_CONTRIBUTE_SINCE_CHAIN_UNREACHABLE,
-                CANT_CONTRIBUTE_SINCE_STAKE_TOO_LOW,
-                CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE,
-                CANT_CONTRIBUTE_SINCE_AFTER_DEADLINE,
-                CANT_CONTRIBUTE_SINCE_CONTRIBUTION_ALREADY_SET,
-                CAN_CONTRIBUTE,
-                RECOVERING));
-
-        // contribution
-        addTransition(CAN_CONTRIBUTE, toList(CONTRIBUTING, OUT_OF_GAS, RECOVERING));
-        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED, RECOVERING));
-        addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONTRIBUTION_TIMEOUT);
-        addTransitionFromStatusBeforeContributedToGivenStatus(ABORTED_ON_CONSENSUS_REACHED);
-
-        // reveal - completed
-        addTransition(CONTRIBUTED, toList(REVEALING, CANT_REVEAL, REVEAL_TIMEOUT, OUT_OF_GAS, RECOVERING));
-        addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED, REVEAL_TIMEOUT, RECOVERING));
-        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETED, RECOVERING));
-        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, RECOVERING));
-        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, RECOVERING));
-        addTransition(RESULT_UPLOADED, COMPLETED);
-
-        /*
-        * From to FAILED
-        * From uncompletable status to generic FAILED
-        */
-        addTransition(getUncompletableStatuses(),FAILED);
-        addTransition(Arrays.asList(
-                WORKER_LOST,                    //could happen if uncompletableStatus (-> WORKER_LOST) -> FAILED
-                RECOVERING                      //could happen if uncompletableStatus (-> RECOVERING) -> FAILED
-        ),FAILED);
-
-        /*
-        * From to WORKER_LOST
-        * From completable status to WORKER_LOST
-        * from2workerLost = allCompletableStatuses - from2failed
-        */
-        addTransition(getCompletableStatuses(), WORKER_LOST);
-        addTransition(Arrays.asList(
-                //COMPLETED,                    //no WORKER_LOST after COMPLETED
-                //FAILED,                       //no WORKER_LOST after FAILED
-                RECOVERING                      //could happen if completableStatus (-> RECOVERING) -> WORKER_LOST
-        ), WORKER_LOST);
-
-        /*
-         * TODO: From to RECOVERING
-         * From completable status to RECOVERING
-         */
-        addTransitionFromStatusToAllStatuses(RECOVERING);
-
-
-        addTransition(RECOVERING, COMPLETED);
+        setWorkflowTransitions();
+        setNextActions();
     }
 
     public static synchronized ReplicateWorkflow getInstance() {
@@ -130,13 +30,169 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         return instance;
     }
 
-    private void addTransitionFromStatusBeforeContributedToGivenStatus(ReplicateStatus to) {
-        for (ReplicateStatus from : getStatusesBeforeContributed()) {
-            addTransition(from, to);
-        }
+    public Map<ReplicateStatus, TaskNotificationType> getActionMap() {
+        return actionMap;
+    }
 
-        addTransition(CONTRIBUTED, to);
-        addTransition(OUT_OF_GAS, to);
-        addTransition(WORKER_LOST, to);
+    /*
+     * This is where the whole workflow is defined
+     */
+    private void setWorkflowTransitions() {
+        setDefaultWorkflowTransitions();
+        addTransitionsToFailed();
+        addWorkerLostTransitions();
+        addRecoveringTransitions();
+        addAbortedTransitions();
+    }
+
+    private void setDefaultWorkflowTransitions() {
+        // start
+        addTransition(CREATED,      toList(STARTING));
+        addTransition(STARTING,     toList(STARTED, START_FAILED));
+        addTransition(STARTED,      toList(APP_DOWNLOADING));
+
+        // app
+        addTransition(APP_DOWNLOADING,      toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+        addTransition(APP_DOWNLOAD_FAILED,  toList(CONTRIBUTING));
+        addTransition(APP_DOWNLOADED,       toList(DATA_DOWNLOADING));
+
+        // data
+        addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
+        addTransition(DATA_DOWNLOAD_FAILED, toList(CONTRIBUTING));
+        addTransition(DATA_DOWNLOADED, toList(COMPUTING));
+
+        // computation
+        addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
+        addTransition(COMPUTED, CONTRIBUTING);
+
+        // contribution
+        addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
+        addTransition(CONTRIBUTED, toList(REVEALING));
+        // addTransition(CONTRIBUTED, toList(REVEAL_FAILED));
+
+        // reveal
+        addTransition(REVEALING, toList(REVEALED, REVEAL_FAILED));
+        addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING));
+
+        // result upload
+        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED));
+        addTransition(RESULT_UPLOAD_REQUEST_FAILED, toList(COMPLETING));
+        addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED));
+        addTransition(RESULT_UPLOAD_FAILED, toList(COMPLETING));
+        addTransition(RESULT_UPLOADED, toList(COMPLETING));
+
+        // complete
+        addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED));
+    }
+
+    /*
+     * At the end of a task, all replicates that have not been completed
+     * should update their statuses to FAILED.
+     * We should only have COMPLETED and FAILED as final statuses.
+     */
+    private void addTransitionsToFailed() {
+        List<ReplicateStatus> abortable = getFailableStatuses();
+        addTransition(abortable, FAILED);
+        addTransition(WORKER_LOST, FAILED);     // when <status> -> WORKER_LOST -> FAILED
+        addTransition(RECOVERING, FAILED);      // when <status> -> RECOVERING  -> FAILED
+    }
+
+    /*
+     * - Default*   ---                   --- Default
+     * - RECOVERING ---|-- WORKER_LOST --|--- RECOVERING
+     * - ABORTED    ---                   --- ABORTED
+     * 
+     * (*) except COMPLETED and FAILED
+     */
+    private void addWorkerLostTransitions() {
+        List<ReplicateStatus> defaultStatuses = getWorkflowStatuses();
+        List<ReplicateStatus> defaultNonFinal = getNonFinalWorkflowStatuses();
+
+        addTransition(defaultNonFinal, WORKER_LOST);
+        addTransition(RECOVERING, WORKER_LOST);
+        addTransition(ABORTED, WORKER_LOST);
+
+        addTransition(WORKER_LOST, defaultStatuses);
+        addTransition(WORKER_LOST, RECOVERING);
+        addTransition(WORKER_LOST, ABORTED);
+    }
+
+    /*
+     * - Recoverable ---                   All statuses 
+     *                  |-- RECOVERING --| except CREATED,
+     * - WORKER_LOST ---                   STARTING
+     */
+    private void addRecoveringTransitions() {
+        List<ReplicateStatus> recoverable = getRecoverableStatuses();
+        List<ReplicateStatus> all = Arrays.asList(ReplicateStatus.values());
+
+        addTransition(recoverable, RECOVERING);
+        addTransition(WORKER_LOST, RECOVERING);
+
+        addTransition(RECOVERING, all);
+        removeTransition(RECOVERING, CREATED);
+        removeTransition(RECOVERING, STARTING);
+    }
+
+    /*
+     * Default*    ---                 --- COMPLETED
+     *                |--- ABORTED ---|
+     * WORKER_LOST ---                 --- FAILED
+     * 
+     * (*) except COMPLETED and FAILED
+     */
+    private void addAbortedTransitions() {
+        List<ReplicateStatus> abortable = getAbortableStatuses();
+
+        addTransition(abortable, ABORTED);
+        addTransition(WORKER_LOST, ABORTED);
+
+        addTransition(ABORTED, COMPLETED);
+        addTransition(ABORTED, FAILED);
+    }
+
+    private void setNextAction(ReplicateStatus whenStatus, TaskNotificationType nextAction) {
+        actionMap.putIfAbsent(whenStatus, nextAction);
+    }
+
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
+        if (actionMap.containsKey(whenStatus)){
+            return actionMap.get(whenStatus);
+        }
+        return null;
+    }
+
+    private void setNextActions() {
+        setNextAction(STARTING, PLEASE_CONTINUE);
+        setNextAction(STARTED, PLEASE_DOWNLOAD_APP);
+        setNextAction(START_FAILED, PLEASE_ABORT);
+
+        setNextAction(APP_DOWNLOADING, PLEASE_CONTINUE);
+        setNextAction(APP_DOWNLOADED, PLEASE_DOWNLOAD_DATA);
+        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
+
+        setNextAction(DATA_DOWNLOADING, PLEASE_CONTINUE);
+        setNextAction(DATA_DOWNLOADED, PLEASE_COMPUTE);
+        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
+
+        setNextAction(COMPUTING, PLEASE_CONTINUE);
+        setNextAction(COMPUTED, PLEASE_CONTRIBUTE);
+        setNextAction(COMPUTE_FAILED, PLEASE_ABORT);
+
+        setNextAction(CONTRIBUTING, PLEASE_CONTINUE);
+        setNextAction(CONTRIBUTED, PLEASE_WAIT);
+        setNextAction(CONTRIBUTE_FAILED, PLEASE_ABORT);
+
+        setNextAction(REVEALING, PLEASE_CONTINUE);
+        setNextAction(REVEALED, PLEASE_WAIT);
+        setNextAction(REVEAL_FAILED, PLEASE_ABORT);
+
+        setNextAction(RESULT_UPLOADING, PLEASE_CONTINUE);
+        setNextAction(RESULT_UPLOADED, PLEASE_WAIT);
+        setNextAction(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
+
+        setNextAction(COMPLETING, PLEASE_CONTINUE);
+        setNextAction(COMPLETED, PLEASE_WAIT);
+        setNextAction(COMPLETE_FAILED, PLEASE_ABORT);
     }
 }

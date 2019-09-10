@@ -1,13 +1,13 @@
 package com.iexec.core.detector;
 
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 @Service
@@ -30,9 +30,8 @@ public class WorkerLostDetector implements Detector {
 
             for (String chainTaskId : worker.getParticipatingChainTaskIds()) {
                 replicatesService.getReplicate(chainTaskId, workerWallet).ifPresent(replicate -> {
-                    if (!replicate.getCurrentStatus().equals(ReplicateStatus.WORKER_LOST)) {
-                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet,
-                                ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+                    if (!replicate.getCurrentStatus().equals(WORKER_LOST)) {
+                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet, WORKER_LOST);
                     }
                 });
             }

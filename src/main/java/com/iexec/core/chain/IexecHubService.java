@@ -49,7 +49,7 @@ public class IexecHubService extends IexecHubAbstractService {
         this.poolAddress = chainConfig.getPoolAddress();
     }
 
-    public boolean doesWishedStatusMatchesOnChainStatus(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
+    public boolean isStatusTrueOnChain(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
 
         Optional<ChainContribution> optional = getChainContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {

@@ -3,6 +3,7 @@ package com.iexec.core.chain;
 import com.iexec.common.chain.ChainApp;
 import com.iexec.common.chain.ChainCategory;
 import com.iexec.common.chain.ChainDeal;
+import com.iexec.common.chain.DealParams;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -88,7 +89,7 @@ public class DealWatcherServiceTests {
                 .botSize(BigInteger.valueOf(1))
                 .chainApp(chainApp)
                 .chainCategory(chainCategory)
-                .params(Arrays.asList("param1"))
+                .params(DealParams.builder().iexecArgs("args").build())
                 .trust(BigInteger.valueOf(3))
                 .build();
 
