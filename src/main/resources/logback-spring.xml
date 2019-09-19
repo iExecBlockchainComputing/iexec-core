@@ -2,16 +2,19 @@
 <configuration>
 
     <!-- Default -->
-    <property name="LOG_LEVEL" value="${IEXEC_LOG_LEVEL:-info}"/>
+    <property name="LOG_LEVEL" value="${IEXEC_LOG_LEVEL:-INFO}"/>
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
     <logger name="org.springframework.web" level="${LOG_LEVEL}"/>
 
     <!-- Graylog -->
+    <springProperty name="graylogHost" source="graylog.host"/>
+    <springProperty name="graylogPort" source="graylog.port"/>
     <appender name="gelf" class="biz.paluch.logging.gelf.logback.GelfLogbackAppender">
-        <host>localhost</host>
-        <port>12201</port>
+        <host>${graylogHost}</host>
+        <port>${graylogPort}</port>
     </appender>
-    <root level="INFO">
+
+    <root level="${LOG_LEVEL}">
         <appender-ref ref="gelf"/>
     </root>
 
