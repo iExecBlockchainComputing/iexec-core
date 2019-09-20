@@ -9,7 +9,7 @@
     <!-- Graylog -->
     <springProperty name="graylogHost" source="graylog.host"/>
     <springProperty name="graylogPort" source="graylog.port"/>
-    <appender name="gelf" class="biz.paluch.logging.gelf.logback.GelfLogbackAppender">
+    <appender name="gelf" class="com.iexec.core.log.IexecGelfLogbackAppender">
         <host>${graylogHost}</host>
         <port>${graylogPort}</port>
     </appender>
