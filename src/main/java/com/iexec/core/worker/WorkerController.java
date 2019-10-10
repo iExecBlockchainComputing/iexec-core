@@ -136,6 +136,7 @@ public class WorkerController {
                 .blockchainURL(chainConfig.getPublicChainAddress())
                 .iexecHubAddress(chainConfig.getHubAddress())
                 .workerPoolAddress(chainConfig.getPoolAddress())
+                .isSidechain(chainConfig.isSidechain())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .smsURL(smsConfiguration.getSmsURL())
