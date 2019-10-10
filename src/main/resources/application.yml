@@ -45,6 +45,7 @@ wallet:
 
 chain:
   id: ${IEXEC_CHAIN_ID:17}
+  sidechain: ${IEXEC_IS_SIDECHAIN:false}
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
   hubAddress: ${IEXEC_HUB_ADDRESS:0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC}

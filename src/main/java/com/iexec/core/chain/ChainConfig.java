@@ -15,6 +15,9 @@ public class ChainConfig {
     @Value("${chain.id}")
     private Integer chainId;
 
+    @Value("${chain.sidechain}")
+    private boolean isSidechain;
+
     @Value("${chain.privateAddress}")
     private String privateChainAddress;
 
