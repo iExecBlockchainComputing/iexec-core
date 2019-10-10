@@ -1,6 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.contract.generated.mainnet.IexecClerkABILegacy;
+import com.iexec.common.contract.generated.IexecClerkABILegacy;
 import com.iexec.common.utils.BytesUtils;
 import lombok.Builder;
 import lombok.Data;
