@@ -1,13 +1,12 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ContributionAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateDetails;
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusChange;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
@@ -31,6 +30,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -156,6 +156,31 @@ public class ReplicateSupplyServiceTests {
         runningTask1.changeStatus(RUNNING);
 
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(false);
+        when(taskService.getInitializedOrRunningTasks())
+                .thenReturn(Collections.singletonList(runningTask1));
+
+        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        assertThat(oAuthorization).isEmpty();
+        assertTaskAccessForNewReplicateLockNeverUsed();
+    }
+
+    @Test
+    public void shouldNotGetAnyReplicateSinceWorkerDoesNotHaveEnoughGas() {
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(1)
+                .lastAliveDate(new Date())
+                .build();
+
+        when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
+        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 3, CHAIN_TASK_ID);
+        runningTask1.changeStatus(RUNNING);
+
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(false);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
 
@@ -187,6 +212,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -225,6 +251,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -258,6 +285,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -294,6 +322,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -339,6 +368,7 @@ public class ReplicateSupplyServiceTests {
 
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         List<Task> tasks = new ArrayList<>();
         tasks.add(task1);
         tasks.add(taskDeadlineReached);
@@ -418,6 +448,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -436,8 +467,6 @@ public class ReplicateSupplyServiceTests {
                 .addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking();
     }
-
-
 
     @Test
     public void shouldGetReplicateWithTee() {
@@ -462,6 +491,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
@@ -536,6 +566,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(web3jService.getLatestBlockNumber()).thenReturn(coreLastBlock);
         when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -579,7 +610,7 @@ public class ReplicateSupplyServiceTests {
 
         assertThat(list).isEmpty();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any());
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -602,7 +633,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-            .updateReplicateStatus(any(), any(), any(), any());
+            .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
 
@@ -627,8 +658,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -655,8 +685,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -664,7 +693,7 @@ public class ReplicateSupplyServiceTests {
     // Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
     public void shouldTellReplicateToWaitSinceContributedOnchain() {
         long blockNumber = 3;
-        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
@@ -689,12 +718,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // CONTRIBUTED
+                        any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -702,7 +729,7 @@ public class ReplicateSupplyServiceTests {
     // Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
     public void shouldTellReplicateToRevealSinceConsensusReached() {
         long blockNumber = 3;
-        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
@@ -727,12 +754,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.POOL_MANAGER,
-                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // RECOVERING
+                        any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -757,8 +782,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -784,8 +808,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -809,8 +832,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -837,8 +859,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -846,7 +867,7 @@ public class ReplicateSupplyServiceTests {
     // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
     public void shouldTellReplicateToWaitSinceRevealed() {
         long blockNumber = 3;
-        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
@@ -874,12 +895,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
+                        any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -887,7 +906,7 @@ public class ReplicateSupplyServiceTests {
     // RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
     public void shouldTellReplicateToUploadResultSinceRequestedAfterRevealing() {
         long blockNumber = 3;
-        ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
+        // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
@@ -915,12 +934,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.REVEALED, ReplicateStatusModifier.POOL_MANAGER,
-                        ReplicateDetails.builder().chainReceipt(chainReceipt).build());
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
+                        any(ReplicateStatusDetails.class));
     }
 
     @Test
@@ -944,8 +961,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -971,8 +987,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -999,12 +1014,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
     }
 
     @Test
@@ -1030,12 +1043,10 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
     }
 
     @Test
@@ -1061,8 +1072,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -1071,7 +1081,7 @@ public class ReplicateSupplyServiceTests {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
-        replicate.get().updateStatus(ReplicateStatus.RESULT_UPLOADED, null);
+        replicate.get().updateStatus(ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
@@ -1090,8 +1100,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -1121,8 +1130,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_COMPLETE);
 
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     @Test
@@ -1144,8 +1152,7 @@ public class ReplicateSupplyServiceTests {
         assertThat(missedTaskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                        ReplicateStatus.RECOVERING, ReplicateStatusModifier.POOL_MANAGER);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RECOVERING);
     }
 
     List<Task> getStubTaskList(TaskStatus status) {
@@ -1161,7 +1168,7 @@ public class ReplicateSupplyServiceTests {
         Replicate replicate = new Replicate();
         replicate.setWalletAddress(WALLET_WORKER_1);
         replicate.setChainTaskId(CHAIN_TASK_ID);
-        replicate.setStatusChangeList(new ArrayList<ReplicateStatusChange>());
+        replicate.setStatusUpdateList(new ArrayList<ReplicateStatusUpdate>());
         replicate.updateStatus(status, ReplicateStatusModifier.WORKER);
         return Optional.of(replicate);
     }

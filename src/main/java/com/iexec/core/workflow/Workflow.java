@@ -57,6 +57,17 @@ public class Workflow<T> {
         addTransition(status, to);
     }
 
+    void removeTransition(T from, T to) {
+        if(!possibleTransitions.containsKey(from)) {
+            return;
+        }
+
+        List<T> list = possibleTransitions.get(from);
+        if (list != null && list.contains(to)) {
+            list.remove(to);
+        }
+    }
+
     public boolean isValidTransition(T from, T to){
         return possibleTransitions.containsKey(from)
             ? possibleTransitions.get(from).contains(to)

@@ -1,7 +1,7 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusCause;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+
 import lombok.*;
 
 @Data
@@ -14,6 +14,5 @@ public class ReplicateUpdatedEvent {
 
     private String chainTaskId;
     private String walletAddress;
-    private ReplicateStatus newReplicateStatus;
-    private ReplicateStatusCause newReplicateStatusCause;
+    private ReplicateStatusUpdate replicateStatusUpdate;
 }

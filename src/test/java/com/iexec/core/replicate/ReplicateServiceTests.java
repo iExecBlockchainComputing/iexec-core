@@ -1,7 +1,9 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
@@ -17,6 +19,7 @@ import org.web3j.crypto.Credentials;
 import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusModifier.*;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
@@ -344,13 +347,24 @@ public class ReplicateServiceTests {
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(2);
 
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
+        ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .details(details)
+                .build();
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                CONTRIBUTED, ReplicateStatusModifier.WORKER);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
-        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, CONTRIBUTED, null));
+
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(CONTRIBUTED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
+                .isEqualTo(10);
+
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
     }
 
@@ -358,8 +372,7 @@ public class ReplicateServiceTests {
     public void shouldNotUpdateReplicateStatusSinceNoReplicateList(){
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                REVEALING, ReplicateStatusModifier.WORKER);
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, new ReplicateStatusUpdate(REVEALING));
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
@@ -375,8 +388,12 @@ public class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         // Call on a different worker
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2,
-                REVEALING, ReplicateStatusModifier.WORKER);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALING)
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate);
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
@@ -384,15 +401,19 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceInvalidWorkflowTransition(){
+    public void shouldNotUpdateReplicateStatusSinceInvalidWorkflowTransition() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                REVEALED, ReplicateStatusModifier.WORKER);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALED)
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
@@ -409,8 +430,12 @@ public class ReplicateServiceTests {
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
@@ -429,8 +454,14 @@ public class ReplicateServiceTests {
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .details(details)
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
 
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
                 .publishEvent(any());
@@ -453,8 +484,14 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .details(details)
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
 
         Mockito.verify(applicationEventPublisher, Mockito.times(0))
                 .publishEvent(any());
@@ -485,14 +522,25 @@ public class ReplicateServiceTests {
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
+        ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALED)
+                .details(details)
+                .build();
 
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1,
-                REVEALED, ReplicateStatusModifier.WORKER);
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
 
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
-        //assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateComputedEvent(replicate));
-        assertThat(argumentCaptor.getAllValues().get(0)).isEqualTo(new ReplicateUpdatedEvent(replicate.getChainTaskId(), WALLET_WORKER_1, REVEALED, null));
+
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(REVEALED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
+                .isEqualTo(10);
+
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
     }
 
