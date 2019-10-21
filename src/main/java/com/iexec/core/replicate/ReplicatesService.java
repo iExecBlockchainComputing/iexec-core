@@ -401,6 +401,11 @@ public class ReplicatesService {
             return true;
         }
 
+        // currently no need to check resultLink on TEE task since result uploaded to a private space
+        if (iexecHubService.isTeeTask(chainTaskId)) {
+            return true;
+        }
+
         Optional<Eip712Challenge> oEip712Challenge = resultRepoService.getChallenge();
         if (!oEip712Challenge.isPresent()) return false;
 
