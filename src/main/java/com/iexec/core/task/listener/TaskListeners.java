@@ -52,6 +52,7 @@ public class TaskListeners {
         List<String> workerAddresses = new ArrayList<>();
         for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
             workerAddresses.add(replicate.getWalletAddress());
+            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }
 
         notificationService.sendTaskNotification(TaskNotification.builder()
