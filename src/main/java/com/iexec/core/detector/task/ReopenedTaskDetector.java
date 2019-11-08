@@ -36,7 +36,7 @@ public class ReopenedTaskDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.task.finalized.unnotified.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect reopened tasks");
+        log.debug("Trying to detect reopened tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.REOPENING)) {
             Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
             if (!oChainTask.isPresent()){

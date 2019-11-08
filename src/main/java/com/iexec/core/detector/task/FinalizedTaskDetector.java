@@ -36,7 +36,7 @@ public class FinalizedTaskDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.task.finalized.unnotified.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect finalized tasks");
+        log.debug("Trying to detect finalized tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.FINALIZING)) {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
             if (chainTask.isPresent() && chainTask.get().getStatus().equals(ChainTaskStatus.COMPLETED)) {

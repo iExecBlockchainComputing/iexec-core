@@ -28,7 +28,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.contribution.timeout.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect contribution timeout");
+        log.debug("Trying to detect contribution timeout");
         for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {

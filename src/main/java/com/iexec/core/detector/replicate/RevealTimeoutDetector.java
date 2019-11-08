@@ -1,6 +1,5 @@
 package com.iexec.core.detector.replicate;
 
-import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -16,11 +15,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADED;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
-import static com.iexec.core.task.TaskStatus.RESULT_UPLOAD_REQUESTED;
 
 @Slf4j
 @Service

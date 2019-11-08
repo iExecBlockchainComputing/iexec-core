@@ -36,7 +36,7 @@ public class InitializedTaskDetector implements Detector {
     @Scheduled(fixedRateString = "${detector.task.initialized.unnotified.period}")
     @Override
     public void detect() {
-        log.info("Trying to detect initialized tasks");
+        log.debug("Trying to detect initialized tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.INITIALIZING)) {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
             if(chainTask.isPresent() && !chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
