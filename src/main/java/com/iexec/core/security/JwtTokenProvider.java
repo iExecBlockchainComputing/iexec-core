@@ -47,6 +47,20 @@ public class JwtTokenProvider {
         return null;
     }
 
+    /*
+     * IMPORTANT /!\
+     * Having the same validity duration for both challenge
+     * and jwtoken can cause a problem. The latter should be
+     * slightly longer (in minutes). In this case the challenge
+     * is valid for 60 minutes while jwtoken stays valid
+     * for 65 minutes.
+     * 
+     * Problem description:
+     *  1) jwt expires
+     *  2) worker gets old challenge
+     *  3) old challenge expires
+     *  4) worker tries logging with old challenge
+     */
     public boolean isValidToken(String token) {
 
         try {
@@ -56,7 +70,7 @@ public class JwtTokenProvider {
 
             // check the expiration date
             Date now = new Date();
-            long validityInMilliseconds = 1000L * 60 * 60; // 1h
+            long validityInMilliseconds = 1000L * 60 * 65; // 65 minutes
             Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
 
             // check the content of the challenge
