@@ -163,12 +163,12 @@ public class WorkerService {
         }
 
         Worker worker = optionalWorker.get();
-        int workerCpuNb = worker.getCpuNb();
+        int workerMaxNbTasks = worker.getMaxNbTasks();
         int runningReplicateNb = worker.getComputingChainTaskIds().size();
 
-        if (runningReplicateNb >= workerCpuNb) {
-            log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerCpuNb:{}]",
-                    walletAddress, runningReplicateNb, workerCpuNb);
+        if (runningReplicateNb >= workerMaxNbTasks) {
+            log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
+                    walletAddress, runningReplicateNb, workerMaxNbTasks);
             return false;
         }
 
@@ -177,7 +177,11 @@ public class WorkerService {
 
     public int getAliveAvailableCpu() {
         int availableCpus = 0;
-        for (Worker worker: getAliveWorkers()){
+        for (Worker worker: getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
+                continue;
+            }
+
             int workerCpuNb = worker.getCpuNb();
             int computingReplicateNb = worker.getComputingChainTaskIds().size();
             int availableCpu = workerCpuNb - computingReplicateNb;
@@ -189,8 +193,35 @@ public class WorkerService {
     public int getAliveTotalCpu() {
         int totalCpus = 0;
         for (Worker worker: getAliveWorkers()){
+            if(worker.isGpuEnabled()) {
+                continue;
+            }
             totalCpus+= worker.getCpuNb();
         }
         return totalCpus;
+    }
+
+    // We suppose for now that 1 Gpu enabled worker has only one GPU
+    public int getAliveTotalGpu() {
+        int totalGpus = 0;
+        for(Worker worker: getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
+                totalGpus++;
+            }
+        }
+        return totalGpus;
+    }
+
+    private int aliveAvailableGpu () {
+        int availableGpus = getAliveTotalGpu();
+        for (Worker worker: getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
+                boolean isWorking = !worker.getComputingChainTaskIds().isEmpty();
+                if (isWorking) {
+                    availableGpus = availableGpus - 1;
+                }
+            }
+        }
+        return availableGpus;
     }
 }
