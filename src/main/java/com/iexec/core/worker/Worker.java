@@ -4,12 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 @Data
+@Document
 @AllArgsConstructor
 @Builder
 public class Worker {
@@ -17,7 +20,10 @@ public class Worker {
     @Id
     private String id;
     private String name;
+
+    @Indexed(unique = true)
     private String walletAddress;
+
     private String os;
     private String cpu;
     private int cpuNb;
