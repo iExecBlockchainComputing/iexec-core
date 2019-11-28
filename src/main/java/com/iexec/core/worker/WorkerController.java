@@ -111,14 +111,19 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
+        // if it is a GPU worker, it can process only 1 task at a time, otherwise it can process cpuNb
+        int maxNbTasks = model.isGpuEnabled() ? 1 : model.getCpuNb();
+
         Worker worker = Worker.builder()
                 .name(model.getName())
                 .walletAddress(workerWalletAddress)
                 .os(model.getOs())
                 .cpu(model.getCpu())
                 .cpuNb(model.getCpuNb())
+                .maxNbTasks(maxNbTasks)
                 .memorySize(model.getMemorySize())
                 .teeEnabled(model.isTeeEnabled())
+                .gpuEnabled(model.isGpuEnabled())
                 .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())

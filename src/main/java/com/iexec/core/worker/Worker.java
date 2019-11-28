@@ -27,8 +27,10 @@ public class Worker {
     private String os;
     private String cpu;
     private int cpuNb;
+    private int maxNbTasks;
     private int memorySize;
     private boolean teeEnabled;
+    private boolean gpuEnabled;
     private List<String> participatingChainTaskIds;
     private List<String> computingChainTaskIds;
 

@@ -442,6 +442,8 @@ public class WorkerServiceTests {
         return Worker.builder()
                 .walletAddress(walletAddress)
                 .cpuNb(cpuNb)
+                .maxNbTasks(cpuNb)
+                .gpuEnabled(false)
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
