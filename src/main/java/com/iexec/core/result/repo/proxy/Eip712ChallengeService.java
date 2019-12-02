@@ -9,6 +9,7 @@ import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -50,11 +51,7 @@ public class Eip712ChallengeService {
     }
 
     void invalidateEip712ChallengeString(String eip712ChallengeString) {
-        for (Map.Entry<Integer, String> entry : challengeMap.entrySet()) {
-            if (entry.getValue().equals(eip712ChallengeString)) {
-                challengeMap.remove(entry.getKey());
-            }
-        }
+        challengeMap.entrySet().removeIf(entry -> entry.getValue().equals(eip712ChallengeString));
     }
 
 }
