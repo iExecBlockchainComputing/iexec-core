@@ -29,6 +29,8 @@ public class MetricService {
                 .aliveWorkers(workerService.getAliveWorkers().size())
                 .aliveTotalCpu(workerService.getAliveTotalCpu())
                 .aliveAvailableCpu(workerService.getAliveAvailableCpu())
+                .aliveTotalGpu(workerService.getAliveTotalGpu())
+                .aliveAvailableGpu(workerService.getAliveAvailableGpu())
                 .completedTasks(taskService.findByCurrentStatus(TaskStatus.COMPLETED).size())
                 .build();
     }
