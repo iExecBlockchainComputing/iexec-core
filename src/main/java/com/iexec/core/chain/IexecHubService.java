@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.RemoteCall;
+import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
@@ -23,7 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.chain.ChainContributionStatus.*;
+import static com.iexec.common.chain.ChainContributionStatus.CONTRIBUTED;
+import static com.iexec.common.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
 import static com.iexec.common.utils.BytesUtils.stringToBytes;
@@ -50,7 +52,6 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     public boolean isStatusTrueOnChain(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
-
         Optional<ChainContribution> optional = getChainContribution(chainTaskId, walletAddress);
         if (!optional.isPresent()) {
             return false;
@@ -60,23 +61,14 @@ public class IexecHubService extends IexecHubAbstractService {
         ChainContributionStatus chainStatus = chainContribution.getStatus();
         switch (wishedStatus) {
             case CONTRIBUTED:
-                if (chainStatus.equals(UNSET)) {
-                    return false;
-                } else {
-                    // has at least contributed
-                    return chainStatus.equals(CONTRIBUTED) || chainStatus.equals(REVEALED);
-                }
+                // has at least contributed
+                return chainStatus.equals(CONTRIBUTED) || chainStatus.equals(REVEALED);
             case REVEALED:
-                if (chainStatus.equals(CONTRIBUTED)) {
-                    return false;
-                } else {
-                    // has at least revealed
-                    return chainStatus.equals(REVEALED);
-                }
+                // has at least revealed
+                return chainStatus.equals(REVEALED);
             default:
-                break;
+                return false;
         }
-        return false;
     }
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
@@ -142,9 +134,7 @@ public class IexecHubService extends IexecHubAbstractService {
             initializeEvent = initializeEvents.get(0);
         }
 
-        if (initializeEvent != null && initializeEvent.log != null &&
-                (!initializeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
-                        || isStatusValidOnChainAfterPendingReceipt(computedChainTaskId, ACTIVE, this::isTaskStatusValidOnChain))) {
+        if (isSuccessTx(computedChainTaskId, initializeEvent, ACTIVE)) {
             String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
 
             ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId, web3jService.getLatestBlockNumber());
@@ -218,9 +208,7 @@ public class IexecHubService extends IexecHubAbstractService {
             finalizeEvent = finalizeEvents.get(0);
         }
 
-        if (finalizeEvent != null && finalizeEvent.log != null &&
-                (!finalizeEvent.log.getType().equals(PENDING_RECEIPT_STATUS)
-                        || isStatusValidOnChainAfterPendingReceipt(chainTaskId, COMPLETED, this::isTaskStatusValidOnChain))) {
+        if (isSuccessTx(chainTaskId, finalizeEvent, COMPLETED)) {
             ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
             log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, gasUsed:{}]", chainTaskId,
@@ -230,6 +218,18 @@ public class IexecHubService extends IexecHubAbstractService {
 
         log.error("Failed to finalize [chainTaskId:{}]", chainTaskId);
         return Optional.empty();
+    }
+
+    private boolean isSuccessTx(String chainTaskId, BaseEventResponse txEvent, ChainTaskStatus pretendedStatus) {
+        if (txEvent == null || txEvent.log == null) {
+            return false;
+        }
+
+        if (txEvent.log.getType() == null || txEvent.log.getType().equals(PENDING_RECEIPT_STATUS)) {
+            return isStatusValidOnChainAfterPendingReceipt(chainTaskId, pretendedStatus, this::isTaskStatusValidOnChain);
+        }
+
+        return false;
     }
 
     public boolean canReopen(String chainTaskId) {

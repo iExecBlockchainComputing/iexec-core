@@ -61,7 +61,6 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
     public void detectOnchainContributed() {
         log.debug("Detect onchain Contributed [retryIn:{}]",
                 coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
-
         dectectOnchainCompleted(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
