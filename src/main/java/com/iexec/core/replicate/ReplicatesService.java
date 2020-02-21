@@ -1,9 +1,10 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.*;
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
 import com.iexec.core.chain.CredentialsService;
@@ -23,7 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusCause.*;
+import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 
 @Slf4j
 @Service
@@ -219,11 +220,11 @@ public class ReplicatesService {
     /*
      * We retry up to 100 times in case the task has been modified between
      * reading and writing it.
-     * 
+     *
      * Before updating we check:
      *   1) if valid transition.
      *   2) if worker did fail when CONTRIBUTE/REVEAL/UPLOAD_FAILED.
-     *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED. 
+     *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
@@ -303,7 +304,7 @@ public class ReplicatesService {
         ReplicateStatusDetails details = statusUpdate.getDetails();
         long receiptBlockNumber = details != null && details.getChainReceipt() != null
                 ? details.getChainReceipt().getBlockNumber() : 0;
-                                    
+
         boolean isBlockAvailable = web3jService.isBlockAvailable(receiptBlockNumber);
         if (!isBlockAvailable) {
             log.error("Cannot update replicate, block not available {}",
@@ -352,11 +353,9 @@ public class ReplicatesService {
     private boolean verifyStatus(String chainTaskId, String walletAddress, ReplicateStatus status) {
         switch (status) {
             case CONTRIBUTED:
-                return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
-                        ChainContributionStatus.CONTRIBUTED);
+                return iexecHubService.repeatIsContributedTrue(chainTaskId, walletAddress);
             case REVEALED:
-                return iexecHubService.isStatusTrueOnChain(chainTaskId, walletAddress,
-                        ChainContributionStatus.REVEALED);
+                return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress);
             case RESULT_UPLOADED:
                 return isResultUploaded(chainTaskId);
             case RESULT_UPLOAD_FAILED:
@@ -431,7 +430,7 @@ public class ReplicatesService {
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
         Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-        if(!oStatus.isPresent()){
+        if (!oStatus.isPresent()) {
             return;
         }
         ReplicateStatus status = oStatus.get();

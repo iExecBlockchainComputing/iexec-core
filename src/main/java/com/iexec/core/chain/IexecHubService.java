@@ -35,6 +35,8 @@ import static com.iexec.core.utils.DateTimeUtils.now;
 @Service
 public class IexecHubService extends IexecHubAbstractService {
 
+    private final static int NB_BLOCKS_TO_WAIT_PER_TRY = 6;
+    private final static int MAX_TRY = 3;
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
@@ -49,6 +51,24 @@ public class IexecHubService extends IexecHubAbstractService {
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         this.poolAddress = chainConfig.getPoolAddress();
+    }
+
+    public boolean repeatIsContributedTrue(String chainTaskId, String walletAddress) {
+        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_TRY, MAX_TRY, "isContributedTrue",
+                this::isContributedTrue, chainTaskId, walletAddress);
+    }
+
+    public boolean repeatIsRevealedTrue(String chainTaskId, String walletAddress) {
+        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_TRY, MAX_TRY, "isRevealedTrue",
+                this::isRevealedTrue, chainTaskId, walletAddress);
+    }
+
+    private boolean isContributedTrue(String... args) {
+        return this.isStatusTrueOnChain(args[0], args[1], CONTRIBUTED);
+    }
+
+    private boolean isRevealedTrue(String... args) {
+        return this.isStatusTrueOnChain(args[0], args[1], REVEALED);
     }
 
     public boolean isStatusTrueOnChain(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
