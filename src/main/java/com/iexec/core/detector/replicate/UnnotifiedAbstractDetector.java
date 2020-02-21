@@ -1,5 +1,6 @@
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -49,9 +50,11 @@ public abstract class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                if (iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
+
+                if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            offchainCompleting, onchainCompleted, task.getChainTaskId());
+                            lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
@@ -70,13 +73,26 @@ public abstract class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                if (iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
+
+                if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
                             lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
         }
+    }
+
+    /*
+     * Usage: printLogsUncertainMissingUpdate(task, replicate, lastRelevantStatus.get(), statusTrueOnChain);
+     * */
+    private void printLogsUncertainMissingUpdate(Task task, Replicate replicate, ReplicateStatus lastRelevantStatus, boolean statusTrueOnChain) {
+        ChainContributionStatus chainContributionStatus = iexecHubService.getChainContribution(task.getChainTaskId(), replicate.getWalletAddress())
+                .map(ChainContribution::getStatus)
+                .orElse(null);
+        log.info("Detected uncertain missing update (replicate) [off:{}, on:{}, statusTrueOnChain:{}, taskId:{}]",
+                lastRelevantStatus, chainContributionStatus, statusTrueOnChain, task.getChainTaskId());
     }
 
     /*
