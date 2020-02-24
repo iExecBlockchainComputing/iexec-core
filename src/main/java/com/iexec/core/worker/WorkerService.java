@@ -212,7 +212,7 @@ public class WorkerService {
         return totalGpus;
     }
 
-    private int aliveAvailableGpu () {
+    public int getAliveAvailableGpu () {
         int availableGpus = getAliveTotalGpu();
         for (Worker worker: getAliveWorkers()) {
             if (worker.isGpuEnabled()) {

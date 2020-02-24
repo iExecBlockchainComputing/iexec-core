@@ -46,7 +46,7 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
     @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod}")
     public void detectOnchainRevealedWhenOffchainRevealed() {
         log.debug("Detect onchain Revealed (when offchain Revealing) [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
+                coreConfigurationService.getUnnotifiedRevealDetectorPeriod());
         dectectOnchainCompletedWhenOffchainCompleting(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 
@@ -60,7 +60,7 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
     @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainRevealed() {
         log.debug("Detect onchain Revealed [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
+                coreConfigurationService.getUnnotifiedRevealDetectorPeriod() * DETECTOR_MULTIPLIER);
         dectectOnchainCompleted(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
     }
 

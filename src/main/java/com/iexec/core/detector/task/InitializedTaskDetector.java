@@ -39,7 +39,9 @@ public class InitializedTaskDetector implements Detector {
         log.debug("Trying to detect initialized tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.INITIALIZING)) {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
-            if(chainTask.isPresent() && !chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
+            if (chainTask.isPresent() && !chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
+                log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
+                        TaskStatus.INITIALIZING, TaskStatus.INITIALIZED, task.getChainTaskId());
                 taskExecutorEngine.updateTask(task.getChainTaskId());
             }
         }

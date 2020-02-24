@@ -39,12 +39,14 @@ public class ReopenedTaskDetector implements Detector {
         log.debug("Trying to detect reopened tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.REOPENING)) {
             Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
-            if (!oChainTask.isPresent()){
+            if (!oChainTask.isPresent()) {
                 continue;
             }
 
             ChainTask chainTask = oChainTask.get();
             if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
+                log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
+                        TaskStatus.REOPENING, TaskStatus.REOPENED, task.getChainTaskId());
                 taskExecutorEngine.updateTask(task.getChainTaskId());
             }
         }
