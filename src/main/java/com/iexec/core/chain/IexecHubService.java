@@ -249,7 +249,7 @@ public class IexecHubService extends IexecHubAbstractService {
             return isStatusValidOnChainAfterPendingReceipt(chainTaskId, pretendedStatus, this::isTaskStatusValidOnChain);
         }
 
-        return false;
+        return true;
     }
 
     public boolean canReopen(String chainTaskId) {
