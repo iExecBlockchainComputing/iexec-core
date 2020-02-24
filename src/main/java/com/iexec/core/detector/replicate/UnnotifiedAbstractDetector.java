@@ -1,5 +1,6 @@
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -11,7 +12,7 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +20,7 @@ import java.util.Optional;
 import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
 
-@Service
+@Slf4j
 public abstract class UnnotifiedAbstractDetector {
 
 
@@ -42,22 +43,18 @@ public abstract class UnnotifiedAbstractDetector {
                                                        ReplicateStatus offchainCompleting,
                                                        ReplicateStatus offchainCompleted,
                                                        ChainContributionStatus onchainCompleted) {
-
         for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-
-                if (!lastRelevantStatus.isPresent()) {
+                if (!lastRelevantStatus.isPresent() || !lastRelevantStatus.get().equals(offchainCompleting)) {
                     continue;
                 }
 
-                boolean isReplicateStatusCompleting = lastRelevantStatus.get().equals(offchainCompleting);
+                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
 
-                boolean isReplicateStatusCompletingAndStatusTrueOnchain = isReplicateStatusCompleting &&
-                        iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(),
-                                                            onchainCompleted);
-
-                if (isReplicateStatusCompletingAndStatusTrueOnchain) {
+                if (statusTrueOnChain) {
+                    log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
+                            lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
@@ -72,17 +69,30 @@ public abstract class UnnotifiedAbstractDetector {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
 
-                if (!lastRelevantStatus.isPresent()) {
+                if (!lastRelevantStatus.isPresent() || lastRelevantStatus.get().equals(offchainCompleted)) {
                     continue;
                 }
 
-                boolean isNotOffChainCompleted = !lastRelevantStatus.get().equals(offchainCompleted);//avoid eth node call if already contributed
+                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
 
-                if (isNotOffChainCompleted && iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted)) {
+                if (statusTrueOnChain) {
+                    log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
+                            lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
                 }
             }
         }
+    }
+
+    /*
+     * Usage: printLogsUncertainMissingUpdate(task, replicate, lastRelevantStatus.get(), statusTrueOnChain);
+     * */
+    private void printLogsUncertainMissingUpdate(Task task, Replicate replicate, ReplicateStatus lastRelevantStatus, boolean statusTrueOnChain) {
+        ChainContributionStatus chainContributionStatus = iexecHubService.getChainContribution(task.getChainTaskId(), replicate.getWalletAddress())
+                .map(ChainContribution::getStatus)
+                .orElse(null);
+        log.info("Detected uncertain missing update (replicate) [off:{}, on:{}, statusTrueOnChain:{}, taskId:{}]",
+                lastRelevantStatus, chainContributionStatus, statusTrueOnChain, task.getChainTaskId());
     }
 
     /*
@@ -110,7 +120,7 @@ public abstract class UnnotifiedAbstractDetector {
                     // retrieve the contribution block for that wallet
                     ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
                             wallet, web3jService.getLatestBlockNumber());
-                    long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber(): 0;
+                    long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
                     break;

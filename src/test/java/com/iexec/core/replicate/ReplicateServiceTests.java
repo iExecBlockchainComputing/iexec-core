@@ -338,7 +338,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
         String resultHash = "hash";
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
@@ -428,7 +428,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(false);
 
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
@@ -450,7 +450,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(false);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
 
@@ -475,7 +475,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(false);
         String resultHash = "hash";
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
                 .resultHash(resultHash)
@@ -515,7 +515,7 @@ public class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.repeatIsRevealedTrue(anyString(), anyString())).thenReturn(true);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
         .resultHash("hash")
         .build()));
@@ -597,25 +597,25 @@ public class ReplicateServiceTests {
 
     @Test
     public void shouldFindReplicateContributedOnchain() {
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any()))
+        when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
 
     @Test
     public void shouldNotFindReplicateContributedOnchain() {
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any()))
+        when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(false);
     }
 
     @Test
     public void shouldFindReplicateRevealedOnchain() {
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any()))
+        when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
 
     @Test
     public void shouldNotFindReplicateRevealedOnchain() {
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any()))
+        when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
 
