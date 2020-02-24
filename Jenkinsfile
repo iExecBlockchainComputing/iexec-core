@@ -22,7 +22,10 @@ pipeline {
 
         stage('Upload Jars') {
             when {
-                branch 'master'
+                anyOf{
+                    branch 'master'
+                    branch 'develop'
+                }
             }
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
@@ -32,7 +35,10 @@ pipeline {
         }
         stage('Build/Upload Docker image') {
             when {
-                branch 'master'
+                anyOf{
+                    branch 'master'
+                    branch 'develop'
+                }
             }
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD']]) {
