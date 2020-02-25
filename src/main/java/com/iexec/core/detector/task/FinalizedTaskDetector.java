@@ -23,8 +23,8 @@ public class FinalizedTaskDetector implements Detector {
     private IexecHubService iexecHubService;
 
     public FinalizedTaskDetector(TaskService taskService,
-                                   TaskExecutorEngine taskExecutorEngine,
-                                   IexecHubService iexecHubService) {
+                                 TaskExecutorEngine taskExecutorEngine,
+                                 IexecHubService iexecHubService) {
         this.taskService = taskService;
         this.taskExecutorEngine = taskExecutorEngine;
         this.iexecHubService = iexecHubService;
@@ -40,6 +40,8 @@ public class FinalizedTaskDetector implements Detector {
         for (Task task : taskService.findByCurrentStatus(TaskStatus.FINALIZING)) {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
             if (chainTask.isPresent() && chainTask.get().getStatus().equals(ChainTaskStatus.COMPLETED)) {
+                log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
+                        TaskStatus.FINALIZING, TaskStatus.FINALIZED, task.getChainTaskId());
                 taskExecutorEngine.updateTask(task.getChainTaskId());
             }
         }
