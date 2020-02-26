@@ -68,8 +68,8 @@ dependencyManagement {
 
 dependencies {
     // iexec
-    compile "com.iexec.common:iexec-common:$iexecCommonVersion"
-    //compile files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}.jar")
+    //compile "com.iexec.common:iexec-common:$iexecCommonVersion"
+    compile files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}.jar")
 
     // spring
     compile("org.springframework.boot:spring-boot-starter") {
