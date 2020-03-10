@@ -41,10 +41,15 @@ public class ResultProxyController {
             @RequestHeader("Authorization") String token,
             @RequestBody ResultModel model) {
 
-        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+        //Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        boolean authorizedAndCanUploadResult = authorizationService.isAuthorizationValid(auth) &&
-                resultProxyService.canUploadResult(model.getChainTaskId(), auth.getWalletAddress(), model.getZip());
+        String tokenWalletAddress = authorizationService.getWalletAddressFromJwtString(token);
+
+        boolean authorizedAndCanUploadResult = authorizationService.isValidJwt(token) &&
+                //authorizationService.isAuthorizationValid(auth) &&
+                resultProxyService.canUploadResult(model.getChainTaskId(),
+                        tokenWalletAddress,//auth.getWalletAddress(),
+                        model.getZip());
 
         // TODO check if the result to be added is the correct result for that task
 
@@ -66,9 +71,9 @@ public class ResultProxyController {
         }
 
         log.info("Result uploaded successfully [chainTaskId:{}, uploadRequester:{}, resultLink:{}]",
-                model.getChainTaskId(), auth.getWalletAddress(), resultLink);
+                model.getChainTaskId(), tokenWalletAddress, resultLink);
 
-        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+        challengeService.invalidateEip712ChallengeString(tokenWalletAddress);
 
         return ok(resultLink);
     }
@@ -78,9 +83,10 @@ public class ResultProxyController {
             @PathVariable(name = "chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String token) {
 
-        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+        //Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
-        if (!authorizationService.isAuthorizationValid(auth)) {
+        //if (!authorizationService.isAuthorizationValid(auth)) {
+        if (!authorizationService.isValidJwt(token)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
 
@@ -89,7 +95,7 @@ public class ResultProxyController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build();
         }
 
-        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+        //challengeService.invalidateEip712ChallengeString(auth.getChallenge());
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
     }
@@ -110,24 +116,33 @@ public class ResultProxyController {
 
     @GetMapping(value = "/results/challenge")
     public ResponseEntity<Eip712Challenge> getChallenge(@RequestParam(name = "chainId") Integer chainId) {
-        Eip712Challenge eip712Challenge = challengeService.generateEip712Challenge(chainId);
+        Eip712Challenge eip712Challenge = challengeService.generateEip712Challenge(chainId);//TODO generate challenge from walletAddress
         return ResponseEntity.ok(eip712Challenge);
+    }
+
+    @GetMapping(value = "/results/login")
+    public ResponseEntity<String> getToken(@RequestParam(name = "chainId") Integer chainId,
+                                           @RequestBody String signedEip712Challenge) {
+        String jwtString = authorizationService.getOrCreateJwt(signedEip712Challenge);
+        return ResponseEntity.ok(jwtString);
     }
 
     @GetMapping(value = "/results/{chainTaskId}", produces = "application/zip")
     public ResponseEntity<byte[]> getResult(@PathVariable("chainTaskId") String chainTaskId,
                                             @RequestHeader(name = "Authorization", required = false) String token,
                                             @RequestParam(name = "chainId") Integer chainId) throws IOException {
-        Authorization auth = authorizationService.getAuthorizationFromToken(token);
+        //Authorization auth = authorizationService.getAuthorizationFromToken(token);
 
         boolean isPublicResult = resultProxyService.isPublicResult(chainTaskId);
-        boolean isAuthorizedOwnerOfResult = auth != null
-                && resultProxyService.isOwnerOfResult(chainId, chainTaskId, auth.getWalletAddress())
-                && authorizationService.isAuthorizationValid(auth);
+        boolean isAuthorizedOwnerOfResult =
+                //auth != null &&
+                resultProxyService.isOwnerOfResult(chainId, chainTaskId, authorizationService.getWalletAddressFromJwtString(token))
+                && authorizationService.isValidJwt(token);
+                //&& authorizationService.isAuthorizationValid(auth);
 
         if (isAuthorizedOwnerOfResult || isPublicResult) {//TODO: IPFS fetch from chainTaskId
             if (isAuthorizedOwnerOfResult) {
-                challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+                //challengeService.invalidateEip712ChallengeString(auth.getChallenge());
             }
 
             Optional<byte[]> zip = resultProxyService.getResult(chainTaskId);
