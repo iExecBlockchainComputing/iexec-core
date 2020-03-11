@@ -120,7 +120,7 @@ public class ResultProxyController {
         return ResponseEntity.ok(eip712Challenge);
     }
 
-    @GetMapping(value = "/results/login")
+    @PostMapping(value = "/results/login")
     public ResponseEntity<String> getToken(@RequestParam(name = "chainId") Integer chainId,
                                            @RequestBody String signedEip712Challenge) {
         String jwtString = authorizationService.getOrCreateJwt(signedEip712Challenge);

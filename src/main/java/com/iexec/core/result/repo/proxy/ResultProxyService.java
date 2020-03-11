@@ -90,6 +90,10 @@ public class ResultProxyService {
             return "";
         }
 
+        if (iexecHubService.isTeeTask(result.getChainTaskId())){
+            return ipfsResultService.addResult(result, data);
+        }
+
         if (iexecHubService.isPublicResult(result.getChainTaskId(), 0)) {
             return ipfsResultService.addResult(result, data);
         } else {
@@ -102,6 +106,10 @@ public class ResultProxyService {
     }
 
     Optional<byte[]> getResult(String chainTaskId) throws IOException {
+        if (iexecHubService.isTeeTask(chainTaskId)){
+            return ipfsResultService.getResult(chainTaskId);
+        }
+
         if (!isPublicResult(chainTaskId)) {
             return mongoResultService.getResult(chainTaskId);
         }
