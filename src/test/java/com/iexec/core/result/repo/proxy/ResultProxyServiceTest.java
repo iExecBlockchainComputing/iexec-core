@@ -2,6 +2,7 @@ package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.ChainTask;
+import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.result.repo.ipfs.IpfsResultService;
@@ -142,11 +143,31 @@ public class ResultProxyServiceTest {
     }
 
     @Test
-    public void isOwnerOfResult() {
-        String beneficiary = "0xabcd1339ec7e762e639f4887e2bfe5ee8023e23e";
-        when(iexecHubService.getTaskBeneficiary(chainTaskId, chainId)).thenReturn(Optional.of(beneficiary));
+    public void isOwnerOfResultNonTeeTask() {
+        String beneficiary = "0xbeneficiary";
+        String requester = "0xrequester";
+        TaskDescription taskDescription = TaskDescription.builder()
+                .requester(requester)
+                .beneficiary(beneficiary)
+                .isTeeTask(false)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(chainTaskId)).thenReturn(Optional.of(taskDescription));
 
-        assertThat(resultProxyService.isOwnerOfResult(chainId, chainTaskId, "0xabcd1339ec7e762e639f4887e2bfe5ee8023e23e")).isTrue();
+        assertThat(resultProxyService.isOwnerOfResult(chainId, chainTaskId, "0xbeneficiary")).isTrue();
+    }
+
+    @Test
+    public void isOwnerOfResultTeeTask() {
+        String beneficiary = "0xbeneficiary";
+        String requester = "0xrequester";
+        TaskDescription taskDescription = TaskDescription.builder()
+                .requester(requester)
+                .beneficiary(beneficiary)
+                .isTeeTask(true)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(chainTaskId)).thenReturn(Optional.of(taskDescription));
+
+        assertThat(resultProxyService.isOwnerOfResult(chainId, chainTaskId, "0xrequester")).isTrue();
     }
 
     @Test
