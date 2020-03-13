@@ -2,23 +2,35 @@ package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
+import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.web3j.utils.Numeric;
 
+import java.util.Date;
+import java.util.Optional;
+
 @Service
 @Slf4j
 public class AuthorizationService {
-
+    /**
+     * TODO:
+     * Rename AuthorizationService to JwtService
+     * Rename Authorization to SignedChallenge
+     */
 
     private Eip712ChallengeService challengeService;
+    private JwtRepository jwtRepository;
 
-    AuthorizationService(Eip712ChallengeService challengeService) {
+    AuthorizationService(Eip712ChallengeService challengeService, JwtRepository jwtRepository) {
         this.challengeService = challengeService;
+        this.jwtRepository = jwtRepository;
     }
 
-    boolean isAuthorizationValid(Authorization authorization) {
+    //TODO Make it private
+    protected boolean isAuthorizationValid(Authorization authorization) {
         if (authorization == null) {
             log.error("Authorization should not be null [authorization:{}]", authorization);
             return false;
@@ -55,7 +67,7 @@ public class AuthorizationService {
         return true;
     }
 
-    Authorization getAuthorizationFromToken(String token) {
+    protected Authorization getAuthorizationFromToken(String token) {
         if ((token == null) || (token.split("_").length != 3)) {
             return null;
         }
@@ -67,5 +79,56 @@ public class AuthorizationService {
                 .walletAddress(parts[2])
                 .build();
     }
+
+    public String getOrCreateJwt(String signedChallenge) {
+        Authorization auth = getAuthorizationFromToken(signedChallenge);
+
+        auth = Authorization.builder().walletAddress("0xabcd1339ec7e762e639f4887e2bfe5ee8023e23e").build();
+
+        boolean isSignedChallengeValid = true; //isAuthorizationValid(auth);//TODO Activate that
+
+        if (!isSignedChallengeValid){
+            return "";
+        }
+
+        String jwtString ;
+        Optional<Jwt> oExistingJwt = jwtRepository.findByWalletAddress(auth.getWalletAddress());
+
+        if (oExistingJwt.isPresent()){
+            jwtString = oExistingJwt.get().getJwtString(); //TODO generate new token
+        } else {
+            jwtString = Jwts.builder()
+                    .setAudience(auth.getWalletAddress())
+                    .setIssuedAt(new Date())
+                    .setSubject(RandomStringUtils.randomAlphanumeric(64))
+                    .compact();
+            jwtRepository.save(new Jwt(auth.getWalletAddress(), jwtString));
+        }
+
+        challengeService.invalidateEip712ChallengeString(auth.getChallenge());
+
+        return jwtString;
+    }
+
+    public boolean isValidJwt(String jwtString) {
+        String claimedWalletAddress = getWalletAddressFromJwtString(jwtString);
+
+        Optional<Jwt> oExistingJwt = jwtRepository.findByWalletAddress(claimedWalletAddress);
+
+        if (!oExistingJwt.isPresent()){
+            return false;
+        }
+
+        if (jwtString.equals(oExistingJwt.get().getJwtString())){
+            return true;
+        }
+
+        return false;
+    }
+
+    public String getWalletAddressFromJwtString(String jwtString) {
+        return Jwts.parser().parseClaimsJwt(jwtString).getBody().getAudience();
+    }
+
 
 }

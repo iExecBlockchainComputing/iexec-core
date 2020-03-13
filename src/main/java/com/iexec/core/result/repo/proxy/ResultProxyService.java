@@ -1,6 +1,9 @@
 package com.iexec.core.result.repo.proxy;
 
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.common.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.result.repo.ipfs.IpfsResultService;
 import com.iexec.core.result.repo.mongo.MongoResultService;
@@ -31,24 +34,44 @@ public class ResultProxyService {
     }
 
 
-    boolean canUploadResult(String chainTaskId, String walletAddress, byte[] zip) {
-        // check if result has been already uploaded
-        if (doesResultExist(chainTaskId)) {
-            log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
-                    chainTaskId, walletAddress);
-            return false;
-        }
+    boolean canUploadResult(String chainTaskId, String tokenWalletAddress, byte[] zip) {
+        if (iexecHubService.isTeeTask(chainTaskId)){
+            Optional<ChainTask> chainTask = iexecHubService.getChainTask(chainTaskId);//TODO Add requester field to getChainTask
+            if (chainTask.isEmpty()){
+                log.error("Trying to upload result for TEE but getChainTask failed [chainTaskId:{}, uploader:{}]",
+                        chainTaskId, tokenWalletAddress);
+                return false;
+            }
+            boolean isActive = chainTask.get().getStatus().equals(ChainTaskStatus.ACTIVE);
 
-        // ContributionStatus of chainTask should be REVEALED
-        boolean isChainContributionStatusSetToRevealed = iexecHubService.isStatusTrueOnChain(chainTaskId,
-                walletAddress, ChainContributionStatus.REVEALED);
-        if (!isChainContributionStatusSetToRevealed) {
-            log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
-                    chainTaskId, walletAddress);
-            return false;
-        }
+            Optional<TaskDescription> taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+            if (taskDescription.isEmpty()){
+                log.error("Trying to upload result for TEE but getTaskDescription failed [chainTaskId:{}, uploader:{}]",
+                        chainTaskId, tokenWalletAddress);
+                return false;
+            }
+            boolean isRequesterCredentials = taskDescription.get().getRequester().equalsIgnoreCase(tokenWalletAddress);
 
-        return true;
+            return isActive && isRequesterCredentials;
+        } else {
+            // check if result has been already uploaded
+            if (doesResultExist(chainTaskId)) {
+                log.error("Trying to upload result that has been already uploaded [chainTaskId:{}, uploadRequester:{}]",
+                        chainTaskId, tokenWalletAddress);
+                return false;
+            }
+
+            // ContributionStatus of chainTask should be REVEALED
+            boolean isChainContributionStatusSetToRevealed = iexecHubService.isStatusTrueOnChain(chainTaskId,
+                    tokenWalletAddress, ChainContributionStatus.REVEALED);
+            if (!isChainContributionStatusSetToRevealed) {
+                log.error("Trying to upload result even though ChainContributionStatus is not REVEALED [chainTaskId:{}, uploadRequester:{}]",
+                        chainTaskId, tokenWalletAddress);
+                return false;
+            }
+
+            return true;
+        }
     }
 
     boolean doesResultExist(String chainTaskId) {
@@ -67,6 +90,10 @@ public class ResultProxyService {
             return "";
         }
 
+        if (iexecHubService.isTeeTask(result.getChainTaskId())){
+            return ipfsResultService.addResult(result, data);
+        }
+
         if (iexecHubService.isPublicResult(result.getChainTaskId(), 0)) {
             return ipfsResultService.addResult(result, data);
         } else {
@@ -79,6 +106,10 @@ public class ResultProxyService {
     }
 
     Optional<byte[]> getResult(String chainTaskId) throws IOException {
+        if (iexecHubService.isTeeTask(chainTaskId)){
+            return ipfsResultService.getResult(chainTaskId);
+        }
+
         if (!isPublicResult(chainTaskId)) {
             return mongoResultService.getResult(chainTaskId);
         }
@@ -90,18 +121,33 @@ public class ResultProxyService {
      * TODO 2:  Make possible to call this iexecHubService with a 'chainId' at runtime
      */
     boolean isOwnerOfResult(Integer chainId, String chainTaskId, String downloaderAddress) {
-        Optional<String> beneficiary = iexecHubService.getTaskBeneficiary(chainTaskId, chainId);
-        if (!beneficiary.isPresent()) {
-            log.error("Failed to get beneficiary for isOwnerOfResult() method [chainTaskId:{}, downloaderAddress:{}]",
+        Optional<TaskDescription> oTask = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+
+        if (oTask.isEmpty()){
+            log.error("Failed to getTaskDescriptionFromChain for isOwnerOfResult() method [chainTaskId:{}, downloaderAddress:{}]",
                     chainTaskId, downloaderAddress);
             return false;
         }
+
+        TaskDescription task = oTask.get();
+
         downloaderAddress = downloaderAddress.toLowerCase();
-        if (!downloaderAddress.equals(beneficiary.get())) {
-            log.error("Set beneficiary doesn't match downloaderAddress [chainTaskId:{}, downloaderAddress:{}, " +
-                    "beneficiary:{}]", chainTaskId, downloaderAddress, beneficiary.get());
+
+        if (task.isTeeTask()){//Push TEE result with beneficiary credentials not implemented yet, so we check the requester
+            if (downloaderAddress.equalsIgnoreCase(task.getRequester())) {
+                return true;
+            }
+            log.error("Set requester doesn't match downloaderAddress [chainTaskId:{}, downloaderAddress:{}, " +
+                    "requester:{}]", chainTaskId, downloaderAddress, task.getRequester());
             return false;
         }
-        return true;
+
+        if (downloaderAddress.equalsIgnoreCase(task.getBeneficiary())) {
+            return true;
+        }
+
+        log.error("Set beneficiary doesn't match downloaderAddress [chainTaskId:{}, downloaderAddress:{}, " +
+                "beneficiary:{}]", chainTaskId, downloaderAddress, task.getBeneficiary());
+        return false;
     }
 }
