@@ -23,7 +23,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
 public class ReplicateResultUploadTimeoutDetectorTests {

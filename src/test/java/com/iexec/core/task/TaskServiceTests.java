@@ -10,7 +10,7 @@ import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.utils.DateTimeUtils;
+import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.worker.WorkerService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
@@ -24,7 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.utils.DateTimeUtils.sleep;
+import static com.iexec.common.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;

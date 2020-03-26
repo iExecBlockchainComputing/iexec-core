@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
