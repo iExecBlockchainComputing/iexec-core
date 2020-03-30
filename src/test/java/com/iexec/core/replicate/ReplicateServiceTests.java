@@ -8,7 +8,7 @@ import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.core.ResultRepoService;
+import com.iexec.core.result.ResultService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class ReplicateServiceTests {
     @Mock private ApplicationEventPublisher applicationEventPublisher;
     @Mock private Web3jService web3jService;
     @Mock private CredentialsService credentialsService;
-    @Mock private ResultRepoService resultRepoService;
+    @Mock private ResultService resultService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -622,7 +622,7 @@ public class ReplicateServiceTests {
     @Test
     public void shouldReturnFalseSinceCouldNotGetEIP712Challenge() {
         when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultRepoService.getChallenge()).thenReturn(Optional.empty());
+        when(resultService.getChallenge()).thenReturn(Optional.empty());
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
 
@@ -636,7 +636,7 @@ public class ReplicateServiceTests {
         Credentials credentialsMock = mock(Credentials.class);
 
         when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultRepoService.getChallenge()).thenReturn(Optional.of(eip712Challenge));
+        when(resultService.getChallenge()).thenReturn(Optional.of(eip712Challenge));
         when(credentialsService.getCredentials()).thenReturn(credentialsMock);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);

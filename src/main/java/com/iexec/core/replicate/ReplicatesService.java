@@ -10,7 +10,7 @@ import com.iexec.common.result.eip712.Eip712ChallengeUtils;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.core.ResultRepoService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -35,20 +35,20 @@ public class ReplicatesService {
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
     private CredentialsService credentialsService;
-    private ResultRepoService resultRepoService;
+    private ResultService resultService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              CredentialsService credentialsService,
-                             ResultRepoService resultRepoService) {
+                             ResultService resultService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.credentialsService = credentialsService;
-        this.resultRepoService = resultRepoService;
+        this.resultService = resultService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -405,7 +405,7 @@ public class ReplicatesService {
             return true;
         }
 
-        Optional<Eip712Challenge> oEip712Challenge = resultRepoService.getChallenge();
+        Optional<Eip712Challenge> oEip712Challenge = resultService.getChallenge();
         if (!oEip712Challenge.isPresent()) return false;
 
         Eip712Challenge eip712Challenge = oEip712Challenge.get();
@@ -420,7 +420,7 @@ public class ReplicatesService {
             return false;
         }
 
-        return resultRepoService.isResultUploaded(authorizationToken, chainTaskId);
+        return resultService.isResultUploaded(authorizationToken, chainTaskId);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
