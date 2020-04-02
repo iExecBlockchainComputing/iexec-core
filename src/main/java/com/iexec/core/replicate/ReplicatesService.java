@@ -283,8 +283,8 @@ public class ReplicatesService {
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
 
-        log.info("Replicate updated successfully [nextAction:{}, chainTaskId:{}, walletAddress:{}]",
-                getLogDetails(chainTaskId, replicate, statusUpdate));
+        log.info("Replicate updated successfully [newStatus:{} nextAction:{}, chainTaskId:{}, walletAddress:{}]",
+                replicate.getCurrentStatus(), nextAction, chainTaskId, walletAddress);
 
         return Optional.ofNullable(nextAction); // should we return a default action when null?
     }
