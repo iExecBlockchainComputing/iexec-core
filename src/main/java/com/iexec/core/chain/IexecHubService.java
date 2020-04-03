@@ -29,7 +29,7 @@ import static com.iexec.common.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
 import static com.iexec.common.utils.BytesUtils.stringToBytes;
-import static com.iexec.core.utils.DateTimeUtils.now;
+import static com.iexec.common.utils.DateTimeUtils.now;
 
 @Slf4j
 @Service

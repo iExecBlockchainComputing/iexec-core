@@ -4,7 +4,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.utils.DateTimeUtils;
+import com.iexec.common.utils.DateTimeUtils;
 
 import org.junit.Before;
 import org.junit.Test;

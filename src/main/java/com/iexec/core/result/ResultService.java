@@ -1,4 +1,4 @@
-package com.iexec.core.result.core;
+package com.iexec.core.result;
 
 import java.util.Optional;
 
@@ -16,12 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class ResultRepoService {
+public class ResultService {
 
     private ChainConfig chainConfig;
     private ResultRepoClient resultRepoClient;
 
-    public ResultRepoService(ChainConfig chainConfig, ResultRepoClient resultRepoClient) {
+    public ResultService(ChainConfig chainConfig, ResultRepoClient resultRepoClient) {
         this.chainConfig = chainConfig;
         this.resultRepoClient = resultRepoClient;
     }

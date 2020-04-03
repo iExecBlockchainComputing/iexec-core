@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
