@@ -24,8 +24,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.chain.ChainContributionStatus.CONTRIBUTED;
-import static com.iexec.common.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
 import static com.iexec.common.utils.BytesUtils.stringToBytes;
@@ -35,8 +33,6 @@ import static com.iexec.common.utils.DateTimeUtils.now;
 @Service
 public class IexecHubService extends IexecHubAbstractService {
 
-    private final static int NB_BLOCKS_TO_WAIT_PER_TRY = 6;
-    private final static int MAX_TRY = 3;
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
@@ -51,44 +47,6 @@ public class IexecHubService extends IexecHubAbstractService {
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         this.poolAddress = chainConfig.getPoolAddress();
-    }
-
-    public boolean repeatIsContributedTrue(String chainTaskId, String walletAddress) {
-        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_TRY, MAX_TRY, "isContributedTrue",
-                this::isContributedTrue, chainTaskId, walletAddress);
-    }
-
-    public boolean repeatIsRevealedTrue(String chainTaskId, String walletAddress) {
-        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_TRY, MAX_TRY, "isRevealedTrue",
-                this::isRevealedTrue, chainTaskId, walletAddress);
-    }
-
-    private boolean isContributedTrue(String... args) {
-        return this.isStatusTrueOnChain(args[0], args[1], CONTRIBUTED);
-    }
-
-    private boolean isRevealedTrue(String... args) {
-        return this.isStatusTrueOnChain(args[0], args[1], REVEALED);
-    }
-
-    public boolean isStatusTrueOnChain(String chainTaskId, String walletAddress, ChainContributionStatus wishedStatus) {
-        Optional<ChainContribution> optional = getChainContribution(chainTaskId, walletAddress);
-        if (!optional.isPresent()) {
-            return false;
-        }
-
-        ChainContribution chainContribution = optional.get();
-        ChainContributionStatus chainStatus = chainContribution.getStatus();
-        switch (wishedStatus) {
-            case CONTRIBUTED:
-                // has at least contributed
-                return chainStatus.equals(CONTRIBUTED) || chainStatus.equals(REVEALED);
-            case REVEALED:
-                // has at least revealed
-                return chainStatus.equals(REVEALED);
-            default:
-                return false;
-        }
     }
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
