@@ -620,27 +620,13 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldReturnFalseSinceCouldNotGetEIP712Challenge() {
-        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultService.getChallenge()).thenReturn(Optional.empty());
+    public void shouldReturnIsResultUploaded() {
+        when(iexecHubService.isTeeTask(CHAIN_TASK_ID)).thenReturn(true);
+        when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
 
-        assertThat(isResultUploaded).isFalse();
+        assertThat(isResultUploaded).isTrue();
     }
 
-    @Test
-    public void shouldReturnFalseSinceCouldNotBuildAuthorizationToken() {
-
-        Eip712Challenge eip712Challenge = new Eip712Challenge("dummyChallenge", 123);
-        Credentials credentialsMock = mock(Credentials.class);
-
-        when(iexecHubService.isPublicResult(CHAIN_TASK_ID, 0)).thenReturn(false);
-        when(resultService.getChallenge()).thenReturn(Optional.of(eip712Challenge));
-        when(credentialsService.getCredentials()).thenReturn(credentialsMock);
-
-        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
-
-        assertThat(isResultUploaded).isFalse();
-    }
 }

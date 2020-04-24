@@ -15,6 +15,7 @@ import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -395,32 +396,12 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(String chainTaskId) {
-        // currently no check in case of IPFS
-        if (iexecHubService.isPublicResult(chainTaskId, 0)) {
-            return true;
-        }
-
-        // currently no need to check resultLink on TEE task since result uploaded to a private space
+        // currently no need to check resultLink for TEE since pushed from enclave
         if (iexecHubService.isTeeTask(chainTaskId)) {
             return true;
         }
 
-        Optional<Eip712Challenge> oEip712Challenge = resultService.getChallenge();
-        if (!oEip712Challenge.isPresent()) return false;
-
-        Eip712Challenge eip712Challenge = oEip712Challenge.get();
-        ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
-        String walletAddress = credentialsService.getCredentials().getAddress();
-
-        // sign the eip712 challenge and build authorization token
-        String authorizationToken = Eip712ChallengeUtils.buildAuthorizationToken(eip712Challenge,
-                walletAddress, ecKeyPair);
-
-        if (authorizationToken.isEmpty()) {
-            return false;
-        }
-
-        return resultService.isResultUploaded(authorizationToken, chainTaskId);
+        return resultService.isResultUploaded(chainTaskId);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
