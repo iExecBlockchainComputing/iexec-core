@@ -1,7 +1,7 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.IexecHubABILegacy;
+import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
@@ -105,9 +105,9 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskInitializeEventResponse> initializeEvents = getHubContract().getTaskInitializeEvents(initializeReceipt);
+        List<IexecHubContract.TaskInitializeEventResponse> initializeEvents = getHubContract().getTaskInitializeEvents(initializeReceipt);
 
-        IexecHubABILegacy.TaskInitializeEventResponse initializeEvent = null;
+        IexecHubContract.TaskInitializeEventResponse initializeEvent = null;
         if (initializeEvents != null && !initializeEvents.isEmpty()) {
             initializeEvent = initializeEvents.get(0);
         }
@@ -179,9 +179,9 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(finalizeReceipt);
+        List<IexecHubContract.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(finalizeReceipt);
 
-        IexecHubABILegacy.TaskFinalizeEventResponse finalizeEvent = null;
+        IexecHubContract.TaskFinalizeEventResponse finalizeEvent = null;
         if (finalizeEvents != null && !finalizeEvents.isEmpty()) {
             finalizeEvent = finalizeEvents.get(0);
         }
@@ -254,7 +254,7 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        List<IexecHubABILegacy.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
+        List<IexecHubContract.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -281,7 +281,7 @@ public class IexecHubService extends IexecHubAbstractService {
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
-        return getClerkContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
+        return getHubContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
 
             if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
                 return Optional.of(new DealEvent(schedulerNotice));
