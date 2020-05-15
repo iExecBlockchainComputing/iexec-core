@@ -47,6 +47,9 @@ public class IexecHubService extends IexecHubAbstractService {
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         this.poolAddress = chainConfig.getPoolAddress();
+        if (!hasEnoughGas()) {
+            System.exit(0);
+        }
     }
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
