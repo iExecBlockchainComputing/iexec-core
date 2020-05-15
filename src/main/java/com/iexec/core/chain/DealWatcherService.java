@@ -13,7 +13,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.math.BigInteger;
 import java.util.Optional;
 
@@ -39,8 +38,7 @@ public class DealWatcherService {
         this.taskService = taskService;
     }
 
-    @PostConstruct
-    void run() {
+    public void run() {
         subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }
 
