@@ -1,6 +1,6 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -52,12 +52,12 @@ public class ReplicatesController {
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
-        // get contributionAuthorization if a replicate is available
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService
+        // get WorkerpoolAuthorization if a replicate is available
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService
                 .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress);
 
         return oAuthorization
-                .<ResponseEntity<ContributionAuthorization>>map(ResponseEntity::ok)
+                .<ResponseEntity<WorkerpoolAuthorization>>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
