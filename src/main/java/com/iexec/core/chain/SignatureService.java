@@ -1,6 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.HashUtils;
@@ -17,13 +17,13 @@ public class SignatureService {
         this.credentialsService = credentialsService;
     }
 
-    public ContributionAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveChallenge) {
+    public WorkerpoolAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveChallenge) {
         String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
 
         Sign.SignatureData sign = Sign.signPrefixedMessage(
                 BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
 
-        return ContributionAuthorization.builder()
+        return WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclaveChallenge(enclaveChallenge)

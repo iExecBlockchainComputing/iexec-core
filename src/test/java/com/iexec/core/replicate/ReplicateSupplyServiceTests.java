@@ -1,6 +1,6 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -79,7 +79,7 @@ public class ReplicateSupplyServiceTests {
     public void shouldNotGetAnyReplicateSinceWorkerDoesntExist() {
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -112,9 +112,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(0, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(0, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
 
@@ -138,7 +138,7 @@ public class ReplicateSupplyServiceTests {
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.of(existingWorker));
         when(taskService.getInitializedOrRunningTasks()).thenReturn(new ArrayList<>());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
     }
 
@@ -160,7 +160,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -184,7 +184,7 @@ public class ReplicateSupplyServiceTests {
         when(taskService.getInitializedOrRunningTasks())
                 .thenReturn(Collections.singletonList(runningTask1));
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -219,9 +219,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
 
@@ -260,7 +260,7 @@ public class ReplicateSupplyServiceTests {
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(anyString(), anyInt(), anyLong()))
                 .thenReturn(true);
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateNotDeadLocking();
@@ -294,7 +294,7 @@ public class ReplicateSupplyServiceTests {
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(),
                 maxExecutionTime)).thenReturn(false);
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateNotDeadLocking();
     }
@@ -329,9 +329,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
 
@@ -412,9 +412,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
 
@@ -455,9 +455,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isPresent();
 
@@ -498,9 +498,9 @@ public class ReplicateSupplyServiceTests {
                 runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isPresent();
 
@@ -535,7 +535,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
 
@@ -574,9 +574,9 @@ public class ReplicateSupplyServiceTests {
         when(consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, runningTask.getTrust(), runningTask.getMaxExecutionTime())).thenReturn(true);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new ContributionAuthorization());
+                .thenReturn(new WorkerpoolAuthorization());
 
-        Optional<ContributionAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
+        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isPresent();
 
@@ -1173,7 +1173,7 @@ public class ReplicateSupplyServiceTests {
         return Optional.of(replicate);
     }
 
-    ContributionAuthorization getStubAuth() {
-        return new ContributionAuthorization();
+    WorkerpoolAuthorization getStubAuth() {
+        return new WorkerpoolAuthorization();
     }
 }

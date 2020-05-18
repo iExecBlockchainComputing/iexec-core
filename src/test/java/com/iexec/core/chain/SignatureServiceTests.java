@@ -1,6 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.HashUtils;
@@ -53,10 +53,10 @@ public class SignatureServiceTests {
         when(credentialsService.getCredentials()).thenReturn(Credentials.create(privateKey));
 
         // creation
-        ContributionAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveChallenge);
+        WorkerpoolAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveChallenge);
 
         // check
-        ContributionAuthorization expected = ContributionAuthorization.builder()
+        WorkerpoolAuthorization expected = WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskid)
                 .enclaveChallenge(enclaveChallenge)
