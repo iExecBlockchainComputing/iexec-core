@@ -1,31 +1,38 @@
 package com.iexec.core.replicate;
 
+import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
+import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOADED;
+import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
+import static com.iexec.common.replicate.ReplicateStatus.REVEALING;
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
+import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
+import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.result.eip712.Eip712Challenge;
-import com.iexec.common.result.eip712.Eip712ChallengeUtils;
-import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.workflow.ReplicateWorkflow;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.ECKeyPair;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -35,20 +42,17 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private CredentialsService credentialsService;
     private ResultService resultService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             CredentialsService credentialsService,
                              ResultService resultService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.credentialsService = credentialsService;
         this.resultService = resultService;
     }
 
@@ -233,7 +237,8 @@ public class ReplicatesService {
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetails());
+                statusUpdate.getStatus(), chainTaskId, walletAddress,
+                getDetailsWithoutStdout(statusUpdate.getDetails()));
 
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
@@ -250,7 +255,7 @@ public class ReplicatesService {
                 .isValidTransition(replicate.getCurrentStatus(), newStatus);
         if (!isValidTransition) {
             log.error("Cannot update replicate, bad wokfow transition {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return Optional.empty();
         }
 
@@ -309,19 +314,19 @@ public class ReplicatesService {
         boolean isBlockAvailable = web3jService.isBlockAvailable(receiptBlockNumber);
         if (!isBlockAvailable) {
             log.error("Cannot update replicate, block not available {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
             log.error("Cannot update replicate, status is not correct",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (newStatus.equals(CONTRIBUTED) && !updateReplicateWeight(chainTaskId, replicate)) {
             log.error("Cannot update replicate, worker weight not updated {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
@@ -335,13 +340,13 @@ public class ReplicatesService {
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
             log.error("Cannot update replicate, status is not correct",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (details == null || details.getResultLink() == null || details.getResultLink().isEmpty()) {
             log.error("Cannot update replicate, missing resultLink {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
@@ -389,10 +394,19 @@ public class ReplicatesService {
         return true;
     }
 
-    private String getLogDetails(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
+    private String getStatusUpdateLogs(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
         return String.format("[currentStatus:%s, newStatus:%s chainTaskId:%s, walletAddress:%s, details:%s]",
                 replicate.getCurrentStatus(), statusUpdate.getStatus(), chainTaskId, replicate.getWalletAddress(),
-                statusUpdate.getDetails());
+                getDetailsWithoutStdout(statusUpdate.getDetails()));
+    }
+
+    private ReplicateStatusDetails getDetailsWithoutStdout(ReplicateStatusDetails details) {
+        if (details == null || details.getStdout() == null) {
+            return null;
+        }
+        ReplicateStatusDetails detailsWithoutStdout = new ReplicateStatusDetails(details);
+        detailsWithoutStdout.setStdout("");
+        return detailsWithoutStdout;
     }
 
     public boolean isResultUploaded(String chainTaskId) {
