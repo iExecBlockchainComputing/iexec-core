@@ -8,7 +8,6 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +18,6 @@ import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.status;
 
-
-@Slf4j
 @RestController
 public class ReplicatesController {
 
@@ -92,6 +89,10 @@ public class ReplicatesController {
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
+
+        if (statusUpdate.getDetails() != null) {
+            statusUpdate.getDetails().cropStdout();
+        }
 
         Optional<TaskNotificationType> oTaskNotificationType =
                 replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
