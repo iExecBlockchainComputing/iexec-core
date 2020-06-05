@@ -152,33 +152,38 @@ public class IexecHubService extends IexecHubAbstractService {
         return ret;
     }
 
-    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultUri, String callbackData) {
+    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultLink, String callbackData) {
         log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
-            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultUri, callbackData), executor).get();
+            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultLink, callbackData), executor).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return Optional.empty();
     }
 
-    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultUri, String callbackData) {
+    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultLink, String callbackData) {
         byte[] chainTaskIdBytes = stringToBytes(chainTaskId);
-        byte[] finalizePayload = resultUri.getBytes(StandardCharsets.UTF_8);
+        byte[] results = new byte[0];
+        byte[] resultsCallback = new byte[0];
+
         boolean shouldSendCallback = callbackData != null && !callbackData.isEmpty();
-        if (shouldSendCallback) {
-            finalizePayload = stringToBytes(callbackData);
+        if (!shouldSendCallback) {
+            results = resultLink.getBytes(StandardCharsets.UTF_8);
+        } else {
+            resultsCallback = stringToBytes(callbackData);
         }
 
         TransactionReceipt finalizeReceipt;
-        //TODO: Upgrade smart-contracts for sending both resultUri and callbackData
-        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider()).finalize(chainTaskIdBytes, finalizePayload);
+
+        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider())
+                .finalize(chainTaskIdBytes, results, resultsCallback);
 
         try {
             finalizeReceipt = finalizeCall.send();
         } catch (Exception e) {
             log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, error:{}]]",
-                    chainTaskId, resultUri, callbackData, shouldSendCallback, e.getMessage());
+                    chainTaskId, resultLink, callbackData, shouldSendCallback, e.getMessage());
             return Optional.empty();
         }
 
@@ -193,7 +198,7 @@ public class IexecHubService extends IexecHubAbstractService {
             ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
 
             log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, gasUsed:{}]", chainTaskId,
-                    resultUri, callbackData, shouldSendCallback, finalizeReceipt.getGasUsed());
+                    resultLink, callbackData, shouldSendCallback, finalizeReceipt.getGasUsed());
             return Optional.of(chainReceipt);
         }
 
