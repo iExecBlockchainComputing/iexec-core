@@ -1,7 +1,6 @@
 package com.iexec.core;
 
 import com.iexec.core.chain.DealWatcherService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
