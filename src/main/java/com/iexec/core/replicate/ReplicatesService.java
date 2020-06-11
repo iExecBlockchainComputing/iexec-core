@@ -7,6 +7,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.result.eip712.Eip712Challenge;
 import com.iexec.common.result.eip712.Eip712ChallengeUtils;
+import com.iexec.common.task.TaskDescription;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -396,11 +397,23 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(String chainTaskId) {
-        // currently no need to check resultLink for TEE since pushed from enclave
-        if (iexecHubService.isTeeTask(chainTaskId)) {
+        Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+
+        if (task.isEmpty()){
             return true;
         }
 
+        // Offchain computing - basic & tee
+        if (task.get().isCallbackRequested()){
+            return true;
+        }
+
+        // Cloud computing - tee
+        if (task.get().isTeeTask()) {
+            return true; // pushed from enclave
+        }
+
+        // Cloud computing - basic
         return resultService.isResultUploaded(chainTaskId);
     }
 
