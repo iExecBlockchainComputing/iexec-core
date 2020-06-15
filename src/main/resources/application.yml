@@ -40,7 +40,7 @@ chain:
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
   publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
   hubAddress: ${IEXEC_HUB_ADDRESS:0xBF6B2B07e47326B7c8bfCb4A5460bef9f0Fd2002}
-  poolAddress: ${POOL_ADDRESS:0xaB079CB5E5A934fe1BcDfBBaBc3A42737f02A0E3}
+  poolAddress: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
