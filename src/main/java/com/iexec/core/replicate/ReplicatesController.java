@@ -91,7 +91,7 @@ public class ReplicatesController {
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
         if (statusUpdate.getDetails() != null) {
-            statusUpdate.getDetails().cropStdout();
+            statusUpdate.getDetails().tailStdout();
         }
 
         Optional<TaskNotificationType> oTaskNotificationType =
