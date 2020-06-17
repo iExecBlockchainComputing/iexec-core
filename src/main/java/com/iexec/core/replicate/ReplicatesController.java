@@ -90,10 +90,6 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        if (statusUpdate.getDetails() != null) {
-            statusUpdate.getDetails().tailStdout();
-        }
-
         Optional<TaskNotificationType> oTaskNotificationType =
                 replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
