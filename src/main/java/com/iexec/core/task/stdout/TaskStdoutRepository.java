@@ -1,5 +1,6 @@
 package com.iexec.core.task.stdout;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -11,4 +12,6 @@ public interface TaskStdoutRepository extends MongoRepository<TaskStdout, String
 
     @Query(value = "{ chainTaskId: ?0 }", fields = "{ replicateStdoutList: { $elemMatch: { walletAddress: ?1 } } }")
     Optional<TaskStdout> findByChainTaskIdAndWalletAddress(String chainTaskId, String walletAddress);
+
+    void deleteByChainTaskIdIn(List<String> chainTaskIds);
 }
