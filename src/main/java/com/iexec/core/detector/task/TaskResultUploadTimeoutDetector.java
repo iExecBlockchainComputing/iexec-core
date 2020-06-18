@@ -27,7 +27,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
         this.taskExecutorEngine = taskExecutorEngine;
     }
 
-    @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
+    @Scheduled(fixedRateString = "${cron.detector.resultuploadtimeout.period}")
     @Override
     public void detect() {
         log.debug("Trying to detect tasks with upload timeout");

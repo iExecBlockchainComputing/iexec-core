@@ -22,7 +22,7 @@ public class WorkerLostDetector implements Detector {
         this.workerService = workerService;
     }
 
-    @Scheduled(fixedRateString = "${detector.workerlost.period}")
+    @Scheduled(fixedRateString = "${cron.detector.workerlost.period}")
     @Override
     public void detect() {
         for (Worker worker : workerService.getLostWorkers()) {
