@@ -419,7 +419,7 @@ public class ReplicatesService {
             return null;
         }
         ReplicateStatusDetails detailsWithoutStdout = new ReplicateStatusDetails(details);
-        detailsWithoutStdout.setStdout("");
+        detailsWithoutStdout.setStdout(null);
         return detailsWithoutStdout;
     }
 

@@ -57,8 +57,9 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/{chainTaskId}/stdout/{walletAddress}")
-    public ResponseEntity<ReplicateStdout> getReplicateStdout(@PathVariable("chainTaskId") String chainTaskId,
-            @PathVariable("walletAddress") String walletAddress) {
+    public ResponseEntity<ReplicateStdout> getReplicateStdout(
+                @PathVariable("chainTaskId") String chainTaskId,
+                @PathVariable("walletAddress") String walletAddress) {
         return taskStdoutService.getReplicateStdout(chainTaskId, walletAddress)
                 .<ResponseEntity<ReplicateStdout>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

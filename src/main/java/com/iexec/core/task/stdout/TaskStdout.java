@@ -46,11 +46,8 @@ public class TaskStdout {
     }
 
     public boolean containsWalletAddress(String walletAddress) {
-        for (ReplicateStdout replicateStdout : replicateStdoutList) {
-            if (replicateStdout.getWalletAddress().equals(walletAddress)) {
-                return true;
-            }
-        }
-        return false;
+        return replicateStdoutList.stream().anyMatch(
+            e -> e.getWalletAddress().equals(walletAddress)
+        );
     }
 }
