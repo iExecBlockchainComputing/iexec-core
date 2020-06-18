@@ -19,6 +19,11 @@ import java.util.*;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.*;
+import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.common.utils.TestUtils.WALLET_WORKER_1;
+import static com.iexec.common.utils.TestUtils.WALLET_WORKER_2;
+import static com.iexec.common.utils.TestUtils.WALLET_WORKER_3;
+import static com.iexec.common.utils.TestUtils.WALLET_WORKER_4;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
@@ -27,24 +32,23 @@ import static org.mockito.Mockito.when;
 
 public class ReplicateServiceTests {
 
-    private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    private final static String WALLET_WORKER_2 = "0x2ab2674aa374fe6415d11f0a8fcbd8027fc1e6a9";
-    private final static String WALLET_WORKER_3 = "0x3a3406e69adf886c442ff1791cbf67cea679275d";
-    private final static String WALLET_WORKER_4 = "0x4aef50214110fdad4e8b9128347f2ba1ec72f614";
-
-    private final static String CHAIN_TASK_ID = "chainTaskId";
-
-    @Mock private ReplicatesRepository replicatesRepository;
-    @Mock private IexecHubService iexecHubService;
-    @Mock private ApplicationEventPublisher applicationEventPublisher;
-    @Mock private Web3jService web3jService;
-    @Mock private CredentialsService credentialsService;
-    @Mock private ResultService resultService;
-    @Mock private TaskStdoutService taskStdoutService;
+    @Mock
+    private ReplicatesRepository replicatesRepository;
+    @Mock
+    private IexecHubService iexecHubService;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    private Web3jService web3jService;
+    @Mock
+    private CredentialsService credentialsService;
+    @Mock
+    private ResultService resultService;
+    @Mock
+    private TaskStdoutService taskStdoutService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
-
 
     @Before
     public void init() {
