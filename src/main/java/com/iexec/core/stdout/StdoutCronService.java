@@ -11,14 +11,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class StdoutCron {
+public class StdoutCronService {
 
     @Value("${cron.stdoutAvailabilityDays}")
     private int stdoutAvailabilityDays;
     private StdoutService stdoutService;
     private TaskService taskService;
 
-    public StdoutCron(StdoutService stdoutService, TaskService taskService) {
+    public StdoutCronService(StdoutService stdoutService, TaskService taskService) {
         this.stdoutService = stdoutService;
         this.taskService = taskService;
     }
