@@ -1,4 +1,4 @@
-package com.iexec.core.task.stdout;
+package com.iexec.core.stdout;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

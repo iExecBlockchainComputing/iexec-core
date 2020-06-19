@@ -1,4 +1,4 @@
-package com.iexec.core.task.stdout;
+package com.iexec.core.stdout;
 
 import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
 import static com.iexec.common.utils.TestUtils.WORKER_ADDRESS;
@@ -24,11 +24,11 @@ public class TaskStdoutServiceTests {
     private static final String STDOUT = "This is an stdout string";
 
     @Mock
-    private TaskStdoutRepository taskStdoutRepository;
+    private StdoutRepository stdoutRepository;
     @Mock
     private TaskService taskService;
     @InjectMocks
-    private TaskStdoutService taskStdoutService;
+    private StdoutService stdoutService;
 
     @Before
     public void init() {
@@ -38,8 +38,8 @@ public class TaskStdoutServiceTests {
     @Test
     public void shouldAddReplicateStdout() {
         ArgumentCaptor<TaskStdout> argumentCaptor = ArgumentCaptor.forClass(TaskStdout.class);
-        taskStdoutService.addReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS, STDOUT);
-        verify(taskStdoutRepository, times(1)).save(argumentCaptor.capture());
+        stdoutService.addReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS, STDOUT);
+        verify(stdoutRepository, times(1)).save(argumentCaptor.capture());
         TaskStdout capturedEvent = argumentCaptor.getAllValues().get(0);
         assertThat(capturedEvent.getReplicateStdoutList().get(0).getStdout()).isEqualTo(STDOUT);
         assertThat(capturedEvent.getReplicateStdoutList().get(0).getWalletAddress()).isEqualTo(WORKER_ADDRESS);
@@ -52,9 +52,9 @@ public class TaskStdoutServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .replicateStdoutList(List.of(replicateStdout))
                 .build();
-        when(taskStdoutRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
+        when(stdoutRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
                 .thenReturn(Optional.of(taskStdout));
-        Optional<ReplicateStdout> optional = taskStdoutService.getReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS);
+        Optional<ReplicateStdout> optional = stdoutService.getReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS);
         assertThat(optional.get().getStdout()).isEqualTo(STDOUT);
     }
 }

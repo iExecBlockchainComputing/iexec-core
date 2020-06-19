@@ -1,4 +1,4 @@
-package com.iexec.core.task.stdout;
+package com.iexec.core.stdout;
 
 import java.util.List;
 import java.util.Optional;
@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface TaskStdoutRepository extends MongoRepository<TaskStdout, String> {
+public interface StdoutRepository extends MongoRepository<TaskStdout, String> {
 
     Optional<TaskStdout> findOneByChainTaskId(String chainTaskId);
 

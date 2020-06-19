@@ -26,7 +26,7 @@ import com.iexec.common.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.task.stdout.TaskStdoutService;
+import com.iexec.core.stdout.StdoutService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,20 +46,20 @@ public class ReplicatesService {
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
     private ResultService resultService;
-    private TaskStdoutService taskStdoutService;
+    private StdoutService stdoutService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              ResultService resultService,
-                             TaskStdoutService taskStdoutService) {
+                             StdoutService stdoutService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.resultService = resultService;
-        this.taskStdoutService = taskStdoutService;
+        this.stdoutService = stdoutService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -293,7 +293,7 @@ public class ReplicatesService {
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
             if (statusUpdate.getStatus().equals(COMPUTED)) {
                 String stdout = statusUpdate.getDetails().tailStdout().getStdout();
-                taskStdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
+                stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
             }
             statusUpdate.getDetails().setStdout(null);
         }

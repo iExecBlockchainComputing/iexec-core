@@ -8,7 +8,7 @@ import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.task.stdout.TaskStdoutService;
+import com.iexec.core.stdout.StdoutService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class ReplicateServiceTests {
     @Mock
     private ResultService resultService;
     @Mock
-    private TaskStdoutService taskStdoutService;
+    private StdoutService stdoutService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -370,7 +370,7 @@ public class ReplicateServiceTests {
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
                 .isEqualTo(10);
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
-        Mockito.verify(taskStdoutService, never()).addReplicateStdout(anyString(), anyString(), anyString());
+        Mockito.verify(stdoutService, never()).addReplicateStdout(anyString(), anyString(), anyString());
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
     }
 
@@ -397,7 +397,7 @@ public class ReplicateServiceTests {
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(COMPUTED);
-        Mockito.verify(taskStdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
+        Mockito.verify(stdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
     }
 

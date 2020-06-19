@@ -6,9 +6,9 @@ import java.util.Optional;
 
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.stdout.ReplicateStdout;
-import com.iexec.core.task.stdout.TaskStdout;
-import com.iexec.core.task.stdout.TaskStdoutService;
+import com.iexec.core.stdout.ReplicateStdout;
+import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.stdout.TaskStdout;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +21,14 @@ public class TaskController {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
-    private TaskStdoutService taskStdoutService;
+    private StdoutService stdoutService;
 
     public TaskController(TaskService taskService,
                           ReplicatesService replicatesService,
-                          TaskStdoutService taskStdoutService) {
+                          StdoutService stdoutService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.taskStdoutService = taskStdoutService;
+        this.stdoutService = stdoutService;
     }
 
     // TODO: add auth
@@ -51,7 +51,7 @@ public class TaskController {
 
     @GetMapping("/tasks/{chainTaskId}/stdout")
     public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
-        return taskStdoutService.getTaskStdout(chainTaskId)
+        return stdoutService.getTaskStdout(chainTaskId)
                 .<ResponseEntity<TaskStdout>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -60,7 +60,7 @@ public class TaskController {
     public ResponseEntity<ReplicateStdout> getReplicateStdout(
                 @PathVariable("chainTaskId") String chainTaskId,
                 @PathVariable("walletAddress") String walletAddress) {
-        return taskStdoutService.getReplicateStdout(chainTaskId, walletAddress)
+        return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
                 .<ResponseEntity<ReplicateStdout>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
