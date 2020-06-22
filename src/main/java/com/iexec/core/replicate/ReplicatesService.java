@@ -243,8 +243,7 @@ public class ReplicatesService {
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress,
-                getDetailsWithoutStdout(statusUpdate.getDetails()));
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
@@ -411,16 +410,7 @@ public class ReplicatesService {
     private String getStatusUpdateLogs(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
         return String.format("[currentStatus:%s, newStatus:%s chainTaskId:%s, walletAddress:%s, details:%s]",
                 replicate.getCurrentStatus(), statusUpdate.getStatus(), chainTaskId, replicate.getWalletAddress(),
-                getDetailsWithoutStdout(statusUpdate.getDetails()));
-    }
-
-    private ReplicateStatusDetails getDetailsWithoutStdout(ReplicateStatusDetails details) {
-        if (details == null || details.getStdout() == null) {
-            return null;
-        }
-        ReplicateStatusDetails detailsWithoutStdout = new ReplicateStatusDetails(details);
-        detailsWithoutStdout.setStdout(null);
-        return detailsWithoutStdout;
+                statusUpdate.getDetailsWithoutStdout());
     }
 
     public boolean isResultUploaded(String chainTaskId) {
