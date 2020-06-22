@@ -8,18 +8,20 @@ spring:
       host: ${MONGO_HOST:localhost}
       port: ${MONGO_PORT:27017}
 
-# all in milliseconds
-detector:
-  workerlost.period: 30000              # 30 s
-  resultuploadtimeout.period: 30000     # 30 s
-  dealwatcherreplay.period: 60000       # 1 min
-  reveal.timeout.period: ${REVEAL_TIMEOUT_PERIOD:120000}       # 2 min
-  reveal.unnotified.period: 30000       # 30 s
-  contribution.unnotified.period: 30000 # 30 s
-  contribution.timeout.period: 120000   # 2 min
-  unstartedtx.period: 300000            # 5 min
-  task.initialized.unnotified.period: 30000  # 30 s
-  task.finalized.unnotified.period: 30000  # 30 s
+cron:
+  detector:
+    # all in milliseconds
+    workerlost.period: 30000              # 30 s
+    resultuploadtimeout.period: 30000     # 30 s
+    dealwatcherreplay.period: 60000       # 1 min
+    reveal.timeout.period: ${REVEAL_TIMEOUT_PERIOD:120000}       # 2 min
+    reveal.unnotified.period: 30000       # 30 s
+    contribution.unnotified.period: 30000 # 30 s
+    contribution.timeout.period: 120000   # 2 min
+    unstartedtx.period: 300000            # 5 min
+    task.initialized.unnotified.period: 30000  # 30 s
+    task.finalized.unnotified.period: 30000  # 30 s
+  stdoutAvailabilityDays: ${IEXEC_STDOUT_AVAILABILITY_DAYS:3} # 3 days after final deadline
 
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
@@ -46,9 +48,9 @@ chain:
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
 resultRepository:
-  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:https}
+  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
-  port: ${IEXEC_RESULT_REPOSITORY_PORT:18443}
+  port: ${IEXEC_RESULT_REPOSITORY_PORT:18089}
 
 ipfs:
   host: ${IEXEC_IPFS_HOST:127.0.0.1}

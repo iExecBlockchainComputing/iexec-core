@@ -25,7 +25,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
         this.taskExecutorEngine = taskExecutorEngine;
     }
 
-    @Scheduled(fixedRateString = "${detector.contribution.timeout.period}")
+    @Scheduled(fixedRateString = "${cron.detector.contribution.timeout.period}")
     @Override
     public void detect() {
         log.debug("Trying to detect contribution timeout");

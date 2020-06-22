@@ -36,7 +36,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
         this.taskExecutorEngine = taskExecutorEngine;
     }
 
-    @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
+    @Scheduled(fixedRateString = "${cron.detector.resultuploadtimeout.period}")
     @Override
     public void detect() {
         // check all tasks with status upload result requested

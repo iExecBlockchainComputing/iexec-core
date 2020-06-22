@@ -44,6 +44,12 @@ public class ResultService {
                 .is2xxSuccessful();
     }
 
+    @Recover
+    private boolean isResultUploaded(FeignException e, String chainTaskId) {
+        log.error("Cant check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId);
+        return false;
+    }
+
     // TODO Move this to common since widely used by all iexec services
     private String getResultProxyToken() {
         Optional<Eip712Challenge> oEip712Challenge = getChallenge();
@@ -88,11 +94,4 @@ public class ResultService {
         }
         return "";
     }
-
-    @Recover
-    private boolean isResultUploaded(FeignException e, String authorizationToken, String chainTaskId) {
-        log.error("Cant check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId);
-        return false;
-    }
-
 }
