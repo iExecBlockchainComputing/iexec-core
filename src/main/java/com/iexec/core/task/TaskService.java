@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -82,6 +83,17 @@ public class TaskService {
         return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
     }
 
+    private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
+        return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
+    }
+
+    public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
+        return taskRepository.findChainTaskIdsByFinalDeadlineBefore(expirationDate)
+                .stream()
+                .map(Task::getChainTaskId)
+                .collect(Collectors.toList());
+    }
+
     public boolean isConsensusReached(Task task) {
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
@@ -96,10 +108,6 @@ public class TaskService {
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
-    }
-
-    private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
-        return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
 
     boolean tryUpgradeTaskStatus(String chainTaskId) {

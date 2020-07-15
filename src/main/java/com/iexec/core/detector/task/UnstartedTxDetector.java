@@ -24,7 +24,7 @@ public class UnstartedTxDetector implements Detector {
         this.taskExecutorEngine = taskExecutorEngine;
     }
 
-    @Scheduled(fixedRateString = "${detector.unstartedtx.period}")
+    @Scheduled(fixedRateString = "${cron.detector.unstartedtx.period}")
     @Override
     public void detect() {
         //start finalize when needed

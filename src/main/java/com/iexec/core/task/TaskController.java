@@ -1,37 +1,43 @@
 package com.iexec.core.task;
 
-import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import static org.springframework.http.ResponseEntity.status;
 
 import java.util.Optional;
 
-import static org.springframework.http.ResponseEntity.status;
+import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.stdout.ReplicateStdout;
+import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.stdout.TaskStdout;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
-@Slf4j
 @RestController
 public class TaskController {
 
     private TaskService taskService;
     private ReplicatesService replicatesService;
-
+    private StdoutService stdoutService;
 
     public TaskController(TaskService taskService,
-                          ReplicatesService replicatesService) {
+                          ReplicatesService replicatesService,
+                          StdoutService stdoutService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
+        this.stdoutService = stdoutService;
     }
 
+    // TODO: add auth
+
     @GetMapping("/tasks/{chainTaskId}")
-    public ResponseEntity getTask(@PathVariable("chainTaskId") String chainTaskId) {
+    public ResponseEntity<TaskModel> getTask(@PathVariable("chainTaskId") String chainTaskId) {
         Optional<Task> optionalTask = taskService.getTaskByChainTaskId(chainTaskId);
         if (!optionalTask.isPresent()) {
-            return status(HttpStatus.NO_CONTENT).build();
+            return status(HttpStatus.NOT_FOUND).build();
         }
         Task task = optionalTask.get();
 
@@ -42,5 +48,20 @@ public class TaskController {
 
         return ResponseEntity.ok(taskModel);
     }
-}
 
+    @GetMapping("/tasks/{chainTaskId}/stdout")
+    public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
+        return stdoutService.getTaskStdout(chainTaskId)
+                .<ResponseEntity<TaskStdout>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/tasks/{chainTaskId}/stdout/{walletAddress}")
+    public ResponseEntity<ReplicateStdout> getReplicateStdout(
+                @PathVariable("chainTaskId") String chainTaskId,
+                @PathVariable("walletAddress") String walletAddress) {
+        return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
+                .<ResponseEntity<ReplicateStdout>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+}

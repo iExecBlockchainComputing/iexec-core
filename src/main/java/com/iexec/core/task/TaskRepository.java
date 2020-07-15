@@ -3,6 +3,7 @@ package com.iexec.core.task;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,5 +25,8 @@ interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findByCurrentStatus(List<TaskStatus> statuses);
 
     @Query("{ 'currentStatus': {$nin: ?0} }")
-    List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);    
+    List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
+
+    @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
+    List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
 }

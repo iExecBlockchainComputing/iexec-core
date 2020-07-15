@@ -1,30 +1,41 @@
 package com.iexec.core.replicate;
 
+import static com.iexec.common.replicate.ReplicateStatus.COMPUTED;
+import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
+import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOADED;
+import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
+import static com.iexec.common.replicate.ReplicateStatus.REVEALING;
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
+import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
+import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.result.eip712.Eip712Challenge;
-import com.iexec.common.result.eip712.Eip712ChallengeUtils;
-import com.iexec.core.chain.CredentialsService;
+import com.iexec.common.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.core.ResultRepoService;
+import com.iexec.core.result.ResultService;
+import com.iexec.core.stdout.StdoutService;
 import com.iexec.core.workflow.ReplicateWorkflow;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.ECKeyPair;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -34,21 +45,21 @@ public class ReplicatesService {
     private IexecHubService iexecHubService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
-    private CredentialsService credentialsService;
-    private ResultRepoService resultRepoService;
+    private ResultService resultService;
+    private StdoutService stdoutService;
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
-                             CredentialsService credentialsService,
-                             ResultRepoService resultRepoService) {
+                             ResultService resultService,
+                             StdoutService stdoutService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
-        this.credentialsService = credentialsService;
-        this.resultRepoService = resultRepoService;
+        this.resultService = resultService;
+        this.stdoutService = stdoutService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -232,7 +243,7 @@ public class ReplicatesService {
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetails());
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
@@ -249,7 +260,7 @@ public class ReplicatesService {
                 .isValidTransition(replicate.getCurrentStatus(), newStatus);
         if (!isValidTransition) {
             log.error("Cannot update replicate, bad wokfow transition {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return Optional.empty();
         }
 
@@ -278,13 +289,21 @@ public class ReplicatesService {
             return Optional.empty();
         }
 
+        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
+            if (statusUpdate.getStatus().equals(COMPUTED)) {
+                String stdout = statusUpdate.getDetails().tailStdout().getStdout();
+                stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
+            }
+            statusUpdate.getDetails().setStdout(null);
+        }
+
         replicate.updateStatus(statusUpdate);
         replicatesRepository.save(replicatesList);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
 
-        log.info("Replicate updated successfully [nextAction:{}, chainTaskId:{}, walletAddress:{}]",
-                getLogDetails(chainTaskId, replicate, statusUpdate));
+        log.info("Replicate updated successfully [newStatus:{} nextAction:{}, chainTaskId:{}, walletAddress:{}]",
+                replicate.getCurrentStatus(), nextAction, chainTaskId, walletAddress);
 
         return Optional.ofNullable(nextAction); // should we return a default action when null?
     }
@@ -308,19 +327,19 @@ public class ReplicatesService {
         boolean isBlockAvailable = web3jService.isBlockAvailable(receiptBlockNumber);
         if (!isBlockAvailable) {
             log.error("Cannot update replicate, block not available {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
             log.error("Cannot update replicate, status is not correct",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (newStatus.equals(CONTRIBUTED) && !updateReplicateWeight(chainTaskId, replicate)) {
             log.error("Cannot update replicate, worker weight not updated {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
@@ -334,13 +353,13 @@ public class ReplicatesService {
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
             log.error("Cannot update replicate, status is not correct",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
         if (details == null || details.getResultLink() == null || details.getResultLink().isEmpty()) {
             log.error("Cannot update replicate, missing resultLink {}",
-                    getLogDetails(chainTaskId, replicate, statusUpdate));
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
@@ -388,34 +407,31 @@ public class ReplicatesService {
         return true;
     }
 
-    private String getLogDetails(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
+    private String getStatusUpdateLogs(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
         return String.format("[currentStatus:%s, newStatus:%s chainTaskId:%s, walletAddress:%s, details:%s]",
                 replicate.getCurrentStatus(), statusUpdate.getStatus(), chainTaskId, replicate.getWalletAddress(),
-                statusUpdate.getDetails());
+                statusUpdate.getDetailsWithoutStdout());
     }
 
     public boolean isResultUploaded(String chainTaskId) {
-        // currently no check in case of IPFS
-        if (iexecHubService.isPublicResult(chainTaskId, 0)) {
+        Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+
+        if (task.isEmpty()){
             return true;
         }
 
-        Optional<Eip712Challenge> oEip712Challenge = resultRepoService.getChallenge();
-        if (!oEip712Challenge.isPresent()) return false;
-
-        Eip712Challenge eip712Challenge = oEip712Challenge.get();
-        ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
-        String walletAddress = credentialsService.getCredentials().getAddress();
-
-        // sign the eip712 challenge and build authorization token
-        String authorizationToken = Eip712ChallengeUtils.buildAuthorizationToken(eip712Challenge,
-                walletAddress, ecKeyPair);
-
-        if (authorizationToken.isEmpty()) {
-            return false;
+        // Offchain computing - basic & tee
+        if (task.get().isCallbackRequested()){
+            return true;
         }
 
-        return resultRepoService.isResultUploaded(authorizationToken, chainTaskId);
+        // Cloud computing - tee
+        if (task.get().isTeeTask()) {
+            return true; // pushed from enclave
+        }
+
+        // Cloud computing - basic
+        return resultService.isResultUploaded(chainTaskId);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {

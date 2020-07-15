@@ -1,15 +1,12 @@
 package com.iexec.core.sms;
 
-import com.iexec.common.sms.SmsEnclaveChallengeResponse;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.feign.SmsClient;
-
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-
-import feign.FeignException;
-import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
@@ -24,21 +21,21 @@ public class SmsService {
 
     public String getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
         return isTeeEnabled
-            ? generateEnclaveChallenge(chainTaskId)
-            : BytesUtils.EMPTY_ADDRESS;
+                ? generateEnclaveChallenge(chainTaskId)
+                : BytesUtils.EMPTY_ADDRESS;
     }
 
-    @Retryable (value = FeignException.class)
+    @Retryable(value = FeignException.class)
     public String generateEnclaveChallenge(String chainTaskId) {
-        SmsEnclaveChallengeResponse smsResponse = smsClient.generateEnclaveChallenge(chainTaskId);
 
-        if (smsResponse == null || !smsResponse.isOk() || smsResponse.getData() == null) {
-            log.error("An error occured while getting enclaveChallenge [chainTaskId:{}, erroMsg:{}]",
-                    chainTaskId, smsResponse.getErrorMessage());
+        String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+
+        if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
+            log.error("An error occured while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
             return "";
         }
 
-        return smsResponse.getData().getAddress();
+        return teeChallengePublicKey;
     }
 
     @Recover

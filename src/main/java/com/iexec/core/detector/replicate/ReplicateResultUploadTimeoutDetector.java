@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
@@ -36,7 +36,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
         this.taskExecutorEngine = taskExecutorEngine;
     }
 
-    @Scheduled(fixedRateString = "${detector.resultuploadtimeout.period}")
+    @Scheduled(fixedRateString = "${cron.detector.resultuploadtimeout.period}")
     @Override
     public void detect() {
         // check all tasks with status upload result requested

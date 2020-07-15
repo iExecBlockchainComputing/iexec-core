@@ -56,7 +56,7 @@ public class JwtTokenProvider {
      * for 65 minutes.
      * 
      * Problem description:
-     *  1) jwt expires
+     *  1) jwtString expires
      *  2) worker gets old challenge
      *  3) old challenge expires
      *  4) worker tries logging with old challenge

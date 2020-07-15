@@ -1,6 +1,6 @@
 package com.iexec.core.chain;
 
-import com.iexec.common.contract.generated.IexecClerkABILegacy;
+import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +23,7 @@ public class DealEvent {
         this.blockNumber = blockNumber;
     }
 
-    public DealEvent(IexecClerkABILegacy.SchedulerNoticeEventResponse schedulerNoticeEventResponse) {
+    public DealEvent(IexecHubContract.SchedulerNoticeEventResponse schedulerNoticeEventResponse) {
         this.chainDealId = BytesUtils.bytesToString(schedulerNoticeEventResponse.dealid);
         this.blockNumber = schedulerNoticeEventResponse.log.getBlockNumber();
     }

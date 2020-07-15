@@ -1,6 +1,6 @@
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ContributionAuthorization;
+import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
@@ -74,7 +74,7 @@ public class ReplicateSupplyService {
      *
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<ContributionAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
+    Optional<WorkerpoolAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not registered
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (!optional.isPresent()) {
@@ -220,9 +220,9 @@ public class ReplicateSupplyService {
 
         switch (taskNotificationType){
             case PLEASE_CONTRIBUTE:
-                ContributionAuthorization authorization = signatureService.createAuthorization(
+                WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                         walletAddress, task.getChainTaskId(), enclaveChallenge);
-                taskNotificationExtra.setContributionAuthorization(authorization);
+                taskNotificationExtra.setWorkerpoolAuthorization(authorization);
                 break;
             case PLEASE_REVEAL:
                 taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());

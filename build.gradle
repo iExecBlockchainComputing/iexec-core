@@ -84,6 +84,11 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-actuator"
     compile "org.springframework.cloud:spring-cloud-starter-openfeign"
 
+    // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
+    implementation 'com.squareup.okhttp3:okhttp:4.3.1' // Web3j issue: https://github.com/web3j/web3j/issues/1180
+    // NoSuchMethodError: 'byte[] kotlin.collections.ArraysKt.copyInto(byte[], byte[], int, int, int)'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.3.50' // https://stackoverflow.com/a/57907899
+
     testCompile "org.springframework.boot:spring-boot-starter-test"
 
     // swagger
@@ -217,7 +222,7 @@ task buildImage(type: Exec) {
 }
 
 buildImage.dependsOn prepareDockerFile
-buildImage.enabled = isMasterBranch || project.hasProperty("forceDockerBuild")
+buildImage.enabled = (isMasterBranch || isDevelopBranch ) || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
     if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
@@ -232,4 +237,4 @@ task pushImage(type: Exec) {
 }
 
 pushImage.dependsOn buildImage
-pushImage.enabled = isMasterBranch && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
+pushImage.enabled = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")

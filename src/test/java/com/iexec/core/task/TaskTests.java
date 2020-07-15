@@ -1,15 +1,15 @@
 package com.iexec.core.task;
 
 
-import com.iexec.core.utils.DateTimeUtils;
+import com.iexec.common.utils.DateTimeUtils;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Date;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
-import static com.iexec.core.utils.DateTimeUtils.addMinutesToDate;
-import static com.iexec.core.utils.DateTimeUtils.now;
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
+import static com.iexec.common.utils.DateTimeUtils.now;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TaskTests {
