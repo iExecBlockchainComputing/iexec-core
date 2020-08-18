@@ -10,7 +10,7 @@ public interface StdoutRepository extends MongoRepository<TaskStdout, String> {
 
     Optional<TaskStdout> findOneByChainTaskId(String chainTaskId);
 
-    @Query(value = "{ chainTaskId: ?0 }", fields = "{ replicateStdoutList: { $elemMatch: { walletAddress: ?1 } } }")
+    @Query(value = "{ chainTaskId: ?0 }", fields = "{ chainTaskId: ?0, replicateStdoutList: { $elemMatch: { walletAddress: ?1 } } }")
     Optional<TaskStdout> findByChainTaskIdAndWalletAddress(String chainTaskId, String walletAddress);
 
     void deleteByChainTaskIdIn(List<String> chainTaskIds);

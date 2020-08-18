@@ -28,9 +28,8 @@ public class StdoutService {
         return stdoutRepository.findOneByChainTaskId(chainTaskId);
     }
 
-    public Optional<ReplicateStdout> getReplicateStdout(String chainTaskId, String walletAddress) {
-        return stdoutRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress)
-                .map(taskStdout -> taskStdout.getReplicateStdoutList().get(0));
+    public Optional<TaskStdout> getReplicateStdout(String chainTaskId, String walletAddress) {
+        return stdoutRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress);
     }
 
     public void delete(List<String> chainTaskIds) {

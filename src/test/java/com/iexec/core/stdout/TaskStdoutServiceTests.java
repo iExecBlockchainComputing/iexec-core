@@ -54,7 +54,7 @@ public class TaskStdoutServiceTests {
                 .build();
         when(stdoutRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
                 .thenReturn(Optional.of(taskStdout));
-        Optional<ReplicateStdout> optional = stdoutService.getReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS);
-        assertThat(optional.get().getStdout()).isEqualTo(STDOUT);
+        Optional<TaskStdout> optional = stdoutService.getReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS);
+        assertThat(optional.get().getReplicateStdoutList().get(0).getStdout()).isEqualTo(STDOUT);
     }
 }
