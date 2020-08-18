@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 public class TaskController {
@@ -50,10 +51,13 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
-        return stdoutService.getTaskStdout(chainTaskId)
-                .<ResponseEntity<TaskStdout>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ModelAndView getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
+        TaskStdout taskStdout = stdoutService.getTaskStdout(chainTaskId)
+                .orElse(new TaskStdout(chainTaskId));
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("stdout");
+        modelAndView.addObject("taskStdout", taskStdout);
+        return modelAndView;
     }
 
     @GetMapping("/tasks/{chainTaskId}/stdout/{walletAddress}")

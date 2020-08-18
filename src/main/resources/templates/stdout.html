@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Task stdout</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+
+<body>
+
+    <h2>Task id: <span th:text="${taskStdout.getChainTaskId()}"></span></h2>
+
+    <div th:each="e : ${ taskStdout.replicateStdoutList }">
+        <p><strong>Replicate: </strong><span th:text="${ e.getWalletAddress() }"></span> </p>
+        <p><strong>Stdout: </strong></p>
+        <code th:utext='${ e.getStdout().replaceAll("\n", "</br>") }'></code>
+        <br>
+    </div>
+
+    <style>
+      body {
+        padding-left: 3em;
+      }
+    </style>
+</body>
