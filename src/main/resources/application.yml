@@ -76,3 +76,6 @@ management:
 graylog:
   host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}
   port: ${IEXEC_CORE_GRAYLOG_PORT:12201}
+
+logging.level.org.springframework.web.socket.sockjs: TRACE
+logging.level.org.springframework.messaging.simp.stomp: TRACE
