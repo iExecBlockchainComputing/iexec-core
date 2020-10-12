@@ -70,17 +70,17 @@ public class IexecHubService extends IexecHubAbstractService {
 
     public boolean canInitialize(String chainDealId, int taskIndex) {
         boolean isTaskUnsetOnChain = isTaskUnsetOnChain(chainDealId, taskIndex);
-        boolean isBeforeContributionDeadline = isDateBeforeContributionDeadline(new Date(), chainDealId);
+        boolean isBeforeContributionDeadline = isNowBeforeContributionDeadline(chainDealId);
         return isBeforeContributionDeadline && isTaskUnsetOnChain;
     }
 
-    private boolean isTaskUnsetOnChain(String chainDealId, int taskIndex) {
+    public boolean isTaskUnsetOnChain(String chainDealId, int taskIndex) {
         String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
         Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
         return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
     }
 
-    private boolean isDateBeforeContributionDeadline(Date date, String chainDealId) {
+    public boolean isNowBeforeContributionDeadline(String chainDealId) {
         Optional<ChainDeal> chainDeal = getChainDeal(chainDealId);
         if (!chainDeal.isPresent()) {
             return false;
@@ -90,7 +90,7 @@ public class IexecHubService extends IexecHubAbstractService {
         long maxExecutionTime = chainDeal.get().getChainCategory().getMaxExecutionTime();
         long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
 
-        return date.getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
+        return new Date().getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
     }
 
 

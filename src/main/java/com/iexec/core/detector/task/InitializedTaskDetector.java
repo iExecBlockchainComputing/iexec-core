@@ -52,14 +52,15 @@ public class InitializedTaskDetector implements Detector {
     @Scheduled(fixedRateString = "${cron.detector.task.initialized.unnotified.period}")
     @Override
     public void detect() {
-        log.debug("Trying to detect initialized tasks");
-        for (Task task : taskService.findByCurrentStatus(TaskStatus.INITIALIZING)) {
+        log.debug("Trying to detect initializable tasks");
+        for (Task task : taskService.getInitializableTasks()) {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
-            if (chainTask.isPresent() && !chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
-                log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
-                        TaskStatus.INITIALIZING, TaskStatus.INITIALIZED, task.getChainTaskId());
-                taskExecutorEngine.updateTask(task.getChainTaskId());
+            if (chainTask.isEmpty() || chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
+                continue;
             }
+            log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
+                    task.getCurrentStatus(), TaskStatus.INITIALIZED, task.getChainTaskId());
+            taskExecutorEngine.updateTask(task.getChainTaskId());
         }
     }
 }

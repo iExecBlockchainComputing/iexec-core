@@ -45,4 +45,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
+
+    List<Task> findByCurrentStatusInAndContributionDeadlineAfter(List<TaskStatus> status, Date date);
 }
