@@ -110,6 +110,19 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * An initializable task is in RECEIVED or
+     * INITIALIZED status and has a contribution
+     * deadline that is still in the future.
+     * 
+     * @return list of initializable tasks
+     */
+    public List<Task> getInitializableTasks() {
+        return taskRepository
+                .findByCurrentStatusInAndContributionDeadlineAfter(
+                        List.of(RECEIVED, INITIALIZING), new Date());
+    }
+
     public boolean isConsensusReached(Task task) {
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
@@ -189,17 +202,20 @@ public class TaskService {
         boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
 
         if (!isCurrentStatusReceived) {
-            log.error("Cannot initialize [chainTaskId:{}, currentStatus:{}]",
+            log.error("Cannot initialize task [chainTaskId:{}, currentStatus:{}]",
                     task.getChainTaskId(), task.getCurrentStatus());
             return;
         }
 
-        boolean canInitialize = iexecHubService.canInitialize(task.getChainDealId(), task.getTaskIndex());
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
+        boolean isTaskUnsetOnChain = iexecHubService.isTaskUnsetOnChain(task.getChainDealId(), task.getTaskIndex());
+        boolean isBeforeContributionDeadline = iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId());
 
-        if (!canInitialize || !hasEnoughGas) {
-            log.error("Cant initialize [chainTaskId:{}, canInitialize:{}, hasEnoughGas:{}]",
-                    task.getChainTaskId(), canInitialize, hasEnoughGas);
+        if (!hasEnoughGas || isTaskUnsetOnChain || !isBeforeContributionDeadline) {
+            log.error("Cannot initialize task [chainTaskId:{}, hasEnoughGas:{}, "
+                    + "isTaskUnsetOnChain:{}, isBeforeContributionDeadline:{}]",
+                    task.getChainTaskId(), hasEnoughGas, isTaskUnsetOnChain,
+                    isBeforeContributionDeadline);
             return;
         }
 
