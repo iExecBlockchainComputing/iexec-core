@@ -25,6 +25,7 @@ import com.iexec.common.tee.TeeUtils;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -47,11 +48,13 @@ public class Task {
     @Version
     private Long version;
 
+    @Indexed(unique = true)
+    private String chainTaskId;
+
     private String chainDealId;
     private int taskIndex;
     private long maxExecutionTime;
     private String tag;
-    private String chainTaskId;
     private DappType dappType;
     private String dappName;
     private String commandLine;
