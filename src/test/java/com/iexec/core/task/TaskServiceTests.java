@@ -378,8 +378,10 @@ public class TaskServiceTests {
         Pair<String, ChainReceipt> pair = Pair.of("dummy", null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
+        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
 
@@ -396,7 +398,10 @@ public class TaskServiceTests {
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
-        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
+        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
@@ -415,8 +420,11 @@ public class TaskServiceTests {
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
+        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
