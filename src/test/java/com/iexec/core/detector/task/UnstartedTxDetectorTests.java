@@ -54,7 +54,7 @@ public class UnstartedTxDetectorTests {
                 .chainDealId("0x1")
                 .taskIndex(0)
                 .build();
-        when(taskService.findByCurrentStatus(RECEIVED)).thenReturn(Collections.singletonList(task));
+        when(taskService.getInitializableTasks()).thenReturn(Collections.singletonList(task));
 
         unstartedTxDetector.detect();
 
