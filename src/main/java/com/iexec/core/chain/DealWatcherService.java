@@ -106,22 +106,17 @@ public class DealWatcherService {
                     chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
             return;
         }
-        try {
-            int startBag = chainDeal.getBotFirst().intValue();
-            int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
-
-            for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
-                Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
-                        BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
-                        chainDeal.getParams().getIexecArgs(),
-                        chainDeal.getTrust().intValue(),
-                        chainDeal.getChainCategory().getMaxExecutionTime(),
-                        chainDeal.getTag());
-                optional.ifPresent(task -> applicationEventPublisher
-                        .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        int startBag = chainDeal.getBotFirst().intValue();
+        int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
+        for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
+            Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
+                    BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
+                    chainDeal.getParams().getIexecArgs(),
+                    chainDeal.getTrust().intValue(),
+                    chainDeal.getChainCategory().getMaxExecutionTime(),
+                    chainDeal.getTag());
+            optional.ifPresent(task -> applicationEventPublisher
+                    .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
         }
     }
 
