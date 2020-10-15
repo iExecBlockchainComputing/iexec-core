@@ -124,11 +124,7 @@ public class TaskServiceTests {
     public void shouldNotAddTask() {
         Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
-
-        ArrayList<Task> list = new ArrayList<>();
-        list.add(task);
-
-        when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(list);
+        when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, "0x0");
         assertThat(saved).isEqualTo(Optional.empty());
     }
@@ -342,8 +338,10 @@ public class TaskServiceTests {
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
@@ -353,15 +351,37 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceCantInitialize() {
+    public void shouldNotUpdateReceived2InitializingSinceTaskNotInUnsetStatusOnChain() {
         Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.canInitialize(CHAIN_DEAL_ID, 1)).thenReturn(false);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
+
+        taskService.tryUpgradeTaskStatus(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    @Test
+    public void shouldNotUpdateReceived2InitializingSinceAfterContributionDeadline() {
+        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(false);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
@@ -379,8 +399,8 @@ public class TaskServiceTests {
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
-        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
@@ -399,8 +419,8 @@ public class TaskServiceTests {
         Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
-        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
@@ -421,8 +441,8 @@ public class TaskServiceTests {
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskUnsetOnChain(CHAIN_DEAL_ID, 1)).thenReturn(false);
-        when(iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId()))
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
 
         when(taskRepository.save(task)).thenReturn(task);

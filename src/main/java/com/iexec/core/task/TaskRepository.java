@@ -27,7 +27,7 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     Optional<Task> findByChainTaskId(String id);
 
-    List<Task> findByChainDealIdAndTaskIndex(String chainDealId, int taskIndex);
+    Optional<Task> findByChainDealIdAndTaskIndex(String chainDealId, int taskIndex);
 
     @Query("{ 'chainTaskId': {$in: ?0} }")
     List<Task> findByChainTaskId(List<String> ids);
