@@ -125,7 +125,7 @@ public class TaskService {
     }
 
     public List<Task> getTasksInNonFinalStatuses() {
-        return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
+        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses());
     }
 
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
@@ -162,6 +162,12 @@ public class TaskService {
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
+    }
+
+    public Date getTaskFinalDeadline(String chainTaskId) {
+        return getTaskByChainTaskId(chainTaskId)
+                .map(Task::getFinalDeadline)
+                .orElse(new Date());
     }
 
     boolean tryUpgradeTaskStatus(String chainTaskId) {
