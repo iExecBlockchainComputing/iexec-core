@@ -101,6 +101,7 @@ public class DealWatcherService {
             return;
         }
         ChainDeal chainDeal = oChainDeal.get();
+        // do not process deals after deadline
         if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
             log.error("Deal has expired [chainDealId:{}, deadline:{}]",
                     chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));

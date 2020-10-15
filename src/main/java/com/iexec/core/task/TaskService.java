@@ -63,16 +63,45 @@ public class TaskService {
         this.web3jService = web3jService;
     }
 
-    public Optional<Task> addTask(String chainDealId, int taskIndex, String imageName,
-    String commandLine, int trust, long maxExecutionTime, String tag) {
-        if (getTasksByChainDealIdAndTaskIndex(chainDealId, taskIndex).isEmpty()) {
-            log.info("Add new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
-                    chainDealId, taskIndex, imageName, commandLine, trust);
-            return Optional.of(taskRepository.save(new Task(chainDealId, taskIndex, imageName, commandLine, trust, maxExecutionTime, tag)));
+    /**
+     * Save task in database if it does not
+     * already exist.
+     * 
+     * @param chainDealId
+     * @param taskIndex
+     * @param imageName
+     * @param commandLine
+     * @param trust
+     * @param maxExecutionTime
+     * @param tag
+     * @return optional containing the saved
+     * task, {@link Optional#empty()} otherwise.
+     */
+    public Optional<Task> addTask(
+            String chainDealId,
+            int taskIndex,
+            String imageName,
+            String commandLine,
+            int trust,
+            long maxExecutionTime,
+            String tag
+    ) {
+        boolean isPresent = taskRepository
+                .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
+                .isPresent();
+        if (isPresent) {
+            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
+                    "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
+                    taskIndex, imageName, commandLine, trust);
+            return Optional.empty();
         }
-        log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
-                chainDealId, taskIndex, imageName, commandLine, trust);
-        return Optional.empty();
+        Task newTask = new Task(chainDealId, taskIndex, imageName,
+                commandLine, trust, maxExecutionTime, tag);
+        Task savedTask = taskRepository.save(newTask);
+        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
+                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
+                taskIndex, imageName, commandLine, trust, savedTask.getChainTaskId());
+        return Optional.of(savedTask);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -97,10 +126,6 @@ public class TaskService {
 
     public List<Task> getTasksInNonFinalStatuses() {
         return taskRepository.findByCurrentStatusNotIn(Arrays.asList(FAILED, COMPLETED));
-    }
-
-    private List<Task> getTasksByChainDealIdAndTaskIndex(String chainDealId, int taskIndex) {
-        return taskRepository.findByChainDealIdAndTaskIndex(chainDealId, taskIndex);
     }
 
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
@@ -208,10 +233,10 @@ public class TaskService {
         }
 
         boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-        boolean isTaskUnsetOnChain = iexecHubService.isTaskUnsetOnChain(task.getChainDealId(), task.getTaskIndex());
-        boolean isBeforeContributionDeadline = iexecHubService.isNowBeforeContributionDeadline(task.getChainDealId());
+        boolean isTaskUnsetOnChain = iexecHubService.isTaskInUnsetStatusOnChain(task.getChainDealId(), task.getTaskIndex());
+        boolean isBeforeContributionDeadline = iexecHubService.isBeforeContributionDeadline(task.getChainDealId());
 
-        if (!hasEnoughGas || isTaskUnsetOnChain || !isBeforeContributionDeadline) {
+        if (!hasEnoughGas || !isTaskUnsetOnChain || !isBeforeContributionDeadline) {
             log.error("Cannot initialize task [chainTaskId:{}, hasEnoughGas:{}, "
                     + "isTaskUnsetOnChain:{}, isBeforeContributionDeadline:{}]",
                     task.getChainTaskId(), hasEnoughGas, isTaskUnsetOnChain,
