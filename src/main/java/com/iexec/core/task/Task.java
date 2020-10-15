@@ -91,7 +91,7 @@ public class Task {
         this(dappName, commandLine, trust);
         this.chainDealId = chainDealId;
         this.taskIndex = taskIndex;
-        this.chainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
+        this.chainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
         this.maxExecutionTime = maxExecutionTime;
         this.tag = tag;
     }
