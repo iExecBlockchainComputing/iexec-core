@@ -26,6 +26,7 @@ import io.reactivex.disposables.Disposable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -54,32 +55,57 @@ public class DealWatcherService {
         this.taskService = taskService;
     }
 
+    @Async
     public void run() {
         subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }
 
+    /**
+     * Subscribe to onchain deal events from
+     * a given block to the latest block.
+     * 
+     * @param from start block
+     * @return disposable subscription
+     */
     Disposable subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
         log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
         return iexecHubService.getDealEventObservableToLatest(from)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
 
+    /**
+     * Update last seen block in the database
+     * and run {@link DealEvent} handler.
+     * 
+     * @param dealEvent
+     */
     private void onDealEvent(DealEvent dealEvent) {
         log.info("Received deal [dealId:{}, block:{}]", dealEvent.getChainDealId(), dealEvent.getBlockNumber());
         this.handleDeal(dealEvent.getChainDealId());
-        if (configurationService.getLastSeenBlockWithDeal().intValue() < dealEvent.getBlockNumber().intValue()) {
+        if (configurationService.getLastSeenBlockWithDeal().compareTo(dealEvent.getBlockNumber()) < 0) {
             configurationService.setLastSeenBlockWithDeal(dealEvent.getBlockNumber());
         }
     }
 
+    /**
+     * Handle new onchain deals and add its tasks
+     * to db. This should be non-blocking since
+     * deals can have a large number of tasks (BoT).
+     * 
+     * @param chainDealId
+     */
     private void handleDeal(String chainDealId) {
-        Optional<ChainDeal> optionalChainDeal = iexecHubService.getChainDeal(chainDealId);
-        if (!optionalChainDeal.isPresent()) {
+        Optional<ChainDeal> oChainDeal = iexecHubService.getChainDeal(chainDealId);
+        if (!oChainDeal.isPresent()) {
+            log.error("Could not get chain deal [chainDealId:{}]", chainDealId);
             return;
         }
-        ChainDeal chainDeal = optionalChainDeal.get();
-
-
+        ChainDeal chainDeal = oChainDeal.get();
+        if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
+            log.error("Deal has expired [chainDealId:{}, deadline:{}]",
+                    chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
+            return;
+        }
         try {
             int startBag = chainDeal.getBotFirst().intValue();
             int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
@@ -91,7 +117,8 @@ public class DealWatcherService {
                         chainDeal.getTrust().intValue(),
                         chainDeal.getChainCategory().getMaxExecutionTime(),
                         chainDeal.getTag());
-                optional.ifPresent(task -> applicationEventPublisher.publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
+                optional.ifPresent(task -> applicationEventPublisher
+                        .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,22 +128,33 @@ public class DealWatcherService {
     /*
      * Some deal events are sometimes missed by #schedulerNoticeEventObservable method
      * so we decide to replay events from times to times (already saved events will be ignored)
-     * */
+     */
     @Scheduled(fixedRateString = "${cron.detector.dealwatcherreplay.period}")
     void replayDealEvent() {
-        if (configurationService.getFromReplay().intValue() < configurationService.getLastSeenBlockWithDeal().intValue()) {
-            if (dealEventSubscriptionReplay != null && !dealEventSubscriptionReplay.isDisposed()) {
-                dealEventSubscriptionReplay.dispose();
-            }
-            dealEventSubscriptionReplay = subscribeToDealEventInRange(configurationService.getFromReplay(), configurationService.getLastSeenBlockWithDeal());
-            configurationService.setFromReplay(configurationService.getLastSeenBlockWithDeal());
+        BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
+        BigInteger replayFromBlock = configurationService.getFromReplay();
+        if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
+            return;
         }
+        if (this.dealEventSubscriptionReplay != null && !this.dealEventSubscriptionReplay.isDisposed()) {
+            this.dealEventSubscriptionReplay.dispose();
+        }
+        this.dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
+        configurationService.setFromReplay(lastSeenBlockWithDeal);
     }
 
+    /**
+     * Subscribe to onchain deal events for
+     * a fixed range of blocks.
+     * 
+     * @param from start block
+     * @param to end block
+     * @return disposable subscription
+     */
     private Disposable subscribeToDealEventInRange(BigInteger from, BigInteger to) {
-        log.info("Replay Watcher DealEvent started [from:{}, to:{}]", from, (to == null) ? "latest" : to);
+        log.info("Replay Watcher DealEvent started [from:{}, to:{}]",
+                from, (to == null) ? "latest" : to);
         return iexecHubService.getDealEventObservable(from, to)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
-
 }
