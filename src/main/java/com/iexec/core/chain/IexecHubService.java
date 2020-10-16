@@ -142,6 +142,7 @@ public class IexecHubService extends IexecHubAbstractService {
         long startTime = chainDeal.getStartTime().longValue() * 1000;
         long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
+        maxNbOfPeriods = (maxNbOfPeriods == -1) ? 10 : maxNbOfPeriods;
         return new Date(startTime + maxTime * maxNbOfPeriods);
     }
 
