@@ -27,7 +27,7 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     Optional<Task> findByChainTaskId(String id);
 
-    List<Task> findByChainDealIdAndTaskIndex(String chainDealId, int taskIndex);
+    Optional<Task> findByChainDealIdAndTaskIndex(String chainDealId, int taskIndex);
 
     @Query("{ 'chainTaskId': {$in: ?0} }")
     List<Task> findByChainTaskId(List<String> ids);
@@ -45,4 +45,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
+
+    List<Task> findByCurrentStatusInAndContributionDeadlineAfter(List<TaskStatus> status, Date date);
 }

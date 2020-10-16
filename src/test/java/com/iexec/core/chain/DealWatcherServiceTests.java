@@ -122,6 +122,7 @@ public class DealWatcherServiceTests {
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
         when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any())).thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
+        when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
 
         ArgumentCaptor<TaskCreatedEvent> argumentCaptor = ArgumentCaptor.forClass(TaskCreatedEvent.class);
 

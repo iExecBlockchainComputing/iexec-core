@@ -26,17 +26,33 @@ public class ThreadPoolExecutorUtils {
         throw new UnsupportedOperationException();
     }
 
-    public static ThreadPoolExecutor singleThreadExecutorWithFixedSizeQueue(int queueSize) {
-        int numThreads = 1;
-        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(numThreads, numThreads,
-                0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(queueSize));
+    public static ThreadPoolExecutor singleThreadExecutorWithFixedSizeQueue(
+        int queueSize,
+        String threadPoolName
+    ) {
+        ThreadPoolExecutor executor = singleThreadExecutorWithFixedSizeQueue(queueSize);
+        executor.setThreadFactory(new CustomSingleExecutorThreadFactory(threadPoolName));
+        return executor;
+    }
 
-        // By default (unfortunately) the ThreadPoolExecutor will throw an exception when a job is submitted that fills the queue
-        // To avoid this exception, an empty RejectedExecutionHandler (that does nothing) needs to be set
+    public static ThreadPoolExecutor singleThreadExecutorWithFixedSizeQueue(
+        int queueSize
+    ) {
+        int numThreads = 1;
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
+                numThreads,
+                numThreads,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(queueSize)
+        );
+        // By default (unfortunately) the ThreadPoolExecutor
+        // will throw an exception when a job is submitted
+        // that fills the queue To avoid this exception, an empty
+        // RejectedExecutionHandler (that does nothing) needs to be set
         threadPool.setRejectedExecutionHandler((r, executor) -> {
             // it is kept empty so no exception is thrown
         });
-
         return threadPool;
     }
 }

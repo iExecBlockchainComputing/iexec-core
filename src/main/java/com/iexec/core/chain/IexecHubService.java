@@ -68,29 +68,81 @@ public class IexecHubService extends IexecHubAbstractService {
         }
     }
 
-    public boolean canInitialize(String chainDealId, int taskIndex) {
-        boolean isTaskUnsetOnChain = isTaskUnsetOnChain(chainDealId, taskIndex);
-        boolean isBeforeContributionDeadline = isDateBeforeContributionDeadline(new Date(), chainDealId);
+    /**
+     * Check if a deal's task can be initialized.
+     * An initializable task should have the status
+     * UNSET onchain and have a contribution deadline
+     * that is still in the future.
+     * 
+     * @param chainDealId
+     * @param taskIndex
+     * @return true if the task is initializable, false otherwise.
+     */
+    public boolean isInitializableOnchain(String chainDealId, int taskIndex) {
+        boolean isTaskUnsetOnChain = isTaskInUnsetStatusOnChain(chainDealId, taskIndex);
+        boolean isBeforeContributionDeadline = isBeforeContributionDeadline(chainDealId);
         return isBeforeContributionDeadline && isTaskUnsetOnChain;
     }
 
-    private boolean isTaskUnsetOnChain(String chainDealId, int taskIndex) {
-        String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, BigInteger.valueOf(taskIndex));
+    /**
+     * Check if the task is defined onchain and
+     * has the status {@link ChainTaskStatus#UNSET}.
+     * 
+     * @param chainDealId
+     * @param taskIndex
+     * @return true if the task is found with the status UNSET, false otherwise.
+     */
+    public boolean isTaskInUnsetStatusOnChain(String chainDealId, int taskIndex) {
+        String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
         Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
-        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET)).orElse(false);
+        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET))
+                .orElse(false);
     }
 
-    private boolean isDateBeforeContributionDeadline(Date date, String chainDealId) {
-        Optional<ChainDeal> chainDeal = getChainDeal(chainDealId);
-        if (!chainDeal.isPresent()) {
-            return false;
-        }
+    /**
+     * Check if a deal's contribution deadline
+     * is still not reached.
+     * 
+     * @param chainDealId
+     * @return true if deadline is not reached, false otherwise.
+     */
+    public boolean isBeforeContributionDeadline(String chainDealId) {
+        return getChainDeal(chainDealId)
+                .map(this::isBeforeContributionDeadline)
+                .orElse(false);
+    }
 
-        long startTime = chainDeal.get().getStartTime().longValue() * 1000;
-        long maxExecutionTime = chainDeal.get().getChainCategory().getMaxExecutionTime();
+    /**
+     * Check if a deal's contribution deadline
+     * is still not reached.
+     * 
+     * @param chainDeal
+     * @return true if deadline is not reached, false otherwise.
+     */
+    public boolean isBeforeContributionDeadline(ChainDeal chainDeal) {
+        return getChainDealContributionDeadline(chainDeal)
+                .after(new Date());
+    }
+
+    /**
+     * <p> Get a deal's contribution deadline date. The deadline
+     * is calculated as follow:
+     * start + maxCategoryTime * nbOfCategoryUnits.
+     * 
+     * <ul>
+     * <li> start: the start time of the deal.
+     * <li> maxCategoryTime: duration of the deal's category.
+     * <li> nbOfCategoryUnits: number of category units dedicated
+     *      for the contribution phase.
+     * 
+     * @param chainDeal
+     * @return
+     */
+    public Date getChainDealContributionDeadline(ChainDeal chainDeal) {
+        long startTime = chainDeal.getStartTime().longValue() * 1000;
+        long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
-
-        return date.getTime() < startTime + maxExecutionTime * maxNbOfPeriods;
+        return new Date(startTime + maxTime * maxNbOfPeriods);
     }
 
 
@@ -106,13 +158,10 @@ public class IexecHubService extends IexecHubAbstractService {
 
     private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
         byte[] chainDealIdBytes = stringToBytes(chainDealId);
-        BigInteger taskIndexBigInteger = BigInteger.valueOf(taskIndex);
-        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndexBigInteger);
-
-
-        RemoteCall<TransactionReceipt> initializeCall = getHubContract(web3jService.getWritingContractGasProvider())
-                .initialize(chainDealIdBytes, taskIndexBigInteger);
-
+        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
+        RemoteCall<TransactionReceipt> initializeCall =
+                getHubContract(web3jService.getWritingContractGasProvider())
+                .initialize(chainDealIdBytes, BigInteger.valueOf(taskIndex));
 
         TransactionReceipt initializeReceipt;
         try {
