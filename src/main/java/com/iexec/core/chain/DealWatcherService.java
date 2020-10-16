@@ -55,6 +55,11 @@ public class DealWatcherService {
         this.taskService = taskService;
     }
 
+    /**
+     * This should be non-blocking to librate
+     * the main thread, since deals can have
+     * a large number of tasks (BoT).
+     */
     @Async
     public void run() {
         subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
@@ -89,8 +94,7 @@ public class DealWatcherService {
 
     /**
      * Handle new onchain deals and add its tasks
-     * to db. This should be non-blocking since
-     * deals can have a large number of tasks (BoT).
+     * to db.
      * 
      * @param chainDealId
      */

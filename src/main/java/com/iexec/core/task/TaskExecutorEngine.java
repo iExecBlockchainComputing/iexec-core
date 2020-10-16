@@ -109,11 +109,13 @@ public class TaskExecutorEngine {
          * @return
          */
         public Executor getOrCreate(String chainTaskId) {
-            if (!map.containsKey(chainTaskId)) {
-                Date deadline = taskService.getTaskFinalDeadline(chainTaskId);
-                map.put(chainTaskId, singleThreadExecutorWithFixedSizeQueue(1));
-                map.setExpiration(chainTaskId, deadline.getTime(), TimeUnit.MILLISECONDS);
+            if (map.containsKey(chainTaskId)) {
+                return map.get(chainTaskId);
             }
+            String threadPoolName = "0x" + chainTaskId.substring(0, 7);
+            map.put(chainTaskId, singleThreadExecutorWithFixedSizeQueue(1, threadPoolName));
+            Date deadline = taskService.getTaskFinalDeadline(chainTaskId);
+            map.setExpiration(chainTaskId, deadline.getTime(), TimeUnit.MILLISECONDS);
             return map.get(chainTaskId);
         }
 
