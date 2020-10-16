@@ -40,7 +40,7 @@ public class StdoutCronService {
     }
 
     @Scheduled(fixedRate = DateUtils.MILLIS_PER_DAY)
-    public void cleanStdout() {
+    void cleanStdout() {
         Date someDaysAgo = DateUtils.addDays(new Date(), -stdoutAvailabilityDays);
         List<String> chainTaskIds = taskService.getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
         stdoutService.delete(chainTaskIds);
