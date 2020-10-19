@@ -86,22 +86,23 @@ public class TaskService {
             long maxExecutionTime,
             String tag
     ) {
-        boolean isPresent = taskRepository
+        return taskRepository
                 .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
-                .isPresent();
-        if (isPresent) {
-            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                    "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                    taskIndex, imageName, commandLine, trust);
-            return Optional.empty();
-        }
-        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                commandLine, trust, maxExecutionTime, tag);
-        Task savedTask = taskRepository.save(newTask);
-        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                taskIndex, imageName, commandLine, trust, savedTask.getChainTaskId());
-        return Optional.of(savedTask);
+                .<Optional<Task>>map((task) -> {
+                        log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
+                                "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
+                                taskIndex, imageName, commandLine, trust);
+                        return Optional.empty();
+                })
+                .orElseGet(() -> {
+                        Task newTask = new Task(chainDealId, taskIndex, imageName,
+                                commandLine, trust, maxExecutionTime, tag);
+                        newTask = taskRepository.save(newTask);
+                        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
+                                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
+                                taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+                        return Optional.of(newTask);
+                });
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
