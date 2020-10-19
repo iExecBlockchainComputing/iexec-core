@@ -31,7 +31,7 @@ public class ThreadPoolExecutorUtils {
         String threadPoolName
     ) {
         ThreadPoolExecutor executor = singleThreadExecutorWithFixedSizeQueue(queueSize);
-        executor.setThreadFactory(new CustomSingleExecutorThreadFactory(threadPoolName));
+        executor.setThreadFactory(new ThreadFactoryWithCustomPoolName(threadPoolName));
         return executor;
     }
 
