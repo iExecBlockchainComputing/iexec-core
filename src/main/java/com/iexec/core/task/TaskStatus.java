@@ -61,6 +61,10 @@ public enum TaskStatus {
         );
     }
 
+    public static List<TaskStatus> getFinalStatuses() {
+        return List.of(FAILED, COMPLETED);
+    }
+
     public static boolean isInContributionPhase(TaskStatus status) {
         return getWaitingContributionStatuses().contains(status);
     }
@@ -84,4 +88,7 @@ public enum TaskStatus {
         ).contains(status);
     }
 
+    public static boolean isFinalStatus(TaskStatus status) {
+        return getFinalStatuses().contains(status);
+    }
 }

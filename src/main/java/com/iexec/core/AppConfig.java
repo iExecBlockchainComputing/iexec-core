@@ -16,9 +16,14 @@
 
 package com.iexec.core;
 
+import java.util.concurrent.Executor;
+
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -27,10 +32,31 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableRetry
 @EnableScheduling
 @EnableFeignClients
+@EnableAsync
 public class AppConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**");
+    }
+
+    /**
+     * We need this bean with the name "taskExecutor"
+     * to help spring choose an executor for
+     * {@link org.springframework.scheduling.annotation.Async}
+     * tasks.
+     * <p>
+     * Resolves the message:
+     * "More than one TaskExecutor bean found
+     * within the context, and none is named 'taskExecutor'.
+     * Mark one of them as primary or name it 'taskExecutor'
+     * (possibly as an alias) in order to use it for async
+     * processing."
+     * 
+     * @return
+     */
+    @Bean
+    public Executor taskExecutor() {
+        return new SimpleAsyncTaskExecutor();
     }
 }
