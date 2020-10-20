@@ -37,15 +37,17 @@ public class TaskExecutorEngine {
     }
 
     /**
-     * Run task update in a dedicated executor.
+     * Execute task update runnable in a dedicated executor.
      * 
      * @param chainTaskId
-     * @return completableFuture to follow task
-     * execution.
+     * @return completableFuture to follow task execution.
      */
-    public CompletableFuture<Void> run(String chainTaskId, long expiration, Runnable task) {
-        Executor executor = taskExecutorFactory.getOrCreate(chainTaskId, expiration);
-        return CompletableFuture.runAsync(task, executor);
+    public CompletableFuture<Void> run(
+        String chainTaskId, long expiration, Runnable taskUpdate
+    ) {
+        Executor executor = taskExecutorFactory
+                .getOrCreate(chainTaskId, expiration);
+        return CompletableFuture.runAsync(taskUpdate, executor);
     }
 
     /**

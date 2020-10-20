@@ -29,7 +29,6 @@ import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.contribution.ConsensusService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
@@ -50,7 +49,6 @@ public class ReplicateSupplyService {
 
     private ReplicatesService replicatesService;
     private SignatureService signatureService;
-    private TaskExecutorEngine taskExecutorEngine;
     private TaskService taskService;
     private WorkerService workerService;
     private SmsService smsService;
@@ -60,7 +58,6 @@ public class ReplicateSupplyService {
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
-                                  TaskExecutorEngine taskExecutorEngine,
                                   TaskService taskService,
                                   WorkerService workerService,
                                   SmsService smsService,
@@ -69,7 +66,6 @@ public class ReplicateSupplyService {
                                   ConsensusService consensusService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
-        this.taskExecutorEngine = taskExecutorEngine;
         this.taskService = taskService;
         this.workerService = workerService;
         this.smsService = smsService;
@@ -138,7 +134,7 @@ public class ReplicateSupplyService {
             // no need to ge further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskService.isConsensusReached(task)) {
-                taskExecutorEngine.updateTask(chainTaskId);
+                taskService.updateTask(chainTaskId);
                 continue;
             }
 
@@ -327,7 +323,7 @@ public class ReplicateSupplyService {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 
-            taskExecutorEngine.updateTask(chainTaskId);
+            taskService.updateTask(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
@@ -364,7 +360,7 @@ public class ReplicateSupplyService {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
 
-            CompletableFuture<Boolean> completableFuture = taskExecutorEngine.updateTask(chainTaskId);
+            CompletableFuture<Void> completableFuture = taskService.updateTask(chainTaskId);
             completableFuture.join();
         }
 
@@ -421,7 +417,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
 
-            taskExecutorEngine.updateTask(chainTaskId);
+            taskService.updateTask(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 

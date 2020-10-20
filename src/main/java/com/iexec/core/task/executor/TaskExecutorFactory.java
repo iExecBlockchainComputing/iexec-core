@@ -48,17 +48,14 @@ class TaskExecutorFactory {
     }
 
     /**
-     * Get a task's executor or create a new
-     * one if needed.
+     * Get a task's executor or create a new one if needed.
+     * The executor has an expiration period after which it
+     * will be shutdown and removed.
      * 
      * @param chainTaskId id associated to executor
      * @param maxTtl max time to live for this executor
      * @return the executor
      */
-    Executor getOrCreate(String chainTaskId) {
-        return getOrCreate(chainTaskId, 1000000000);
-    }
-
     Executor getOrCreate(String chainTaskId, long expiration) {
         if (map.containsKey(chainTaskId)) {
             return map.get(chainTaskId);
@@ -70,13 +67,14 @@ class TaskExecutorFactory {
     }
 
     /**
-     * Set the expiration period of an executor
-     * to 0 and the ExpirationListener will do
-     * the rest.
+     * Remove executor by id.
      * 
      * @param chainTaskId
      */
     void remove(String chainTaskId) {
+        // Set the expiration period to 0
+        // and the ExpirationListener will do
+        // the rest.
         map.setExpiration(chainTaskId, 0, TimeUnit.MILLISECONDS);
     }
 

@@ -18,7 +18,6 @@ package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -33,12 +32,9 @@ import java.util.Date;
 public class ContributionTimeoutTaskDetector implements Detector {
 
     private TaskService taskService;
-    private TaskExecutorEngine taskExecutorEngine;
 
-    public ContributionTimeoutTaskDetector(TaskService taskService,
-                                           TaskExecutorEngine taskExecutorEngine) {
+    public ContributionTimeoutTaskDetector(TaskService taskService) {
         this.taskService = taskService;
-        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${cron.detector.contribution.timeout.period}")
@@ -49,7 +45,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {
                 log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskExecutorEngine.updateTask(task.getChainTaskId());
+                taskService.updateTask(task.getChainTaskId());
             }
         }
     }

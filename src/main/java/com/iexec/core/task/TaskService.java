@@ -24,6 +24,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.executor.TaskExecutorEngine;
 import com.iexec.core.task.event.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -44,19 +46,26 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
-    private final ConcurrentHashMap<String, Boolean> taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Boolean>
+            taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
+
     private TaskRepository taskRepository;
+    private TaskExecutorEngine taskExecutorEngine;
     private IexecHubService iexecHubService;
     private ReplicatesService replicatesService;
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
 
-    public TaskService(TaskRepository taskRepository,
-                       IexecHubService iexecHubService,
-                       ReplicatesService replicatesService,
-                       ApplicationEventPublisher applicationEventPublisher,
-                       Web3jService web3jService) {
+    public TaskService(
+        TaskRepository taskRepository,
+        TaskExecutorEngine taskExecutorEngine,
+        IexecHubService iexecHubService,
+        ReplicatesService replicatesService,
+        ApplicationEventPublisher applicationEventPublisher,
+        Web3jService web3jService
+    ) {
         this.taskRepository = taskRepository;
+        this.taskExecutorEngine = taskExecutorEngine;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -171,10 +180,37 @@ public class TaskService {
                 .orElse(new Date());
     }
 
-    boolean tryUpgradeTaskStatus(String chainTaskId) {
+    /**
+     * Update task asynchronously.
+     * 
+     * @param chainTaskId
+     * @return
+     */
+    public CompletableFuture<Void> updateTask(String chainTaskId) {
+        long expiration = getTaskFinalDeadline(chainTaskId).getTime();
+        return taskExecutorEngine.run(chainTaskId, expiration,
+                () -> updateTaskRunnable(chainTaskId));
+    }
+
+    /**
+     * Remove task's executor if task is
+     * in final status.
+     * 
+     * @param task
+     */
+    public void removeTaskExecutor(Task task) {
+        if (!TaskStatus.isFinalStatus(task.getCurrentStatus())) {
+            log.error("Cannot remove executor for unfinished " +
+                    "task [chainTaskId:{}]", task.getChainTaskId());
+            return;
+        }
+        taskExecutorEngine.removeExecutor(task.getChainTaskId());
+    }
+
+    void updateTaskRunnable(String chainTaskId) {
         Optional<Task> optional = getTaskByChainTaskId(chainTaskId);
         if (!optional.isPresent()) {
-            return false;
+            return;
         }
         Task task = optional.get();
 
@@ -215,7 +251,6 @@ public class TaskService {
                 finalizing2Finalized2Completed(task);
                 break;
         }
-        return true;
     }
 
     private Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
