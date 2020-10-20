@@ -17,10 +17,8 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.common.replicate.ReplicateStatusDetails;
-import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
@@ -42,9 +40,6 @@ public class ContributionTimeoutTaskDetectorTests {
 
     @Mock
     private TaskService taskService;
-
-    @Mock
-    private TaskExecutorEngine taskExecutorEngine;
 
     @Mock
     private ReplicatesService replicatesService;
@@ -72,7 +67,7 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+        Mockito.verify(taskService, Mockito.times(0))
                 .updateTask(any());
     }
 
@@ -94,7 +89,7 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(0))
+        Mockito.verify(taskService, Mockito.times(0))
                 .updateTask(any());
     }
 
@@ -112,7 +107,7 @@ public class ContributionTimeoutTaskDetectorTests {
 
         contributionDetector.detect();
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(1))
+        Mockito.verify(taskService, Mockito.times(1))
                 .updateTask(any());
     }
 }

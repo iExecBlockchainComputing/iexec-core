@@ -17,7 +17,6 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
@@ -40,9 +39,6 @@ public class TaskResultUploadTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
-
-    @Mock
-    private TaskExecutorEngine taskExecutorEngine;
 
     @InjectMocks
     private TaskResultUploadTimeoutDetector taskResultUploadTimeoutDetector;
@@ -71,7 +67,7 @@ public class TaskResultUploadTimeoutDetectorTests {
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(1)).updateTask(chainTaskId); 
+        Mockito.verify(taskService, Mockito.times(1)).updateTask(chainTaskId); 
     }
 
     @Test
@@ -92,7 +88,7 @@ public class TaskResultUploadTimeoutDetectorTests {
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(0)).updateTask(chainTaskId); 
+        Mockito.verify(taskService, Mockito.times(0)).updateTask(chainTaskId); 
     }
 
 }
