@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iexec.core.utils;
+package com.iexec.core.task.executor;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -29,15 +29,5 @@ public class SingleThreadExecutorWithFixedSizeQueue extends ThreadPoolExecutor {
         // is thrown, to avoid that we override the
         // rejection policy.
         this.setRejectedExecutionHandler( new DiscardPolicy());
-    }
-
-    // TODO remove this
-    public SingleThreadExecutorWithFixedSizeQueue(
-        int queueSize,
-        String threadPoolName
-    ) {
-        this(queueSize);
-        this.setThreadFactory(
-                new ThreadFactoryWithCustomPoolName(threadPoolName));
     }
 }

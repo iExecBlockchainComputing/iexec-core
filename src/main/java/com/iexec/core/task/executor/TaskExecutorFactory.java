@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task;
+package com.iexec.core.task.executor;
 
-import java.util.Date;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.iexec.core.utils.SingleThreadExecutorWithFixedSizeQueue;
-
 import org.springframework.stereotype.Component;
 
-import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationListener;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
@@ -34,16 +32,13 @@ import net.jodah.expiringmap.ExpiringMap;
  * A factory that manages expiring thread executors.
  * Each executor has its own expiration period.
  */
-@Slf4j
 @Component
 class TaskExecutorFactory {
 
-    private final TaskService taskService;
     // this map is thread-safe
     private final ExpiringMap<String, ThreadPoolExecutor> map;
 
-    public TaskExecutorFactory(TaskService taskService) {
-        this.taskService = taskService;
+    TaskExecutorFactory() {
         this.map = ExpiringMap.builder()
                 .expirationPolicy(ExpirationPolicy.CREATED)
                 .variableExpiration()
@@ -60,31 +55,18 @@ class TaskExecutorFactory {
      * @param maxTtl max time to live for this executor
      * @return the executor
      */
-    public Executor getOrCreate(String chainTaskId) {
+    Executor getOrCreate(String chainTaskId) {
+        return getOrCreate(chainTaskId, 1000000000);
+    }
+
+    Executor getOrCreate(String chainTaskId, long expiration) {
         if (map.containsKey(chainTaskId)) {
             return map.get(chainTaskId);
         }
-        String threadPoolName = "0x" + chainTaskId.substring(0, 7);
         map.put(chainTaskId,
-                new SingleThreadExecutorWithFixedSizeQueue(1, threadPoolName));
-        Date deadline = taskService.getTaskFinalDeadline(chainTaskId);
-        map.setExpiration(chainTaskId, deadline.getTime(),
-                TimeUnit.MILLISECONDS);
+                new SingleThreadExecutorWithFixedSizeQueue(1));
+        map.setExpiration(chainTaskId, expiration, MILLISECONDS);
         return map.get(chainTaskId);
-    }
-
-    /**
-     * Remove a task's executor.
-     * 
-     * @param task
-     */
-    public void removeTaskExecutor(Task task) {
-        if (!TaskStatus.isFinalStatus(task.getCurrentStatus())) {
-            log.error("Cannot remove executor for unfinished " +
-                    "task [chainTaskId:{}]", task.getChainTaskId());
-            return;
-        }
-        expire(task.getChainTaskId());
     }
 
     /**
@@ -94,7 +76,7 @@ class TaskExecutorFactory {
      * 
      * @param chainTaskId
      */
-    private void expire(String chainTaskId) {
+    void remove(String chainTaskId) {
         map.setExpiration(chainTaskId, 0, TimeUnit.MILLISECONDS);
     }
 
