@@ -49,11 +49,11 @@ public class TaskExecutorEngine {
     }
 
     /**
-     * Remove a task's executor.
+     * Remove executor by chainTaskId.
      * 
      * @param chainTaskId
      */
-    public void removeTaskExecutor(String chainTaskId) {
+    public void removeExecutor(String chainTaskId) {
         taskExecutorFactory.remove(chainTaskId);
     }
 }

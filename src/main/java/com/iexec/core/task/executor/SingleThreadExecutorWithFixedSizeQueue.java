@@ -20,14 +20,18 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class SingleThreadExecutorWithFixedSizeQueue extends ThreadPoolExecutor {
+public class SingleThreadExecutorWithFixedSizeQueue
+        extends ThreadPoolExecutor {
 
-    public SingleThreadExecutorWithFixedSizeQueue(int queueSize) {
-        super(1,1, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(queueSize));
+    public SingleThreadExecutorWithFixedSizeQueue(
+        int queueSize
+    ) {
+        super(1,1, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(queueSize));
         // By default, once the queue is saturated,
         // a {@link RejectedExecutionException} exception
         // is thrown, to avoid that we override the
         // rejection policy.
-        this.setRejectedExecutionHandler( new DiscardPolicy());
+        this.setRejectedExecutionHandler(new DiscardPolicy());
     }
 }
