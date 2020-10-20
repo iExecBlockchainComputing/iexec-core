@@ -30,7 +30,6 @@ import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.contribution.ConsensusService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
@@ -72,7 +71,6 @@ public class ReplicateSupplyServiceTests {
 
     @Mock private ReplicatesService replicatesService;
     @Mock private SignatureService signatureService;
-    @Mock private TaskExecutorEngine taskExecutorEngine;
     @Mock private TaskService taskService;
     @Mock private WorkerService workerService;
     @Mock private SmsService smsService;
@@ -899,9 +897,9 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
-        future.complete(true);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(null);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -938,9 +936,9 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskExecutorEngine.updateTask(CHAIN_TASK_ID)).thenReturn(future);
-        future.complete(true);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(null);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
