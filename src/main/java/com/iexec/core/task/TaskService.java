@@ -186,6 +186,7 @@ public class TaskService {
      * @param chainTaskId
      * @return
      */
+    // TODO change this mechanism of update
     public CompletableFuture<Void> updateTask(String chainTaskId) {
         long expiration = getTaskFinalDeadline(chainTaskId).getTime();
         return taskExecutorEngine.run(
@@ -208,6 +209,8 @@ public class TaskService {
             return;
         }
         taskExecutorEngine.removeExecutor(task.getChainTaskId());
+        log.info("Removed task executor [chainTaskId:{}]",
+                task.getChainTaskId());
     }
 
     void updateTaskRunnable(String chainTaskId) {

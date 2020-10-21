@@ -71,7 +71,7 @@ class TaskExecutorFactory {
                 TaskExecutorUtils.singleThreadWithFixedSizeQueue(1, threadNamePrefix)
         );
         map.setExpiration(chainTaskId, expiration, MILLISECONDS);
-        log.info("Created task executor [chainTaskId:{}, expiration:{}]",
+        log.info("Created new task executor [chainTaskId:{}, expiration:{}]",
                 chainTaskId, new Date(expiration));
         return map.get(chainTaskId);
     }
