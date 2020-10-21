@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task.executor;
+package com.iexec.core.utils;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy;
 
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+@SuppressWarnings("serial")
 public class SingleThreadExecutorWithFixedSizeQueue
-        extends ThreadPoolExecutor {
+        extends ThreadPoolTaskExecutor {
 
     public SingleThreadExecutorWithFixedSizeQueue(
-        int queueSize
+        int queueSize,
+        String threadNamePrefix
     ) {
-        super(1,1, 0L, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(queueSize));
-        // By default, once the queue is saturated,
-        // a {@link RejectedExecutionException} exception
-        // is thrown, to avoid that we override the
-        // rejection policy.
+        super();
+        this.setCorePoolSize(1);
+        this.setMaxPoolSize(1);
+        this.setKeepAliveSeconds(0);
+        this.setQueueCapacity(queueSize);
+        this.setThreadNamePrefix(threadNamePrefix);
+        // Discard silently when we add a task
+        //  to the already-full queue.
         this.setRejectedExecutionHandler(new DiscardPolicy());
+        this.initialize();
     }
 }
