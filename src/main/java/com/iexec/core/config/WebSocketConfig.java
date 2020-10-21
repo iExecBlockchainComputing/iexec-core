@@ -20,7 +20,6 @@ import com.iexec.core.utils.TaskSchedulerUtils;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -39,10 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/connect").withSockJS()
                 .setWebSocketEnabled(false)
                 .setHeartbeatTime(5000)
-                .setTaskScheduler(scheduler());
-    }
-
-    private ThreadPoolTaskScheduler scheduler() {
-        return TaskSchedulerUtils.newThreadPoolTaskScheduler("STOMP-");
+                .setTaskScheduler(TaskSchedulerUtils
+                        .newThreadPoolTaskScheduler("STOMP-"));
     }
 }
