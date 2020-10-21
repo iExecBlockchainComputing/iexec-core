@@ -19,11 +19,12 @@ package com.iexec.core.config;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 
+import com.iexec.core.utils.TaskExecutorUtils;
+
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,10 +40,7 @@ public class AsyncConfig implements AsyncConfigurer {
      */
     @Override
     public Executor getAsyncExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setThreadNamePrefix("Async-");
-        executor.initialize();
-        return executor;
+        return TaskExecutorUtils.newThreadPoolTaskExecutor("Async-");
     }
 
     /**
