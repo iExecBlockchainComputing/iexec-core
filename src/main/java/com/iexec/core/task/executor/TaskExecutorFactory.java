@@ -18,14 +18,15 @@ package com.iexec.core.task.executor;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.concurrent.Executor;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import com.iexec.core.utils.SingleThreadExecutorWithFixedSizeQueue;
+import com.iexec.core.utils.TaskExecutorUtils;
 
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationListener;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
@@ -35,6 +36,7 @@ import net.jodah.expiringmap.ExpiringMap;
  * Each executor has its own expiration period.
  */
 @Component
+@Slf4j
 class TaskExecutorFactory {
 
     // this map is thread-safe
@@ -59,19 +61,18 @@ class TaskExecutorFactory {
      * @param maxTtl max time to live for this executor
      * @return the executor
      */
-    Executor getOrCreate(String chainTaskId, long expiration) {
+    ThreadPoolTaskExecutor getOrCreate(String chainTaskId, long expiration) {
         if (map.containsKey(chainTaskId)) {
             return map.get(chainTaskId);
         }
         String threadNamePrefix = chainTaskId.substring(0, 9);
         map.put(
                 chainTaskId,
-                new SingleThreadExecutorWithFixedSizeQueue(
-                        1,
-                        threadNamePrefix
-                )
+                TaskExecutorUtils.singleThreadWithFixedSizeQueue(1, threadNamePrefix)
         );
         map.setExpiration(chainTaskId, expiration, MILLISECONDS);
+        log.info("Created task executor [chainTaskId:{}, expiration:{}]",
+                chainTaskId, new Date(expiration));
         return map.get(chainTaskId);
     }
 

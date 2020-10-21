@@ -16,6 +16,8 @@
 
 package com.iexec.core.config;
 
+import com.iexec.core.utils.TaskSchedulerUtils;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -41,9 +43,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     private ThreadPoolTaskScheduler scheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setThreadNamePrefix("STOMP-");
-        scheduler.initialize();
-        return scheduler;
+        return TaskSchedulerUtils.newThreadPoolTaskScheduler("STOMP-");
     }
 }
