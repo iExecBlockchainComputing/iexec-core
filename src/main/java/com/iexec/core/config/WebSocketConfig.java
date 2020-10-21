@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iexec.core.pubsub;
+package com.iexec.core.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -34,15 +34,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-		ThreadPoolTaskScheduler heartBeatScheduler = new ThreadPoolTaskScheduler();
-		heartBeatScheduler.setPoolSize(Runtime.getRuntime().availableProcessors());
-        heartBeatScheduler.setThreadNamePrefix("HeartBeatsBroker-");
-        heartBeatScheduler.initialize();
-
         registry.addEndpoint("/connect").withSockJS()
                 .setWebSocketEnabled(false)
                 .setHeartbeatTime(5000)
-                .setTaskScheduler(heartBeatScheduler)
-        ;
+                .setTaskScheduler(scheduler());
+    }
+
+    private ThreadPoolTaskScheduler scheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setThreadNamePrefix("STOMP-");
+        scheduler.initialize();
+        return scheduler;
     }
 }

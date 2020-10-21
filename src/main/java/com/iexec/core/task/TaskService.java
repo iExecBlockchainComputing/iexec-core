@@ -188,8 +188,11 @@ public class TaskService {
      */
     public CompletableFuture<Void> updateTask(String chainTaskId) {
         long expiration = getTaskFinalDeadline(chainTaskId).getTime();
-        return taskExecutorEngine.run(chainTaskId, expiration,
-                () -> updateTaskRunnable(chainTaskId));
+        return taskExecutorEngine.run(
+                chainTaskId,
+                expiration,
+                () -> updateTaskRunnable(chainTaskId)
+        );
     }
 
     /**

@@ -19,9 +19,11 @@ package com.iexec.core.task.executor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.iexec.core.utils.SingleThreadExecutorWithFixedSizeQueue;
+
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import net.jodah.expiringmap.ExpirationListener;
@@ -36,15 +38,16 @@ import net.jodah.expiringmap.ExpiringMap;
 class TaskExecutorFactory {
 
     // this map is thread-safe
-    private final ExpiringMap<String, ThreadPoolExecutor> map;
+    private final ExpiringMap<String, ThreadPoolTaskExecutor> map;
 
     TaskExecutorFactory() {
         this.map = ExpiringMap.builder()
                 .expirationPolicy(ExpirationPolicy.CREATED)
                 .variableExpiration()
                 // shutdown thread executor when an entry expires
-                .expirationListener(shutdownExecutorWhenExpired())
-                .build();
+                .expirationListener(
+                        new ShutdownExecuterExpirationListener()
+                ).build();
     }
 
     /**
@@ -60,8 +63,14 @@ class TaskExecutorFactory {
         if (map.containsKey(chainTaskId)) {
             return map.get(chainTaskId);
         }
-        map.put(chainTaskId,
-                new SingleThreadExecutorWithFixedSizeQueue(1));
+        String threadNamePrefix = chainTaskId.substring(0, 9);
+        map.put(
+                chainTaskId,
+                new SingleThreadExecutorWithFixedSizeQueue(
+                        1,
+                        threadNamePrefix
+                )
+        );
         map.setExpiration(chainTaskId, expiration, MILLISECONDS);
         return map.get(chainTaskId);
     }
@@ -79,21 +88,17 @@ class TaskExecutorFactory {
     }
 
     /**
-     * The max TTL of an executor is the max duration
-     * of an iExec task in a given iExec category.
-     * The executor can expire before the max duration
-     * once the task is COMPLETED.
-     * 
-     * @return a listener that shuts down the executor.
+     * An expiration listener that shutdowns the executor
+     * when its expiration time is reached.
      */
-    private ExpirationListener<String,ThreadPoolExecutor> 
-            shutdownExecutorWhenExpired() {
-        return new ExpirationListener<String,ThreadPoolExecutor>() {
-            @Override
-            public void expired(String chainTaskId,
-                    ThreadPoolExecutor executor) {
-                executor.shutdown();
-            }
-        };
+    private class ShutdownExecuterExpirationListener
+            implements ExpirationListener<String, ThreadPoolTaskExecutor> {
+
+        @Override
+        public void expired(
+            String chainTaskId, ThreadPoolTaskExecutor executor
+        ) {
+            executor.shutdown();
+        }
     }
 }
