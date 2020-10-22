@@ -19,14 +19,8 @@ package com.iexec.core.metric;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-
-import static com.iexec.core.task.TaskStatus.*;
-
-@Slf4j
 @Service
 public class MetricService {
 

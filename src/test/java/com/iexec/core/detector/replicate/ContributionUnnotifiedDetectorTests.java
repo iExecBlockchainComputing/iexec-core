@@ -36,7 +36,6 @@ import java.util.Collections;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ContributionUnnotifiedDetectorTests {

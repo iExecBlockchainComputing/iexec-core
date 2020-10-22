@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 
 public class PredictionServiceTests {
 
-    private final static String WALLET_WORKER_1 = "0x1";
     private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static long MAX_EXECUTION_TIME = 60000;
 

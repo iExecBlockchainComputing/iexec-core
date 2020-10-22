@@ -53,8 +53,10 @@ public class ReplicatesController {
     }
 
     @GetMapping("/replicates/available")
-    public ResponseEntity getAvailableReplicate(@RequestParam(name = "blockNumber") long blockNumber,
-                                                @RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity<WorkerpoolAuthorization> getAvailableReplicate(
+        @RequestParam(name = "blockNumber") long blockNumber,
+        @RequestHeader("Authorization") String bearerToken
+    ) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
