@@ -18,7 +18,6 @@ package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -32,12 +31,9 @@ import java.util.List;
 public class UnstartedTxDetector implements Detector {
 
     private TaskService taskService;
-    private TaskExecutorEngine taskExecutorEngine;
 
-    public UnstartedTxDetector(TaskService taskService,
-                               TaskExecutorEngine taskExecutorEngine) {
+    public UnstartedTxDetector(TaskService taskService) {
         this.taskService = taskService;
-        this.taskExecutorEngine = taskExecutorEngine;
     }
 
     @Scheduled(fixedRateString = "${cron.detector.unstartedtx.period}")
@@ -48,7 +44,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetFinalizingTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     TaskStatus.RESULT_UPLOADED, TaskStatus.FINALIZING, task.getChainTaskId());
-            taskExecutorEngine.updateTask(task.getChainTaskId());
+            taskService.updateTask(task.getChainTaskId());
         }
 
         //start initialize when needed
@@ -56,7 +52,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetInitializedTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     TaskStatus.RECEIVED, TaskStatus.INITIALIZING, task.getChainTaskId());
-            taskExecutorEngine.updateTask(task.getChainTaskId());
+            taskService.updateTask(task.getChainTaskId());
         }
     }
 }

@@ -14,31 +14,13 @@
  * limitations under the License.
  */
 
-package com.iexec.core;
+package com.iexec.core.config;
 
-import com.iexec.core.config.AsyncConfig;
-import com.iexec.core.config.MongoConfig;
-import com.iexec.core.config.RetryConfig;
-import com.iexec.core.config.SchedulingConfig;
-import com.iexec.core.config.SwaggerConfig;
-import com.iexec.core.config.WebMvcConfig;
-import com.iexec.core.config.WebSocketConfig;
-
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.retry.annotation.EnableRetry;
 
 @Configuration
-@Import({
-    AsyncConfig.class,
-    MongoConfig.class,
-    RetryConfig.class,
-    SchedulingConfig.class,
-    SwaggerConfig.class,
-    WebMvcConfig.class,
-    WebSocketConfig.class,
-})
-@EnableFeignClients
-public class AppConfig {
+@EnableRetry
+public class RetryConfig {
     
 }
