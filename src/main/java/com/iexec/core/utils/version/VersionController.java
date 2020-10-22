@@ -31,7 +31,7 @@ public class VersionController {
     }
 
     @GetMapping("/version")
-    public ResponseEntity getVersion() {
+    public ResponseEntity<String> getVersion() {
         return ResponseEntity.ok(versionService.getVersion());
     }
 }
