@@ -230,6 +230,9 @@ public class TaskService {
                 initialized2Running(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
+            case INITIALIZE_FAILED:
+                toFailed(task);
+                break;
             case RUNNING:
                 running2ConsensusReached(task);
                 initializedOrRunning2ContributionTimeout(task);
@@ -238,8 +241,20 @@ public class TaskService {
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
                 consensusReached2Reopening(task);
                 break;
+            case CONTRIBUTION_TIMEOUT:
+                toFailed(task);
+                break;
+            case AT_LEAST_ONE_REVEALED:
+                requestUpload(task);
+                break;
             case REOPENING:
                 reopening2Reopened(task);
+                break;
+            case REOPENED:
+                updateTaskStatusAndSave(task, INITIALIZED);
+                break;
+            case REOPEN_FAILED:
+                toFailed(task);
                 break;
             case RESULT_UPLOAD_REQUESTED:
                 uploadRequested2UploadingResult(task);
@@ -252,8 +267,23 @@ public class TaskService {
             case RESULT_UPLOADED:
                 resultUploaded2Finalizing(task);
                 break;
+            case RESULT_UPLOAD_REQUEST_TIMEOUT:
+                break;
+            case RESULT_UPLOAD_TIMEOUT:
+                toFailed(task);
+                break;
             case FINALIZING:
                 finalizing2Finalized2Completed(task);
+                break;
+            case FINALIZED:
+                finalizedToCompleted(task);
+                break;
+            case FINALIZE_FAILED:
+                toFailed(task);
+                break;
+            case COMPLETED:
+                break;
+            case FAILED:
                 break;
         }
     }
@@ -634,11 +664,21 @@ public class TaskService {
 
         if (chainTask.getStatus().equals(ChainTaskStatus.COMPLETED)) {
             updateTaskStatusAndSave(task, FINALIZED, chainReceipt);
-            updateTaskStatusAndSave(task, COMPLETED);
-            applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+            finalizedToCompleted(task);
         }
     }
 
+    private void finalizedToCompleted(Task task) {
+        if (!task.getCurrentStatus().equals(FINALIZED)) {
+            return;
+        }
+        updateTaskStatusAndSave(task, COMPLETED);
+        applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+    }
+
+    private void toFailed(Task task) {
+        updateTaskStatusAndSave(task, FAILED);
+    }
     public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
         taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
     }
