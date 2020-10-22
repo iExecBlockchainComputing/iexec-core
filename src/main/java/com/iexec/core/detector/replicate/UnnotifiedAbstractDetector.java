@@ -16,7 +16,6 @@
 
 package com.iexec.core.detector.replicate;
 
-import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -98,17 +97,6 @@ public abstract class UnnotifiedAbstractDetector {
                 }
             }
         }
-    }
-
-    /*
-     * Usage: printLogsUncertainMissingUpdate(task, replicate, lastRelevantStatus.get(), statusTrueOnChain);
-     * */
-    private void printLogsUncertainMissingUpdate(Task task, Replicate replicate, ReplicateStatus lastRelevantStatus, boolean statusTrueOnChain) {
-        ChainContributionStatus chainContributionStatus = iexecHubService.getChainContribution(task.getChainTaskId(), replicate.getWalletAddress())
-                .map(ChainContribution::getStatus)
-                .orElse(null);
-        log.info("Detected uncertain missing update (replicate) [off:{}, on:{}, statusTrueOnChain:{}, taskId:{}]",
-                lastRelevantStatus, chainContributionStatus, statusTrueOnChain, task.getChainTaskId());
     }
 
     /*

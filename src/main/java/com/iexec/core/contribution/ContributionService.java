@@ -19,14 +19,12 @@ package com.iexec.core.contribution;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-@Slf4j
 @Service
 public class ContributionService {
 
