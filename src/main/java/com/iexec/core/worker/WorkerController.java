@@ -76,7 +76,7 @@ public class WorkerController {
     }
 
     @PostMapping(path = "/workers/ping")
-    public ResponseEntity ping(@RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity<String> ping(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
@@ -86,12 +86,12 @@ public class WorkerController {
         Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
 
         return optional.
-                <ResponseEntity>map(worker -> ok(SessionService.getSessionId()))
+                <ResponseEntity<String>>map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 
     @GetMapping(path = "/workers/challenge")
-    public ResponseEntity getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
+    public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
@@ -99,11 +99,11 @@ public class WorkerController {
     }
 
     @PostMapping(path = "/workers/login")
-    public ResponseEntity getToken(@RequestParam(name = "walletAddress") String walletAddress,
+    public ResponseEntity<String> getToken(@RequestParam(name = "walletAddress") String walletAddress,
                                    @RequestBody Signature signature) {
 
         if (!workerService.isAllowedToJoin(walletAddress)) {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         String challenge = challengeService.getChallenge(walletAddress);
@@ -115,11 +115,11 @@ public class WorkerController {
             return ok(token);
         }
 
-        return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @PostMapping(path = "/workers/register")
-    public ResponseEntity registerWorker(@RequestHeader("Authorization") String bearerToken,
+    public ResponseEntity<Worker> registerWorker(@RequestHeader("Authorization") String bearerToken,
                                          @RequestBody WorkerModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 

@@ -34,9 +34,8 @@ import org.mockito.*;
 import java.util.Collections;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusModifier.*;
+import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class RevealUnnotifiedDetectorTests {
