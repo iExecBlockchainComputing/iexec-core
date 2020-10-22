@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.iexec.core.pubsub;
+package com.iexec.core.config;
+
+import com.iexec.core.utils.TaskSchedulerUtils;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -36,6 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/connect").withSockJS()
                 .setWebSocketEnabled(false)
                 .setHeartbeatTime(5000)
-        ;
+                .setTaskScheduler(TaskSchedulerUtils
+                        .newThreadPoolTaskScheduler("STOMP-"));
     }
 }

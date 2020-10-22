@@ -21,7 +21,6 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -35,14 +34,11 @@ import java.util.Optional;
 public class ReopenedTaskDetector implements Detector {
 
     private TaskService taskService;
-    private TaskExecutorEngine taskExecutorEngine;
     private IexecHubService iexecHubService;
 
     public ReopenedTaskDetector(TaskService taskService,
-                                TaskExecutorEngine taskExecutorEngine,
                                 IexecHubService iexecHubService) {
         this.taskService = taskService;
-        this.taskExecutorEngine = taskExecutorEngine;
         this.iexecHubService = iexecHubService;
     }
 
@@ -63,7 +59,7 @@ public class ReopenedTaskDetector implements Detector {
             if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
                 log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
                         TaskStatus.REOPENING, TaskStatus.REOPENED, task.getChainTaskId());
-                taskExecutorEngine.updateTask(task.getChainTaskId());
+                taskService.updateTask(task.getChainTaskId());
             }
         }
     }

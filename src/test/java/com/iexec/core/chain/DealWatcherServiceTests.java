@@ -31,7 +31,6 @@ import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Optional;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;

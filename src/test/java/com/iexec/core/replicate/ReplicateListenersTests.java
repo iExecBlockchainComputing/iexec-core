@@ -19,7 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
-import com.iexec.core.task.TaskExecutorEngine;
+import com.iexec.core.task.TaskService;
 import com.iexec.core.task.listener.ReplicateListeners;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -41,7 +41,7 @@ public class ReplicateListenersTests {
     private final static String WORKER_WALLET = "0xwallet1";
 
     @Mock
-    private TaskExecutorEngine taskExecutorEngine;
+    private TaskService taskService;
     @Mock
     private WorkerService workerService;
     @Mock
@@ -72,7 +72,7 @@ public class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(taskExecutorEngine, Mockito.times(someStatuses.size())).updateTask(any());
+        Mockito.verify(taskService, Mockito.times(someStatuses.size())).updateTask(any());
     }
 
     @Test

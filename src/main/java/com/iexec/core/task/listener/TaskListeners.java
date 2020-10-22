@@ -23,7 +23,7 @@ import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskExecutorEngine;
+import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,16 +38,16 @@ import java.util.List;
 @Slf4j
 public class TaskListeners {
 
-    private TaskExecutorEngine taskExecutorEngine;
+    private TaskService taskService;
     private NotificationService notificationService;
     private ReplicatesService replicatesService;
     private WorkerService workerService;
 
-    public TaskListeners(TaskExecutorEngine taskExecutorEngine,
+    public TaskListeners(TaskService taskService,
                          NotificationService notificationService,
                          ReplicatesService replicatesService,
                          WorkerService workerService) {
-        this.taskExecutorEngine = taskExecutorEngine;
+        this.taskService = taskService;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
         this.workerService = workerService;
@@ -57,7 +57,7 @@ public class TaskListeners {
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
         log.info("Received TaskCreatedEvent [chainTaskId:{}]", event.getChainTaskId());
-        taskExecutorEngine.updateTask(event.getChainTaskId());
+        taskService.updateTask(event.getChainTaskId());
     }
 
     @EventListener
@@ -148,7 +148,7 @@ public class TaskListeners {
         String chainTaskId = task.getChainTaskId();
         log.info("Received TaskCompletedEvent [chainTaskId:{}] ", chainTaskId);
 
-        taskExecutorEngine.removeTaskExecutor(task);
+        taskService.removeTaskExecutor(task);
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
