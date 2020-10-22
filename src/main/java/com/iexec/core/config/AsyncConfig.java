@@ -51,7 +51,7 @@ public class AsyncConfig implements AsyncConfigurer {
         return new Handler();
     }
 
-    private class Handler implements AsyncUncaughtExceptionHandler {
+    public static class Handler implements AsyncUncaughtExceptionHandler {
 
         @Override
         public void handleUncaughtException(
@@ -59,10 +59,8 @@ public class AsyncConfig implements AsyncConfigurer {
             Method method,
             Object... params
         ) {
-            log.error("Exception in async method " +
-                    "[method:{}, params:{}, exception:{}]",
-                    method, params, ex.getMessage());
-            ex.printStackTrace();
+            log.error("Exception in async task [method:{}, params:{}]",
+                    method, params, ex);
         }
     }
 }
