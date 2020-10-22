@@ -24,8 +24,8 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.executor.TaskExecutorEngine;
 import com.iexec.core.task.event.*;
+import com.iexec.core.task.executor.TaskExecutorEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
-
 
 @Slf4j
 @Service

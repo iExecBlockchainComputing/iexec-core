@@ -19,13 +19,11 @@ package com.iexec.core.detector;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 
-@Slf4j
 @Service
 public class WorkerLostDetector implements Detector {
 

@@ -17,12 +17,10 @@
 package com.iexec.core.configuration;
 
 import com.iexec.core.chain.ChainConfig;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
 
-@Slf4j
 @Service
 public class ConfigurationService {
 
