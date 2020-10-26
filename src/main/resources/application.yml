@@ -76,3 +76,7 @@ management:
 graylog:
   host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}
   port: ${IEXEC_CORE_GRAYLOG_PORT:12201}
+
+stdout:
+  purge-rate: ${IEXEC_STDOUT_PURGE_RATE:86400000}  # 1d    
+  availability-period: ${IEXEC_STDOUT_AVAILABILITY:259200000} # 3d
