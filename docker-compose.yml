@@ -1,5 +1,9 @@
 version: '3.4'
 
+networks:
+  iexec-worker-net:
+    external: true
+
 services:
 
   core:
@@ -117,10 +121,10 @@ services:
     image: ipfs/go-ipfs:v0.4.20
     container_name: ipfs
     volumes:
-     - /tmp/ipfs-docker-staging:/export
-     - /tmp/ipfs-docker-data:/data/ipfs
+      - /tmp/ipfs-docker-staging:/export
+      - /tmp/ipfs-docker-data:/data/ipfs
     ports:
-     - 8080:8080
+      - 8080:8080
       - 4001:4001
       - 5001:5001
     restart: on-failure
