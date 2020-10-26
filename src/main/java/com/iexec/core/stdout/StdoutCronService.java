@@ -29,20 +29,25 @@ import org.springframework.stereotype.Service;
 @Service
 public class StdoutCronService {
 
-    @Value("${cron.stdoutAvailabilityDays}")
-    private int stdoutAvailabilityDays;
+    @Value("${stdout.availability-period}")
+    private int availabilityPeriod;
     private StdoutService stdoutService;
     private TaskService taskService;
 
-    public StdoutCronService(StdoutService stdoutService, TaskService taskService) {
+    public StdoutCronService(
+        StdoutService stdoutService,
+        TaskService taskService
+    ) {
         this.stdoutService = stdoutService;
         this.taskService = taskService;
     }
 
-    @Scheduled(fixedRate = DateUtils.MILLIS_PER_DAY)
-    void cleanStdout() {
-        Date someDaysAgo = DateUtils.addDays(new Date(), -stdoutAvailabilityDays);
-        List<String> chainTaskIds = taskService.getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
+    @Scheduled(fixedRateString = "${stdout.purge-rate}")
+    void purgeStdout() {
+        Date someDaysAgo = DateUtils
+                .addMilliseconds(new Date(), -availabilityPeriod);
+        List<String> chainTaskIds = taskService
+                .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
         stdoutService.delete(chainTaskIds);
     }
 
