@@ -45,7 +45,7 @@ public class FinalizedTaskDetector implements Detector {
     /**
      * Detector to detect tasks that are finalizing but are not finalized yet.
      */
-    @Scheduled(fixedRateString = "${cron.detector.task.finalized.unnotified.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalize()}")
     @Override
     public void detect() {
         log.debug("Trying to detect finalized tasks");

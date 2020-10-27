@@ -9,19 +9,20 @@ spring:
       port: ${MONGO_PORT:27017}
 
 cron:
+  # all in milliseconds
+  deal.replay: 60000  # 1m
   detector:
-    # all in milliseconds
-    workerlost.period: 30000              # 30 s
-    resultuploadtimeout.period: 30000     # 30 s
-    dealwatcherreplay.period: 60000       # 1 min
-    reveal.timeout.period: ${REVEAL_TIMEOUT_PERIOD:120000}       # 2 min
-    reveal.unnotified.period: 30000       # 30 s
-    contribution.unnotified.period: 30000 # 30 s
-    contribution.timeout.period: 120000   # 2 min
-    unstartedtx.period: 300000            # 5 min
-    task.initialized.unnotified.period: 30000  # 30 s
-    task.finalized.unnotified.period: 30000  # 30 s
-  stdoutAvailabilityDays: ${IEXEC_STDOUT_AVAILABILITY_DAYS:3} # 3 days after final deadline
+    worker-lost:      3000  # 30s
+    chain:
+      unstarted-tx:   300000  # 5m
+      initialize:     30000   # 30s
+      contribute:     3000   # 30s
+      reveal:         30000   # 30s
+      finalize:       30000   # 30s
+    timeout:
+      contribute:     1200  # 2m
+      reveal: ${REVEAL_TIMEOUT_PERIOD:120000}  # 2m
+      result-upload:  30000   # 30s
 
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}

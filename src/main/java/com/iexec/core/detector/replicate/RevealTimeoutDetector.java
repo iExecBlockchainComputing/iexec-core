@@ -48,7 +48,7 @@ public class RevealTimeoutDetector implements Detector {
         this.replicatesService = replicatesService;
     }
 
-    @Scheduled(fixedRateString = "${cron.detector.reveal.timeout.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getRevealTimeout()}")
     @Override
     public void detect() {
         log.debug("Trying to detect reveal timeout");
