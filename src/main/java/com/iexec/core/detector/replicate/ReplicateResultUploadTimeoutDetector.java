@@ -49,12 +49,12 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
         this.replicatesService = replicatesService;
     }
 
-    @Scheduled(fixedRateString = "${cron.detector.resultuploadtimeout.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getResultUploadTimeout()}")
     @Override
     public void detect() {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 2 min.
-
+        log.debug("Detecting result upload timeout");
         List<TaskStatus> taskUploadStatuses = Arrays.asList(
                 TaskStatus.RESULT_UPLOAD_REQUESTED,
                 TaskStatus.RESULT_UPLOADING);

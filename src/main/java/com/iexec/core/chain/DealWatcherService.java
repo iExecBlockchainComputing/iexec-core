@@ -129,7 +129,7 @@ public class DealWatcherService {
      * Some deal events are sometimes missed by #schedulerNoticeEventObservable method
      * so we decide to replay events from times to times (already saved events will be ignored)
      */
-    @Scheduled(fixedRateString = "${cron.detector.dealwatcherreplay.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getDealReplay()}")
     void replayDealEvent() {
         BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
         BigInteger replayFromBlock = configurationService.getFromReplay();

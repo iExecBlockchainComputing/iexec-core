@@ -19,12 +19,14 @@ package com.iexec.core.detector;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 
 @Service
+@Slf4j
 public class WorkerLostDetector implements Detector {
 
     private ReplicatesService replicatesService;
@@ -36,9 +38,10 @@ public class WorkerLostDetector implements Detector {
         this.workerService = workerService;
     }
 
-    @Scheduled(fixedRateString = "${cron.detector.workerlost.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getWorkerLost()}")
     @Override
     public void detect() {
+        log.debug("Detecting lost workers");
         for (Worker worker : workerService.getLostWorkers()) {
             String workerWallet = worker.getWalletAddress();
 

@@ -45,7 +45,7 @@ public class ReopenedTaskDetector implements Detector {
     /**
      * Detector to detect tasks that are reopening but are not reopened yet.
      */
-    @Scheduled(fixedRateString = "${cron.detector.task.finalized.unnotified.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalize()}")
     @Override
     public void detect() {
         log.debug("Trying to detect reopened tasks");

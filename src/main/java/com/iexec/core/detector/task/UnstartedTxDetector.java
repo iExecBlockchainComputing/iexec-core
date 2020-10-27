@@ -36,7 +36,7 @@ public class UnstartedTxDetector implements Detector {
         this.taskService = taskService;
     }
 
-    @Scheduled(fixedRateString = "${cron.detector.unstartedtx.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getUnstartedTx()}")
     @Override
     public void detect() {
         //start finalize when needed
