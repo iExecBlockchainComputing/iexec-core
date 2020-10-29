@@ -125,7 +125,7 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     /**
-     * <p> Get a deal's contribution deadline date. The deadline
+     * <p> Get deal's contribution deadline date. The deadline
      * is calculated as follow:
      * start + maxCategoryTime * nbOfCategoryUnits.
      * 
@@ -144,6 +144,26 @@ public class IexecHubService extends IexecHubAbstractService {
         long maxNbOfPeriods = getMaxNbOfPeriodsForConsensus();
         maxNbOfPeriods = (maxNbOfPeriods == -1) ? 10 : maxNbOfPeriods;
         return new Date(startTime + maxTime * maxNbOfPeriods);
+    }
+
+    /**
+     * <p> Get deal's final deadline date. The deadline
+     * is calculated as follow:
+     * start + maxCategoryTime * 10.
+     * 
+     * <ul>
+     * <li> start: the start time of the deal.
+     * <li> maxCategoryTime: duration of the deal's category.
+     * <li> 10: number of category units dedicated
+     *      for the hole execution.
+     * 
+     * @param chainDeal
+     * @return
+     */
+    public Date getChainDealFinalDeadline(ChainDeal chainDeal) {
+        long startTime = chainDeal.getStartTime().longValue() * 1000;
+        long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
+        return new Date(startTime + maxTime * 10);
     }
 
 

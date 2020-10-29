@@ -92,7 +92,9 @@ public class TaskService {
             String commandLine,
             int trust,
             long maxExecutionTime,
-            String tag
+            String tag,
+            Date contributionDeadline,
+            Date finalDeadline
     ) {
         return taskRepository
                 .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
@@ -105,6 +107,8 @@ public class TaskService {
                 .orElseGet(() -> {
                         Task newTask = new Task(chainDealId, taskIndex, imageName,
                                 commandLine, trust, maxExecutionTime, tag);
+                        newTask.setFinalDeadline(finalDeadline);
+                        newTask.setContributionDeadline(contributionDeadline);
                         newTask = taskRepository.save(newTask);
                         log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
                                 "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
@@ -173,10 +177,15 @@ public class TaskService {
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
     }
 
+    public boolean isExpired(String chainTaskId) {
+        Date finalDeadline = getTaskFinalDeadline(chainTaskId);
+        return finalDeadline != null && finalDeadline.before(new Date());
+    }
+
     public Date getTaskFinalDeadline(String chainTaskId) {
         return getTaskByChainTaskId(chainTaskId)
                 .map(Task::getFinalDeadline)
-                .orElse(new Date());
+                .orElse(null);
     }
 
     /**
@@ -187,7 +196,18 @@ public class TaskService {
      */
     // TODO change this mechanism of update
     public CompletableFuture<Void> updateTask(String chainTaskId) {
-        long expiration = getTaskFinalDeadline(chainTaskId).getTime();
+        Optional<Task> oTask = getTaskByChainTaskId(chainTaskId);
+        if (oTask.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        Task task = oTask.get();
+        Date finalDeadline = task.getFinalDeadline();
+        if (finalDeadline == null) {
+            log.error("Cannot update task without final deadline [chainTaskId:{}]",
+                    chainTaskId);
+            return CompletableFuture.completedFuture(null);
+        }
+        long expiration = finalDeadline.getTime();
         return taskExecutorEngine.run(
                 chainTaskId,
                 expiration,
@@ -354,14 +374,6 @@ public class TaskService {
 
     private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
         String chainTaskId = task.getChainTaskId();
-        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
-        if (!optional.isPresent()) {
-            return;
-        }
-        ChainTask chainTask = optional.get();
-
-        task.setContributionDeadline(new Date(chainTask.getContributionDeadline()));
-        task.setFinalDeadline(new Date(chainTask.getFinalDeadline()));
         long currentBlockNumber = web3jService.getLatestBlockNumber();
         long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : currentBlockNumber;
         if (receiptBlockNumber != 0) {
