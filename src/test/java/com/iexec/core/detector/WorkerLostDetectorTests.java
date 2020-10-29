@@ -21,6 +21,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -35,6 +36,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +50,9 @@ public class WorkerLostDetectorTests {
 
     @Mock
     private ReplicatesService replicatesService;
+
+    @Mock
+    private TaskService taskService;
 
     @InjectMocks
     private WorkerLostDetector workerLostDetector;
@@ -82,6 +87,7 @@ public class WorkerLostDetectorTests {
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
+        when(taskService.isExpired(anyString())).thenReturn(false);
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
@@ -106,6 +112,35 @@ public class WorkerLostDetectorTests {
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
+        when(taskService.isExpired(anyString())).thenReturn(false);
+
+        workerLostDetector.detect();
+        // verify that the call on the update is correct
+        Mockito.verify(replicatesService, Mockito.times(0))
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+
+        // verify that the worker should remove the taskId from its current tasks
+        Mockito.verify(workerService, Mockito.times(0))
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET_WORKER);
+    }
+
+    @Test
+    public void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired(){
+        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
+
+        Worker worker = Worker.builder()
+                .walletAddress(WALLET_WORKER)
+                .lastAliveDate(twoMinutesAgo)
+                .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
+                .build();
+
+        Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+
+        when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
+        when(taskService.isExpired(anyString())).thenReturn(true);
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
