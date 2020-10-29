@@ -17,6 +17,7 @@
 package com.iexec.core.detector;
 
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -29,13 +30,18 @@ import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 @Slf4j
 public class WorkerLostDetector implements Detector {
 
-    private ReplicatesService replicatesService;
-    private WorkerService workerService;
+    private final ReplicatesService replicatesService;
+    private final WorkerService workerService;
+    private final TaskService taskService;
 
-    public WorkerLostDetector(ReplicatesService replicatesService,
-                              WorkerService workerService) {
+    public WorkerLostDetector(
+        ReplicatesService replicatesService,
+        WorkerService workerService,
+        TaskService taskService
+    ) {
         this.replicatesService = replicatesService;
         this.workerService = workerService;
+        this.taskService = taskService;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getWorkerLost()}")
@@ -44,13 +50,21 @@ public class WorkerLostDetector implements Detector {
         log.debug("Detecting lost workers");
         for (Worker worker : workerService.getLostWorkers()) {
             String workerWallet = worker.getWalletAddress();
-
             for (String chainTaskId : worker.getParticipatingChainTaskIds()) {
-                replicatesService.getReplicate(chainTaskId, workerWallet).ifPresent(replicate -> {
-                    if (!replicate.getCurrentStatus().equals(WORKER_LOST)) {
-                        replicatesService.updateReplicateStatus(chainTaskId, workerWallet, WORKER_LOST);
-                    }
-                });
+                if (taskService.isExpired(chainTaskId)) {
+                    continue;
+                }
+                replicatesService
+                        .getReplicate(chainTaskId, workerWallet)
+                        .ifPresent(replicate -> {
+                                if (!replicate.getCurrentStatus().equals(WORKER_LOST)) {
+                                    replicatesService.updateReplicateStatus(
+                                        chainTaskId,
+                                        workerWallet,
+                                        WORKER_LOST
+                                    );
+                                }
+                        });
             }
         }
     }
