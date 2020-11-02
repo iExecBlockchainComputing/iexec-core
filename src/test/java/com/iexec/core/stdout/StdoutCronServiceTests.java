@@ -35,7 +35,7 @@ public class StdoutCronServiceTests {
         List<String> ids = List.of("id1", "id2");
         when(taskService.getChainTaskIdsOfTasksExpiredBefore(any()))
                 .thenReturn(ids);
-        stdoutCronService.cleanStdout();
+        stdoutCronService.purgeStdout();
         verify(stdoutService).delete(ids);
     }
 }
