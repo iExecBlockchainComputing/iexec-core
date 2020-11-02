@@ -47,6 +47,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
+// TODO
 public class TaskServiceTests {
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
@@ -57,6 +58,8 @@ public class TaskServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final long maxExecutionTime = 60000;
+    private final Date contributionDeadline = new Date();
+    private final Date finalDeadline = new Date();
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
     private final static String RESULT_LINK = "/ipfs/the_result_string";
 
@@ -118,7 +121,8 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.INITIALIZED);
 
         when(taskRepository.save(any())).thenReturn(task);
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, "0x0");
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2,
+                maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isPresent();
         assertThat(saved).isEqualTo(Optional.of(task));
     }
@@ -128,7 +132,8 @@ public class TaskServiceTests {
         Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
         task.changeStatus(TaskStatus.INITIALIZED);
         when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, "0x0");
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2,
+                maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEqualTo(Optional.empty());
     }
 
@@ -347,7 +352,6 @@ public class TaskServiceTests {
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -367,7 +371,6 @@ public class TaskServiceTests {
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -387,7 +390,6 @@ public class TaskServiceTests {
                 .thenReturn(false);
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder().build()));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -412,27 +414,6 @@ public class TaskServiceTests {
 
         assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
-    }
-
-    @Test
-    public void shouldNotUpdateInitializing2InitailizedSinceNoChainTaskReturned() {
-        Task task = new Task(CHAIN_DEAL_ID, 1, DAPP_NAME, COMMAND_LINE, 2, maxExecutionTime, NO_TEE_TAG);
-        task.changeStatus(RECEIVED);
-        task.setChainTaskId(CHAIN_TASK_ID);
-        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
-
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 1)).thenReturn(true);
-        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
-                .thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
-        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
-
-        taskService.updateTaskRunnable(CHAIN_TASK_ID);
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
     }
 
     @Test
