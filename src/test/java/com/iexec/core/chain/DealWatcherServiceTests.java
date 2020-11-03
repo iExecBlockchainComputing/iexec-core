@@ -34,9 +34,8 @@ import java.math.BigInteger;
 import java.util.Optional;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 public class DealWatcherServiceTests {
 
@@ -119,7 +118,8 @@ public class DealWatcherServiceTests {
 
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
-        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any())).thenReturn(Optional.of(task));
+        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any(), any(), any()))
+                        .thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
         when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
 
@@ -135,6 +135,44 @@ public class DealWatcherServiceTests {
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
         assertThat(argumentCaptor.getValue()).isEqualTo(new TaskCreatedEvent(task.getChainTaskId()));
+    }
+
+    @Test
+    public void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceDealIsExpired() {
+        ChainDeal chainDeal = ChainDeal.builder()
+                .botFirst(BigInteger.valueOf(0))
+                .botSize(BigInteger.valueOf(1))
+                .chainApp(ChainApp.builder().uri("0x00").build())
+                .chainCategory(new ChainCategory())
+                .params(DealParams.builder().iexecArgs("args").build())
+                .trust(BigInteger.valueOf(3))
+                .build();
+
+        BigInteger from = BigInteger.valueOf(0);
+        BigInteger blockOfDeal = BigInteger.valueOf(3);
+        Optional<DealEvent> dealEvent = Optional.of(DealEvent.builder()
+                .chainDealId("chainDealId")
+                .blockNumber(blockOfDeal)
+                .build());
+
+        when(iexecHubService.getDealEventObservableToLatest(from))
+                .thenReturn(Flowable.just(dealEvent));
+        when(iexecHubService.getChainDeal(anyString()))
+                .thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.isBeforeContributionDeadline(chainDeal))
+                .thenReturn(false);
+        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
+
+        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+
+        verify(configurationService, times(1))
+                .setLastSeenBlockWithDeal(blockOfDeal);
+        verify(applicationEventPublisher, never())
+                .publishEvent(any());
+        verify(taskService, never())
+                .addTask(anyString(), anyInt(), anyString(),
+                    anyString(), anyInt(), anyLong(), anyString(),
+                    any(), any());
     }
 
     @Test
