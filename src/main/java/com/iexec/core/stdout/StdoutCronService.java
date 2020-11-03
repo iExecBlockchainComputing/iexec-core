@@ -18,6 +18,7 @@ package com.iexec.core.stdout;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.iexec.core.task.TaskService;
 
@@ -29,8 +30,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class StdoutCronService {
 
-    @Value("${stdout.availability-period}")
-    private int availabilityPeriod;
+    @Value("${stdout.availability-period-in-days}")
+    private int availabilityDays;
+
+    @Value("${stdout.purge-rate-in-days}")
+    private int purgeRateInDays;
+
     private StdoutService stdoutService;
     private TaskService taskService;
 
@@ -42,10 +47,13 @@ public class StdoutCronService {
         this.taskService = taskService;
     }
 
-    @Scheduled(fixedRateString = "${stdout.purge-rate}")
+    public long getPurgeRateInMs() {
+        return TimeUnit.DAYS.toMillis(purgeRateInDays);
+    }
+
+    @Scheduled(fixedRateString = "#{@stdoutCronService.getPurgeRateInMs()}")
     void purgeStdout() {
-        Date someDaysAgo = DateUtils
-                .addMilliseconds(new Date(), -availabilityPeriod);
+        Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
         List<String> chainTaskIds = taskService
                 .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
         stdoutService.delete(chainTaskIds);
