@@ -12,7 +12,7 @@ cron:
   # all in milliseconds
   deal.replay: 60000  # 1m
   detector:
-    worker-lost:      3000  # 30s
+    worker-lost:      30000  # 30s
     chain:
       unstarted-tx:   300000  # 5m
       initialize:     30000   # 30s
