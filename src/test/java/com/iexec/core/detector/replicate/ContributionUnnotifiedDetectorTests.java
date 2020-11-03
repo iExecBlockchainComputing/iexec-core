@@ -21,7 +21,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.CoreConfigurationService;
+import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -54,7 +54,7 @@ public class ContributionUnnotifiedDetectorTests {
     public IexecHubService iexecHubService;
 
     @Mock
-    private CoreConfigurationService coreConfigurationService;
+    private CronConfiguration cronConfiguration;
 
     @Mock
     private Web3jService web3jService;
@@ -80,7 +80,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -102,7 +102,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(COMPUTED).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
 
@@ -121,7 +121,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        // when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
         contributionDetector.detectOnchainContributedWhenOffchainContributing();
@@ -142,7 +142,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -166,7 +166,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -190,7 +190,7 @@ public class ContributionUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTED).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedContributionDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         contributionDetector.detectOnchainContributed();
