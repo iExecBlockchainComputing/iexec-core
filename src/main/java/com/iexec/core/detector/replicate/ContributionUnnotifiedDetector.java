@@ -39,7 +39,7 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
-    public final int detectorRate;
+    private final int detectorRate;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
