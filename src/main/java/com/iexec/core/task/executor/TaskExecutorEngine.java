@@ -17,8 +17,6 @@
 package com.iexec.core.task.executor;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-
 import org.springframework.stereotype.Component;
 
 /**
@@ -45,9 +43,10 @@ public class TaskExecutorEngine {
     public CompletableFuture<Void> run(
         String chainTaskId, long expiration, Runnable taskUpdate
     ) {
-        Executor executor = taskExecutorFactory
-                .getOrCreate(chainTaskId, expiration);
-        return CompletableFuture.runAsync(taskUpdate, executor);
+        return taskExecutorFactory
+                .getOrCreate(chainTaskId, expiration)
+                .map(executor -> CompletableFuture.runAsync(taskUpdate, executor))
+                .orElse(CompletableFuture.completedFuture(null));
     }
 
     /**

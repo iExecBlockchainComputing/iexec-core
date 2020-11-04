@@ -209,7 +209,7 @@ public class TaskService {
                     chainTaskId);
             return CompletableFuture.completedFuture(null);
         }
-        long expiration = finalDeadline.getTime();
+        long expiration = finalDeadline.getTime() - new Date().getTime();
         return taskExecutorEngine.run(
                 chainTaskId,
                 expiration,
@@ -304,8 +304,8 @@ public class TaskService {
                 toFailed(task);
                 break;
             case COMPLETED:
-                break;
             case FAILED:
+                removeTaskExecutor(task);
                 break;
         }
     }

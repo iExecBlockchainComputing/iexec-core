@@ -19,6 +19,7 @@ package com.iexec.core.task.executor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.iexec.core.utils.TaskExecutorUtils;
@@ -61,9 +62,14 @@ class TaskExecutorFactory {
      * @param maxTtl max time to live for this executor
      * @return the executor
      */
-    ThreadPoolTaskExecutor getOrCreate(String chainTaskId, long expiration) {
+    Optional<ThreadPoolTaskExecutor> getOrCreate(String chainTaskId, long expiration) {
+        if (expiration <= 0) {
+            log.error("Cannot create executor with negative expiration " +
+                    "[chainTaskId:{}, expiration:{}]", chainTaskId, expiration);
+            return Optional.empty();
+        }
         if (map.containsKey(chainTaskId)) {
-            return map.get(chainTaskId);
+            return Optional.of(map.get(chainTaskId));
         }
         String threadNamePrefix = chainTaskId.substring(0, 9);
         map.put(
@@ -71,9 +77,10 @@ class TaskExecutorFactory {
                 TaskExecutorUtils.singleThreadWithFixedSizeQueue(1, threadNamePrefix)
         );
         map.setExpiration(chainTaskId, expiration, MILLISECONDS);
+        Date expirationDate = new Date(new Date().getTime() + expiration);
         log.info("Created new task executor [chainTaskId:{}, expiration:{}]",
-                chainTaskId, new Date(expiration));
-        return map.get(chainTaskId);
+                chainTaskId, expirationDate);
+        return Optional.of(map.get(chainTaskId));
     }
 
     /**
