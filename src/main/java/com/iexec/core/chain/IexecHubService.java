@@ -127,7 +127,7 @@ public class IexecHubService extends IexecHubAbstractService {
     /**
      * <p> Get deal's contribution deadline date. The deadline
      * is calculated as follow:
-     * start + maxCategoryTime * nbOfCategoryUnits.
+     * start + maxCategoryTime * maxNbOfPeriods.
      * 
      * <ul>
      * <li> start: the start time of the deal.
