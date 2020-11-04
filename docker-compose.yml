@@ -1,27 +1,36 @@
 version: '3.4'
 
+networks:
+  iexec-worker-net:
+    external: true
+
 services:
 
   core:
-    image: nexus.iex.ec/iexec-core:${CORE_VERSION}
+    image: nexus.iex.ec/iexec-core:dev
     container_name: core
     environment:
-    - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
-    - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
-    - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
-    - MONGO_HOST=mongo
-    - IEXEC_IPFS_HOST=ipfs
-    - IEXEC_SMS_HOST=sms
-    - IEXEC_SCONE_CAS_HOST=iexec-cas
+      - IEXEC_CORE_WALLET_PATH=/iexec/wallet/encrypted-wallet.json
+      - IEXEC_PRIVATE_CHAIN_ADDRESS=http://chain:8545
+      - IEXEC_PUBLIC_CHAIN_ADDRESS=http://chain:8545
+      - MONGO_HOST=mongo
+      - IEXEC_IPFS_HOST=ipfs
+      - IEXEC_SMS_HOST=sms
+      - IEXEC_SCONE_CAS_HOST=iexec-cas
+      # - IEXEC_HUB_ADDRESS=${IEXEC_HUB_ADDRESS}
+      # - POOL_ADDRESS=${POOL_ADDRESS}
+      - IEXEC_RESULT_REPOSITORY_PROTOCOL=http
+      - IEXEC_RESULT_REPOSITORY_HOST=result-proxy
+      - IEXEC_RESULT_REPOSITORY_PORT=18089
+      - IEXEC_SMS_PORT=15000
+      - IEXEC_SCONE_CAS_HOST=cas
     volumes:
-      - ./wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
+      - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
     ports:
-    - 18090:18090
-    restart: on-failure
+      - 18090:18090
     depends_on:
-      - mongo
       - chain
-      - ipfs
+      - mongo
       - sms
 
   chain:
@@ -33,49 +42,110 @@ services:
   mongo:
     image: mongo:4-xenial
     container_name: mongo
+    environment:
+      - MONGO_INITDB_DATABASE=iexec
     ports:
       - 27017:27017
 
   mongo_ui:
     image: mongo-express:0.49
     container_name: mongo_ui
-    environment:
-    - ME_CONFIG_BASICAUTH_USERNAME=admin
-    - ME_CONFIG_BASICAUTH_PASSWORD=y0urpassw00rd
     ports:
-    - 8081:8081
+      - 8081:8081
     depends_on:
       - mongo
+
+
+  sms:
+    image: nexus.iex.ec/iexec-sms:${SMS_VERSION}
+    container_name: sms
+    environment:
+      - IEXEC_SMS_BLOCKCHAIN_NODE_ADDRESS=${ETHEREUM_NODE_ADDRESS}
+      - IEXEC_HUB_ADDRESS=${IEXEC_HUB_ADDRESS}
+      - IEXEC_SCONE_CAS_HOST=cas
+      - SCONE_CAS_ADDR=cas:18765
+      - SCONE_LAS_ADDR=las:18766
+      - SCONE_CONFIG_ID=s1/iexec-sms
+      - SCONE_HEAP=3G
+      - SCONE_LOG=6
+      - SCONE_VERSION=1
+      - SCONE_SYSLIBS=1
+    ports:
+      - 15000:15000
+      - 15443:15443
+    devices:
+     - /dev/isgx
+    depends_on:
+      - chain
+
+  cas:
+    image: iexechub/sconecuratedimages-iexec:cas-${CAS_VERSION}
+    container_name: cas
+    # environment:
+    # - RUST_LOG=debug
+    ports:
+      - 18765:18765
+      - 18767:8081
+    networks:
+      - iexec-worker-net
+    devices:
+      - /dev/isgx
+
+  las:
+    image: iexechub/sconecuratedimages-iexec:las-${LAS_VERSION}
+    container_name: las
+    ports:
+      - 18766:18766
+    devices:
+      - /dev/isgx
+
+  result-proxy:
+    image: nexus.iex.ec/iexec-result-proxy:${RESULT_PROXY_VERSION}
+    container_name: result-proxy
+    environment:
+      - IEXEC_PRIVATE_CHAIN_ADDRESS=${ETHEREUM_NODE_ADDRESS}
+      - IEXEC_PUBLIC_CHAIN_ADDRESS=${ETHEREUM_NODE_ADDRESS}
+      - MONGO_HOST=result-proxy-mongo
+      - MONGO_PORT=47017
+      - IEXEC_IPFS_HOST=ipfs
+    ports:
+      - 18089:18089
+    networks:
+      - iexec-worker-net #required for enclave push to result proxy
+    depends_on:
+      - result-proxy-mongo
+      - ipfs
+    restart: on-failure
 
   ipfs:
     image: ipfs/go-ipfs:v0.4.20
     container_name: ipfs
+    volumes:
+      - /tmp/ipfs-docker-staging:/export
+      - /tmp/ipfs-docker-data:/data/ipfs
     ports:
       - 8080:8080
       - 4001:4001
       - 5001:5001
-    volumes:
-      - /tmp/ipfs-docker-staging:/export
-      - /tmp/ipfs-docker-data:/data/ipfs
     restart: on-failure
 
-  sms:
-    image: nexus.iex.ec/sms:latest
-    container_name: sms
-    environment:
-      - HUB=0x60E25C038D70A15364DAc11A042DB1dD7A2cccBC
-      - GATEWAY=http://chain:8545
+  result-proxy-mongo:
+    image: mongo:4-xenial
+    container_name: result-proxy-mongo
+    entrypoint: "/bin/bash"
+    command: -c "mongod --bind_ip_all --port 47017"
     ports:
-      - 5000:5000
-    depends_on:
-      - chain
+      - 47017:47017
 
-  iexec-cas:
-    image: nexus.iex.ec/iexec-cas:${IEXEC_CAS_VERSION}
-    container_name: iexec-cas
+  result-proxy-mongo-ui:
+    image: mongo-express:0.49
+    container_name: result-proxy-mongo-ui
+    environment:
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+      - ME_CONFIG_MONGODB_PORT=47017
+      - ME_CONFIG_MONGODB_SERVER=result-proxy-mongo
     ports:
-      - 18765:18765
-    networks:
-      - iexec-net
-    devices:
-      - /dev/isgx
+      - 8084:8081
+    depends_on:
+      - result-proxy-mongo

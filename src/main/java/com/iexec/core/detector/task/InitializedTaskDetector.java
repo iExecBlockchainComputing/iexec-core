@@ -45,7 +45,7 @@ public class InitializedTaskDetector implements Detector {
     /**
      * Detector to detect tasks that are initializing but are not initialized yet.
      */
-    @Scheduled(fixedRateString = "${cron.detector.task.initialized.unnotified.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getInitialize()}")
     @Override
     public void detect() {
         log.debug("Trying to detect initializable tasks");

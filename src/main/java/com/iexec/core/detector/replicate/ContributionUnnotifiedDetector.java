@@ -20,7 +20,7 @@ import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.CoreConfigurationService;
+import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -39,19 +39,19 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
-    private final CoreConfigurationService coreConfigurationService;
+    private final int detectorRate;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
                                           IexecHubService iexecHubService,
-                                          CoreConfigurationService coreConfigurationService,
-                                          Web3jService web3jService) {
+                                          Web3jService web3jService,
+                                          CronConfiguration cronConfiguration) {
         super(taskService, replicatesService, iexecHubService, web3jService);
-        this.coreConfigurationService = coreConfigurationService;
         dectectWhenOffchainTaskStatuses = TaskStatus.getWaitingContributionStatuses();
         offchainCompleting = ReplicateStatus.CONTRIBUTING;
         offchainCompleted = ReplicateStatus.CONTRIBUTED;
         onchainCompleted = ChainContributionStatus.CONTRIBUTED;
+        this.detectorRate = cronConfiguration.getContribute();
     }
 
     /*
@@ -59,11 +59,16 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * (worker didn't notify last offchain CONTRIBUTED)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
     public void detectOnchainContributedWhenOffchainContributing() {
         log.debug("Detect onchain Contributed (when offchain Contributing) [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedContributionDetectorPeriod());
-        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+                this.detectorRate);
+        dectectOnchainCompletedWhenOffchainCompleting(
+                dectectWhenOffchainTaskStatuses,
+                offchainCompleting,
+                offchainCompleted,
+                onchainCompleted
+        );
     }
 
     /*
@@ -73,11 +78,15 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
      */
-    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedContributionDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute() * " + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainContributed() {
-        log.debug("Detect onchain Contributed [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedContributionDetectorPeriod() * DETECTOR_MULTIPLIER);
-        dectectOnchainCompleted(dectectWhenOffchainTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+        log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * DETECTOR_MULTIPLIER);
+        dectectOnchainCompleted(
+                dectectWhenOffchainTaskStatuses,
+                offchainCompleting,
+                offchainCompleted,
+                onchainCompleted
+        );
     }
 
 }

@@ -114,12 +114,17 @@ public class DealWatcherService {
         int startBag = chainDeal.getBotFirst().intValue();
         int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
         for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
-            Optional<Task> optional = taskService.addTask(chainDealId, taskIndex,
+            Optional<Task> optional = taskService.addTask(
+                    chainDealId,
+                    taskIndex,
                     BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
                     chainDeal.getParams().getIexecArgs(),
                     chainDeal.getTrust().intValue(),
                     chainDeal.getChainCategory().getMaxExecutionTime(),
-                    chainDeal.getTag());
+                    chainDeal.getTag(),
+                    iexecHubService.getChainDealContributionDeadline(chainDeal),
+                    iexecHubService.getChainDealFinalDeadline(chainDeal)
+            );
             optional.ifPresent(task -> applicationEventPublisher
                     .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
         }
@@ -129,7 +134,7 @@ public class DealWatcherService {
      * Some deal events are sometimes missed by #schedulerNoticeEventObservable method
      * so we decide to replay events from times to times (already saved events will be ignored)
      */
-    @Scheduled(fixedRateString = "${cron.detector.dealwatcherreplay.period}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getDealReplay()}")
     void replayDealEvent() {
         BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
         BigInteger replayFromBlock = configurationService.getFromReplay();

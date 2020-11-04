@@ -18,6 +18,7 @@ package com.iexec.core.stdout;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.iexec.core.task.TaskService;
 
@@ -29,20 +30,32 @@ import org.springframework.stereotype.Service;
 @Service
 public class StdoutCronService {
 
-    @Value("${cron.stdoutAvailabilityDays}")
-    private int stdoutAvailabilityDays;
+    @Value("${stdout.availability-period-in-days}")
+    private int availabilityDays;
+
+    @Value("${stdout.purge-rate-in-days}")
+    private int purgeRateInDays;
+
     private StdoutService stdoutService;
     private TaskService taskService;
 
-    public StdoutCronService(StdoutService stdoutService, TaskService taskService) {
+    public StdoutCronService(
+        StdoutService stdoutService,
+        TaskService taskService
+    ) {
         this.stdoutService = stdoutService;
         this.taskService = taskService;
     }
 
-    @Scheduled(fixedRate = DateUtils.MILLIS_PER_DAY)
-    public void cleanStdout() {
-        Date someDaysAgo = DateUtils.addDays(new Date(), -stdoutAvailabilityDays);
-        List<String> chainTaskIds = taskService.getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
+    public long getPurgeRateInMs() {
+        return TimeUnit.DAYS.toMillis(purgeRateInDays);
+    }
+
+    @Scheduled(fixedRateString = "#{@stdoutCronService.getPurgeRateInMs()}")
+    void purgeStdout() {
+        Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
+        List<String> chainTaskIds = taskService
+                .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
         stdoutService.delete(chainTaskIds);
     }
 

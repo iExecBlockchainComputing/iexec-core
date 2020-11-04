@@ -54,11 +54,11 @@ public abstract class UnnotifiedAbstractDetector {
         this.web3jService = web3jService;
     }
 
-    void dectectOnchainCompletedWhenOffchainCompleting(List<TaskStatus> dectectWhenOffchainTaskStatuses,
+    void dectectOnchainCompletedWhenOffchainCompleting(List<TaskStatus> detectWhenOffChainTaskStatuses,
                                                        ReplicateStatus offchainCompleting,
                                                        ReplicateStatus offchainCompleted,
                                                        ChainContributionStatus onchainCompleted) {
-        for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
+        for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
                 if (!lastRelevantStatus.isPresent() || !lastRelevantStatus.get().equals(offchainCompleting)) {
@@ -70,17 +70,17 @@ public abstract class UnnotifiedAbstractDetector {
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
                             lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
-                    updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
+                    updateReplicateStatuses(task, replicate, offchainCompleted);
                 }
             }
         }
     }
 
-    void dectectOnchainCompleted(List<TaskStatus> dectectWhenOffchainTaskStatuses,
+    void dectectOnchainCompleted(List<TaskStatus> detectWhenOffChainTaskStatuses,
                                  ReplicateStatus offchainCompleting,
                                  ReplicateStatus offchainCompleted,
                                  ChainContributionStatus onchainCompleted) {
-        for (Task task : taskService.findByCurrentStatus(dectectWhenOffchainTaskStatuses)) {
+        for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
 
@@ -93,7 +93,7 @@ public abstract class UnnotifiedAbstractDetector {
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
                             lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
-                    updateReplicateStatuses(task.getChainTaskId(), replicate, offchainCompleted);
+                    updateReplicateStatuses(task, replicate, offchainCompleted);
                 }
             }
         }
@@ -107,7 +107,9 @@ public abstract class UnnotifiedAbstractDetector {
      * we couldn't get the metadata (block number) of the tx.
      * In this case we put 0 as default block number.
      */
-    private void updateReplicateStatuses(String chainTaskId, Replicate replicate, ReplicateStatus offchainCompleted) {
+    private void updateReplicateStatuses(Task task, Replicate replicate, ReplicateStatus offchainCompleted) {
+        String chainTaskId = task.getChainTaskId();
+        long initBlocknumber = task.getInitializationBlockNumber();
         List<ReplicateStatus> statusesToUpdate;
         if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
             statusesToUpdate = getMissingStatuses(replicate.getLastButOneStatus(), offchainCompleted);
@@ -123,7 +125,7 @@ public abstract class UnnotifiedAbstractDetector {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
                     ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
-                            wallet, web3jService.getLatestBlockNumber());
+                            wallet, initBlocknumber);
                     long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
@@ -131,7 +133,7 @@ public abstract class UnnotifiedAbstractDetector {
                 case REVEALED:
                     // retrieve the reveal block for that wallet
                     ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
-                            web3jService.getLatestBlockNumber());
+                            initBlocknumber);
                     long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(revealedBlockNumber));

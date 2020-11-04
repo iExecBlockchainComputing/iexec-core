@@ -21,7 +21,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.CoreConfigurationService;
+import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -54,7 +54,7 @@ public class RevealUnnotifiedDetectorTests {
     private IexecHubService iexecHubService;
 
     @Mock
-    private CoreConfigurationService coreConfigurationService;
+    private CronConfiguration cronConfiguration;
 
     @Mock
     private Web3jService web3jService;
@@ -80,7 +80,7 @@ public class RevealUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(REVEALING).modifier(WORKER).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -104,7 +104,7 @@ public class RevealUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().modifier(WORKER).status(CONTRIBUTING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
@@ -121,7 +121,7 @@ public class RevealUnnotifiedDetectorTests {
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().modifier(WORKER).status(REVEALING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
         revealDetector.detectOnchainRevealedWhenOffchainRevealed();
@@ -142,7 +142,7 @@ public class RevealUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().modifier(WORKER).status(REVEALING).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -171,7 +171,7 @@ public class RevealUnnotifiedDetectorTests {
                 .build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
@@ -195,7 +195,7 @@ public class RevealUnnotifiedDetectorTests {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().modifier(WORKER).status(REVEALED).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
-        when(coreConfigurationService.getUnnotifiedRevealDetectorPeriod()).thenReturn(DETECTOR_PERIOD);
+        when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
         revealDetector.detectOnchainRevealed();

@@ -20,7 +20,7 @@ import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.CoreConfigurationService;
+import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -39,15 +39,15 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
-    private final CoreConfigurationService coreConfigurationService;
+    private final CronConfiguration cronConfiguration;
 
     public RevealUnnotifiedDetector(TaskService taskService,
                                     ReplicatesService replicatesService,
                                     IexecHubService iexecHubService,
-                                    CoreConfigurationService coreConfigurationService,
-                                    Web3jService web3jService) {
+                                    Web3jService web3jService,
+                                    CronConfiguration cronConfiguration) {
         super(taskService, replicatesService, iexecHubService, web3jService);
-        this.coreConfigurationService = coreConfigurationService;
+        this.cronConfiguration = cronConfiguration;
         dectectWhenTaskStatuses = TaskStatus.getWaitingRevealStatuses();
         offchainCompleting = ReplicateStatus.REVEALING;
         offchainCompleted = ReplicateStatus.REVEALED;
@@ -59,11 +59,16 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * (worker didn't notify last offchain REVEALED)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal()}")
     public void detectOnchainRevealedWhenOffchainRevealed() {
         log.debug("Detect onchain Revealed (when offchain Revealing) [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedRevealDetectorPeriod());
-        dectectOnchainCompletedWhenOffchainCompleting(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+                cronConfiguration.getReveal());
+        dectectOnchainCompletedWhenOffchainCompleting(
+                dectectWhenTaskStatuses,
+                offchainCompleting,
+                offchainCompleted,
+                onchainCompleted
+        );
     }
 
     /*
@@ -73,11 +78,16 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_REVEAL
      */
-    @Scheduled(fixedRateString = "#{coreConfigurationService.unnotifiedRevealDetectorPeriod*" + DETECTOR_MULTIPLIER + "}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal() * " + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainRevealed() {
         log.debug("Detect onchain Revealed [retryIn:{}]",
-                coreConfigurationService.getUnnotifiedRevealDetectorPeriod() * DETECTOR_MULTIPLIER);
-        dectectOnchainCompleted(dectectWhenTaskStatuses, offchainCompleting, offchainCompleted, onchainCompleted);
+                cronConfiguration.getReveal() * DETECTOR_MULTIPLIER);
+        dectectOnchainCompleted(
+                dectectWhenTaskStatuses,
+                offchainCompleting,
+                offchainCompleted,
+                onchainCompleted
+        );
     }
 
 }
