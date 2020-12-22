@@ -30,3 +30,4 @@ src/main/java/com/iexec/core/utils/version/Version.java
 /bin/
 .vscode/
 .env
+.dockerignore
