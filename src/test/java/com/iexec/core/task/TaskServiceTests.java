@@ -38,14 +38,15 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.common.utils.DateTimeUtils.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 // TODO
 public class TaskServiceTests {
@@ -191,6 +192,83 @@ public class TaskServiceTests {
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
 
         assertThat(foundTasks).isEmpty();
+    }
+
+    // isExpired
+
+    @Test
+    public void shouldFindTaskExpired() {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .finalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)))
+                .build();
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(task));
+
+        assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
+    }
+
+    // updateTask
+
+    @Test
+    public void shouldTriggerUpdateTaskAsynchronously() {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .finalDeadline(new Date())
+                .build();
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(task));
+
+        taskService.updateTask(CHAIN_TASK_ID);
+        verify(taskExecutorEngine).run(eq(CHAIN_TASK_ID), anyLong(), any());
+    }
+
+    @Test
+    public void shouldNotTriggerUpdateTaskIfTaskNotFound() {
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.empty());
+
+        taskService.updateTask(CHAIN_TASK_ID);
+        verify(taskExecutorEngine, never()).run(eq(CHAIN_TASK_ID), anyLong(),
+                eq(() -> taskService.updateTaskRunnable(CHAIN_TASK_ID)));
+    }
+
+    @Test
+    public void shouldNotTriggerUpdateTaskIfFinalDeadlineIsNull() {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .build();
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(task));
+
+        taskService.updateTask(CHAIN_TASK_ID);
+        verify(taskExecutorEngine, never()).run(eq(CHAIN_TASK_ID), anyLong(), any());
+    }
+
+    // removeTaskExecutor
+
+    @Test
+    public void shouldRemoveTaskExecutor() {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .dateStatusList(new ArrayList<>())
+                .build();
+        task.changeStatus(COMPLETED);
+
+        taskService.removeTaskExecutor(task);
+        verify(taskExecutorEngine).removeExecutor(CHAIN_TASK_ID);
+    }
+
+    @Test
+    public void shouldNotRemoveTaskExecutorSinceNotFinalStatus() {
+        Task task = Task.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .dateStatusList(new ArrayList<>())
+                .build();
+        task.changeStatus(RUNNING);
+
+        taskService.removeTaskExecutor(task);
+        verify(taskExecutorEngine, never()).removeExecutor(CHAIN_TASK_ID);
     }
 
     // Tests on consensusReached2Reopening transition
