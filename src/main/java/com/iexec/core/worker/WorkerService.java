@@ -31,8 +31,8 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 @Service
 public class WorkerService {
 
-    private WorkerRepository workerRepository;
-    private WorkerConfiguration workerConfiguration;
+    private final WorkerRepository workerRepository;
+    private final WorkerConfiguration workerConfiguration;
 
     public WorkerService(WorkerRepository workerRepository,
                          WorkerConfiguration workerConfiguration) {
