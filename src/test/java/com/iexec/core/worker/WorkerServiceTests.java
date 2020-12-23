@@ -212,9 +212,8 @@ public class WorkerServiceTests {
     @Test
     public void shouldWorkerBeAllowedToAskReplicateSinceFirstTime() {
         String wallet = "wallet";
-        Worker worker = Worker.builder()
-                .lastReplicateDemandDate(null)
-                .build();
+        Worker worker = new Worker();
+        worker.setLastReplicateDemandDate(null);
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
