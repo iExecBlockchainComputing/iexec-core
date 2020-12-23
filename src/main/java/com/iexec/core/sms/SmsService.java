@@ -42,7 +42,7 @@ public class SmsService {
     }
 
     @Retryable(value = FeignException.class)
-    public String generateEnclaveChallenge(String chainTaskId) {
+    String generateEnclaveChallenge(String chainTaskId) {
 
         String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
@@ -55,7 +55,7 @@ public class SmsService {
     }
 
     @Recover
-    public String generateEnclaveChallenge(FeignException e, String chainTaskId) {
+    String generateEnclaveChallenge(FeignException e, String chainTaskId) {
         log.error("Failed to get enclaveChallenge from SMS even after retrying [chainTaskId:{}, attempts:3]", chainTaskId);
         e.printStackTrace();
         return "";
