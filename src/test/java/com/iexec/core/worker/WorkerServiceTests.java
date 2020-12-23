@@ -16,12 +16,14 @@
 
 package com.iexec.core.worker;
 
+import com.iexec.core.configuration.WorkerConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +36,9 @@ public class WorkerServiceTests {
     @Mock
     private WorkerRepository workerRepository;
 
+    @Mock
+    private WorkerConfiguration workerConfiguration;
+
     @InjectMocks
     private WorkerService workerService;
 
@@ -41,6 +46,30 @@ public class WorkerServiceTests {
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
+
+    // getWorker
+
+    @Test
+    public void shouldGetWorker() {
+        String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .build();
+
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
+        Optional<Worker> foundWorker = workerService.getWorker(walletAddress);
+        assertThat(foundWorker.isPresent()).isTrue();
+        assertThat(foundWorker.get()).isEqualTo(existingWorker);
+    }
+
+    // addWorker
 
     @Test
     public void shouldNotAddNewWorker() {
@@ -96,6 +125,30 @@ public class WorkerServiceTests {
         assertThat(addedWorker.getLastAliveDate()).isEqualTo(worker.getLastAliveDate());
     }
 
+    // isAllowedToJoin
+
+    @Test
+    public void shouldBeAllowed() {
+        List<String> whiteList = List.of("w1", "w2");
+        when(workerConfiguration.getWhitelist()).thenReturn(whiteList);
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    public void shouldBeAllowedWhenNoWhiteList() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    public void shouldNotBeAllowed() {
+        List<String> whiteList = List.of("w1", "w2");
+        when(workerConfiguration.getWhitelist()).thenReturn(whiteList);
+        assertThat(workerService.isAllowedToJoin("w3")).isFalse();
+    }
+
+    // updateLasAlive
+
     @Test
     public void shouldUpdateLastAlive() throws ParseException {
         // init
@@ -142,25 +195,61 @@ public class WorkerServiceTests {
         assertThat(optional.isPresent()).isFalse();
     }
 
-    @Test
-    public void shouldGetWorker() {
-        String workerName = "worker1";
-        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        Worker existingWorker = Worker.builder()
-                .id("1")
-                .name(workerName)
-                .walletAddress(walletAddress)
-                .os("Linux")
-                .cpu("x86")
-                .cpuNb(8)
-                .lastAliveDate(new Date())
-                .build();
+    // isWorkerAllowedToAskReplicate
 
-        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
-        Optional<Worker> foundWorker = workerService.getWorker(walletAddress);
-        assertThat(foundWorker.isPresent()).isTrue();
-        assertThat(foundWorker.get()).isEqualTo(existingWorker);
+    @Test
+    public void shouldWorkerBeAllowedToAskReplicate() {
+        String wallet = "wallet";
+        Worker worker = Worker.builder()
+                .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(10)))
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+
+        assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }
+
+    @Test
+    public void shouldWorkerBeAllowedToAskReplicateSinceFirstTime() {
+        String wallet = "wallet";
+        Worker worker = Worker.builder()
+                .lastReplicateDemandDate(null)
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
+    }
+
+    @Test
+    public void shouldWorkerNotBeAllowedToAskReplicateSinceTooSoon() {
+        String wallet = "wallet";
+        Worker worker = Worker.builder()
+                .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)))
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+
+        assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isFalse();
+    }
+
+    // updateLastReplicateDemandDate
+
+    @Test
+    public void shouldUpdateLastReplicateDemand() {
+        String wallet = "wallet";
+        Date lastDate = Date.from(Instant.now().minusSeconds(1));
+        Worker worker = Worker.builder()
+                .lastReplicateDemandDate(lastDate)
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.updateLastReplicateDemandDate(wallet)
+                .get()
+                .getLastReplicateDemandDate())
+                .isAfter(lastDate);
+    }
+
+    // addChainTaskIdToWorker
 
     @Test
     public void shouldAddTaskIdToWorker(){
@@ -196,6 +285,29 @@ public class WorkerServiceTests {
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
+
+    // getChainTaskIds
+
+    @Test
+    public void shouldGetChainTaskIds() {
+        String wallet = "wallet";
+        List<String> list = List.of("t1", "t1");
+        Worker worker = Worker.builder()
+                .participatingChainTaskIds(list)
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.getChainTaskIds(wallet)).isEqualTo(list);
+    }
+
+    @Test
+    public void shouldGetEmptyChainTaskIdListSinceWorkerNotFound() {
+        String wallet = "wallet";
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.empty());
+        assertThat(workerService.getChainTaskIds(wallet)).isEmpty();
+    }
+    
+    // removeChainTaskIdFromWorker
 
     @Test
     public void shouldRemoveTaskIdFromWorker(){
@@ -505,5 +617,56 @@ public class WorkerServiceTests {
     public void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
+    }
+
+    // getAliveTotalCpu
+
+    @Test
+    public void shouldGetTotalAliveCpu() {
+        Worker worker1 = Worker.builder()
+                .cpuNb(4)
+                .build();
+        Worker worker2 = Worker.builder()
+                .cpuNb(2)
+                .build();
+        List<Worker> list = List.of(worker1, worker2);
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+
+        assertThat(workerService.getAliveTotalCpu())
+                .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
+    }
+
+    // getAliveTotalGpu
+
+    @Test
+    public void shouldGetTotalAliveGpu() {
+        Worker worker1 = Worker.builder()
+                .gpuEnabled(true)
+                .build();
+        Worker worker2 = Worker.builder()
+                .gpuEnabled(false)
+                .build();
+        List<Worker> list = List.of(worker1, worker2);
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+
+        assertThat(workerService.getAliveTotalGpu()).isEqualTo(1);
+    }
+
+    // getAliveAvailableGpu
+
+    @Test
+    public void shouldGetAliveAvailableGpu() {
+        Worker worker1 = Worker.builder()
+                .gpuEnabled(true)
+                .computingChainTaskIds(List.of())
+                .build();
+        Worker worker2 = Worker.builder()
+                .gpuEnabled(true)
+                .computingChainTaskIds(List.of("t1"))
+                .build();
+        List<Worker> list = List.of(worker1, worker2);
+        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+
+        assertThat(workerService.getAliveAvailableGpu()).isEqualTo(1);
     }
 }
