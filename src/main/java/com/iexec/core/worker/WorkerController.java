@@ -36,7 +36,6 @@ import org.web3j.crypto.Hash;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
@@ -45,15 +44,15 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 public class WorkerController {
 
-    private WorkerService workerService;
-    private ChainConfig chainConfig;
-    private CredentialsService credentialsService;
-    private JwtTokenProvider jwtTokenProvider;
-    private ChallengeService challengeService;
-    private WorkerConfiguration workerConfiguration;
-    private ResultRepositoryConfiguration resultRepoConfig;
-    private SmsConfiguration smsConfiguration;
-    private SconeCasConfiguration sconeCasConfiguration;
+    private final WorkerService workerService;
+    private final ChainConfig chainConfig;
+    private final CredentialsService credentialsService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final ChallengeService challengeService;
+    private final WorkerConfiguration workerConfiguration;
+    private final ResultRepositoryConfiguration resultRepoConfig;
+    private final SmsConfiguration smsConfiguration;
+    private final SconeCasConfiguration sconeCasConfiguration;
 
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
@@ -81,13 +80,9 @@ public class WorkerController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
-
-
-        Optional<Worker> optional = workerService.updateLastAlive(workerWalletAddress);
-
-        return optional.
-                <ResponseEntity<String>>map(worker -> ok(SessionService.getSessionId()))
-                .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
+        return workerService.updateLastAlive(workerWalletAddress)
+                .<ResponseEntity<String>>map(worker -> ok(SessionService.getSessionId()))
+                .orElseGet(() -> status(HttpStatus.NOT_FOUND).build());
     }
 
     @GetMapping(path = "/workers/challenge")
