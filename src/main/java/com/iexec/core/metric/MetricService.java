@@ -25,8 +25,8 @@ import org.springframework.stereotype.Service;
 public class MetricService {
 
 
-    private WorkerService workerService;
-    private TaskService taskService;
+    private final WorkerService workerService;
+    private final TaskService taskService;
 
     public MetricService(WorkerService workerService,
                          TaskService taskService) {

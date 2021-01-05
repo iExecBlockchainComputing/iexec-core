@@ -433,7 +433,7 @@ public class ReplicatesService {
         Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
 
         if (task.isEmpty()){
-            return true;
+            return false;
         }
 
         // Offchain computing - basic & tee

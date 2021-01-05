@@ -116,7 +116,7 @@ public class Replicate {
         return contributionHash;
     }
 
-    void setContributionHash(String contributionHash) {
+    public void setContributionHash(String contributionHash) {
         this.contributionHash = contributionHash;
     }
 

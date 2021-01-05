@@ -17,9 +17,11 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.task.TaskDescription;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -42,9 +44,7 @@ import static com.iexec.common.utils.TestUtils.WALLET_WORKER_3;
 import static com.iexec.common.utils.TestUtils.WALLET_WORKER_4;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ReplicateServiceTests {
 
@@ -299,6 +299,30 @@ public class ReplicateServiceTests {
         int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPLETED, FAILED,
                 RESULT_UPLOADING);
         assertThat(shouldBe0).isEqualTo(0);
+    }
+
+    // getNbValidContributedWinners
+
+    @Test
+    public void shouldGetOneContributionWinnerAmongTwoContributors() {
+        String contributionHash = "hash";
+        String badContributionHash = "badHash";
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        replicate1.setContributionHash(contributionHash);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        replicate2.setContributionHash(badContributionHash);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID,
+                Arrays.asList(replicate1, replicate2));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.getNbValidContributedWinners(
+                CHAIN_TASK_ID,
+                contributionHash
+        )).isOne();        
     }
 
     @Test
@@ -644,6 +668,27 @@ public class ReplicateServiceTests {
         assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
     }
 
+    // getReplicateWithResultUploadedStatus
+
+    @Test
+    public void should() {
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(RESULT_UPLOADED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID,
+                Arrays.asList(replicate1, replicate2));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService
+                .getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)
+                .get()
+                .getWalletAddress())
+        .isEqualTo(WALLET_WORKER_2);
+    }
+
     @Test
     public void shouldFindReplicateContributedOnchain() {
         when(iexecHubService.repeatIsContributedTrue(any(), any()))
@@ -668,14 +713,127 @@ public class ReplicateServiceTests {
                 .thenReturn(true);
     }
 
+    // isResultUploaded
+
     @Test
-    public void shouldReturnIsResultUploaded() {
-        when(iexecHubService.isTeeTask(CHAIN_TASK_ID)).thenReturn(true);
+    public void shouldCheckResultServiceAndReturnTrue() {
+        TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isCallbackRequested(false)
+                .isTeeTask(false)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskDescription));
         when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
-
         assertThat(isResultUploaded).isTrue();
+        verify(resultService).isResultUploaded(CHAIN_TASK_ID);
     }
 
+    @Test
+    public void shouldCheckResultServiceAndReturnFalse() {
+        TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isCallbackRequested(false)
+                .isTeeTask(false)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskDescription));
+        when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        assertThat(isResultUploaded).isFalse();
+        verify(resultService).isResultUploaded(CHAIN_TASK_ID);
+    }
+
+    @Test
+    public void shouldReturnFalseSinceTaskNotFound() {
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.empty());
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        assertThat(isResultUploaded).isFalse();
+        verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
+    }
+
+    @Test
+    public void shouldReturnTrueForCallbackTask() {
+        TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isCallbackRequested(true)
+                .isTeeTask(false)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskDescription));
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        assertThat(isResultUploaded).isTrue();
+        verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
+    }
+
+    @Test
+    public void shouldReturnTrueForTeeTask() {
+        TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isCallbackRequested(false)
+                .isTeeTask(true)
+                .build();
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskDescription));
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        assertThat(isResultUploaded).isTrue();
+        verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
+    }
+
+    // didReplicateContributeOnchain
+
+    @Test
+    public void shouldReturnFindReplicateContributedOnchain() {
+        when(
+                iexecHubService.isStatusTrueOnChain(
+                        CHAIN_TASK_ID,
+                        WALLET_WORKER_1,
+                        ChainContributionStatus.CONTRIBUTED
+                )
+        ).thenReturn(true);
+        assertThat(
+                replicatesService.didReplicateContributeOnchain(
+                        CHAIN_TASK_ID,
+                        WALLET_WORKER_1
+                )
+        ).isTrue();
+    }
+
+    // didReplicateRevealOnchain
+
+    @Test
+    public void shouldFindReplicatedReveledOnchain() {
+        when(
+                iexecHubService.isStatusTrueOnChain(
+                        CHAIN_TASK_ID,
+                        WALLET_WORKER_1,
+                        ChainContributionStatus.REVEALED
+                )
+        ).thenReturn(true);
+        assertThat(
+                replicatesService.didReplicateRevealOnchain(
+                        CHAIN_TASK_ID,
+                        WALLET_WORKER_1
+                )
+        ).isTrue();
+    }
+
+    // setRevealTimeoutStatusIfNeeded
+
+    @Test
+    public void shouldSetTriggerReplicateUpdateIfRevealTimeout() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+
+        replicatesService.setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate);
+
+        verify(replicatesRepository).findByChainTaskId(CHAIN_TASK_ID);
+    }
 }

@@ -108,10 +108,10 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        Optional<TaskNotificationType> oTaskNotificationType =
-                replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-
-        return oTaskNotificationType.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build());
+        return replicatesService
+                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
+                .build());
     }
 }
