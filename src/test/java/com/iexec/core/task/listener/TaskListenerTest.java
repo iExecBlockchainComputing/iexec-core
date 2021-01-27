@@ -16,6 +16,8 @@
 
 package com.iexec.core.task.listener;
 
+import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -29,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -133,5 +136,21 @@ public class TaskListenerTest {
         verify(notificationService).sendTaskNotification(any());
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
         // TODO capture args
+    }
+
+    @Test
+    public void onTaskFailedEvent() {
+        when(replicatesService.getReplicates(CHAIN_TASK_ID))
+                .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
+
+        taskListeners.onTaskFailedEvent(new TaskFailedEvent(CHAIN_TASK_ID));
+        verify(notificationService).sendTaskNotification(
+                TaskNotification.builder()
+                        .chainTaskId(CHAIN_TASK_ID)
+                        .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                        .workersAddress(Collections.emptyList())
+                        .build()
+        );
+        verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
     }
 }
