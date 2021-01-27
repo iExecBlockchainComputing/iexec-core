@@ -222,8 +222,10 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(currentStatus);
         if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())){
             updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
-            //TODO: eventually send notification to worker
-            updateTask(chainTaskId);//externally trigger failed status
+            // Eventually should fire a "final deadline reached" notification to worker,
+            // but here let's just trigger an updateTask() leading to a failed status
+            // which will itself fire a generic "abort" notification
+            updateTask(chainTaskId);
             return;
         }
 
@@ -680,6 +682,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
 
     private void toFailed(Task task) {
         updateTaskStatusAndSave(task, FAILED);
+        applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
     }
     public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
         taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
