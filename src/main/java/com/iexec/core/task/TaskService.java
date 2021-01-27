@@ -25,16 +25,14 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
-import com.iexec.core.task.executor.TaskUpdateRequestManager;
+import com.iexec.core.task.update.TaskUpdateRequestConsumer;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -143,6 +141,10 @@ public class TaskService implements TaskUpdateRequestConsumer {
         return taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses());
     }
 
+    public List<Task> getTasksWhereFinalDeadlineIsPossible() {
+        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible());
+    }
+
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
         return taskRepository.findChainTaskIdsByFinalDeadlineBefore(expirationDate)
                 .stream()
@@ -204,7 +206,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
      */
     @Override
     public void onTaskUpdateRequest(String chainTaskId) {
-        log.info("Received task update request [chainTaskId:{}]" + chainTaskId);
+        log.info("Received task update request [chainTaskId:{}]", chainTaskId);
         this.updateTaskRunnable(chainTaskId);
     }
 
@@ -216,9 +218,11 @@ public class TaskService implements TaskUpdateRequestConsumer {
         Task task = optional.get();
         TaskStatus currentStatus = task.getCurrentStatus();
 
-        boolean isInProgress = !getFinalStatuses().contains(currentStatus);
-        if (isInProgress && new Date().after(task.getFinalDeadline())){
+        boolean isFinalDeadlinePossible =
+                !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(currentStatus);
+        if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())){
             updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
+            //TODO: eventually send notification to worker
             updateTask(chainTaskId);//externally trigger failed status
             return;
         }

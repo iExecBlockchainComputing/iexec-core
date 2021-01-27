@@ -27,7 +27,7 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.common.utils.DateTimeUtils;
-import com.iexec.core.task.executor.TaskUpdateRequestManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
@@ -1017,4 +1017,54 @@ public class TaskServiceTests {
         taskService.updateTaskRunnable(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
     }
+
+
+    @Test
+    public void shouldUpdateFromAnyInProgressStatus2FinalDeadlineReached() {
+        Task task = getStubTask();
+        task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
+        task.changeStatus(RECEIVED);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FINAL_DEADLINE_REACHED);
+    }
+
+    @Test
+    public void shouldUpdateFromFinalDeadlineReached2Failed() {
+        Task task = getStubTask();
+        task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
+        task.changeStatus(FINAL_DEADLINE_REACHED);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    public void shouldNotUpdateToFinalDeadlineReachedIfAlreadyFailed() {
+        Task task = getStubTask();
+        task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
+        task.changeStatus(FAILED);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    public void shouldNotUpdateToFinalDeadlineReachedIfAlreadyCompleted() {
+        Task task = getStubTask();
+        task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
+        task.changeStatus(COMPLETED);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+    }
+
 }

@@ -29,6 +29,9 @@ public class CronConfiguration {
     @Value("${cron.detector.chain.finalize}")
     private int finalize;
 
+    @Value("${cron.detector.chain.final-deadline}")
+    private int finalDeadline;
+
     @Value("${cron.detector.timeout.contribute}")
     private int contributeTimeout;
 
