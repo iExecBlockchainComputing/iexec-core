@@ -359,9 +359,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
-
-            CompletableFuture<Void> completableFuture = taskService.updateTask(chainTaskId);
-            completableFuture.join();
+            //should join?
         }
 
         // we read the replicate from db to consider the changes added in the previous case

@@ -25,7 +25,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
-import com.iexec.core.task.executor.TaskExecutorEngine;
+import com.iexec.core.task.executor.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
@@ -35,40 +35,40 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 
 @Slf4j
 @Service
-public class TaskService {
+public class TaskService implements TaskUpdateRequestConsumer {
 
     private final ConcurrentHashMap<String, Boolean>
             taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
 
-    private TaskRepository taskRepository;
-    private TaskExecutorEngine taskExecutorEngine;
-    private IexecHubService iexecHubService;
-    private ReplicatesService replicatesService;
-    private ApplicationEventPublisher applicationEventPublisher;
-    private Web3jService web3jService;
+    private final TaskRepository taskRepository;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
+    private final IexecHubService iexecHubService;
+    private final ReplicatesService replicatesService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final Web3jService web3jService;
 
     public TaskService(
         TaskRepository taskRepository,
-        TaskExecutorEngine taskExecutorEngine,
+        TaskUpdateRequestManager taskUpdateRequestManager,
         IexecHubService iexecHubService,
         ReplicatesService replicatesService,
         ApplicationEventPublisher applicationEventPublisher,
         Web3jService web3jService
     ) {
         this.taskRepository = taskRepository;
-        this.taskExecutorEngine = taskExecutorEngine;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
+        this.taskUpdateRequestManager.setRequestConsumer(this);
     }
 
     /**
@@ -191,47 +191,21 @@ public class TaskService {
     }
 
     /**
-     * Update task asynchronously.
-     * 
+     * Async method for requesting task update
      * @param chainTaskId
-     * @return
      */
-    // TODO change this mechanism of update
-    public CompletableFuture<Void> updateTask(String chainTaskId) {
-        Optional<Task> oTask = getTaskByChainTaskId(chainTaskId);
-        if (oTask.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-        Task task = oTask.get();
-        Date finalDeadline = task.getFinalDeadline();
-        if (finalDeadline == null) {
-            log.error("Cannot update task without final deadline [chainTaskId:{}]",
-                    chainTaskId);
-            return CompletableFuture.completedFuture(null);
-        }
-        long expiration = finalDeadline.getTime() - new Date().getTime();
-        return taskExecutorEngine.run(
-                chainTaskId,
-                expiration,
-                () -> updateTaskRunnable(chainTaskId)
-        );
+    public void updateTask(String chainTaskId) {
+        taskUpdateRequestManager.publishRequest(chainTaskId);
     }
 
     /**
-     * Remove task's executor if task is
-     * in final status.
-     * 
-     * @param task
+     * Async called when a task update request is received
+     * @param chainTaskId
      */
-    public void removeTaskExecutor(Task task) {
-        if (!TaskStatus.isFinalStatus(task.getCurrentStatus())) {
-            log.error("Cannot remove executor for unfinished " +
-                    "task [chainTaskId:{}]", task.getChainTaskId());
-            return;
-        }
-        taskExecutorEngine.removeExecutor(task.getChainTaskId());
-        log.info("Removed task executor [chainTaskId:{}]",
-                task.getChainTaskId());
+    @Override
+    public void onTaskUpdateRequest(String chainTaskId) {
+        log.info("Received task update request [chainTaskId:{}]" + chainTaskId);
+        this.updateTaskRunnable(chainTaskId);
     }
 
     void updateTaskRunnable(String chainTaskId) {
@@ -240,8 +214,16 @@ public class TaskService {
             return;
         }
         Task task = optional.get();
+        TaskStatus currentStatus = task.getCurrentStatus();
 
-        switch (task.getCurrentStatus()) {
+        boolean isInProgress = !getFinalStatuses().contains(currentStatus);
+        if (isInProgress && new Date().after(task.getFinalDeadline())){
+            updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
+            updateTask(chainTaskId);//externally trigger failed status
+            return;
+        }
+
+        switch (currentStatus) {
             case RECEIVED:
                 received2Initialized(task);
                 break;
@@ -303,9 +285,11 @@ public class TaskService {
             case FINALIZE_FAILED:
                 toFailed(task);
                 break;
+            case FINAL_DEADLINE_REACHED:
+                toFailed(task);
+                break;
             case COMPLETED:
             case FAILED:
-                removeTaskExecutor(task);
                 break;
         }
     }
@@ -712,5 +696,6 @@ public class TaskService {
     private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
         taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
+
 
 }

@@ -130,7 +130,6 @@ public class TaskListenerTest {
                 .thenReturn(List.of(replicate));
 
         taskListeners.onTaskCompletedEvent(event);
-        verify(taskService).removeTaskExecutor(task);
         verify(notificationService).sendTaskNotification(any());
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
         // TODO capture args

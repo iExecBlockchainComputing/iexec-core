@@ -39,6 +39,7 @@ public enum TaskStatus {
     FINALIZING,
     FINALIZED,
     FINALIZE_FAILED,
+    FINAL_DEADLINE_REACHED,
     COMPLETED,
     FAILED;
 
