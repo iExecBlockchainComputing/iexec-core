@@ -148,7 +148,6 @@ public class TaskListeners {
         String chainTaskId = task.getChainTaskId();
         log.info("Received TaskCompletedEvent [chainTaskId:{}] ", chainTaskId);
 
-        taskService.removeTaskExecutor(task);
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)

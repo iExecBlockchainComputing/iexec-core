@@ -26,8 +26,8 @@ import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.executor.TaskExecutorEngine;
 import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.core.task.executor.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
@@ -68,7 +68,7 @@ public class TaskServiceTests {
     private TaskRepository taskRepository;
 
     @Mock
-    private TaskExecutorEngine taskExecutorEngine;
+    private TaskUpdateRequestManager updateRequestManager;
 
     @Mock
     private WorkerService workerService;
@@ -210,65 +210,11 @@ public class TaskServiceTests {
 
     // updateTask
 
+
     @Test
     public void shouldTriggerUpdateTaskAsynchronously() {
-        Task task = Task.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .finalDeadline(new Date())
-                .build();
-        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(task));
-
         taskService.updateTask(CHAIN_TASK_ID);
-        verify(taskExecutorEngine).run(eq(CHAIN_TASK_ID), anyLong(), any());
-    }
-
-    @Test
-    public void shouldNotTriggerUpdateTaskIfTaskNotFound() {
-        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.empty());
-
-        taskService.updateTask(CHAIN_TASK_ID);
-        verify(taskExecutorEngine, never()).run(eq(CHAIN_TASK_ID), anyLong(),
-                eq(() -> taskService.updateTaskRunnable(CHAIN_TASK_ID)));
-    }
-
-    @Test
-    public void shouldNotTriggerUpdateTaskIfFinalDeadlineIsNull() {
-        Task task = Task.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .build();
-        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(task));
-
-        taskService.updateTask(CHAIN_TASK_ID);
-        verify(taskExecutorEngine, never()).run(eq(CHAIN_TASK_ID), anyLong(), any());
-    }
-
-    // removeTaskExecutor
-
-    @Test
-    public void shouldRemoveTaskExecutor() {
-        Task task = Task.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .dateStatusList(new ArrayList<>())
-                .build();
-        task.changeStatus(COMPLETED);
-
-        taskService.removeTaskExecutor(task);
-        verify(taskExecutorEngine).removeExecutor(CHAIN_TASK_ID);
-    }
-
-    @Test
-    public void shouldNotRemoveTaskExecutorSinceNotFinalStatus() {
-        Task task = Task.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .dateStatusList(new ArrayList<>())
-                .build();
-        task.changeStatus(RUNNING);
-
-        taskService.removeTaskExecutor(task);
-        verify(taskExecutorEngine, never()).removeExecutor(CHAIN_TASK_ID);
+        verify(updateRequestManager).publishRequest(eq(CHAIN_TASK_ID));
     }
 
     // Tests on consensusReached2Reopening transition
