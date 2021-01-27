@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task.executor;
+package com.iexec.core.task.update;
 
 import java.util.concurrent.*;
 
-import com.iexec.core.task.TaskUpdateRequestConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

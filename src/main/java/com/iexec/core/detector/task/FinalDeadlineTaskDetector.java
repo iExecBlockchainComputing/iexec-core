@@ -19,29 +19,27 @@ package com.iexec.core.detector.task;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Date;
 
 @Slf4j
 @Service
-public class ReachedDeadlineTaskDetector implements Detector {
+public class FinalDeadlineTaskDetector implements Detector {
 
     private final TaskService taskService;
 
-    public ReachedDeadlineTaskDetector(TaskService taskService) {
+    public FinalDeadlineTaskDetector(TaskService taskService) {
         this.taskService = taskService;
     }
 
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalDeadline()}")
     @Override
     public void detect() {
         log.debug("Trying to detect final deadline");
-        for (Task task : taskService.getTasksInNonFinalStatuses()) {
+        for (Task task : taskService.getTasksWhereFinalDeadlineIsPossible()) {
             Date now = new Date();
             if (now.after(task.getFinalDeadline())) {
                 log.info("Task after final deadline found [chainTaskId:{}]", task.getChainTaskId());

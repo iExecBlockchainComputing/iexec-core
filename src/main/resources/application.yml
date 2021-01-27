@@ -19,6 +19,7 @@ cron:
       contribute:     30000   # 30s
       reveal:         30000   # 30s
       finalize:       30000   # 30s
+      final-deadline: 30000   # 30s
     timeout:
       contribute:     120000  # 2m
       reveal: ${REVEAL_TIMEOUT_PERIOD:120000}  # 2m

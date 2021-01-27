@@ -16,7 +16,9 @@
 
 package com.iexec.core.task;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public enum TaskStatus {
@@ -64,6 +66,12 @@ public enum TaskStatus {
 
     public static List<TaskStatus> getFinalStatuses() {
         return List.of(FAILED, COMPLETED);
+    }
+
+    public static List<TaskStatus> getStatusesWhereFinalDeadlineIsImpossible() {
+        List<TaskStatus> excludedStatuses = new ArrayList<>(getFinalStatuses());
+        Collections.addAll(excludedStatuses, FINAL_DEADLINE_REACHED);
+        return excludedStatuses;
     }
 
     public static boolean isInContributionPhase(TaskStatus status) {

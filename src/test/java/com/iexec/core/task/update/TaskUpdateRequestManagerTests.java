@@ -1,4 +1,4 @@
-package com.iexec.core.task.executor;
+package com.iexec.core.task.update;
 
 import org.junit.Before;
 import org.junit.Test;
