@@ -195,9 +195,10 @@ public class TaskService implements TaskUpdateRequestConsumer {
     /**
      * Async method for requesting task update
      * @param chainTaskId
+     * @return
      */
-    public void updateTask(String chainTaskId) {
-        taskUpdateRequestManager.publishRequest(chainTaskId);
+    public CompletableFuture<Boolean> updateTask(String chainTaskId) {
+        return taskUpdateRequestManager.publishRequest(chainTaskId);
     }
 
     /**
