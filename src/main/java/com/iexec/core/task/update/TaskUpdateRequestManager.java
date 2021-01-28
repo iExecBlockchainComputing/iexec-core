@@ -17,6 +17,7 @@
 package com.iexec.core.task.update;
 
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,23 +39,28 @@ public class TaskUpdateRequestManager {
     /**
      * Publish TaskUpdateRequest async
      * @param chainTaskId
+     * @return
      */
-    public void publishRequest(String chainTaskId) {
-        if (chainTaskId.isEmpty()){
-            return;
-        }
-        if (queue.contains(chainTaskId)){
-            log.warn("Request already published [chainTaskId:{}]", chainTaskId);
-            return;
-        }
-        Runnable publishRequest = () -> queue.offer(chainTaskId);
-        executorService.submit(publishRequest);
-        log.info("Published request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
+    public CompletableFuture<Boolean> publishRequest(String chainTaskId) {
+        Supplier<Boolean> publishRequest = () -> {
+            if (chainTaskId.isEmpty()){
+                return false;
+            }
+            if (queue.contains(chainTaskId)){
+                log.warn("Request already published [chainTaskId:{}]", chainTaskId);
+                return false;
+            }
+            queue.offer(chainTaskId);
+            log.info("Published request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
+            return true;
+        };
+        return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
 
     /**
      * Authorize one TaskUpdateRequest consumer subscription at a time.
      * @param consumer
+     * @return
      */
     public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
         if (consumerSubscription != null){
