@@ -75,6 +75,7 @@ public class TaskUpdateRequestManager {
                     consumer.onTaskUpdateRequest(chainTaskId);
                 } catch (InterruptedException e) {
                     log.error("The unexpected happened", e);
+                    Thread.currentThread().interrupt();
                 }
             }
         };
