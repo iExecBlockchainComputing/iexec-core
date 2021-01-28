@@ -51,7 +51,7 @@ public class TaskUpdateRequestManager {
                 return false;
             }
             boolean isOffered = queue.offer(chainTaskId);
-            log.info("Published request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
+            log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
             return isOffered;
         };
         return CompletableFuture.supplyAsync(publishRequest, executorService);
