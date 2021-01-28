@@ -50,9 +50,9 @@ public class TaskUpdateRequestManager {
                 log.warn("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
-            queue.offer(chainTaskId);
+            boolean isOffered = queue.offer(chainTaskId);
             log.info("Published request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
-            return true;
+            return isOffered;
         };
         return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
