@@ -30,6 +30,7 @@ import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -198,6 +199,46 @@ public class TaskServiceTests {
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
 
         assertThat(foundTasks).isEmpty();
+    }
+
+
+    @Test
+    public void shouldGetInitializedOrRunningTasks() {
+        List<Task> tasks = Collections.singletonList(mock(Task.class));
+        when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+                .thenReturn(tasks);
+        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
+                .isEqualTo(tasks);
+    }
+
+    @Test
+    public void shouldGetTasksInNonFinalStatuses() {
+        List<Task> tasks = Collections.singletonList(mock(Task.class));
+        when(taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses()))
+                .thenReturn(tasks);
+        Assertions.assertThat(taskService.getTasksInNonFinalStatuses())
+                .isEqualTo(tasks);
+    }
+
+    @Test
+    public void shouldGetTasksWhereFinalDeadlineIsPossible() {
+        List<Task> tasks = Collections.singletonList(mock(Task.class));
+        when(taskRepository.findByCurrentStatusNotIn(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible()))
+                .thenReturn(tasks);
+        Assertions.assertThat(taskService.getTasksWhereFinalDeadlineIsPossible())
+                .isEqualTo(tasks);
+    }
+
+    @Test
+    public void shouldGetChainTaskIdsOfTasksExpiredBefore() {
+        Date date = new Date();
+        Task task = mock(Task.class);
+        when(task.getChainTaskId()).thenReturn(CHAIN_TASK_ID);
+        List<Task> tasks = Collections.singletonList(task);
+        when(taskRepository.findChainTaskIdsByFinalDeadlineBefore(date))
+                .thenReturn(tasks);
+        Assertions.assertThat(taskService.getChainTaskIdsOfTasksExpiredBefore(date))
+                .isEqualTo(Collections.singletonList(CHAIN_TASK_ID));
     }
 
     // isExpired
