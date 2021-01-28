@@ -876,8 +876,7 @@ public class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
-    // Do we need this?
-    //@Test
+    @Test
     // REVEALING + done onChain     => updateStatus to REVEALED
     // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
     public void shouldTellReplicateToWaitSinceRevealed() {
@@ -898,8 +897,9 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        //when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -935,6 +935,9 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
