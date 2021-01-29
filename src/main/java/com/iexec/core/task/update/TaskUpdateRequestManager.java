@@ -20,6 +20,7 @@ import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,9 +33,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class TaskUpdateRequestManager {
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private Future<Void> consumerSubscription;
+    private TaskUpdateRequestConsumer consumer;
 
     /**
      * Publish TaskUpdateRequest async
@@ -63,24 +64,33 @@ public class TaskUpdateRequestManager {
      * @return
      */
     public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
-        if (consumerSubscription != null){
-            consumerSubscription.cancel(true);
-            log.info("Canceled previous consumer subscription");
+        this.consumer = consumer;
+    }
+
+    /**
+     * De-queues head anf notifies consumer.
+     *
+     * Retries consuming and notifying if interrupted
+     */
+    @Scheduled(fixedDelay = 1000)
+    public void consumeAndNotify() {
+        if (consumer == null){
+            log.warn("Waiting for consumer before consuming [queueSize:{}]", queue.size());
+            return;
         }
-        Callable<Void> consumeTask = () -> {
-            while (true){
-                log.info("Waiting requests from publisher");
-                try {
-                    String chainTaskId = queue.take();
-                    consumer.onTaskUpdateRequest(chainTaskId);
-                } catch (InterruptedException e) {
-                    log.error("The unexpected happened", e);
-                    Thread.currentThread().interrupt();
-                }
+
+        while (true){
+            log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
+            try {
+                String chainTaskId = queue.take();
+                CompletableFuture.runAsync(() ->
+                        consumer.onTaskUpdateRequest(chainTaskId));
+            } catch (InterruptedException e) {
+                log.error("The unexpected happened", e);
+                Thread.currentThread().interrupt();
+                return;
             }
-        };
-        consumerSubscription = executorService.submit(consumeTask);
-        log.info("Setup request consumer subscription");
+        }
     }
 
 }
