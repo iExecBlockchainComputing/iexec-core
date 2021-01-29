@@ -79,7 +79,7 @@ public class TaskUpdateRequestManager {
             return;
         }
 
-        while (true){
+        while (!Thread.currentThread().isInterrupted()){
             log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
             try {
                 String chainTaskId = queue.take();
@@ -88,7 +88,6 @@ public class TaskUpdateRequestManager {
             } catch (InterruptedException e) {
                 log.error("The unexpected happened", e);
                 Thread.currentThread().interrupt();
-                return;
             }
         }
     }
