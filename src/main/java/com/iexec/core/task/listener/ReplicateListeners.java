@@ -34,11 +34,10 @@ import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 @Component
 public class ReplicateListeners {
 
-    private TaskService taskService;
-    private WorkerService workerService;
-    private ContributionUnnotifiedDetector contributionUnnotifiedDetector;
-    private ReplicatesService replicatesService;
-
+    private final TaskService taskService;
+    private final WorkerService workerService;
+    private final ContributionUnnotifiedDetector contributionUnnotifiedDetector;
+    private final ReplicatesService replicatesService;
 
     public ReplicateListeners(WorkerService workerService,
                               TaskService taskService,
@@ -55,10 +54,13 @@ public class ReplicateListeners {
         log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
         ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
         ReplicateStatus newStatus = statusUpdate.getStatus();
-        ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause(): null;
+        ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
 
         taskService.updateTask(event.getChainTaskId());
 
+        /*
+         * Should release 1 CPU of given worker for this replicate if status is COMPUTED
+         * */
         if (newStatus.equals(ReplicateStatus.COMPUTED)) {
             workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
@@ -83,9 +85,9 @@ public class ReplicateListeners {
         }
 
         /*
-         * Should release one CPU for this replicate if status is FAILED
+         * Should release given worker for this replicate if status is COMPLETED or FAILED
          * */
-        if (newStatus.equals(ReplicateStatus.FAILED)) {
+        if (ReplicateStatus.getFinalStatuses().contains(newStatus)) {
             workerService.removeChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
     }

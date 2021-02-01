@@ -145,7 +145,21 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldRemoveComputedChainTaskIdFromWorkerSinceFailed() {
+    public void shouldRemoveChainTaskIdFromWorkerSinceCompleted() {
+        ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .walletAddress(WORKER_WALLET)
+                .replicateStatusUpdate(new ReplicateStatusUpdate(COMPLETED))
+                .build();
+
+        replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
+
+        Mockito.verify(workerService, Mockito.times(1))
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+    }
+
+    @Test
+    public void shouldRemoveChainTaskIdFromWorkerSinceFailed() {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
@@ -159,8 +173,9 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldNotRemoveComputedChainTaskIdFromWorker() {
+    public void shouldNotRemoveChainTaskIdFromWorker() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
+        someStatuses.remove(COMPLETED);
         someStatuses.remove(FAILED);
 
         for (ReplicateStatus randomStatus: someStatuses){
