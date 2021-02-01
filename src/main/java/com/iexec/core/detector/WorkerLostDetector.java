@@ -16,6 +16,8 @@
 
 package com.iexec.core.detector;
 
+import com.google.common.collect.ImmutableSet;
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
@@ -30,14 +32,20 @@ import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 @Slf4j
 public class WorkerLostDetector implements Detector {
 
+    public static final ImmutableSet<ReplicateStatus> SHOULD_NOT_UPDATE_STATUSES =
+            new ImmutableSet.Builder<ReplicateStatus>()
+                    .add(WORKER_LOST)
+                    .addAll(ReplicateStatus.getFinalStatuses())
+                    .build();
+
     private final ReplicatesService replicatesService;
     private final WorkerService workerService;
     private final TaskService taskService;
 
     public WorkerLostDetector(
-        ReplicatesService replicatesService,
-        WorkerService workerService,
-        TaskService taskService
+            ReplicatesService replicatesService,
+            WorkerService workerService,
+            TaskService taskService
     ) {
         this.replicatesService = replicatesService;
         this.workerService = workerService;
@@ -57,13 +65,13 @@ public class WorkerLostDetector implements Detector {
                 replicatesService
                         .getReplicate(chainTaskId, workerWallet)
                         .ifPresent(replicate -> {
-                                if (!replicate.getCurrentStatus().equals(WORKER_LOST)) {
-                                    replicatesService.updateReplicateStatus(
+                            if (!SHOULD_NOT_UPDATE_STATUSES.contains(replicate.getCurrentStatus())) {
+                                replicatesService.updateReplicateStatus(
                                         chainTaskId,
                                         workerWallet,
                                         WORKER_LOST
-                                    );
-                                }
+                                );
+                            }
                         });
             }
         }
