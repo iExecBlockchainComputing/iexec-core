@@ -897,9 +897,9 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
-        future.complete(null);
+        future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -935,10 +935,9 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
-        future.complete(null);
+        future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);

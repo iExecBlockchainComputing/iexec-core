@@ -38,7 +38,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -359,9 +358,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
-
-            CompletableFuture<Void> completableFuture = taskService.updateTask(chainTaskId);
-            completableFuture.join();
+            taskService.updateTask(chainTaskId).join();
         }
 
         // we read the replicate from db to consider the changes added in the previous case
