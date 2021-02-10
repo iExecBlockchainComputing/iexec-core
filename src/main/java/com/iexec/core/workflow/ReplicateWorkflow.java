@@ -18,6 +18,7 @@ package com.iexec.core.workflow;
 
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusCause;
 
 import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -31,7 +32,7 @@ import java.util.Map;
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-    private Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
+    private final Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
 
     private ReplicateWorkflow() {
         super();
@@ -171,7 +172,39 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         actionMap.putIfAbsent(whenStatus, nextAction);
     }
 
-    public TaskNotificationType getNextAction(ReplicateStatus whenStatus) {
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus, ReplicateStatusCause whenCause) {
+        TaskNotificationType nextAction = getNextActionWhenStatusAndCause(whenStatus, whenCause);
+        if (nextAction == null){
+            nextAction = getNextActionWhenStatus(whenStatus);
+        }
+        return nextAction;
+    }
+
+    TaskNotificationType getNextActionWhenStatusAndCause(ReplicateStatus whenStatus, ReplicateStatusCause whenCause) {
+        if (whenStatus == null){
+            return null;
+        }
+        if (whenCause == null){
+            return null;
+        }
+        switch (whenStatus){
+            case APP_DOWNLOAD_FAILED:
+                if (whenCause.equals(ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED)){
+                    return PLEASE_CONTRIBUTE;
+                }
+                return PLEASE_ABORT;
+            case DATA_DOWNLOAD_FAILED:
+                if (whenCause.equals(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED)
+                        || whenCause.equals(ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)){
+                    return PLEASE_CONTRIBUTE;
+                }
+                return PLEASE_ABORT;
+            default:
+                return null;
+        }
+    }
+
+    TaskNotificationType getNextActionWhenStatus(ReplicateStatus whenStatus) {
         if (actionMap.containsKey(whenStatus)){
             return actionMap.get(whenStatus);
         }
@@ -185,11 +218,11 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         setNextAction(APP_DOWNLOADING, PLEASE_CONTINUE);
         setNextAction(APP_DOWNLOADED, PLEASE_DOWNLOAD_DATA);
-        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
+        setNextAction(APP_DOWNLOAD_FAILED, PLEASE_ABORT);
 
         setNextAction(DATA_DOWNLOADING, PLEASE_CONTINUE);
         setNextAction(DATA_DOWNLOADED, PLEASE_COMPUTE);
-        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_CONTRIBUTE);
+        setNextAction(DATA_DOWNLOAD_FAILED, PLEASE_ABORT);
 
         setNextAction(COMPUTING, PLEASE_CONTINUE);
         setNextAction(COMPUTED, PLEASE_CONTRIBUTE);

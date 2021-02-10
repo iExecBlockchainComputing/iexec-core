@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskDescription;
@@ -316,10 +317,13 @@ public class ReplicatesService {
         replicate.updateStatus(statusUpdate);
         replicatesRepository.save(replicatesList);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
-        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus);
+        ReplicateStatusCause newStatusCause = statusUpdate.getDetails() != null ?
+                statusUpdate.getDetails().getCause() : null;
+        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus, newStatusCause);
 
-        log.info("Replicate updated successfully [newStatus:{} nextAction:{}, chainTaskId:{}, walletAddress:{}]",
-                replicate.getCurrentStatus(), nextAction, chainTaskId, walletAddress);
+        log.info("Replicate updated successfully [newStatus:{}, newStatusCause:{} " +
+                        "nextAction:{}, chainTaskId:{}, walletAddress:{}]",
+                replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
         return Optional.ofNullable(nextAction); // should we return a default action when null?
     }
