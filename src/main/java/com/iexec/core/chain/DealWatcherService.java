@@ -100,7 +100,7 @@ public class DealWatcherService {
      */
     private void handleDeal(String chainDealId) {
         Optional<ChainDeal> oChainDeal = iexecHubService.getChainDeal(chainDealId);
-        if (!oChainDeal.isPresent()) {
+        if (oChainDeal.isEmpty()) {
             log.error("Could not get chain deal [chainDealId:{}]", chainDealId);
             return;
         }
