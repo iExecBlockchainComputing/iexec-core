@@ -32,7 +32,7 @@ import java.util.Map;
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
-    private Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
+    private final Map<ReplicateStatus, TaskNotificationType> actionMap = new LinkedHashMap<>();
 
     private ReplicateWorkflow() {
         super();
@@ -181,6 +181,9 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
     }
 
     TaskNotificationType getNextActionWhenStatusAndCause(ReplicateStatus whenStatus, ReplicateStatusCause whenCause) {
+        if (whenStatus == null){
+            return null;
+        }
         if (whenCause == null){
             return null;
         }

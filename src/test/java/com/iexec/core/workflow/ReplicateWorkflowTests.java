@@ -35,6 +35,37 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
+    public void shouldNotGetNextActionWhenStatusSinceStatusIsNull(){
+        assertThat(replicateWorkflow
+                .getNextActionWhenStatus(null)).isNull();
+    }
+
+    @Test
+    public void shouldNotGetNextActionWhenStatusSinceStatusIsUnknown(){
+        assertThat(replicateWorkflow
+                .getNextActionWhenStatus(ReplicateStatus.ABORTED)) //unknown
+                .isNull();
+    }
+
+    @Test
+    public void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
+        assertThat(replicateWorkflow
+                .getNextActionWhenStatusAndCause(null,
+                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) //any
+                .isNull();
+    }
+
+    @Test
+    public void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
+        assertThat(replicateWorkflow
+                .getNextActionWhenStatusAndCause(ReplicateStatus.ABORTED, //unknown
+                        ReplicateStatusCause.ABORTED_BY_WORKER)) //any
+                .isNull();
+    }
+
+    // app
+
+    @Test
     public void shouldGetNextActionOnAppDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
@@ -57,6 +88,8 @@ public class ReplicateWorkflowTests {
                         ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
+
+    // data
 
     @Test
     public void shouldGetNextActionOnDataDownloadFailed(){
