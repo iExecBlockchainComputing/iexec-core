@@ -37,10 +37,10 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 public class ReplicatesController {
 
-    private ReplicatesService replicatesService;
-    private ReplicateSupplyService replicateSupplyService;
-    private JwtTokenProvider jwtTokenProvider;
-    private WorkerService workerService;
+    private final ReplicatesService replicatesService;
+    private final ReplicateSupplyService replicateSupplyService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final WorkerService workerService;
 
     public ReplicatesController(ReplicatesService replicatesService,
                                 ReplicateSupplyService replicateSupplyService,
@@ -55,8 +55,7 @@ public class ReplicatesController {
     @GetMapping("/replicates/available")
     public ResponseEntity<WorkerpoolAuthorization> getAvailableReplicate(
         @RequestParam(name = "blockNumber") long blockNumber,
-        @RequestHeader("Authorization") String bearerToken
-    ) {
+        @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
@@ -67,11 +66,8 @@ public class ReplicatesController {
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
-        // get WorkerpoolAuthorization if a replicate is available
-        Optional<WorkerpoolAuthorization> oAuthorization = replicateSupplyService
-                .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress);
-
-        return oAuthorization
+        return replicateSupplyService
+                .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress)
                 .<ResponseEntity<WorkerpoolAuthorization>>map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
