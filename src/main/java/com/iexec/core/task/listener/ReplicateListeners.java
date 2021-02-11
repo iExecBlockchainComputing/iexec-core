@@ -59,9 +59,14 @@ public class ReplicateListeners {
         taskService.updateTask(event.getChainTaskId());
 
         /*
-         * Should release 1 CPU of given worker for this replicate if status is COMPUTED
+         * Should release 1 CPU of given worker for this replicate if status is
+         * "COMPUTED" or "*_FAILED" before COMPUTED
          * */
-        if (newStatus.equals(ReplicateStatus.COMPUTED)) {
+        if (newStatus.equals(ReplicateStatus.START_FAILED)
+                || newStatus.equals(ReplicateStatus.APP_DOWNLOAD_FAILED)
+                || newStatus.equals(ReplicateStatus.DATA_DOWNLOAD_FAILED)
+                || newStatus.equals(ReplicateStatus.COMPUTED)
+                || newStatus.equals(ReplicateStatus.COMPUTE_FAILED)) {
             workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
 
