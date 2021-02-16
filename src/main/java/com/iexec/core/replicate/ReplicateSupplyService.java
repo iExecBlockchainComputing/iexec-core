@@ -86,22 +86,15 @@ public class ReplicateSupplyService {
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     Optional<WorkerpoolAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
-        // return empty if the worker is not registered
-        Optional<Worker> optional = workerService.getWorker(walletAddress);
-        if (!optional.isPresent()) {
+        // return empty if max computing task is reached or if the worker is not found
+        if (!workerService.canAcceptMoreWorks(walletAddress)) {
             return Optional.empty();
         }
-        Worker worker = optional.get();
 
         // return empty if the worker is not sync
         //TODO Check if worker node is sync
         boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
         if (!isWorkerLastBlockAvailable) {
-            return Optional.empty();
-        }
-
-        // return empty if the worker already has enough running tasks
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
             return Optional.empty();
         }
 
@@ -126,6 +119,12 @@ public class ReplicateSupplyService {
                     }
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
+
+        Optional<Worker> optional = workerService.getWorker(walletAddress);
+        if (optional.isEmpty()) {
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
 
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
