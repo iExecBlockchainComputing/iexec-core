@@ -41,6 +41,7 @@ public class DealWatcherService {
     private final ConfigurationService configurationService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TaskService taskService;
+    private final Web3jService web3jService;
     // internal variables
     private Disposable dealEventSubscriptionReplay;
 
@@ -48,11 +49,13 @@ public class DealWatcherService {
     public DealWatcherService(IexecHubService iexecHubService,
                               ConfigurationService configurationService,
                               ApplicationEventPublisher applicationEventPublisher,
-                              TaskService taskService) {
+                              TaskService taskService,
+                              Web3jService web3jService) {
         this.iexecHubService = iexecHubService;
         this.configurationService = configurationService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.taskService = taskService;
+        this.web3jService = web3jService;
     }
 
     /**
@@ -85,20 +88,30 @@ public class DealWatcherService {
      * @param dealEvent
      */
     private void onDealEvent(DealEvent dealEvent) {
-        log.info("Received deal [dealId:{}, block:{}]", dealEvent.getChainDealId(), dealEvent.getBlockNumber());
-        this.handleDeal(dealEvent.getChainDealId());
-        if (configurationService.getLastSeenBlockWithDeal().compareTo(dealEvent.getBlockNumber()) < 0) {
-            configurationService.setLastSeenBlockWithDeal(dealEvent.getBlockNumber());
+        String dealId = dealEvent.getChainDealId();
+        BigInteger dealBlock = dealEvent.getBlockNumber();
+        log.info("Received deal [dealId:{}, block:{}]", dealId,
+                dealBlock);
+        if (dealBlock == null || dealBlock.equals(BigInteger.ZERO)){
+            log.warn("Deal block number is empty, fetching later blockchain " +
+                    "events will be more expensive [chainDealId:{}, dealBlock:{}, " +
+                    "lastBlock:{}]", dealId, dealBlock, web3jService.getLatestBlockNumber());
+            dealEvent.setBlockNumber(BigInteger.ZERO);
+        }
+        this.handleDeal(dealEvent);
+        if (configurationService.getLastSeenBlockWithDeal().compareTo(dealBlock) < 0) {
+            configurationService.setLastSeenBlockWithDeal(dealBlock);
         }
     }
 
     /**
      * Handle new onchain deals and add its tasks
      * to db.
-     * 
-     * @param chainDealId
+     *
+     * @param dealEvent
      */
-    private void handleDeal(String chainDealId) {
+    private void handleDeal(DealEvent dealEvent) {
+        String chainDealId = dealEvent.getChainDealId();
         Optional<ChainDeal> oChainDeal = iexecHubService.getChainDeal(chainDealId);
         if (oChainDeal.isEmpty()) {
             log.error("Could not get chain deal [chainDealId:{}]", chainDealId);
@@ -117,14 +130,14 @@ public class DealWatcherService {
             Optional<Task> optional = taskService.addTask(
                     chainDealId,
                     taskIndex,
+                    dealEvent.getBlockNumber().longValue(),
                     BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
                     chainDeal.getParams().getIexecArgs(),
                     chainDeal.getTrust().intValue(),
                     chainDeal.getChainCategory().getMaxExecutionTime(),
                     chainDeal.getTag(),
                     iexecHubService.getChainDealContributionDeadline(chainDeal),
-                    iexecHubService.getChainDealFinalDeadline(chainDeal)
-            );
+                    iexecHubService.getChainDealFinalDeadline(chainDeal));
             optional.ifPresent(task -> applicationEventPublisher
                     .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
         }
