@@ -109,7 +109,7 @@ public abstract class UnnotifiedAbstractDetector {
      */
     private void updateReplicateStatuses(Task task, Replicate replicate, ReplicateStatus offchainCompleted) {
         String chainTaskId = task.getChainTaskId();
-        long initBlocknumber = task.getInitializationBlockNumber();
+        long initBlockNumber = task.getInitializationBlockNumber();
         List<ReplicateStatus> statusesToUpdate;
         if (replicate.getCurrentStatus().equals(WORKER_LOST)) {
             statusesToUpdate = getMissingStatuses(replicate.getLastButOneStatus(), offchainCompleted);
@@ -125,7 +125,7 @@ public abstract class UnnotifiedAbstractDetector {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
                     ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
-                            wallet, initBlocknumber);
+                            wallet, initBlockNumber);
                     long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
@@ -133,7 +133,7 @@ public abstract class UnnotifiedAbstractDetector {
                 case REVEALED:
                     // retrieve the reveal block for that wallet
                     ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
-                            initBlocknumber);
+                            initBlockNumber);
                     long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(revealedBlockNumber));

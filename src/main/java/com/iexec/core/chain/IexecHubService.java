@@ -203,11 +203,11 @@ public class IexecHubService extends IexecHubAbstractService {
 
         if (isSuccessTx(computedChainTaskId, initializeEvent, ACTIVE)) {
             String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
-
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(initializeEvent.log, chainTaskId, web3jService.getLatestBlockNumber());
-
-            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}]",
-                    computedChainTaskId, chainDealId, taskIndex, initializeReceipt.getGasUsed());
+            ChainReceipt chainReceipt = buildChainReceipt(initializeReceipt);
+            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, " +
+                            "gasUsed:{}, block:{}]",
+                    computedChainTaskId, chainDealId, taskIndex,
+                    initializeReceipt.getGasUsed(), chainReceipt.getBlockNumber());
             return Optional.of(Pair.of(chainTaskId, chainReceipt));
         }
 
@@ -281,10 +281,11 @@ public class IexecHubService extends IexecHubAbstractService {
         }
 
         if (isSuccessTx(chainTaskId, finalizeEvent, COMPLETED)) {
-            ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(finalizeEvents.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
-
-            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, gasUsed:{}]", chainTaskId,
-                    resultLink, callbackData, shouldSendCallback, finalizeReceipt.getGasUsed());
+            ChainReceipt chainReceipt = buildChainReceipt(finalizeReceipt);
+            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, " +
+                            "shouldSendCallback:{}, gasUsed:{}, block:{}]",
+                    chainTaskId, resultLink, callbackData, shouldSendCallback,
+                    finalizeReceipt.getGasUsed(), chainReceipt.getBlockNumber());
             return Optional.of(chainReceipt);
         }
 
@@ -354,9 +355,9 @@ public class IexecHubService extends IexecHubAbstractService {
             return Optional.empty();
         }
 
-        log.info("Reopened [chainTaskId:{}, gasUsed:{}]", chainTaskId, receipt.getGasUsed());
-        ChainReceipt chainReceipt = ChainUtils.buildChainReceipt(eventsList.get(0).log, chainTaskId, web3jService.getLatestBlockNumber());
-
+        ChainReceipt chainReceipt = buildChainReceipt(receipt);
+        log.info("Reopened [chainTaskId:{}, gasUsed:{}, block:{}]",
+                chainTaskId, receipt.getGasUsed(), chainReceipt.getBlockNumber());
         return Optional.of(chainReceipt);
     }
 
@@ -396,5 +397,12 @@ public class IexecHubService extends IexecHubAbstractService {
         return false;
     }
 
+    private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {
+        return ChainReceipt.builder()
+                .txHash(receipt.getTransactionHash())
+                .blockNumber(receipt.getBlockNumber() != null?
+                        receipt.getBlockNumber().longValue() : 0)
+                .build();
+    }
 
 }

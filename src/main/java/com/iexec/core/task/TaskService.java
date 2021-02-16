@@ -75,6 +75,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
      * 
      * @param chainDealId
      * @param taskIndex
+     * @param dealBlockNumber
      * @param imageName
      * @param commandLine
      * @param trust
@@ -88,6 +89,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
     public Optional<Task> addTask(
             String chainDealId,
             int taskIndex,
+            long dealBlockNumber,
             String imageName,
             String commandLine,
             int trust,
@@ -107,6 +109,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 .orElseGet(() -> {
                         Task newTask = new Task(chainDealId, taskIndex, imageName,
                                 commandLine, trust, maxExecutionTime, tag);
+                        newTask.setDealBlockNumber(dealBlockNumber);
                         newTask.setFinalDeadline(finalDeadline);
                         newTask.setContributionDeadline(contributionDeadline);
                         newTask = taskRepository.save(newTask);
@@ -367,15 +370,13 @@ public class TaskService implements TaskUpdateRequestConsumer {
 
     private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
         String chainTaskId = task.getChainTaskId();
-        long currentBlockNumber = web3jService.getLatestBlockNumber();
-        long receiptBlockNumber = chainReceipt != null ? chainReceipt.getBlockNumber() : currentBlockNumber;
-        if (receiptBlockNumber != 0) {
-            task.setInitializationBlockNumber(receiptBlockNumber);
+        long initializationBlock = chainReceipt != null? chainReceipt.getBlockNumber() : 0;
+        if (initializationBlock == 0){
+            log.warn("Initialization block is empty, using deal block [chainTaskId:{}" +
+                    ", dealBlock{}]", chainTaskId, task.getDealBlockNumber());
+            initializationBlock = task.getDealBlockNumber();
         }
-
-        if (chainReceipt == null) {
-            chainReceipt = ChainReceipt.builder().blockNumber(currentBlockNumber).build();
-        }
+        task.setInitializationBlockNumber(initializationBlock);
         updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
         replicatesService.createEmptyReplicateList(chainTaskId);
     }

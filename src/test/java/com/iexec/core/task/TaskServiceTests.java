@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -129,8 +130,8 @@ public class TaskServiceTests {
         task.changeStatus(TaskStatus.INITIALIZED);
 
         when(taskRepository.save(any())).thenReturn(task);
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2,
-                maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
+                2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isPresent();
         assertThat(saved).isEqualTo(Optional.of(task));
     }
@@ -140,8 +141,8 @@ public class TaskServiceTests {
         Task task = getStubTask();
         task.changeStatus(TaskStatus.INITIALIZED);
         when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 2,
-                maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
+                2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEqualTo(Optional.empty());
     }
 
