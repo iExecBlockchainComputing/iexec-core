@@ -165,13 +165,13 @@ public class WorkerController {
     }
 
 
-    @GetMapping(path = "/workers/currenttasks")
-    public ResponseEntity<List<String>> getTasksInProgress(@RequestHeader("Authorization") String bearerToken) {
+    @GetMapping(path = "/workers/computing")
+    public ResponseEntity<List<String>> getComputingTasks(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
-        return ok(workerService.getChainTaskIds(workerWalletAddress));
+        return ok(workerService.getComputingTaskIds(workerWalletAddress));
     }
 
 }

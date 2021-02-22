@@ -250,9 +250,9 @@ public class WorkerControllerTests {
         List<String> list = List.of("t1", "t2");
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
-        when(workerService.getChainTaskIds(WALLET)).thenReturn(list);
+        when(workerService.getComputingTaskIds(WALLET)).thenReturn(list);
         ResponseEntity<List<String>> response =
-                workerController.getTasksInProgress(TOKEN);
+                workerController.getComputingTasks(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(list);
     }
@@ -261,7 +261,7 @@ public class WorkerControllerTests {
     public void shouldNotGetTasksInProgressSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
         ResponseEntity<List<String>> response =
-                workerController.getTasksInProgress(TOKEN);
+                workerController.getComputingTasks(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
