@@ -305,6 +305,28 @@ public class WorkerServiceTests {
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.empty());
         assertThat(workerService.getChainTaskIds(wallet)).isEmpty();
     }
+
+    // Computing task IDs
+
+    @Test
+    public void shouldGetComputingTaskIds() {
+        String wallet = "wallet";
+        List<String> list = List.of("t1", "t1");
+        Worker worker = Worker.builder()
+                .computingChainTaskIds(list)
+                .build();
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.getComputingTaskIds(wallet)).isEqualTo(list);
+    }
+
+    @Test
+    public void shouldNotGetComputingTaskIdsSinceNoWorker() {
+        String wallet = "wallet";
+        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.empty());
+
+        assertThat(workerService.getComputingTaskIds(wallet)).isEmpty();
+    }
     
     // removeChainTaskIdFromWorker
 
