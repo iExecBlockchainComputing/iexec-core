@@ -33,6 +33,7 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -43,17 +44,18 @@ import java.util.stream.Collectors;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
 
+@Slf4j
 @Service
 public class ReplicateSupplyService {
 
-    private ReplicatesService replicatesService;
-    private SignatureService signatureService;
-    private TaskService taskService;
-    private WorkerService workerService;
-    private SmsService smsService;
-    private Web3jService web3jService;
-    private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
-    private ConsensusService consensusService;
+    private final ReplicatesService replicatesService;
+    private final SignatureService signatureService;
+    private final TaskService taskService;
+    private final WorkerService workerService;
+    private final SmsService smsService;
+    private final Web3jService web3jService;
+    private final ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    private final ConsensusService consensusService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -176,10 +178,10 @@ public class ReplicateSupplyService {
     }
 
     private boolean isFewBlocksAfterInitialization(Task task) {
-        long coreLastBlock = web3jService.getLatestBlockNumber();
+        long lastBlock = web3jService.getLatestBlockNumber();
         long initializationBlock = task.getInitializationBlockNumber();
-        boolean isFewBlocksAfterInitialization = coreLastBlock >= initializationBlock + 2;
-        return coreLastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
+        boolean isFewBlocksAfterInitialization = lastBlock >= initializationBlock + 2;
+        return lastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
     }
 
     public List<TaskNotification> getMissedTaskNotifications(long blockNumber, String walletAddress) {

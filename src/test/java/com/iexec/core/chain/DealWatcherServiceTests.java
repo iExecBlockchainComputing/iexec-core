@@ -118,7 +118,7 @@ public class DealWatcherServiceTests {
 
         when(iexecHubService.getDealEventObservableToLatest(from)).thenReturn(Flowable.just(dealEvent));
         when(iexecHubService.getChainDeal(dealEvent.get().getChainDealId())).thenReturn(Optional.of(chainDeal));
-        when(taskService.addTask(any(), Mockito.anyInt(), any(), any(), Mockito.anyInt(), anyLong(), any(), any(), any()))
+        when(taskService.addTask(any(), Mockito.anyInt(), anyLong(), any(), any(), Mockito.anyInt(), anyLong(), any(), any(), any()))
                         .thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
         when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
@@ -170,9 +170,9 @@ public class DealWatcherServiceTests {
         verify(applicationEventPublisher, never())
                 .publishEvent(any());
         verify(taskService, never())
-                .addTask(anyString(), anyInt(), anyString(),
-                    anyString(), anyInt(), anyLong(), anyString(),
-                    any(), any());
+                .addTask(anyString(), anyInt(), anyLong(),
+                        anyString(), anyString(), anyInt(), anyLong(),
+                        anyString(), any(), any());
     }
 
     @Test

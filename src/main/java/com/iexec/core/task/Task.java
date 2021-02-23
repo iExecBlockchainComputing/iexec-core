@@ -52,6 +52,7 @@ public class Task {
 
     private String chainDealId;
     private int taskIndex;
+    private long dealBlockNumber;
     private long maxExecutionTime;
     private String tag;
     private DappType dappType;
