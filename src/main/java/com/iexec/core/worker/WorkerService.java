@@ -137,6 +137,15 @@ public class WorkerService {
         return Collections.emptyList();
     }
 
+    public List<String> getComputingTaskIds(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            return worker.getComputingChainTaskIds();
+        }
+        return Collections.emptyList();
+    }
+
     public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
