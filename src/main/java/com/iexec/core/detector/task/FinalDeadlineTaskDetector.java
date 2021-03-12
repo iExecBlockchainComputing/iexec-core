@@ -41,7 +41,7 @@ public class FinalDeadlineTaskDetector implements Detector {
         log.debug("Trying to detect final deadline");
         for (Task task : taskService.getTasksWhereFinalDeadlineIsPossible()) {
             Date now = new Date();
-            if (now.after(task.getFinalDeadline())) {
+            if (task.getFinalDeadline() != null && now.after(task.getFinalDeadline())) {
                 log.info("Task after final deadline found [chainTaskId:{}]", task.getChainTaskId());
                 taskService.updateTask(task.getChainTaskId());
             }
