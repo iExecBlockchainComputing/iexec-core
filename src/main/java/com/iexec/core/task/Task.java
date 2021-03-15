@@ -25,6 +25,7 @@ import com.iexec.common.tee.TeeUtils;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.ArrayList;
@@ -39,6 +40,9 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@CompoundIndex(name = "unique_deal_idx",
+        def = "{'chainDealId': 1, 'taskIndex': 1}",
+        unique = true)
 public class Task {
 
     @Id
