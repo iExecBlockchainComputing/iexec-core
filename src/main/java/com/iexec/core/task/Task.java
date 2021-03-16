@@ -25,6 +25,7 @@ import com.iexec.common.tee.TeeUtils;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.ArrayList;
@@ -39,6 +40,16 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/**
+ * We need this index to make sure that we don't
+ * add two tasks with the same combination:
+ * (chainDealId + taskIndex).
+ * This can appear when multiple threads call
+ * the method {@link TaskService#addTask()}.
+ */
+@CompoundIndex(name = "unique_deal_idx",
+        def = "{'chainDealId': 1, 'taskIndex': 1}",
+        unique = true)
 public class Task {
 
     @Id
