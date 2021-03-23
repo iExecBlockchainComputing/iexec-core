@@ -195,6 +195,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 return PLEASE_ABORT;
             case DATA_DOWNLOAD_FAILED:
                 if (whenCause.equals(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED)
+                        || whenCause.equals(ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM)
                         || whenCause.equals(ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)){
                     return PLEASE_CONTRIBUTE;
                 }
