@@ -70,7 +70,7 @@ scone:
 
 management:
   server:
-    port: ${IEXEC_CORE_MANAGEMENT_PORT:18777}
+    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
   endpoints:
     web:
       exposure:
