@@ -107,6 +107,8 @@ dependencies {
     //graylog
     compile 'biz.paluch.logging:logstash-gelf:1.5.1'
 
+    compile 'io.micrometer:micrometer-registry-prometheus:1.1.5'
+
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
