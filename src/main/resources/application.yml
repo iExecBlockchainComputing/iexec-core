@@ -69,11 +69,16 @@ scone:
     port: ${IEXEC_SCONE_CAS_PORT:18765}
 
 management:
+  server:
+    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
   endpoints:
     web:
       exposure:
-        include:
-          - httptrace
+        # e.g: (spring default is "health, info", use comma for multiple values)
+        # health, info, httptrace
+        # or:
+        # *
+        include: ${IEXEC_CORE_MANAGEMENT_ACTUATORS:health, info}
 
 graylog:
   host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}
