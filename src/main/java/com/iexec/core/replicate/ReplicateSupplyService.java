@@ -33,7 +33,6 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
 
-@Slf4j
 @Service
 public class ReplicateSupplyService {
 
