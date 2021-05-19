@@ -22,6 +22,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskDescription;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -719,7 +720,7 @@ public class ReplicateServiceTests {
     public void shouldCheckResultServiceAndReturnTrue() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .isCallbackRequested(false)
+                .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(false)
                 .build();
         when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
@@ -735,7 +736,7 @@ public class ReplicateServiceTests {
     public void shouldCheckResultServiceAndReturnFalse() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .isCallbackRequested(false)
+                .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(false)
                 .build();
         when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
@@ -761,7 +762,7 @@ public class ReplicateServiceTests {
     public void shouldReturnTrueForCallbackTask() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .isCallbackRequested(true)
+                .callback("callback")
                 .isTeeTask(false)
                 .build();
         when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
@@ -776,7 +777,7 @@ public class ReplicateServiceTests {
     public void shouldReturnTrueForTeeTask() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .isCallbackRequested(false)
+                .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(true)
                 .build();
         when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
