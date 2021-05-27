@@ -16,14 +16,12 @@ services:
       - MONGO_HOST=mongo
       - IEXEC_IPFS_HOST=ipfs
       - IEXEC_SMS_HOST=sms
-      - IEXEC_SCONE_CAS_HOST=iexec-cas
       # - IEXEC_HUB_ADDRESS=${IEXEC_HUB_ADDRESS}
       # - POOL_ADDRESS=${POOL_ADDRESS}
       - IEXEC_RESULT_REPOSITORY_PROTOCOL=http
       - IEXEC_RESULT_REPOSITORY_HOST=result-proxy
       - IEXEC_RESULT_REPOSITORY_PORT=18089
       - IEXEC_SMS_PORT=15000
-      - IEXEC_SCONE_CAS_HOST=cas
     volumes:
       - ./src/main/resources/wallet/encrypted-wallet_scheduler.json:/iexec/wallet/encrypted-wallet.json
     ports:
