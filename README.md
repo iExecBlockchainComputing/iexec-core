@@ -29,7 +29,7 @@ docker run  -e MONGO_HOST=mongo \
             -e POOL_ADDRESS=0xaddress_of_pool_contract_onchain \
             -e IEXEC_START_BLOCK_NUMBER=chain_start_block_number \
             -v #path_to_wallet:/iexec-wallet \
-            -p 18090:18090 \
+            -p 13000:13000 \
     	iexechub/iexec-core:3.0.0-alpha1
 ```
 Some other variables are settable through docker. Please check the application.yml file.

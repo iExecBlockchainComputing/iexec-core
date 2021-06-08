@@ -17,7 +17,6 @@
 package com.iexec.core;
 
 import com.iexec.core.config.AsyncConfig;
-import com.iexec.core.config.MongoConfig;
 import com.iexec.core.config.RetryConfig;
 import com.iexec.core.config.SchedulingConfig;
 import com.iexec.core.config.SwaggerConfig;
@@ -31,7 +30,6 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
     AsyncConfig.class,
-    MongoConfig.class,
     RetryConfig.class,
     SchedulingConfig.class,
     SwaggerConfig.class,
