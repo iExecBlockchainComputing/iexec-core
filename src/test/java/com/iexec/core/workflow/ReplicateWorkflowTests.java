@@ -116,6 +116,14 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
+    public void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
+        assertThat(replicateWorkflow
+                .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                        ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM))
+                .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
+    }
+
+    @Test
     public void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,

@@ -441,7 +441,7 @@ public class ReplicatesService {
         }
 
         // Offchain computing - basic & tee
-        if (task.get().isCallbackRequested()){
+        if (task.get().containsCallback()){
             return true;
         }
 

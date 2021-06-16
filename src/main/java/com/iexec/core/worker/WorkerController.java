@@ -52,7 +52,6 @@ public class WorkerController {
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
     private final SmsConfiguration smsConfiguration;
-    private final SconeCasConfiguration sconeCasConfiguration;
 
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
@@ -61,8 +60,7 @@ public class WorkerController {
                             ChallengeService challengeService,
                             WorkerConfiguration workerConfiguration,
                             ResultRepositoryConfiguration resultRepoConfig,
-                            SmsConfiguration smsConfiguration,
-                            SconeCasConfiguration sconeCasConfiguration) {
+                            SmsConfiguration smsConfiguration) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
@@ -71,7 +69,6 @@ public class WorkerController {
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
         this.smsConfiguration = smsConfiguration;
-        this.sconeCasConfiguration = sconeCasConfiguration;
     }
 
     @PostMapping(path = "/workers/ping")
@@ -156,7 +153,6 @@ public class WorkerController {
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .smsURL(smsConfiguration.getSmsURL())
-                .sconeCasURL(sconeCasConfiguration.getURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();

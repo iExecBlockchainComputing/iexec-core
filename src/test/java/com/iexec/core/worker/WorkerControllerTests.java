@@ -5,7 +5,6 @@ import com.iexec.common.security.Signature;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.configuration.SconeCasConfiguration;
 import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
@@ -55,8 +54,6 @@ public class WorkerControllerTests {
     private ResultRepositoryConfiguration resultRepoConfig;
     @Mock
     private SmsConfiguration smsConfiguration;
-    @Mock
-    private SconeCasConfiguration sconeCasConfiguration;
 
     @InjectMocks
     private WorkerController workerController;
