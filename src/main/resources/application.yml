@@ -27,7 +27,7 @@ cron:
 
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
-  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:6.0.0} #leave empty will allow any worker version
+  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
   # the whitelist format should be as follow (comma separated on one or multiple lines:
   # whitelist: ${IEXEC_WHITELIST:address1,
   #     address2,
