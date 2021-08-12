@@ -352,7 +352,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                             "[chainTaskId:{}]", task.getChainTaskId());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
-                    new Thread(() -> updateTaskRunnable(task.getChainTaskId())).start();
+                    updateTaskRunnable(task.getChainTaskId());
                 }, () -> {
                     log.error("Failed to request initialize on blockchain " +
                             "[chainTaskId:{}]", task.getChainTaskId());
@@ -369,7 +369,10 @@ public class TaskService implements TaskUpdateRequestConsumer {
                     if (isSuccess.equals(Boolean.TRUE)) {
                         log.info("Initialized on blockchain (tx mined)" +
                                 "[chainTaskId:{}]", task.getChainTaskId());
-                        initializing2Initialized(task, null);
+                        //Without receipt, using deal block for initialization block
+                        task.setInitializationBlockNumber(task.getDealBlockNumber());
+                        updateTaskStatusAndSave(task, INITIALIZED, null);
+                        replicatesService.createEmptyReplicateList(task.getChainTaskId());
                         return;
                     }
                     log.error("Initialization failed on blockchain (tx reverted)" +
@@ -379,19 +382,6 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 }, () -> log.error("Unable to check initialization on blockchain " +
                         "(likely too long), should use a detector " +
                         "[chainTaskId:{}]", task.getChainTaskId()));
-    }
-
-    private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
-        String chainTaskId = task.getChainTaskId();
-        long initializationBlock = chainReceipt != null? chainReceipt.getBlockNumber() : 0;
-        if (initializationBlock == 0){
-            log.warn("Initialization block is empty, using deal block [chainTaskId:{}" +
-                    ", dealBlock{}]", chainTaskId, task.getDealBlockNumber());
-            initializationBlock = task.getDealBlockNumber();
-        }
-        task.setInitializationBlockNumber(initializationBlock);
-        updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
-        replicatesService.createEmptyReplicateList(chainTaskId);
     }
 
     private void initialized2Running(Task task) {
@@ -644,46 +634,41 @@ public class TaskService implements TaskUpdateRequestConsumer {
             return;
         }
 
-        updateTaskStatusAndSave(task, FINALIZING);
-
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.finalizeTask(task.getChainTaskId(), task.getResultLink(), task.getChainCallbackData());
-        if (!optionalChainReceipt.isPresent()) {
-            return;
-        }
-        ChainReceipt chainReceipt = optionalChainReceipt.get();
-
-        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!oChainTask.isPresent()) {
-            return;
-        }
-        chainTask = oChainTask.get();
-
-        if (chainTask.getStatus().equals(ChainTaskStatus.FAILLED)) {
-            log.error("Finalize failed [chainTaskId:{} canFinalize:{}, isAfterRevealDeadline:{}, hasAtLeastOneReveal:{}]",
-                    task.getChainTaskId(), isTaskInResultUploaded, canFinalize, offChainRevealEqualsOnChainReveal);
-            updateTaskStatusAndSave(task, FINALIZE_FAILED);
-            updateTaskStatusAndSave(task, FAILED);
-            return;
-        }
-
-        finalizing2Finalized2Completed(task, chainReceipt);
+        blockchainAdapterService
+                .requestFinalize(task.getChainTaskId(), task.getResultLink(),
+                        task.getChainCallbackData())
+                .ifPresentOrElse(chainTaskId -> {
+                    log.info("Requested finalize on blockchain " +
+                            "[chainTaskId:{}]", task.getChainTaskId());
+                    updateTaskStatusAndSave(task, FINALIZING);
+                    //Watch finalizing to finalized
+                    updateTaskRunnable(task.getChainTaskId());
+                }, () -> {
+                    log.error("Failed to request finalize on blockchain " +
+                            "[chainTaskId:{}]", task.getChainTaskId());
+                    updateTaskStatusAndSave(task, FINALIZE_FAILED);
+                    updateTaskStatusAndSave(task, FAILED);
+                });
     }
 
     private void finalizing2Finalized2Completed(Task task) {
-        finalizing2Finalized2Completed(task, null);
-    }
-
-    private void finalizing2Finalized2Completed(Task task, ChainReceipt chainReceipt) {
-        Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!oChainTask.isPresent()) {
-            return;
-        }
-        ChainTask chainTask = oChainTask.get();
-
-        if (chainTask.getStatus().equals(ChainTaskStatus.COMPLETED)) {
-            updateTaskStatusAndSave(task, FINALIZED, chainReceipt);
-            finalizedToCompleted(task);
-        }
+        blockchainAdapterService
+                .isFinalized(task.getChainTaskId())
+                .ifPresentOrElse(isSuccess -> {
+                    if (isSuccess.equals(Boolean.TRUE)) {
+                        log.info("Finalized on blockchain (tx mined)" +
+                                "[chainTaskId:{}]", task.getChainTaskId());
+                        updateTaskStatusAndSave(task, FINALIZED, null);
+                        finalizedToCompleted(task);
+                        return;
+                    }
+                    log.error("Finalization failed on blockchain (tx reverted)" +
+                            "[chainTaskId:{}]", task.getChainTaskId());
+                    updateTaskStatusAndSave(task, FINALIZE_FAILED);
+                    updateTaskStatusAndSave(task, FAILED);
+                }, () -> log.error("Unable to check finalization on blockchain " +
+                        "(likely too long), should use a detector " +
+                        "[chainTaskId:{}]", task.getChainTaskId()));
     }
 
     private void finalizedToCompleted(Task task) {
