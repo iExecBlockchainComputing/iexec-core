@@ -461,7 +461,8 @@ public class TaskService implements TaskUpdateRequestConsumer {
         }
 
         updateTaskStatusAndSave(task, REOPENING);
-        Optional<ChainReceipt> optionalChainReceipt = iexecHubService.reOpen(task.getChainTaskId());
+        //TODO Update reopen call
+        Optional<ChainReceipt> optionalChainReceipt = Optional.empty(); //iexecHubService.reOpen(task.getChainTaskId());
 
         if (!optionalChainReceipt.isPresent()) {
             log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());

@@ -32,8 +32,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 @Service
 public class BlockchainAdapterService {
 
-    public static final int WATCH_PERIOD_SECONDS = 1;
-    public static final int MAX_ATTEMPTS = 20;
+    public static final int WATCH_PERIOD_SECONDS = 1;//To tune
+    public static final int MAX_ATTEMPTS = 50;
     private final BlockchainAdapterClient blockchainAdapterClient;
 
     public BlockchainAdapterService(BlockchainAdapterClient blockchainAdapterClient) {
@@ -74,6 +74,14 @@ public class BlockchainAdapterService {
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
     }
 
+    /**
+     * Request on-chain finalization of the task.
+     *
+     * @param chainTaskId  ID of the deal
+     * @param resultLink   link of the result to be published on-chain
+     * @param callbackData optional data for on-chain callback
+     * @return chain task ID is initialization is properly requested
+     */
     public Optional<String> requestFinalize(String chainTaskId,
                                             String resultLink,
                                             String callbackData) {
@@ -91,6 +99,13 @@ public class BlockchainAdapterService {
         return Optional.of(chainTaskId);
     }
 
+    /**
+     * Verify if the finalize task command is completed on-chain.
+     *
+     * @param chainTaskId ID of the task
+     * @return true if the tx is mined, false if reverted or empty for other
+     * cases (too long since still RECEIVED or PROCESSING, adapter error)
+     */
     public Optional<Boolean> isFinalized(String chainTaskId) {
         return isCommandCompleted(blockchainAdapterClient::getStatusForFinalizeTaskRequest,
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
@@ -107,7 +122,7 @@ public class BlockchainAdapterService {
      * @return true if the tx is mined, false if reverted or empty for other
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
-    private Optional<Boolean> isCommandCompleted(
+    Optional<Boolean> isCommandCompleted(
             Function<String, ResponseEntity<CommandStatus>> getCommandStatusFunction,
             String chainTaskId,
             long period, int maxAttempts, int attempt) {
@@ -137,7 +152,7 @@ public class BlockchainAdapterService {
             return isCommandCompleted(getCommandStatusFunction, chainTaskId,
                     period, maxAttempts, attempt + 1);
         } catch (Throwable e) {
-            log.warn("Unexpected error while waiting command completion " +
+            log.error("Unexpected error while waiting command completion " +
                             "[chainTaskId:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
                     chainTaskId, period, attempt, maxAttempts, e);
         }
