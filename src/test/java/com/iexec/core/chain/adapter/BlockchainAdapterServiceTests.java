@@ -56,7 +56,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitialize() {
-        when(blockchainAdapterClient.initializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -65,7 +65,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitializeFailedSinceNot200() {
-        when(blockchainAdapterClient.initializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.badRequest().build());
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -74,7 +74,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitializeFailedSinceNoBody() {
-        when(blockchainAdapterClient.initializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok().build());
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -93,7 +93,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalize() {
-        when(blockchainAdapterClient.finalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
@@ -102,7 +102,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalizeFailedSinceNot200() {
-        when(blockchainAdapterClient.finalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok().build());
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
@@ -111,7 +111,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalizeFailedSinceNoBody() {
-        when(blockchainAdapterClient.finalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.badRequest().build());
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))

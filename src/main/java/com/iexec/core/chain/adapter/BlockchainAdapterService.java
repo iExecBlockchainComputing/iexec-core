@@ -49,7 +49,7 @@ public class BlockchainAdapterService {
      */
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
         ResponseEntity<String> initializeResponseEntity =
-                blockchainAdapterClient.initializeTask(chainDealId, taskIndex);
+                blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
         if (!initializeResponseEntity.getStatusCode().is2xxSuccessful()
                 || StringUtils.isEmpty(initializeResponseEntity.getBody())) {
             log.error("Failed to requestInitialize [code:{}]",
@@ -86,7 +86,7 @@ public class BlockchainAdapterService {
                                             String resultLink,
                                             String callbackData) {
         ResponseEntity<String> finalizeResponseEntity =
-                blockchainAdapterClient.finalizeTask(chainTaskId,
+                blockchainAdapterClient.requestFinalizeTask(chainTaskId,
                         new TaskFinalizeArgs(resultLink, callbackData));
         if (!finalizeResponseEntity.getStatusCode().is2xxSuccessful()
                 || StringUtils.isEmpty(finalizeResponseEntity.getBody())) {

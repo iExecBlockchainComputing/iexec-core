@@ -37,7 +37,7 @@ public interface BlockchainAdapterClient {
             @PathVariable String chainTaskId);
 
     @PostMapping("/tasks/initialize")
-    ResponseEntity<String> initializeTask(
+    ResponseEntity<String> requestInitializeTask(
             @RequestParam String chainDealId,
             @RequestParam int taskIndex);
 
@@ -46,7 +46,7 @@ public interface BlockchainAdapterClient {
             @PathVariable String chainTaskId) throws FeignException;
 
     @PostMapping("/tasks/finalize/{chainTaskId}")
-    ResponseEntity<String> finalizeTask(
+    ResponseEntity<String> requestFinalizeTask(
             @PathVariable String chainTaskId,
             @RequestBody TaskFinalizeArgs args);
 
