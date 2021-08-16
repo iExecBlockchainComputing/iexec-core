@@ -366,7 +366,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
         blockchainAdapterService
                 .isInitialized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess.equals(Boolean.TRUE)) {
+                    if (isSuccess != null && isSuccess) {
                         log.info("Initialized on blockchain (tx mined)" +
                                 "[chainTaskId:{}]", task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
@@ -656,7 +656,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
         blockchainAdapterService
                 .isFinalized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess.equals(Boolean.TRUE)) {
+                    if (isSuccess != null && isSuccess) {
                         log.info("Finalized on blockchain (tx mined)" +
                                 "[chainTaskId:{}]", task.getChainTaskId());
                         updateTaskStatusAndSave(task, FINALIZED, null);

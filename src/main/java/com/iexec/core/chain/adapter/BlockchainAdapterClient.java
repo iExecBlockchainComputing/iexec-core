@@ -27,19 +27,19 @@ import org.springframework.web.bind.annotation.*;
 
 @FeignClient(
         name = "BlockchainAdapterClient",
-        url = "#{blockchainAdapterClientConfig.blockchainAdapterUrl}",
+        url = "#{blockchainAdapterClientConfig.url}",
         configuration = BlockchainAdapterClientFeignConfig.class
 )
 public interface BlockchainAdapterClient {
 
     @GetMapping("/tasks/{chainTaskId}")
     ResponseEntity<ChainTask> getTask(
-            @PathVariable String chainTaskId);
+            @PathVariable String chainTaskId) throws FeignException;
 
     @PostMapping("/tasks/initialize")
     ResponseEntity<String> requestInitializeTask(
             @RequestParam String chainDealId,
-            @RequestParam int taskIndex);
+            @RequestParam int taskIndex) throws FeignException;
 
     @GetMapping("/tasks/initialize/{chainTaskId}/status")
     ResponseEntity<CommandStatus> getStatusForInitializeTaskRequest(
@@ -48,10 +48,10 @@ public interface BlockchainAdapterClient {
     @PostMapping("/tasks/finalize/{chainTaskId}")
     ResponseEntity<String> requestFinalizeTask(
             @PathVariable String chainTaskId,
-            @RequestBody TaskFinalizeArgs args);
+            @RequestBody TaskFinalizeArgs args)throws FeignException ;
 
     @GetMapping("/tasks/finalize/{chainTaskId}/status")
     ResponseEntity<CommandStatus> getStatusForFinalizeTaskRequest(
-            @PathVariable String chainTaskId);
+            @PathVariable String chainTaskId) throws FeignException;
 
 }

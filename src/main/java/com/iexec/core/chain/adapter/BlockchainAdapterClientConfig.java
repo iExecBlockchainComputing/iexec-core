@@ -25,24 +25,24 @@ import org.springframework.context.annotation.Configuration;
 public class BlockchainAdapterClientConfig {
 
     @Value("${blockchain-adapter.host}")
-    private String blockchainAdapterHost;
+    private String host;
     @Value("${blockchain-adapter.port}")
-    private int blockchainAdapterPort;
+    private int port;
     @Value("${blockchain-adapter.user.name}")
-    private String blockchainAdapterUsername;
+    private String username;
     @Value("${blockchain-adapter.user.password}")
-    private String blockchainAdapterPassword;
+    private String password;
 
-    public String getBlockchainAdapterUrl() {
-        return buildHostUrl(blockchainAdapterHost, blockchainAdapterPort);
+    public String getUrl() {
+        return buildHostUrl(host, port);
     }
 
-    public String getBlockchainAdapterUsername() {
-        return blockchainAdapterUsername;
+    public String getUsername() {
+        return username;
     }
 
-    public String getBlockchainAdapterPassword() {
-        return blockchainAdapterPassword;
+    public String getPassword() {
+        return password;
     }
 
     private String buildHostUrl(String host, int port) {

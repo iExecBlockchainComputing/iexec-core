@@ -31,8 +31,8 @@ public class BlockchainAdapterClientFeignConfig {
 
     @Bean
     public BasicAuthRequestInterceptor basicAuthRequestInterceptor() {
-        return new BasicAuthRequestInterceptor(clientConfig.getBlockchainAdapterUsername(),
-                clientConfig.getBlockchainAdapterPassword());
+        return new BasicAuthRequestInterceptor(clientConfig.getUsername(),
+                clientConfig.getPassword());
     }
 
 }

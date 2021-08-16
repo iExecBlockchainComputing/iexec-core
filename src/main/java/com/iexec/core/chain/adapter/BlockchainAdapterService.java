@@ -48,18 +48,21 @@ public class BlockchainAdapterService {
      * @return chain task ID is initialization is properly requested
      */
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
-        ResponseEntity<String> initializeResponseEntity =
-                blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
-        if (!initializeResponseEntity.getStatusCode().is2xxSuccessful()
-                || StringUtils.isEmpty(initializeResponseEntity.getBody())) {
-            log.error("Failed to requestInitialize [code:{}]",
-                    initializeResponseEntity.getStatusCodeValue());
-            return Optional.empty();
+        try {
+            ResponseEntity<String> initializeResponseEntity =
+                    blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
+            if (initializeResponseEntity.getStatusCode().is2xxSuccessful()
+                    && !StringUtils.isEmpty(initializeResponseEntity.getBody())) {
+                String chainTaskId = initializeResponseEntity.getBody();
+                log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
+                        "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
+                return Optional.of(chainTaskId);
+            }
+        } catch (Throwable e) {
+            log.error("Failed to requestInitialize [chainDealId:{}, " +
+                    "taskIndex:{}]", chainDealId, taskIndex, e);
         }
-        String chainTaskId = initializeResponseEntity.getBody();
-        log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
-                "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
-        return Optional.of(chainTaskId);
+        return Optional.empty();
     }
 
     /**
@@ -85,18 +88,21 @@ public class BlockchainAdapterService {
     public Optional<String> requestFinalize(String chainTaskId,
                                             String resultLink,
                                             String callbackData) {
-        ResponseEntity<String> finalizeResponseEntity =
-                blockchainAdapterClient.requestFinalizeTask(chainTaskId,
-                        new TaskFinalizeArgs(resultLink, callbackData));
-        if (!finalizeResponseEntity.getStatusCode().is2xxSuccessful()
-                || StringUtils.isEmpty(finalizeResponseEntity.getBody())) {
-            log.error("Failed to requestFinalize [code:{}]",
-                    finalizeResponseEntity.getStatusCodeValue());
-            return Optional.empty();
+        try {
+            ResponseEntity<String> finalizeResponseEntity =
+                    blockchainAdapterClient.requestFinalizeTask(chainTaskId,
+                            new TaskFinalizeArgs(resultLink, callbackData));
+            if (finalizeResponseEntity.getStatusCode().is2xxSuccessful()
+                    && !StringUtils.isEmpty(finalizeResponseEntity.getBody())) {
+                log.info("Requested finalize [chainTaskId:{}, resultLink:{}, " +
+                        "callbackData:{}]", chainTaskId, resultLink, callbackData);
+                return Optional.of(chainTaskId);
+            }
+        } catch (Throwable e) {
+            log.error("Failed to requestFinalize [chainTaskId:{}, resultLink:{}, " +
+                    "callbackData:{}]", chainTaskId, resultLink, callbackData, e);
         }
-        log.info("Requested finalize [chainTaskId:{}, resultLink:{}, " +
-                "callbackData:{}]", chainTaskId, resultLink, callbackData);
-        return Optional.of(chainTaskId);
+        return Optional.empty();
     }
 
     /**
