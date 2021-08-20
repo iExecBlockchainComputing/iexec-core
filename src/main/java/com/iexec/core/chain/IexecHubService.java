@@ -166,7 +166,7 @@ public class IexecHubService extends IexecHubAbstractService {
         return new Date(startTime + maxTime * 10);
     }
 
-
+    @Deprecated
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
         try {

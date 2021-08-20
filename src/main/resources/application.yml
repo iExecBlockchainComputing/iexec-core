@@ -49,6 +49,13 @@ chain:
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
+blockchain-adapter:
+  host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:blockchain-adapter}
+  port: ${IEXEC_CORE_CHAIN_ADAPTER_PORT:13010}
+  user:
+    name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
+    password: ${IEXEC_CORE_CHAIN_ADAPTER_PASSWORD:whatever}
+
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}

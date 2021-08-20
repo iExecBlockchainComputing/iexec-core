@@ -22,6 +22,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
@@ -92,6 +93,9 @@ public class TaskServiceTests {
 
     @Mock
     private RevealTimeoutDetector revealTimeoutDetector;
+
+    @Mock
+    private BlockchainAdapterService blockchainAdapterService;
 
     @InjectMocks
     private TaskService taskService;
@@ -369,7 +373,8 @@ public class TaskServiceTests {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
-    @Test
+    //TODO: Update reopen call
+    //@Test
     public void shouldUpgrade2Reopened() {
         Task task = getStubTask();
 
@@ -394,7 +399,7 @@ public class TaskServiceTests {
         assertThat(task.getDateStatusList().get(4).getStatus()).isEqualTo(INITIALIZED);
     }
 
-    // Tests on received2Initialized transition
+    // Tests on received2Initializing transition
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
@@ -413,7 +418,6 @@ public class TaskServiceTests {
         Task task = getStubTask();
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
-        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
@@ -421,7 +425,7 @@ public class TaskServiceTests {
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(pair));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -432,7 +436,6 @@ public class TaskServiceTests {
         Task task = getStubTask();
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
-        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -440,7 +443,7 @@ public class TaskServiceTests {
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -459,7 +462,7 @@ public class TaskServiceTests {
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(false);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
@@ -470,7 +473,6 @@ public class TaskServiceTests {
         Task task = getStubTask();
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
-        Pair<String, ChainReceipt> pair = Pair.of("dummy", null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -478,7 +480,7 @@ public class TaskServiceTests {
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.empty());
 
         taskService.updateTaskRunnable(task.getChainTaskId());
 
@@ -491,7 +493,6 @@ public class TaskServiceTests {
         Task task = getStubTask();
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
-        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
 
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -500,21 +501,67 @@ public class TaskServiceTests {
                 .thenReturn(true);
 
         when(taskRepository.save(task)).thenReturn(task);
-        when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
 
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
 
-        // test that double call doesn't change anything
+    // Tests on initializing2Initialized transition
+
+    @Test
+    public void shouldUpdateInitializing2Initialized() {
+        Task task = getStubTask();
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZING);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+
         taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
+
+    @Test
+    public void shouldNotUpdateInitializing2InitializedSinceNotInitialized() {
+        Task task = getStubTask();
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZING);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    public void shouldNotUpdateInitializing2InitializedSinceFailedToCheck() {
+        Task task = getStubTask();
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZING);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
     }
 
     // Tests on initialized2Running transition
@@ -817,7 +864,8 @@ public class TaskServiceTests {
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.getChainTask(any())).thenReturn(Optional.of(chainTask));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(new ChainReceipt()));
+        when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isFinalized(any())).thenReturn(Optional.of(true));
         when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.COMPLETED)
@@ -834,6 +882,38 @@ public class TaskServiceTests {
         assertThat(lastButOneStatus).isEqualTo(FINALIZED);
         assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
         assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
+    }
+
+    // Tests on finalizing2Finalized transition
+
+    @Test
+    public void shouldUpdateFinalizing2Finalized2Completed() {
+        Task task = getStubTask();
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
+    }
+
+    @Test
+    public void shouldUpdateFinalizing2FinalizedFailed() {
+        Task task = getStubTask();
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZE_FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
 
     @Test
@@ -868,7 +948,7 @@ public class TaskServiceTests {
         when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canFinalize(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.finalizeTask(any(), any(), any())).thenReturn(Optional.of(ChainReceipt.builder().build()));
+        when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.empty());
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.FAILLED)
                 .revealCounter(1)
@@ -876,13 +956,12 @@ public class TaskServiceTests {
 
         taskService.updateTaskRunnable(task.getChainTaskId());
 
+        TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
         TaskStatus lastButTwoStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus();
-        TaskStatus lastButThreeStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus();
 
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
-        assertThat(task.getLastButOneStatus()).isEqualTo(FINALIZE_FAILED);        
-        assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
-        assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
+        assertThat(lastButOneStatus).isEqualTo(FINALIZE_FAILED);
+        assertThat(lastButTwoStatus).isEqualTo(RESULT_UPLOADED);
     }
 
 
