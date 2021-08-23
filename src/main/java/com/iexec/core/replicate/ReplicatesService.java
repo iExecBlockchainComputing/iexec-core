@@ -26,11 +26,7 @@ import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
 import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.iexec.common.chain.ChainContribution;
@@ -245,40 +241,32 @@ public class ReplicatesService {
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
-    /*
-     * We retry up to 100 times in case the task has been modified between
-     * reading and writing it.
+    /**
+     * Checks whether a replicate can be updated with given status.
      *
-     * Before updating we check:
-     *   1) if valid transition.
-     *   2) if worker did fail when CONTRIBUTE/REVEAL/UPLOAD_FAILED.
-     *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
-     *   4) if worker did upload when RESULT_UPLOADING.
+     * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
      */
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
-        log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
-
+    public Optional<ReplicateStatusUpdateError> canUpdateReplicateStatus(String chainTaskId,
+                                               String walletAddress,
+                                               ReplicateStatusUpdate statusUpdate) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
-            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
-                    chainTaskId, statusUpdate);
-            return Optional.empty();
+            return Optional.of(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
         }
 
         ReplicatesList replicatesList = oReplicateList.get();
-        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).get();
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow();
         ReplicateStatus newStatus = statusUpdate.getStatus();
+
+        boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
+        if (hasAlreadyTransitionedToStatus) {
+            return Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED);
+        }
 
         boolean isValidTransition = ReplicateWorkflow.getInstance()
                 .isValidTransition(replicate.getCurrentStatus(), newStatus);
         if (!isValidTransition) {
-            log.error("Cannot update replicate, bad wokfow transition {}",
-                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-            return Optional.empty();
+            return Optional.of(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
         }
 
         boolean canUpdate = true;
@@ -303,6 +291,58 @@ public class ReplicatesService {
         }
 
         if (!canUpdate) {
+            return Optional.of(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+        }
+
+        return Optional.empty();
+    }
+
+    /*
+     * We retry up to 100 times in case the task has been modified between
+     * reading and writing it.
+     *
+     * Before updating we check:
+     *   1) if valid transition.
+     *   2) if worker did fail when CONTRIBUTE/REVEAL/UPLOAD_FAILED.
+     *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
+     *   4) if worker did upload when RESULT_UPLOADING.
+     */
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
+    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
+                                                                String walletAddress,
+                                                                ReplicateStatusUpdate statusUpdate) {
+        log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
+
+        final Optional<ReplicateStatusUpdateError> replicateStatusUpdateError = canUpdateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+        if (replicateStatusUpdateError.isPresent() && Objects.equals(
+                replicateStatusUpdateError.get(),
+                ReplicateStatusUpdateError.UNKNOWN_REPLICATE)) {
+            log.error(ReplicateStatusUpdateError.UNKNOWN_REPLICATE.getErrorMessageTemplate(),
+                    chainTaskId, statusUpdate);
+            return Optional.empty();
+        }
+
+        ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow();
+        ReplicateStatus newStatus = statusUpdate.getStatus();
+
+        if (replicateStatusUpdateError.isPresent()) {
+            switch (replicateStatusUpdateError.get()) {
+                case ALREADY_REPORTED:
+                    log.error(ReplicateStatusUpdateError.ALREADY_REPORTED.getErrorMessageTemplate(),
+                            newStatus);
+                    break;
+                case BAD_WORKFLOW_TRANSITION:
+                    log.error(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION.getErrorMessageTemplate(),
+                            getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+                    break;
+                default:
+                    break;
+            }
             return Optional.empty();
         }
 

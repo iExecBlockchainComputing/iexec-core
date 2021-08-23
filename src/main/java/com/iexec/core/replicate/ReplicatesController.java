@@ -103,6 +103,17 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
+        final var replicateStatusUpdateError = replicatesService.canUpdateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+        if (replicateStatusUpdateError.isPresent()) {
+            if (replicateStatusUpdateError.get() == ReplicateStatusUpdateError.ALREADY_REPORTED) {
+                return status(HttpStatus.ALREADY_REPORTED.value()).build();
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+        }
+
         return replicatesService
                 .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate)
                 .map(ResponseEntity::ok)
