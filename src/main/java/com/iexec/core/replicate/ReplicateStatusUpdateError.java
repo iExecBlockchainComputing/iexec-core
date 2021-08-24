@@ -17,18 +17,8 @@
 package com.iexec.core.replicate;
 
 public enum ReplicateStatusUpdateError {
-    UNKNOWN_REPLICATE("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]"),
-    BAD_WORKFLOW_TRANSITION("Cannot update replicate, bad workflow transition {}"),
-    ALREADY_REPORTED("Cannot update replicate, status {} already reported."),
-    GENERIC_CANT_UPDATE("Cannot update replicate [UpdateRequest:{}]");
-
-    private final String errorMessageTemplate;
-
-    ReplicateStatusUpdateError(String errorMessageTemplate) {
-        this.errorMessageTemplate = errorMessageTemplate;
-    }
-
-    public String getErrorMessageTemplate() {
-        return errorMessageTemplate;
-    }
+    UNKNOWN_REPLICATE,
+    BAD_WORKFLOW_TRANSITION,
+    ALREADY_REPORTED,
+    GENERIC_CANT_UPDATE;
 }

@@ -318,7 +318,8 @@ public class ReplicatesService {
                 canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate);
         if (replicateStatusUpdateError.isPresent()
                 && Objects.equals(replicateStatusUpdateError.get(),ReplicateStatusUpdateError.UNKNOWN_REPLICATE)) {
-            log.error(ReplicateStatusUpdateError.UNKNOWN_REPLICATE.getErrorMessageTemplate(), chainTaskId, statusUpdate);
+            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
+                    chainTaskId, statusUpdate);
             return Optional.empty();
         }
 
@@ -329,10 +330,10 @@ public class ReplicatesService {
         if (replicateStatusUpdateError.isPresent()) {
             switch (replicateStatusUpdateError.get()) {
                 case ALREADY_REPORTED:
-                    log.error(ReplicateStatusUpdateError.ALREADY_REPORTED.getErrorMessageTemplate(), newStatus);
+                    log.error("Cannot update replicate, status {} already reported.", newStatus);
                     break;
                 case BAD_WORKFLOW_TRANSITION:
-                    log.error(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION.getErrorMessageTemplate(),
+                    log.error("Cannot update replicate, bad workflow transition {}",
                             getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                     break;
                 default:
