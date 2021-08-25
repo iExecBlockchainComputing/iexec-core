@@ -255,7 +255,7 @@ public class ReplicatesService {
         }
 
         ReplicatesList replicatesList = oReplicateList.get();
-        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow();
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
         boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
@@ -323,15 +323,15 @@ public class ReplicatesService {
             return Optional.empty();
         }
 
-        ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();
-        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow();
+        ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
         if (replicateStatusUpdateError.isPresent()) {
             switch (replicateStatusUpdateError.get()) {
                 case ALREADY_REPORTED:
                     log.error("Cannot update replicate, status {} already reported.", newStatus);
-                    break;
+                    return Optional.of(TaskNotificationType.PLEASE_WAIT);
                 case BAD_WORKFLOW_TRANSITION:
                     log.error("Cannot update replicate, bad workflow transition {}",
                             getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));

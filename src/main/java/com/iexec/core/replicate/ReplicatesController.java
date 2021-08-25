@@ -32,7 +32,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.common.notification.TaskNotificationType.PLEASE_CONTINUE;
 import static org.springframework.http.ResponseEntity.status;
 
 @RestController
@@ -110,7 +109,7 @@ public class ReplicatesController {
         if (replicateStatusUpdateError.isPresent()) {
             if (replicateStatusUpdateError.get() == ReplicateStatusUpdateError.ALREADY_REPORTED) {
                 return status(HttpStatus.ALREADY_REPORTED.value())
-                        .body(PLEASE_CONTINUE);
+                        .body(TaskNotificationType.PLEASE_WAIT);
             }
             return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
         }

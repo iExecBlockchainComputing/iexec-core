@@ -18,6 +18,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -579,6 +580,24 @@ public class ReplicateServiceTests {
     @Test
     public void shouldNotUpdateReplicateStatusToResultUploadingSinceResultLinkMissing() {
         //TODO After having moved isResultUploaded() method to another class
+    }
+
+    @Test
+    public void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        final Optional<TaskNotificationType> result = replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(result)
+                .isEqualTo(Optional.of(TaskNotificationType.PLEASE_WAIT));
     }
 
     @Test
