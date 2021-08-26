@@ -331,12 +331,14 @@ public class ReplicatesService {
             switch (replicateStatusUpdateError.get()) {
                 case ALREADY_REPORTED:
                     log.error("Cannot update replicate, status {} already reported.", newStatus);
-                    return Optional.of(TaskNotificationType.PLEASE_WAIT);
+                    return Optional.empty();
                 case BAD_WORKFLOW_TRANSITION:
                     log.error("Cannot update replicate, bad workflow transition {}",
                             getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                     break;
                 default:
+                    log.error("Cannot update replicate {}",
+                            getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                     break;
             }
             return Optional.empty();

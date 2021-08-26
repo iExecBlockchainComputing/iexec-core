@@ -109,7 +109,7 @@ public class ReplicatesController {
         if (replicateStatusUpdateError.isPresent()) {
             if (replicateStatusUpdateError.get() == ReplicateStatusUpdateError.ALREADY_REPORTED) {
                 return status(HttpStatus.ALREADY_REPORTED.value())
-                        .body(TaskNotificationType.PLEASE_WAIT);
+                        .body(null);
             }
             return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
         }

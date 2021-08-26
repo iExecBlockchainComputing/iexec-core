@@ -597,7 +597,7 @@ public class ReplicateServiceTests {
 
         final Optional<TaskNotificationType> result = replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         assertThat(result)
-                .isEqualTo(Optional.of(TaskNotificationType.PLEASE_WAIT));
+                .isEqualTo(Optional.empty());
     }
 
     @Test
