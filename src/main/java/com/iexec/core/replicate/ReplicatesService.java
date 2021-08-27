@@ -243,6 +243,14 @@ public class ReplicatesService {
 
     /**
      * Checks whether a replicate can be updated with given status.
+     * Reason why a replicate can't be updated could be one of the following:
+     * <ul>
+     *     <li>The replicate is unknown. It could happen if there has been a confusion is the chains.</li>
+     *     <li>The status has already been reported.
+     *          It could happen if an update has already been detected before the worker notify the scheduler.</li>
+     *     <li>The new status could not be reached from the old status.</li>
+     *     <li>Some step failed.</li>
+     * </ul>
      *
      * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
      */

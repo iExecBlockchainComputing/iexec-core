@@ -203,16 +203,16 @@ public class ReplicateControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
-    @Test
-    public void shouldReply208AlreadyReported() {
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
-                .thenReturn(WALLET_ADDRESS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED));
-
-        ResponseEntity<TaskNotificationType> response =
-                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ALREADY_REPORTED);
-    }
+//    @Test
+//    public void shouldReply208AlreadyReported() {
+//        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+//                .thenReturn(WALLET_ADDRESS);
+//        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+//                .thenReturn(Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED));
+//
+//        ResponseEntity<TaskNotificationType> response =
+//                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
+//
+//        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ALREADY_REPORTED);
+//    }
 }
