@@ -115,7 +115,7 @@ public class ReplicatesController {
         }
 
         return replicatesService
-                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate)
+                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, true)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
                 .build());

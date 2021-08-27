@@ -312,6 +312,12 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
+    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
+                                                                String walletAddress,
+                                                                ReplicateStatusUpdate statusUpdate) {
+        return updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, false);
+    }
+
     /*
      * We retry up to 100 times in case the task has been modified between
      * reading and writing it.
@@ -325,13 +331,13 @@ public class ReplicatesService {
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
+                                                                ReplicateStatusUpdate statusUpdate,
+                                                                boolean skipUpdateAbilityTests) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
-        final Optional<ReplicateStatusUpdateError> replicateStatusUpdateError =
-                canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate);
-        if (replicateStatusUpdateError.isPresent()) {
+        if (skipUpdateAbilityTests
+                && canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate).isPresent()) {
             return Optional.empty();
         }
 

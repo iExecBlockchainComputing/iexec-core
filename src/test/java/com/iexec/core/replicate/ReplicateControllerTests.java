@@ -167,7 +167,7 @@ public class ReplicateControllerTests {
     public void shouldUpdateReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, true))
                 .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
         
         ResponseEntity<TaskNotificationType> response =
