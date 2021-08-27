@@ -251,6 +251,8 @@ public class ReplicatesService {
                                                ReplicateStatusUpdate statusUpdate) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
+            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
+                    chainTaskId, statusUpdate);
             return Optional.of(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
         }
 
@@ -260,12 +262,15 @@ public class ReplicatesService {
 
         boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
         if (hasAlreadyTransitionedToStatus) {
+            log.warn("Cannot update replicate, status {} already reported.", newStatus);
             return Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED);
         }
 
         boolean isValidTransition = ReplicateWorkflow.getInstance()
                 .isValidTransition(replicate.getCurrentStatus(), newStatus);
         if (!isValidTransition) {
+            log.warn("Cannot update replicate, bad workflow transition {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return Optional.of(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
         }
 
@@ -291,6 +296,8 @@ public class ReplicatesService {
         }
 
         if (!canUpdate) {
+            log.error("Cannot update replicate {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return Optional.of(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
         }
 
@@ -316,33 +323,13 @@ public class ReplicatesService {
 
         final Optional<ReplicateStatusUpdateError> replicateStatusUpdateError =
                 canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate);
-        if (replicateStatusUpdateError.isPresent()
-                && Objects.equals(replicateStatusUpdateError.get(),ReplicateStatusUpdateError.UNKNOWN_REPLICATE)) {
-            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
-                    chainTaskId, statusUpdate);
+        if (replicateStatusUpdateError.isPresent()) {
             return Optional.empty();
         }
 
         ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
         Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
         ReplicateStatus newStatus = statusUpdate.getStatus();
-
-        if (replicateStatusUpdateError.isPresent()) {
-            switch (replicateStatusUpdateError.get()) {
-                case ALREADY_REPORTED:
-                    log.error("Cannot update replicate, status {} already reported.", newStatus);
-                    return Optional.empty();
-                case BAD_WORKFLOW_TRANSITION:
-                    log.error("Cannot update replicate, bad workflow transition {}",
-                            getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-                    break;
-                default:
-                    log.error("Cannot update replicate {}",
-                            getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-                    break;
-            }
-            return Optional.empty();
-        }
 
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
             if (statusUpdate.getStatus().equals(COMPUTED)) {
