@@ -234,8 +234,8 @@ public class ReplicatesService {
      * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
      */
     public ReplicateStatusUpdateError canUpdateReplicateStatus(String chainTaskId,
-                                                                         String walletAddress,
-                                                                         ReplicateStatusUpdate statusUpdate) {
+                                                               String walletAddress,
+                                                               ReplicateStatusUpdate statusUpdate) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
