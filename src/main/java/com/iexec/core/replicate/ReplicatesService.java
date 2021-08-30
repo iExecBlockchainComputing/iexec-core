@@ -282,33 +282,6 @@ public class ReplicatesService {
             return Optional.of(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
         }
 
-        boolean canUpdate = true;
-
-        switch (newStatus) {
-            case CONTRIBUTE_FAILED:
-            case REVEAL_FAILED:
-                canUpdate = false;
-                break;
-            case RESULT_UPLOAD_FAILED:
-                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
-                break;
-            case CONTRIBUTED:
-            case REVEALED:
-                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate);
-                break;
-            case RESULT_UPLOADED:
-                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate);
-                break;
-            default:
-                break;
-        }
-
-        if (!canUpdate) {
-            log.error("Cannot update replicate {}",
-                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-            return Optional.of(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
-        }
-
         return Optional.empty();
     }
 
@@ -336,7 +309,7 @@ public class ReplicatesService {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
-        if (skipUpdateAbilityTests
+        if (!skipUpdateAbilityTests
                 && canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate).isPresent()) {
             return Optional.empty();
         }
@@ -344,6 +317,31 @@ public class ReplicatesService {
         ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
         Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
         ReplicateStatus newStatus = statusUpdate.getStatus();
+
+        boolean canUpdate = true;
+
+        switch (newStatus) {
+            case CONTRIBUTE_FAILED:
+            case REVEAL_FAILED:
+                canUpdate = false;
+                break;
+            case RESULT_UPLOAD_FAILED:
+                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
+                break;
+            case CONTRIBUTED:
+            case REVEALED:
+                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate);
+                break;
+            case RESULT_UPLOADED:
+                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate);
+                break;
+            default:
+                break;
+        }
+
+        if (!canUpdate) {
+            return Optional.empty();
+        }
 
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
             if (statusUpdate.getStatus().equals(COMPUTED)) {
