@@ -220,27 +220,6 @@ public class ReplicatesService {
                 && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
     }
 
-    /*
-     * This implicitly sets the modifier to POOL_MANAGER
-     */
-    public void updateReplicateStatus(String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus) {
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus);
-        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    }
-
-    /*
-     * This implicitly sets the modifier to POOL_MANAGER
-     */
-    public void updateReplicateStatus(String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
-        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    }
-
     /**
      * Checks whether a replicate can be updated with given status.
      * Reason why a replicate can't be updated could be one of the following:
@@ -255,8 +234,8 @@ public class ReplicatesService {
      * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
      */
     public Optional<ReplicateStatusUpdateError> canUpdateReplicateStatus(String chainTaskId,
-                                               String walletAddress,
-                                               ReplicateStatusUpdate statusUpdate) {
+                                                                         String walletAddress,
+                                                                         ReplicateStatusUpdate statusUpdate) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
@@ -310,6 +289,27 @@ public class ReplicatesService {
         }
 
         return Optional.empty();
+    }
+
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus) {
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus);
+        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
+    }
+
+    /*
+     * This implicitly sets the modifier to POOL_MANAGER
+     */
+    public void updateReplicateStatus(String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusDetails details) {
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
+        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
