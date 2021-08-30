@@ -104,20 +104,23 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        final Optional<ReplicateStatusUpdateError> replicateStatusUpdateError =
+        final ReplicateStatusUpdateError replicateStatusUpdateError =
                 replicatesService.canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-        if (replicateStatusUpdateError.isPresent()) {
-            if (replicateStatusUpdateError.get() == ReplicateStatusUpdateError.ALREADY_REPORTED) {
+        switch (replicateStatusUpdateError) {
+            case NO_ERROR:
+                return replicatesService
+                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, true)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
+                                .build());
+            case ALREADY_REPORTED:
                 return status(HttpStatus.ALREADY_REPORTED.value())
                         .body(TaskNotificationType.PLEASE_WAIT);
-            }
-            return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+            case UNKNOWN_REPLICATE:
+            case BAD_WORKFLOW_TRANSITION:
+            case GENERIC_CANT_UPDATE:
+            default:
+                return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
         }
-
-        return replicatesService
-                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, true)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
-                .build());
     }
 }

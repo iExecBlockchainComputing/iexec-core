@@ -872,7 +872,8 @@ public class ReplicateServiceTests {
                 .status(REVEALING)
                 .build();
 
-        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate)).isNotPresent();
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+                .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
     }
 
     @Test
@@ -889,7 +890,7 @@ public class ReplicateServiceTests {
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate))
-                .isEqualTo(Optional.of(ReplicateStatusUpdateError.UNKNOWN_REPLICATE));
+                .isEqualTo(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
     }
 
     @Test
@@ -906,7 +907,7 @@ public class ReplicateServiceTests {
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
-                .isEqualTo(Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED));
+                .isEqualTo(ReplicateStatusUpdateError.ALREADY_REPORTED);
     }
 
     @Test
@@ -923,6 +924,6 @@ public class ReplicateServiceTests {
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
-                .isEqualTo(Optional.of(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION));
+                .isEqualTo(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
     }
 }

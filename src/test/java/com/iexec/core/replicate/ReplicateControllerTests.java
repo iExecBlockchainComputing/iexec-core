@@ -167,6 +167,8 @@ public class ReplicateControllerTests {
     public void shouldUpdateReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+                .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, true))
                 .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
         
@@ -194,8 +196,8 @@ public class ReplicateControllerTests {
     public void shouldNotUpdateReplicateSinceForbidden() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(Optional.empty());
+        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+                .thenReturn(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -208,7 +210,7 @@ public class ReplicateControllerTests {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED));
+                .thenReturn(ReplicateStatusUpdateError.ALREADY_REPORTED);
 
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);

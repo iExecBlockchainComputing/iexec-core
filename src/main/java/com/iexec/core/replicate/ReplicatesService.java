@@ -233,14 +233,14 @@ public class ReplicatesService {
      *
      * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
      */
-    public Optional<ReplicateStatusUpdateError> canUpdateReplicateStatus(String chainTaskId,
+    public ReplicateStatusUpdateError canUpdateReplicateStatus(String chainTaskId,
                                                                          String walletAddress,
                                                                          ReplicateStatusUpdate statusUpdate) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
                     chainTaskId, statusUpdate);
-            return Optional.of(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
+            return ReplicateStatusUpdateError.UNKNOWN_REPLICATE;
         }
 
         ReplicatesList replicatesList = oReplicateList.get();
@@ -250,7 +250,7 @@ public class ReplicatesService {
         boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
         if (hasAlreadyTransitionedToStatus) {
             log.warn("Cannot update replicate, status {} already reported.", newStatus);
-            return Optional.of(ReplicateStatusUpdateError.ALREADY_REPORTED);
+            return ReplicateStatusUpdateError.ALREADY_REPORTED;
         }
 
         boolean isValidTransition = ReplicateWorkflow.getInstance()
@@ -258,7 +258,7 @@ public class ReplicatesService {
         if (!isValidTransition) {
             log.warn("Cannot update replicate, bad workflow transition {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-            return Optional.of(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
+            return ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION;
         }
 
         boolean canUpdate = true;
@@ -285,10 +285,10 @@ public class ReplicatesService {
         if (!canUpdate) {
             log.warn("Cannot update replicate {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-            return Optional.of(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+            return ReplicateStatusUpdateError.GENERIC_CANT_UPDATE;
         }
 
-        return Optional.empty();
+        return ReplicateStatusUpdateError.NO_ERROR;
     }
 
     /*
@@ -337,7 +337,9 @@ public class ReplicatesService {
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
         if (!skipUpdateAbilityTests
-                && canUpdateReplicateStatus(chainTaskId,walletAddress,statusUpdate).isPresent()) {
+                && !Objects.equals(
+                    canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate),
+                    ReplicateStatusUpdateError.NO_ERROR)) {
             return Optional.empty();
         }
 
