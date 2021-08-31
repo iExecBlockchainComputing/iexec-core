@@ -299,16 +299,21 @@ public class ReplicatesService {
     public UpdateReplicateStatusArgs computeUpdateReplicateStatusArgs(String chainTaskId,
                                                                       String walletAddress,
                                                                       ReplicateStatusUpdate statusUpdate) {
-        int workerWeight = iexecHubService.getWorkerWeight(walletAddress);
-        Optional<ChainContribution> chainContribution = iexecHubService.getChainContribution(chainTaskId, walletAddress);
+        UpdateReplicateStatusArgs.UpdateReplicateStatusArgsBuilder builder = UpdateReplicateStatusArgs.builder();
+        if (statusUpdate.getStatus() == CONTRIBUTED) {
+            builder
+                    .workerWeight(iexecHubService.getWorkerWeight(walletAddress))
+                    .chainContribution(iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null));
+        }
 
         ReplicateStatusDetails details = statusUpdate.getDetails();
+        if (details != null) {
+            builder
+                    .resultLink(details.getResultLink())
+                    .chainCallbackData(details.getChainCallbackData());
+        }
 
-        return new UpdateReplicateStatusArgs(
-                workerWeight,
-                chainContribution.orElse(null),
-                details == null ? null : details.getResultLink(),
-                details == null ? null : details.getChainCallbackData());
+        return builder.build();
     }
 
     /*
@@ -365,9 +370,8 @@ public class ReplicatesService {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
-        if (!Objects.equals(
-                    canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs),
-                    ReplicateStatusUpdateError.NO_ERROR)) {
+        if (ReplicateStatusUpdateError.NO_ERROR
+                != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
             return Optional.empty();
         }
 
