@@ -232,7 +232,8 @@ public class ReplicatesService {
      *     <li>Some step failed.</li>
      * </ul>
      *
-     * @return {@link Optional#empty()} if this update is OK, {@code Optional} containing the error reason otherwise.
+     * @return {@link ReplicateStatusUpdateError#NO_ERROR} if this update is OK,
+     * another {@link ReplicateStatusUpdateError} containing the error reason otherwise.
      */
     public ReplicateStatusUpdateError canUpdateReplicateStatus(String chainTaskId,
                                                                String walletAddress,
