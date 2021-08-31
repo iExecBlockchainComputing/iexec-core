@@ -438,7 +438,7 @@ public class ReplicatesService {
         }
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
-            log.error("Cannot update replicate, status is not correct",
+            log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
@@ -459,7 +459,7 @@ public class ReplicatesService {
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
-            log.error("Cannot update replicate, status is not correct",
+            log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
