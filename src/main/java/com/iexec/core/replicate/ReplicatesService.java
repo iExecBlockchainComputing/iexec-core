@@ -49,6 +49,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -463,7 +464,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (updateReplicateStatusArgs.getResultLink() == null || updateReplicateStatusArgs.getResultLink().isEmpty()) {
+        if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
             log.error("Cannot update replicate, missing resultLink {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
