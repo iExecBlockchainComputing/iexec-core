@@ -445,8 +445,8 @@ public class ReplicatesService {
         }
 
         if (newStatus.equals(CONTRIBUTED)
-                && (!isWorkerWeightPresent(chainTaskId, replicate, updateReplicateStatusArgs)
-                || !isChainContributionPresent(chainTaskId, replicate, updateReplicateStatusArgs))) {
+                && (!isWorkerWeightCorrect(chainTaskId, replicate, updateReplicateStatusArgs.getWorkerWeight())
+                || !isChainContributionCorrect(chainTaskId, replicate, updateReplicateStatusArgs.getChainContribution()))) {
             log.error("Cannot update replicate, worker weight not updated {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -491,11 +491,10 @@ public class ReplicatesService {
         }
     }
 
-    private boolean isWorkerWeightPresent(String chainTaskId,
+    private boolean isWorkerWeightCorrect(String chainTaskId,
                                           Replicate replicate,
-                                          UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+                                          int workerWeight) {
         String walletAddress = replicate.getWalletAddress();
-        int workerWeight = updateReplicateStatusArgs.getWorkerWeight();
         if (workerWeight == 0) {
             log.error("Failed to get worker weight [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
@@ -504,10 +503,9 @@ public class ReplicatesService {
         return true;
     }
 
-    private boolean isChainContributionPresent(String chainTaskId,
+    private boolean isChainContributionCorrect(String chainTaskId,
                                                Replicate replicate,
-                                               UpdateReplicateStatusArgs updateReplicateStatusArgs) {
-        ChainContribution chainContribution = updateReplicateStatusArgs.getChainContribution();
+                                               ChainContribution chainContribution) {
         String walletAddress = replicate.getWalletAddress();
 
         if (chainContribution == null) {
