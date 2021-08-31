@@ -235,7 +235,8 @@ public class ReplicatesService {
      */
     public ReplicateStatusUpdateError canUpdateReplicateStatus(String chainTaskId,
                                                                String walletAddress,
-                                                               ReplicateStatusUpdate statusUpdate) {
+                                                               ReplicateStatusUpdate statusUpdate,
+                                                               UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
         if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
@@ -273,10 +274,10 @@ public class ReplicatesService {
                 break;
             case CONTRIBUTED:
             case REVEALED:
-                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate);
+                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate, updateReplicateStatusArgs);
                 break;
             case RESULT_UPLOADED:
-                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate);
+                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate, updateReplicateStatusArgs);
                 break;
             default:
                 break;
@@ -289,6 +290,25 @@ public class ReplicatesService {
         }
 
         return ReplicateStatusUpdateError.NO_ERROR;
+    }
+
+    /**
+     * Computes arguments used by {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}.
+     * These arguments can be null or empty, no check is done there.
+     */
+    public UpdateReplicateStatusArgs computeUpdateReplicateStatusArgs(String chainTaskId,
+                                                                      String walletAddress,
+                                                                      ReplicateStatusUpdate statusUpdate) {
+        int workerWeight = iexecHubService.getWorkerWeight(walletAddress);
+        Optional<ChainContribution> chainContribution = iexecHubService.getChainContribution(chainTaskId, walletAddress);
+
+        ReplicateStatusDetails details = statusUpdate.getDetails();
+
+        return new UpdateReplicateStatusArgs(
+                workerWeight,
+                chainContribution.orElse(null),
+                details == null ? null : details.getResultLink(),
+                details == null ? null : details.getChainCallbackData());
     }
 
     /*
@@ -315,7 +335,16 @@ public class ReplicatesService {
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
-        return updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, false);
+        final UpdateReplicateStatusArgs updateReplicateStatusArgs = computeUpdateReplicateStatusArgs(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+
+        return updateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate,
+                updateReplicateStatusArgs);
     }
 
     /*
@@ -332,13 +361,12 @@ public class ReplicatesService {
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate,
-                                                                boolean skipUpdateAbilityTests) {
+                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
-        if (!skipUpdateAbilityTests
-                && !Objects.equals(
-                    canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate),
+        if (!Objects.equals(
+                    canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs),
                     ReplicateStatusUpdateError.NO_ERROR)) {
             return Optional.empty();
         }
@@ -348,18 +376,13 @@ public class ReplicatesService {
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
         if (newStatus.equals(CONTRIBUTED)) {
-            int workerWeight = iexecHubService.getWorkerWeight(walletAddress);
-
-            Optional<ChainContribution> chainContribution =
-                    iexecHubService.getChainContribution(chainTaskId, walletAddress);
-            replicate.setContributionHash(chainContribution.orElseThrow().getResultHash()); // "get" could be used there but triggers a warning
-            replicate.setWorkerWeight(workerWeight);
+            replicate.setContributionHash(updateReplicateStatusArgs.getChainContribution().getResultHash());
+            replicate.setWorkerWeight(updateReplicateStatusArgs.getWorkerWeight());
         }
 
         if (newStatus.equals(RESULT_UPLOADED)) {
-            ReplicateStatusDetails details = statusUpdate.getDetails();
-            replicate.setResultLink(details.getResultLink());
-            replicate.setChainCallbackData(details.getChainCallbackData());
+            replicate.setResultLink(updateReplicateStatusArgs.getResultLink());
+            replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
@@ -393,8 +416,10 @@ public class ReplicatesService {
         exception.printStackTrace();
     }
 
-    private boolean canUpdateToBlockchainSuccess(String chainTaskId, Replicate replicate,
-                                                 ReplicateStatusUpdate statusUpdate) {
+    private boolean canUpdateToBlockchainSuccess(String chainTaskId,
+                                                 Replicate replicate,
+                                                 ReplicateStatusUpdate statusUpdate,
+                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ReplicateStatus newStatus = statusUpdate.getStatus();
         ReplicateStatusDetails details = statusUpdate.getDetails();
         long receiptBlockNumber = details != null && details.getChainReceipt() != null
@@ -413,7 +438,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (newStatus.equals(CONTRIBUTED) && !canUpdateReplicateWeight(chainTaskId, replicate)) {
+        if (newStatus.equals(CONTRIBUTED) && !canUpdateReplicateWeight(chainTaskId, replicate, updateReplicateStatusArgs)) {
             log.error("Cannot update replicate, worker weight not updated {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -422,10 +447,11 @@ public class ReplicatesService {
         return true;
     }
 
-    private boolean canUpdateToUploadSuccess(String chainTaskId, Replicate replicate,
-                                             ReplicateStatusUpdate statusUpdate) {
+    private boolean canUpdateToUploadSuccess(String chainTaskId,
+                                             Replicate replicate,
+                                             ReplicateStatusUpdate statusUpdate,
+                                             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ReplicateStatus newStatus = statusUpdate.getStatus();
-        ReplicateStatusDetails details = statusUpdate.getDetails();
 
         if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
             log.error("Cannot update replicate, status is not correct",
@@ -433,7 +459,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (details == null || details.getResultLink() == null || details.getResultLink().isEmpty()) {
+        if (updateReplicateStatusArgs.getResultLink() == null || updateReplicateStatusArgs.getResultLink().isEmpty()) {
             log.error("Cannot update replicate, missing resultLink {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -457,19 +483,20 @@ public class ReplicatesService {
         }
     }
 
-    private boolean canUpdateReplicateWeight(String chainTaskId, Replicate replicate) {
+    private boolean canUpdateReplicateWeight(String chainTaskId,
+                                             Replicate replicate,
+                                             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         String walletAddress = replicate.getWalletAddress();
-        int workerWeight = iexecHubService.getWorkerWeight(walletAddress);
+        int workerWeight = updateReplicateStatusArgs.getWorkerWeight();
         if (workerWeight == 0) {
             log.error("Failed to get worker weight [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
 
-        Optional<ChainContribution> chainContribution =
-                iexecHubService.getChainContribution(chainTaskId, walletAddress);
+        ChainContribution chainContribution = updateReplicateStatusArgs.getChainContribution();
 
-        if (chainContribution.isEmpty()) {
+        if (chainContribution == null) {
             log.error("Failed to get chain contribution [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;

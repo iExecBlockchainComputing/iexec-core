@@ -50,6 +50,10 @@ import static org.mockito.Mockito.*;
 
 public class ReplicateServiceTests {
 
+    private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
+            .workerWeight(1)
+            .build();
+
     @Mock
     private ReplicatesRepository replicatesRepository;
     @Mock
@@ -872,7 +876,7 @@ public class ReplicateServiceTests {
                 .status(REVEALING)
                 .build();
 
-        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
                 .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
     }
 
@@ -889,7 +893,7 @@ public class ReplicateServiceTests {
                 .status(REVEALING)
                 .build();
 
-        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate))
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate, UPDATE_ARGS))
                 .isEqualTo(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
     }
 
@@ -906,7 +910,7 @@ public class ReplicateServiceTests {
                 .status(CONTRIBUTED)
                 .build();
 
-        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
                 .isEqualTo(ReplicateStatusUpdateError.ALREADY_REPORTED);
     }
 
@@ -923,7 +927,7 @@ public class ReplicateServiceTests {
                 .status(CONTRIBUTED)
                 .build();
 
-        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
                 .isEqualTo(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
     }
 }

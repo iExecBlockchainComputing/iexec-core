@@ -25,4 +25,6 @@ import lombok.Data;
 public class UpdateReplicateStatusArgs {
     private final int workerWeight;
     private final ChainContribution chainContribution;
+    private String resultLink;
+    private String chainCallbackData;
 }

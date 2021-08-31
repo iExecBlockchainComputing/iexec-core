@@ -103,12 +103,20 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        final ReplicateStatusUpdateError replicateStatusUpdateError =
-                replicatesService.canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
+        final UpdateReplicateStatusArgs updateReplicateStatusArgs = replicatesService.computeUpdateReplicateStatusArgs(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+        final ReplicateStatusUpdateError replicateStatusUpdateError = replicatesService.canUpdateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate,
+                updateReplicateStatusArgs);
+
         switch (replicateStatusUpdateError) {
             case NO_ERROR:
                 return replicatesService
-                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, true)
+                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
                         .map(ResponseEntity::ok)
                         .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
                                 .build());
