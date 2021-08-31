@@ -443,7 +443,9 @@ public class ReplicatesService {
             return false;
         }
 
-        if (newStatus.equals(CONTRIBUTED) && !canUpdateReplicateWeight(chainTaskId, replicate, updateReplicateStatusArgs)) {
+        if (newStatus.equals(CONTRIBUTED)
+                && (!isWorkerWeightPresent(chainTaskId, replicate, updateReplicateStatusArgs)
+                || !isChainContributionPresent(chainTaskId, replicate, updateReplicateStatusArgs))) {
             log.error("Cannot update replicate, worker weight not updated {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -488,9 +490,9 @@ public class ReplicatesService {
         }
     }
 
-    private boolean canUpdateReplicateWeight(String chainTaskId,
-                                             Replicate replicate,
-                                             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    private boolean isWorkerWeightPresent(String chainTaskId,
+                                          Replicate replicate,
+                                          UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         String walletAddress = replicate.getWalletAddress();
         int workerWeight = updateReplicateStatusArgs.getWorkerWeight();
         if (workerWeight == 0) {
@@ -498,8 +500,14 @@ public class ReplicatesService {
                     chainTaskId, walletAddress);
             return false;
         }
+        return true;
+    }
 
+    private boolean isChainContributionPresent(String chainTaskId,
+                                               Replicate replicate,
+                                               UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ChainContribution chainContribution = updateReplicateStatusArgs.getChainContribution();
+        String walletAddress = replicate.getWalletAddress();
 
         if (chainContribution == null) {
             log.error("Failed to get chain contribution [chainTaskId:{}, workerWallet:{}]",
