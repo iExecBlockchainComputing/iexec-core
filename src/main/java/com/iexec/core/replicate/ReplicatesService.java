@@ -302,19 +302,23 @@ public class ReplicatesService {
                                                                       String walletAddress,
                                                                       ReplicateStatusUpdate statusUpdate) {
         UpdateReplicateStatusArgs.UpdateReplicateStatusArgsBuilder builder = UpdateReplicateStatusArgs.builder();
-        if (statusUpdate.getStatus() == CONTRIBUTED) {
-            builder
-                    .workerWeight(iexecHubService.getWorkerWeight(walletAddress))
-                    .chainContribution(iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null));
+        switch (statusUpdate.getStatus()) {
+            case CONTRIBUTED:
+                builder
+                        .workerWeight(iexecHubService.getWorkerWeight(walletAddress))
+                        .chainContribution(iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null));
+                break;
+            case RESULT_UPLOADED:
+                ReplicateStatusDetails details = statusUpdate.getDetails();
+                if (details != null) {
+                    builder
+                            .resultLink(details.getResultLink())
+                            .chainCallbackData(details.getChainCallbackData());
+                }
+                break;
+            default:
+                break;
         }
-
-        ReplicateStatusDetails details = statusUpdate.getDetails();
-        if (details != null) {
-            builder
-                    .resultLink(details.getResultLink())
-                    .chainCallbackData(details.getChainCallbackData());
-        }
-
         return builder.build();
     }
 
@@ -510,6 +514,12 @@ public class ReplicatesService {
 
         if (chainContribution == null) {
             log.error("Failed to get chain contribution [chainTaskId:{}, workerWallet:{}]",
+                    chainTaskId, walletAddress);
+            return false;
+        }
+
+        if (StringUtils.isEmpty(chainContribution.getResultHash())) {
+            log.error("Failed to get chain contribution result hash [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
