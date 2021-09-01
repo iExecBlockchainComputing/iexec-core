@@ -529,8 +529,8 @@ public class ReplicatesService {
     private boolean validateWorkerWeight(String chainTaskId,
                                          Replicate replicate,
                                          int workerWeight) {
-        String walletAddress = replicate.getWalletAddress();
         if (workerWeight == 0) {
+            String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get worker weight [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
@@ -541,15 +541,15 @@ public class ReplicatesService {
     private boolean validateChainContribution(String chainTaskId,
                                               Replicate replicate,
                                               ChainContribution chainContribution) {
-        String walletAddress = replicate.getWalletAddress();
-
         if (chainContribution == null) {
+            String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get chain contribution [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
 
         if (StringUtils.isEmpty(chainContribution.getResultHash())) {
+            String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get chain contribution result hash [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
