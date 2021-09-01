@@ -272,7 +272,7 @@ public class ReplicatesService {
                 canUpdate = false;
                 break;
             case RESULT_UPLOAD_FAILED:
-                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
+                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
                 break;
             case CONTRIBUTED:
             case REVEALED:
@@ -301,25 +301,39 @@ public class ReplicatesService {
     public UpdateReplicateStatusArgs computeUpdateReplicateStatusArgs(String chainTaskId,
                                                                       String walletAddress,
                                                                       ReplicateStatusUpdate statusUpdate) {
-        UpdateReplicateStatusArgs.UpdateReplicateStatusArgsBuilder builder = UpdateReplicateStatusArgs.builder();
+        int workerWeight = 0;
+        ChainContribution chainContribution = null;
+        String resultLink = null;
+        String chainCallbackData = null;
+        TaskDescription taskDescription = null;
+
         switch (statusUpdate.getStatus()) {
             case CONTRIBUTED:
-                builder
-                        .workerWeight(iexecHubService.getWorkerWeight(walletAddress))
-                        .chainContribution(iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null));
+                workerWeight = iexecHubService.getWorkerWeight(walletAddress);
+                chainContribution = iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null);
                 break;
             case RESULT_UPLOADED:
                 ReplicateStatusDetails details = statusUpdate.getDetails();
                 if (details != null) {
-                    builder
-                            .resultLink(details.getResultLink())
-                            .chainCallbackData(details.getChainCallbackData());
+                    resultLink = details.getResultLink();
+                    chainCallbackData = details.getChainCallbackData();
                 }
+                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                break;
+            case RESULT_UPLOAD_FAILED:
+                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
                 break;
             default:
                 break;
         }
-        return builder.build();
+
+        return UpdateReplicateStatusArgs.builder()
+                .workerWeight(workerWeight)
+                .chainContribution(chainContribution)
+                .resultLink(resultLink)
+                .chainCallbackData(chainCallbackData)
+                .taskDescription(taskDescription)
+                .build();
     }
 
     /*
@@ -442,7 +456,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
+        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus, updateReplicateStatusArgs)) {
             log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -465,31 +479,48 @@ public class ReplicatesService {
                                              UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
-        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
+        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus, updateReplicateStatusArgs)) {
             log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
-        if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
-            log.error("Cannot update replicate, missing resultLink {}",
+        if (updateReplicateStatusArgs.getTaskDescription() == null) {
+            log.error("Cannot update replicate, missing task description {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
+        }
+
+        if (updateReplicateStatusArgs.getTaskDescription().containsCallback()) {
+            if (StringUtils.isEmpty(updateReplicateStatusArgs.getChainCallbackData())) {
+                log.error("Cannot update replicate, missing chainCallbackData {}",
+                        getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+                return false;
+            }
+        } else {
+            if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
+                log.error("Cannot update replicate, missing resultLink {}",
+                        getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+                return false;
+            }
         }
 
         return true;
     }
 
-    private boolean verifyStatus(String chainTaskId, String walletAddress, ReplicateStatus status) {
+    private boolean verifyStatus(String chainTaskId,
+                                 String walletAddress,
+                                 ReplicateStatus status,
+                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         switch (status) {
             case CONTRIBUTED:
                 return iexecHubService.repeatIsContributedTrue(chainTaskId, walletAddress);
             case REVEALED:
                 return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress);
             case RESULT_UPLOADED:
-                return isResultUploaded(chainTaskId);
+                return isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case RESULT_UPLOAD_FAILED:
-                return !isResultUploaded(chainTaskId);
+                return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             default:
                 return true;
         }
@@ -540,18 +571,22 @@ public class ReplicatesService {
             return false;
         }
 
+        return isResultUploaded(task.get());
+    }
+
+    public boolean isResultUploaded(TaskDescription task) {
         // Offchain computing - basic & tee
-        if (task.get().containsCallback()){
+        if (task.containsCallback()){
             return true;
         }
 
         // Cloud computing - tee
-        if (task.get().isTeeTask()) {
+        if (task.isTeeTask()) {
             return true; // pushed from enclave
         }
 
         // Cloud computing - basic
-        return resultService.isResultUploaded(chainTaskId);
+        return resultService.isResultUploaded(task.getChainTaskId());
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {

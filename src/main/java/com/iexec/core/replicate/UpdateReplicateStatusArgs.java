@@ -17,6 +17,7 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
+import com.iexec.common.task.TaskDescription;
 import lombok.Builder;
 import lombok.Data;
 
@@ -27,4 +28,5 @@ public class UpdateReplicateStatusArgs {
     private final ChainContribution chainContribution;
     private String resultLink;
     private String chainCallbackData;
+    private TaskDescription taskDescription;
 }
