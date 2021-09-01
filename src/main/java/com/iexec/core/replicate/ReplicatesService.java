@@ -463,8 +463,8 @@ public class ReplicatesService {
         }
 
         if (newStatus.equals(CONTRIBUTED)
-                && (!isWorkerWeightCorrect(chainTaskId, replicate, updateReplicateStatusArgs.getWorkerWeight())
-                || !isChainContributionCorrect(chainTaskId, replicate, updateReplicateStatusArgs.getChainContribution()))) {
+                && (!validateWorkerWeight(chainTaskId, replicate, updateReplicateStatusArgs.getWorkerWeight())
+                || !validateChainContribution(chainTaskId, replicate, updateReplicateStatusArgs.getChainContribution()))) {
             log.error("Cannot update replicate, worker weight not updated {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -526,9 +526,9 @@ public class ReplicatesService {
         }
     }
 
-    private boolean isWorkerWeightCorrect(String chainTaskId,
-                                          Replicate replicate,
-                                          int workerWeight) {
+    private boolean validateWorkerWeight(String chainTaskId,
+                                         Replicate replicate,
+                                         int workerWeight) {
         String walletAddress = replicate.getWalletAddress();
         if (workerWeight == 0) {
             log.error("Failed to get worker weight [chainTaskId:{}, workerWallet:{}]",
@@ -538,9 +538,9 @@ public class ReplicatesService {
         return true;
     }
 
-    private boolean isChainContributionCorrect(String chainTaskId,
-                                               Replicate replicate,
-                                               ChainContribution chainContribution) {
+    private boolean validateChainContribution(String chainTaskId,
+                                              Replicate replicate,
+                                              ChainContribution chainContribution) {
         String walletAddress = replicate.getWalletAddress();
 
         if (chainContribution == null) {
