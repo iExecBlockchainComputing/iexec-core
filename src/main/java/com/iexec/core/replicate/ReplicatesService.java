@@ -26,11 +26,7 @@ import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
 import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.iexec.common.chain.ChainContribution;
@@ -53,6 +49,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -224,6 +221,121 @@ public class ReplicatesService {
                 && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
     }
 
+    /**
+     * Checks whether a replicate can be updated with given status.
+     * Reason why a replicate can't be updated could be one of the following:
+     * <ul>
+     *     <li>The replicate is unknown. It could happen if there has been a confusion is the chains.</li>
+     *     <li>The status has already been reported.
+     *          It could happen if an update has already been detected before the worker notify the scheduler.</li>
+     *     <li>The new status could not be reached from the old status.</li>
+     *     <li>Some step failed.</li>
+     * </ul>
+     *
+     * @return {@link ReplicateStatusUpdateError#NO_ERROR} if this update is OK,
+     * another {@link ReplicateStatusUpdateError} containing the error reason otherwise.
+     */
+    public ReplicateStatusUpdateError canUpdateReplicateStatus(String chainTaskId,
+                                                               String walletAddress,
+                                                               ReplicateStatusUpdate statusUpdate,
+                                                               UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+        Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
+        if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
+            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
+                    chainTaskId, statusUpdate);
+            return ReplicateStatusUpdateError.UNKNOWN_REPLICATE;
+        }
+
+        ReplicatesList replicatesList = oReplicateList.get();
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
+        ReplicateStatus newStatus = statusUpdate.getStatus();
+
+        boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
+        if (hasAlreadyTransitionedToStatus) {
+            log.warn("Cannot update replicate, status {} already reported.", newStatus);
+            return ReplicateStatusUpdateError.ALREADY_REPORTED;
+        }
+
+        boolean isValidTransition = ReplicateWorkflow.getInstance()
+                .isValidTransition(replicate.getCurrentStatus(), newStatus);
+        if (!isValidTransition) {
+            log.warn("Cannot update replicate, bad workflow transition {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+            return ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION;
+        }
+
+        boolean canUpdate = true;
+
+        switch (newStatus) {
+            case CONTRIBUTE_FAILED:
+            case REVEAL_FAILED:
+                canUpdate = false;
+                break;
+            case RESULT_UPLOAD_FAILED:
+                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
+                break;
+            case CONTRIBUTED:
+            case REVEALED:
+                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate, updateReplicateStatusArgs);
+                break;
+            case RESULT_UPLOADED:
+                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate, updateReplicateStatusArgs);
+                break;
+            default:
+                break;
+        }
+
+        if (!canUpdate) {
+            log.warn("Cannot update replicate {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+            return ReplicateStatusUpdateError.GENERIC_CANT_UPDATE;
+        }
+
+        return ReplicateStatusUpdateError.NO_ERROR;
+    }
+
+    /**
+     * Computes arguments used by {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}.
+     * These arguments can be null or empty, no check is done there.
+     */
+    public UpdateReplicateStatusArgs computeUpdateReplicateStatusArgs(String chainTaskId,
+                                                                      String walletAddress,
+                                                                      ReplicateStatusUpdate statusUpdate) {
+        int workerWeight = 0;
+        ChainContribution chainContribution = null;
+        String resultLink = null;
+        String chainCallbackData = null;
+        TaskDescription taskDescription = null;
+
+        switch (statusUpdate.getStatus()) {
+            case CONTRIBUTED:
+                workerWeight = iexecHubService.getWorkerWeight(walletAddress);
+                chainContribution = iexecHubService.getChainContribution(chainTaskId, walletAddress).orElse(null);
+                break;
+            case RESULT_UPLOADED:
+                ReplicateStatusDetails details = statusUpdate.getDetails();
+                if (details != null) {
+                    resultLink = details.getResultLink();
+                    chainCallbackData = details.getChainCallbackData();
+                }
+                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                break;
+            case RESULT_UPLOAD_FAILED:
+                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                break;
+            default:
+                break;
+        }
+
+        return UpdateReplicateStatusArgs.builder()
+                .workerWeight(workerWeight)
+                .chainContribution(chainContribution)
+                .resultLink(resultLink)
+                .chainCallbackData(chainCallbackData)
+                .taskDescription(taskDescription)
+                .build();
+    }
+
     /*
      * This implicitly sets the modifier to POOL_MANAGER
      */
@@ -245,6 +357,21 @@ public class ReplicatesService {
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
+    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
+                                                                String walletAddress,
+                                                                ReplicateStatusUpdate statusUpdate) {
+        final UpdateReplicateStatusArgs updateReplicateStatusArgs = computeUpdateReplicateStatusArgs(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+
+        return updateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate,
+                updateReplicateStatusArgs);
+    }
+
     /*
      * We retry up to 100 times in case the task has been modified between
      * reading and writing it.
@@ -258,52 +385,28 @@ public class ReplicatesService {
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
+                                                                ReplicateStatusUpdate statusUpdate,
+                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
-        Optional<ReplicatesList> oReplicateList = getReplicatesList(chainTaskId);
-        if (oReplicateList.isEmpty() || oReplicateList.get().getReplicateOfWorker(walletAddress).isEmpty()) {
-            log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
-                    chainTaskId, statusUpdate);
+        if (ReplicateStatusUpdateError.NO_ERROR
+                != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
             return Optional.empty();
         }
 
-        ReplicatesList replicatesList = oReplicateList.get();
-        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).get();
+        ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
+        Replicate replicate = replicatesList.getReplicateOfWorker(walletAddress).orElseThrow(); // "get" could be used there but triggers a warning
         ReplicateStatus newStatus = statusUpdate.getStatus();
 
-        boolean isValidTransition = ReplicateWorkflow.getInstance()
-                .isValidTransition(replicate.getCurrentStatus(), newStatus);
-        if (!isValidTransition) {
-            log.error("Cannot update replicate, bad wokfow transition {}",
-                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
-            return Optional.empty();
+        if (newStatus.equals(CONTRIBUTED)) {
+            replicate.setContributionHash(updateReplicateStatusArgs.getChainContribution().getResultHash());
+            replicate.setWorkerWeight(updateReplicateStatusArgs.getWorkerWeight());
         }
 
-        boolean canUpdate = true;
-
-        switch (newStatus) {
-            case CONTRIBUTE_FAILED:
-            case REVEAL_FAILED:
-                canUpdate = false;
-                break;
-            case RESULT_UPLOAD_FAILED:
-                canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus);
-                break;
-            case CONTRIBUTED:
-            case REVEALED:
-                canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate);
-                break;
-            case RESULT_UPLOADED:
-                canUpdate = canUpdateToUploadSuccess(chainTaskId, replicate, statusUpdate);
-                break;
-            default:
-                break;
-        }
-
-        if (!canUpdate) {
-            return Optional.empty();
+        if (newStatus.equals(RESULT_UPLOADED)) {
+            replicate.setResultLink(updateReplicateStatusArgs.getResultLink());
+            replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
@@ -337,8 +440,10 @@ public class ReplicatesService {
         exception.printStackTrace();
     }
 
-    private boolean canUpdateToBlockchainSuccess(String chainTaskId, Replicate replicate,
-                                                 ReplicateStatusUpdate statusUpdate) {
+    private boolean canUpdateToBlockchainSuccess(String chainTaskId,
+                                                 Replicate replicate,
+                                                 ReplicateStatusUpdate statusUpdate,
+                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ReplicateStatus newStatus = statusUpdate.getStatus();
         ReplicateStatusDetails details = statusUpdate.getDetails();
         long receiptBlockNumber = details != null && details.getChainReceipt() != null
@@ -351,13 +456,15 @@ public class ReplicatesService {
             return false;
         }
 
-        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
-            log.error("Cannot update replicate, status is not correct",
+        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus, updateReplicateStatusArgs)) {
+            log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
-        if (newStatus.equals(CONTRIBUTED) && !updateReplicateWeight(chainTaskId, replicate)) {
+        if (newStatus.equals(CONTRIBUTED)
+                && (!validateWorkerWeight(chainTaskId, replicate, updateReplicateStatusArgs.getWorkerWeight())
+                || !validateChainContribution(chainTaskId, replicate, updateReplicateStatusArgs.getChainContribution()))) {
             log.error("Cannot update replicate, worker weight not updated {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
@@ -366,64 +473,88 @@ public class ReplicatesService {
         return true;
     }
 
-    private boolean canUpdateToUploadSuccess(String chainTaskId, Replicate replicate,
-                                             ReplicateStatusUpdate statusUpdate) {
+    private boolean canUpdateToUploadSuccess(String chainTaskId,
+                                             Replicate replicate,
+                                             ReplicateStatusUpdate statusUpdate,
+                                             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         ReplicateStatus newStatus = statusUpdate.getStatus();
-        ReplicateStatusDetails details = statusUpdate.getDetails();
 
-        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus)) {
-            log.error("Cannot update replicate, status is not correct",
+        if (!verifyStatus(chainTaskId, replicate.getWalletAddress(), newStatus, updateReplicateStatusArgs)) {
+            log.error("Cannot update replicate, status is not correct {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
-        if (details == null || details.getResultLink() == null || details.getResultLink().isEmpty()) {
-            log.error("Cannot update replicate, missing resultLink {}",
+        if (updateReplicateStatusArgs.getTaskDescription() == null) {
+            log.error("Cannot update replicate, missing task description {}",
                     getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return false;
         }
 
-        replicate.setResultLink(details.getResultLink());
-        replicate.setChainCallbackData(details.getChainCallbackData());
+        if (updateReplicateStatusArgs.getTaskDescription().containsCallback()) {
+            if (StringUtils.isEmpty(updateReplicateStatusArgs.getChainCallbackData())) {
+                log.error("Cannot update replicate, missing chainCallbackData {}",
+                        getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+                return false;
+            }
+        } else {
+            if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
+                log.error("Cannot update replicate, missing resultLink {}",
+                        getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+                return false;
+            }
+        }
+
         return true;
-
     }
 
-    private boolean verifyStatus(String chainTaskId, String walletAddress, ReplicateStatus status) {
+    private boolean verifyStatus(String chainTaskId,
+                                 String walletAddress,
+                                 ReplicateStatus status,
+                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         switch (status) {
             case CONTRIBUTED:
                 return iexecHubService.repeatIsContributedTrue(chainTaskId, walletAddress);
             case REVEALED:
                 return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress);
             case RESULT_UPLOADED:
-                return isResultUploaded(chainTaskId);
+                return isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case RESULT_UPLOAD_FAILED:
-                return !isResultUploaded(chainTaskId);
+                return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             default:
                 return true;
         }
     }
 
-    private boolean updateReplicateWeight(String chainTaskId, Replicate replicate) {
-        String walletAddress = replicate.getWalletAddress();
-        int workerWeight = iexecHubService.getWorkerWeight(walletAddress);
+    private boolean validateWorkerWeight(String chainTaskId,
+                                         Replicate replicate,
+                                         int workerWeight) {
         if (workerWeight == 0) {
+            String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get worker weight [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
+        return true;
+    }
 
-        Optional<ChainContribution> chainContribution =
-                iexecHubService.getChainContribution(chainTaskId, walletAddress);
-
-        if (!chainContribution.isPresent()) {
+    private boolean validateChainContribution(String chainTaskId,
+                                              Replicate replicate,
+                                              ChainContribution chainContribution) {
+        if (chainContribution == null) {
+            String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get chain contribution [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
             return false;
         }
 
-        replicate.setContributionHash(chainContribution.get().getResultHash());
-        replicate.setWorkerWeight(workerWeight);
+        if (StringUtils.isEmpty(chainContribution.getResultHash())) {
+            String walletAddress = replicate.getWalletAddress();
+            log.error("Failed to get chain contribution result hash [chainTaskId:{}, workerWallet:{}]",
+                    chainTaskId, walletAddress);
+            return false;
+        }
+
         return true;
     }
 
@@ -440,18 +571,22 @@ public class ReplicatesService {
             return false;
         }
 
+        return isResultUploaded(task.get());
+    }
+
+    public boolean isResultUploaded(TaskDescription task) {
         // Offchain computing - basic & tee
-        if (task.get().containsCallback()){
+        if (task.containsCallback()){
             return true;
         }
 
         // Cloud computing - tee
-        if (task.get().isTeeTask()) {
+        if (task.isTeeTask()) {
             return true; // pushed from enclave
         }
 
         // Cloud computing - basic
-        return resultService.isResultUploaded(chainTaskId);
+        return resultService.isResultUploaded(task.getChainTaskId());
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {

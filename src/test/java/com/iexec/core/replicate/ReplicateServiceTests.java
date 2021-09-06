@@ -18,6 +18,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
+import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -48,6 +49,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 public class ReplicateServiceTests {
+
+    private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
+            .workerWeight(1)
+            .build();
 
     @Mock
     private ReplicatesRepository replicatesRepository;
@@ -582,6 +587,24 @@ public class ReplicateServiceTests {
     }
 
     @Test
+    public void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        final Optional<TaskNotificationType> result = replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(result)
+                .isEqualTo(Optional.empty());
+    }
+
+    @Test
     public void shouldNotSetContributionHashSinceRevealing() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
@@ -616,6 +639,38 @@ public class ReplicateServiceTests {
                 .isEqualTo(10);
 
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEmpty();
+    }
+
+    @Test
+    public void shouldUpdateToResultUploaded() {
+        String stdout = "This is an stdout message !";
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        ReplicateStatusDetails details = ReplicateStatusDetails.builder().stdout(stdout).build();
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .details(details)
+                .build();
+        ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
+
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .chainCallbackData("callbackData")
+                .taskDescription(TaskDescription.builder().callback("callback").build())
+                .build();
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs);
+        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+                .publishEvent(argumentCaptor.capture());
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(RESULT_UPLOADED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
     }
 
     @Test
@@ -837,4 +892,455 @@ public class ReplicateServiceTests {
 
         verify(replicatesRepository).findByChainTaskId(CHAIN_TASK_ID);
     }
+
+    // canUpdateReplicateStatus
+
+    @Test
+    public void shouldAuthorizeUpdate() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALING)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateSinceNoMatchingReplicate() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALING)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateSinceAlreadyReported() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.ALREADY_REPORTED);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateSinceBadWorkflowTransition() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateSinceContributeFailed() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTE_FAILED)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateSinceRevealFailed() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEAL_FAILED)
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldAuthorizeUpdateOnResultUploadFailed() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOAD_FAILED)
+                .build();
+        UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(new TaskDescription())
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateReplicateStatusArgs))
+                .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithCallback() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOAD_FAILED)
+                .build();
+        UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().callback("callback").build())
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateReplicateStatusArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithTee() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOAD_FAILED)
+                .build();
+        UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().isTeeTask(true).build())
+                .build();
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateReplicateStatusArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnContributedSinceNoBlockAvailable() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(false);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnContributedSinceWorkerWeightNotValid() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .workerWeight(0)
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnContributedSinceNoChainContribution() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .workerWeight(1)
+                .chainContribution(null)
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnContributedSinceNoChainContributionResultHash() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .workerWeight(1)
+                .chainContribution(ChainContribution.builder().resultHash("").build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldAuthorizeUpdateOnResultUploaded() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .chainCallbackData("callbackData")
+                .taskDescription(TaskDescription.builder().callback("callback").build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnResultUploadedSinceNoChainCallbackData() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().callback("callback").build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnResultUploadedSinceNoResultLink() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    public void shouldNotAuthorizeUpdateOnResultUploadedSinceResultNotUploaded() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(resultService.isResultUploaded(anyString())).thenReturn(false);
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    // computeUpdateReplicateStatusArgs
+
+    @Test
+    public void computeUpdateReplicateStatusArgsContributed() {
+        final int expectedWorkerWeight = 1;
+        final ChainContribution expectedChainContribution = new ChainContribution();
+        final String unexpectedResultLink = "resultLink";
+        final String unexpectedChainCallbackData = "chainCallbackData";
+
+        final ReplicateStatusDetails details = new ReplicateStatusDetails(
+                null,
+                unexpectedResultLink,
+                unexpectedChainCallbackData,
+                null,
+                null,
+                null);
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTED)
+                .details(details)
+                .build();
+
+        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(expectedWorkerWeight);
+        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(new ChainContribution()));
+
+        assertThat(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+                .isEqualTo(UpdateReplicateStatusArgs.builder()
+                        .workerWeight(expectedWorkerWeight)
+                        .chainContribution(expectedChainContribution)
+                        .build());
+    }
+
+    @Test
+    public void computeUpdateReplicateStatusArgsResultUploaded() {
+        final int unexpectedWorkerWeight = 1;
+        final ChainContribution unexpectedChainContribution = new ChainContribution();
+        final String expectedResultLink = "resultLink";
+        final String expectedChainCallbackData = "chainCallbackData";
+        final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
+
+        final ReplicateStatusDetails details = new ReplicateStatusDetails(
+                null,
+                expectedResultLink,
+                expectedChainCallbackData,
+                null,
+                null,
+                null);
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOADED)
+                .details(details)
+                .build();
+
+        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
+        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(unexpectedChainContribution));
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(expectedTaskDescription));
+
+        final UpdateReplicateStatusArgs actualResult =
+                replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(actualResult)
+                .isEqualTo(UpdateReplicateStatusArgs.builder()
+                        .resultLink(expectedResultLink)
+                        .chainCallbackData(expectedChainCallbackData)
+                        .taskDescription(expectedTaskDescription)
+                        .build());
+    }
+
+    @Test
+    public void computeUpdateReplicateStatusArgsResultUploadFailed() {
+        final int unexpectedWorkerWeight = 1;
+        final ChainContribution unexpectedChainContribution = new ChainContribution();
+        final String unexpectedResultLink = "resultLink";
+        final String unexpectedChainCallbackData = "chainCallbackData";
+        final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
+
+        final ReplicateStatusDetails details = new ReplicateStatusDetails(
+                null,
+                unexpectedResultLink,
+                unexpectedChainCallbackData,
+                null,
+                null,
+                null);
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(RESULT_UPLOAD_FAILED)
+                .details(details)
+                .build();
+
+        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
+        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(unexpectedChainContribution));
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(expectedTaskDescription));
+
+        final UpdateReplicateStatusArgs actualResult =
+                replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(actualResult)
+                .isEqualTo(UpdateReplicateStatusArgs.builder()
+                        .taskDescription(expectedTaskDescription)
+                        .build());
+    }
+
 }
