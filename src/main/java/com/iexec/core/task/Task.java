@@ -27,6 +27,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,6 +36,7 @@ import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 
+@Document
 @Getter
 @Setter
 @NoArgsConstructor
