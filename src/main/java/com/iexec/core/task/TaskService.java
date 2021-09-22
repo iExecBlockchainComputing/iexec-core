@@ -21,13 +21,13 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.Web3jService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.task.update.TaskUpdateRequestConsumer;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -54,24 +54,23 @@ public class TaskService implements TaskUpdateRequestConsumer {
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final Web3jService web3jService;
+    private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
 
     public TaskService(
-        TaskRepository taskRepository,
-        TaskUpdateRequestManager taskUpdateRequestManager,
-        IexecHubService iexecHubService,
-        ReplicatesService replicatesService,
-        ApplicationEventPublisher applicationEventPublisher,
-        Web3jService web3jService,
-        BlockchainAdapterService blockchainAdapterService
+            TaskRepository taskRepository,
+            TaskUpdateRequestManager taskUpdateRequestManager,
+            IexecHubService iexecHubService,
+            ReplicatesService replicatesService,
+            ApplicationEventPublisher applicationEventPublisher,
+            WorkerService workerService, BlockchainAdapterService blockchainAdapterService
     ) {
         this.taskRepository = taskRepository;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.web3jService = web3jService;
+        this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.taskUpdateRequestManager.setRequestConsumer(this);
     }
@@ -256,6 +255,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 break;
             case RUNNING:
                 running2ConsensusReached(task);
+                running2AllWorkersFailed(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
             case CONSENSUS_REACHED:
@@ -427,6 +427,25 @@ public class TaskService implements TaskUpdateRequestConsumer {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
             updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
+                    .chainTaskId(task.getChainTaskId())
+                    .build());
+        }
+    }
+
+    private void running2AllWorkersFailed(Task task) {
+        boolean isRunningTask = task.getCurrentStatus().equals(RUNNING);
+        boolean haveAllWorkerFailed = replicatesService.getReplicates(task.getChainTaskId())
+                .stream()
+                .filter(replicate -> ReplicateStatus.isFailure(replicate.getCurrentStatus()))
+                .count() == workerService.getAliveWorkers().size();
+
+        // If all workers have failed on this task, its computation should be stopped.
+        // It could denote that the task is wrong
+        // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
+        if (isRunningTask && haveAllWorkerFailed) {
+            updateTaskStatusAndSave(task, ALL_WORKERS_FAILED);
+            updateTaskStatusAndSave(task, FAILED);
+            applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
                     .chainTaskId(task.getChainTaskId())
                     .build());
         }

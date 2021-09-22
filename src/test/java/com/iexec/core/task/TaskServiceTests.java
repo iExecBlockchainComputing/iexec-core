@@ -20,6 +20,7 @@ import com.iexec.common.chain.*;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.utils.BytesUtils;
+import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
@@ -27,8 +28,8 @@ import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
@@ -40,13 +41,13 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.common.utils.DateTimeUtils.sleep;
+import static com.iexec.core.task.TaskStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -55,6 +56,7 @@ import static org.mockito.Mockito.*;
 public class TaskServiceTests {
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private final static String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
     private final static String CHAIN_DEAL_ID = "0xd82223e5feff6720792ffed1665e980da95e5d32b177332013eaba8edc07f31c";
     private final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
@@ -777,6 +779,67 @@ public class TaskServiceTests {
         taskService.updateTaskRunnable(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
+
+    // Tests on running2AllWorkersFailed transition
+    @Test
+    public void shouldUpdateRunning2AllWorkersFailed() {
+        Task task = getStubTask();
+        task.changeStatus(RUNNING);
+
+        Replicate replicate1 = new Replicate();
+        replicate1.setWalletAddress(WALLET_WORKER_1);
+        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        replicate1.setStatusUpdateList(new ArrayList<>());
+        replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate();
+        replicate2.setWalletAddress(WALLET_WORKER_2);
+        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        replicate2.setStatusUpdateList(new ArrayList<>());
+        replicate2.updateStatus(ReplicateStatus.CONTRIBUTE_FAILED, ReplicateStatusModifier.WORKER);
+
+        final List<Replicate> replicatesList = List.of(replicate1, replicate2);
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(workerService.getAliveWorkers()).thenReturn(replicatesList.stream().map(r -> new Worker()).collect(Collectors.toList()));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskService.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getDateOfStatus(ALL_WORKERS_FAILED)).isPresent();
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    public void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillComputing() {
+        Task task = getStubTask();
+        task.changeStatus(RUNNING);
+
+        Replicate replicate1 = new Replicate();
+        replicate1.setWalletAddress(WALLET_WORKER_1);
+        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        replicate1.setStatusUpdateList(new ArrayList<>());
+        replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate();
+        replicate2.setWalletAddress(WALLET_WORKER_2);
+        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        replicate2.setStatusUpdateList(new ArrayList<>());
+        replicate2.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
+
+        final List<Replicate> replicatesList = List.of(replicate1, replicate2);
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(workerService.getAliveWorkers()).thenReturn(replicatesList.stream().map(r -> new Worker()).collect(Collectors.toList()));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskService.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getDateOfStatus(ALL_WORKERS_FAILED)).isEmpty();
+    }
+
 
     // Tests on consensusReached2AtLeastOneReveal2UploadRequested transition
 

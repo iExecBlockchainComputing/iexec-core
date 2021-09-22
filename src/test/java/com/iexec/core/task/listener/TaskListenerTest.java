@@ -153,4 +153,20 @@ public class TaskListenerTest {
         );
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
     }
+
+    @Test
+    public void onTaskComputeFailedEvent() {
+        when(replicatesService.getReplicates(CHAIN_TASK_ID))
+                .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
+
+        taskListeners.onTaskComputeFailedEvent(new TaskComputeFailedEvent(CHAIN_TASK_ID));
+        verify(notificationService).sendTaskNotification(
+                TaskNotification.builder()
+                        .chainTaskId(CHAIN_TASK_ID)
+                        .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                        .workersAddress(Collections.emptyList())
+                        .build()
+        );
+        verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
+    }
 }

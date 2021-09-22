@@ -155,9 +155,7 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
-            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
-        }
+        removeChainTaskIdFromWorkers(chainTaskId);
     }
 
     @EventListener
@@ -171,6 +169,24 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
+        removeChainTaskIdFromWorkers(chainTaskId);
+    }
+
+    @EventListener
+    public void onTaskComputeFailedEvent(TaskComputeFailedEvent event) {
+        String chainTaskId = event.getChainTaskId();
+        log.info("Received TaskComputeFailedEvent [chainTaskId:{}] ", chainTaskId);
+
+        notificationService.sendTaskNotification(TaskNotification.builder()
+                .chainTaskId(chainTaskId)
+                .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                .workersAddress(Collections.emptyList())
+                .build());
+
+        removeChainTaskIdFromWorkers(chainTaskId);
+    }
+
+    private void removeChainTaskIdFromWorkers(String chainTaskId) {
         for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
             workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }
