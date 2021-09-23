@@ -443,7 +443,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
         if (isRunningTask && haveAllWorkerFailed) {
-            updateTaskStatusAndSave(task, ALL_WORKERS_FAILED);
+            updateTaskStatusAndSave(task, RUNNING_FAILED);
             updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
                     .chainTaskId(task.getChainTaskId())

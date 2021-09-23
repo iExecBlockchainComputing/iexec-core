@@ -807,7 +807,7 @@ public class TaskServiceTests {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.updateTaskRunnable(task.getChainTaskId());
-        assertThat(task.getDateOfStatus(ALL_WORKERS_FAILED)).isPresent();
+        assertThat(task.getDateOfStatus(RUNNING_FAILED)).isPresent();
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
@@ -837,7 +837,7 @@ public class TaskServiceTests {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskService.updateTaskRunnable(task.getChainTaskId());
-        assertThat(task.getDateOfStatus(ALL_WORKERS_FAILED)).isEmpty();
+        assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
     }
 
 
