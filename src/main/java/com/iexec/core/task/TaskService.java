@@ -441,7 +441,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
      * We consider that all workers are in a `RUNNING_FAILED` status when:
      * <ol>
      *     <li>All alive workers have tried to run the task;</li>
-     *     <li>All workers that have tried to run the task have failed, whether they are alive or lost.</li>
+     *     <li>All workers that have tried to run the task have failed, whether they are alive or lost;</li>
      *     <li>No replicate has reached the `COMPUTED` status.</li>
      * </ol>
      *
