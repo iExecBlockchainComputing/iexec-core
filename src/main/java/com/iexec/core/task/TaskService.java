@@ -27,6 +27,7 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.task.update.TaskUpdateRequestConsumer;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -255,7 +257,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 break;
             case RUNNING:
                 running2ConsensusReached(task);
-                running2AllWorkersFailed(task);
+                running2RunningFailed(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
             case CONSENSUS_REACHED:
@@ -432,17 +434,55 @@ public class TaskService implements TaskUpdateRequestConsumer {
         }
     }
 
-    private void running2AllWorkersFailed(Task task) {
+    /**
+     * When all workers have failed to run the task, we send the new status as soon as possible.
+     * It avoids a state within which we know the task won't be updated anymore, but we wait for a timeout.
+     * <br>
+     * We consider that all workers are in a `RUNNING_FAILED` status when:
+     * <ol>
+     *     <li>All alive workers have tried to run the task;</li>
+     *     <li>All workers that have tried to run the task have failed, whether they are alive or lost.</li>
+     *     <li>No replicate has reached the `COMPUTED` status.</li>
+     * </ol>
+     *
+     * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
+     */
+    private void running2RunningFailed(Task task) {
         boolean isRunningTask = task.getCurrentStatus().equals(RUNNING);
-        boolean haveAllWorkerFailed = replicatesService.getReplicates(task.getChainTaskId())
+        if (!isRunningTask) {
+            return;
+        }
+
+        final List<Replicate> replicates = replicatesService.getReplicates(task.getChainTaskId());
+
+        final List<Worker> aliveWorkers = workerService.getAliveWorkers();
+
+        // If an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
+        final Predicate<Worker> hasWorkerAlreadyTried = worker -> replicates
                 .stream()
-                .filter(replicate -> ReplicateStatus.isFailure(replicate.getCurrentStatus()))
-                .count() == workerService.getAliveWorkers().size();
+                .map(Replicate::getWalletAddress)
+                .anyMatch(address -> address.equals(worker.getWalletAddress()));
+
+        final boolean allAliveWorkersTried = aliveWorkers
+                .stream()
+                .allMatch(hasWorkerAlreadyTried);
+        if (!allAliveWorkersTried) {
+            return;
+        }
+
+        // If all workers that have run the task have failed while running the task, it is definitely a `RUNNING_FAILURE`.
+        boolean allReplicatesFailed = replicates
+                .stream()
+                .map(Replicate::getLastRelevantStatus)
+                // A replicate that has not ever been created nor started is probably failed.
+                .map(status -> status.orElse(ReplicateStatus.FAILED))
+                .filter(Predicate.not(ReplicateStatus::isRunningFailure))
+                .allMatch(ReplicateStatus.FAILED::equals);
 
         // If all workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
-        if (isRunningTask && haveAllWorkerFailed) {
+        if (allReplicatesFailed) {
             updateTaskStatusAndSave(task, RUNNING_FAILED);
             updateTaskStatusAndSave(task, FAILED);
             applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
