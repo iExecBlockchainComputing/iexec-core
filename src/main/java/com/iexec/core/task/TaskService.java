@@ -33,12 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -441,8 +439,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
      * We consider that all workers are in a `RUNNING_FAILED` status when:
      * <ol>
      *     <li>All alive workers have tried to run the task;</li>
-     *     <li>All workers that have tried to run the task have failed, whether they are alive or lost;</li>
-     *     <li>No replicate has reached the `COMPUTED` status.</li>
+     *     <li>All alive workers that have tried to run the task have failed.</li>
      * </ol>
      *
      * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
@@ -456,36 +453,44 @@ public class TaskService implements TaskUpdateRequestConsumer {
         final List<Replicate> replicates = replicatesService.getReplicates(task.getChainTaskId());
         final List<Worker> aliveWorkers = workerService.getAliveWorkers();
 
-        // If an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
-        final Predicate<Worker> hasWorkerAlreadyTried = worker -> replicates
+        final Function<Worker, Optional<Replicate>> getReplicateForWorker = worker -> replicates
                 .stream()
-                .map(Replicate::getWalletAddress)
-                .anyMatch(address -> address.equals(worker.getWalletAddress()));
+                .filter(replicate -> replicate.getWalletAddress().equals(worker.getWalletAddress()))
+                .findFirst();
+        final List<Optional<Replicate>> replicatesOfAliveWorkers = aliveWorkers
+                .stream()
+                .map(getReplicateForWorker)
+                .collect(Collectors.toList());
 
-        final boolean allAliveWorkersTried = aliveWorkers
+        // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
+        final boolean notAllAliveWorkersTried = replicatesOfAliveWorkers
                 .stream()
-                .allMatch(hasWorkerAlreadyTried);
-        if (!allAliveWorkersTried) {
+                .anyMatch(Optional::isEmpty);
+
+        if (notAllAliveWorkersTried) {
             return;
         }
 
-        // If all workers that have run the task have failed while running the task, it is definitely a `RUNNING_FAILURE`.
-        boolean allReplicatesFailed = replicates
+        // If not all alive workers have failed while running the task, that's not a running failure.
+        boolean notAllReplicatesFailed = replicatesOfAliveWorkers
                 .stream()
+                .map(Optional::get)
                 .map(Replicate::getLastRelevantStatus)
                 .map(Optional::get)
-                .allMatch(ReplicateStatus::isFailedBeforeComputed);
+                .anyMatch(Predicate.not(ReplicateStatus::isFailedBeforeComputed));
 
-        // If all workers have failed on this task, its computation should be stopped.
+        if (notAllReplicatesFailed) {
+            return;
+        }
+
+        // If all alive workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
-        if (allReplicatesFailed) {
-            updateTaskStatusAndSave(task, RUNNING_FAILED);
-            updateTaskStatusAndSave(task, FAILED);
-            applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
-        }
+        updateTaskStatusAndSave(task, RUNNING_FAILED);
+        updateTaskStatusAndSave(task, FAILED);
+        applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
+                .chainTaskId(task.getChainTaskId())
+                .build());
     }
 
     private void consensusReached2AtLeastOneReveal2UploadRequested(Task task) {
