@@ -454,7 +454,6 @@ public class TaskService implements TaskUpdateRequestConsumer {
         }
 
         final List<Replicate> replicates = replicatesService.getReplicates(task.getChainTaskId());
-
         final List<Worker> aliveWorkers = workerService.getAliveWorkers();
 
         // If an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
@@ -474,10 +473,8 @@ public class TaskService implements TaskUpdateRequestConsumer {
         boolean allReplicatesFailed = replicates
                 .stream()
                 .map(Replicate::getLastRelevantStatus)
-                // A replicate that has not ever been created nor started is probably failed.
-                .map(status -> status.orElse(ReplicateStatus.FAILED))
-                .filter(Predicate.not(ReplicateStatus::isFailedBeforeComputed))
-                .allMatch(ReplicateStatus.FAILED::equals);
+                .map(Optional::get)
+                .allMatch(ReplicateStatus::isFailedBeforeComputed);
 
         // If all workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
