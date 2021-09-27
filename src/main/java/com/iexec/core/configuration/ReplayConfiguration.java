@@ -29,7 +29,7 @@ import java.math.BigInteger;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-class Configuration {
+class ReplayConfiguration {
 
     @Id
     private String id;
@@ -37,7 +37,7 @@ class Configuration {
     @Version
     private Long version;
 
-    private BigInteger lastSeenBlockWithDeal;
+    private BigInteger fromReplay;
 
 }
 
