@@ -23,6 +23,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.task.update.TaskUpdateRequestConsumer;
@@ -450,16 +451,13 @@ public class TaskService implements TaskUpdateRequestConsumer {
             return;
         }
 
-        final List<Replicate> replicates = replicatesService.getReplicates(task.getChainTaskId());
+        final ReplicatesList replicatesList = replicatesService.getReplicatesList(task.getChainTaskId()).orElseThrow();
         final List<Worker> aliveWorkers = workerService.getAliveWorkers();
 
-        final Function<Worker, Optional<Replicate>> getReplicateForWorker = worker -> replicates
-                .stream()
-                .filter(replicate -> replicate.getWalletAddress().equals(worker.getWalletAddress()))
-                .findFirst();
         final List<Optional<Replicate>> replicatesOfAliveWorkers = aliveWorkers
                 .stream()
-                .map(getReplicateForWorker)
+                .map(Worker::getWalletAddress)
+                .map(replicatesList::getReplicateOfWorker)
                 .collect(Collectors.toList());
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.

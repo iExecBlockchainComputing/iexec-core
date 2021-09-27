@@ -53,7 +53,7 @@ public class ReplicatesList {
         this.replicates = replicates;
     }
 
-    Optional<Replicate> getReplicateOfWorker(String workerWalletAddress) {
+    public Optional<Replicate> getReplicateOfWorker(String workerWalletAddress) {
         for (Replicate replicate : replicates) {
             if (replicate.getWalletAddress().equals(workerWalletAddress)) {
                 return Optional.of(replicate);
