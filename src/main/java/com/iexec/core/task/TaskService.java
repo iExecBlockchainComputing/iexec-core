@@ -476,7 +476,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 .map(Replicate::getLastRelevantStatus)
                 // A replicate that has not ever been created nor started is probably failed.
                 .map(status -> status.orElse(ReplicateStatus.FAILED))
-                .filter(Predicate.not(ReplicateStatus::isRunningFailure))
+                .filter(Predicate.not(ReplicateStatus::isFailedBeforeComputed))
                 .allMatch(ReplicateStatus.FAILED::equals);
 
         // If all workers have failed on this task, its computation should be stopped.
