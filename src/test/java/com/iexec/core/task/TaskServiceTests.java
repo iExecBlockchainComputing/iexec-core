@@ -27,6 +27,7 @@ import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
@@ -794,15 +795,17 @@ public class TaskServiceTests {
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        final List<Replicate> replicatesList = List.of(replicate1);
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1));
         final List<Worker> workersList = replicatesList
+                .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -831,15 +834,17 @@ public class TaskServiceTests {
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.APP_DOWNLOAD_FAILED, ReplicateStatusModifier.WORKER);
 
-        final List<Replicate> replicatesList = List.of(replicate1, replicate2);
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1, replicate2));
         final List<Worker> workersList = replicatesList
+                .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -868,15 +873,17 @@ public class TaskServiceTests {
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
 
-        final List<Replicate> replicatesList = List.of(replicate1, replicate2);
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1, replicate2));
         final List<Worker> workersList = replicatesList
+                .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -905,14 +912,15 @@ public class TaskServiceTests {
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        final List<Replicate> replicatesList = List.of(replicate1, replicate2);
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1, replicate2));
         final List<Worker> workersList = List.of(
                 Worker.builder().walletAddress(replicate2.getWalletAddress()).build()
         );
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -934,7 +942,8 @@ public class TaskServiceTests {
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        final List<Replicate> replicatesList = List.of(replicate1);
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1));
         final List<Worker> workersList = List.of(
                 Worker.builder().walletAddress(WALLET_WORKER_1).build(),
                 Worker.builder().walletAddress(WALLET_WORKER_2).build()
@@ -942,7 +951,7 @@ public class TaskServiceTests {
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicatesList);
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 

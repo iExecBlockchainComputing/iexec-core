@@ -454,16 +454,16 @@ public class TaskService implements TaskUpdateRequestConsumer {
         final ReplicatesList replicatesList = replicatesService.getReplicatesList(task.getChainTaskId()).orElseThrow();
         final List<Worker> aliveWorkers = workerService.getAliveWorkers();
 
-        final List<Optional<Replicate>> replicatesOfAliveWorkers = aliveWorkers
+        final List<Replicate> replicatesOfAliveWorkers = aliveWorkers
                 .stream()
                 .map(Worker::getWalletAddress)
                 .map(replicatesList::getReplicateOfWorker)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toList());
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
-        final boolean notAllAliveWorkersTried = replicatesOfAliveWorkers
-                .stream()
-                .anyMatch(Optional::isEmpty);
+        final boolean notAllAliveWorkersTried = replicatesOfAliveWorkers.size() != aliveWorkers.size();
 
         if (notAllAliveWorkersTried) {
             return;
@@ -472,7 +472,6 @@ public class TaskService implements TaskUpdateRequestConsumer {
         // If not all alive workers have failed while running the task, that's not a running failure.
         boolean notAllReplicatesFailed = replicatesOfAliveWorkers
                 .stream()
-                .map(Optional::get)
                 .map(Replicate::getLastRelevantStatus)
                 .map(Optional::get)
                 .anyMatch(Predicate.not(ReplicateStatus::isFailedBeforeComputed));
