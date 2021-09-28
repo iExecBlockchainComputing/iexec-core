@@ -7,6 +7,10 @@ spring:
       database: iexec
       host: ${MONGO_HOST:localhost}
       port: ${MONGO_PORT:13002}
+mongock:
+  runner-type: InitializingBean
+  change-logs-scan-package:
+    - com.iexec.core.configuration
 
 cron:
   # all in milliseconds
