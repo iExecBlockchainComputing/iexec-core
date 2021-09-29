@@ -29,10 +29,11 @@ import java.math.BigInteger;
 @ChangeLog(order = "001")
 public class ConfigurationRepositoryMigration {
 
+    public static final String CURRENT_AUTHOR = "iexec";
     public static final String CONFIGURATION_COLLECTION_NAME = "configuration";
-    public static final String FROM_REPLAY_FIELD_NAME = "fromReplay";
+    public static final String LEGACY_FROM_REPLAY_FIELD_NAME = "fromReplay";
 
-    @ChangeSet(order = "001", id = "moveFromReplayField", author = "mongock")
+    @ChangeSet(order = "001", id = "moveFromReplayField", author = CURRENT_AUTHOR)
     public boolean moveFromReplayField(MongockTemplate mongockTemplate, ReplayConfigurationRepository replayConfigurationRepository) {
         if (replayConfigurationRepository.count() > 0) {
             log.info("Migration of fromReplay field is useless (already up-to-date)");
@@ -46,19 +47,19 @@ public class ConfigurationRepositoryMigration {
             log.info("Migration of fromReplay field is useless (no legacy)");
             return false;
         }
-        Object legacyFromReplayObject = configuration.get(FROM_REPLAY_FIELD_NAME);
+        Object legacyFromReplayObject = configuration.get(LEGACY_FROM_REPLAY_FIELD_NAME);
         if (legacyFromReplayObject == null) {
             log.info("Migration of fromReplay field is useless (missing field from legacy)");
             return false;
         }
         BigInteger legacyFromReplay = new BigInteger((String) legacyFromReplayObject);
         ReplayConfiguration replayConfiguration = new ReplayConfiguration();
-        replayConfiguration.setFromReplay(legacyFromReplay);
+        replayConfiguration.setFromBlockNumber(legacyFromReplay);
         replayConfigurationRepository.save(replayConfiguration);
 
         //remove legacy field from configuration
         configurationCollection.deleteOne(configuration);
-        configuration.remove(FROM_REPLAY_FIELD_NAME);
+        configuration.remove(LEGACY_FROM_REPLAY_FIELD_NAME);
         configurationCollection.insertOne(configuration);
         return true;
     }

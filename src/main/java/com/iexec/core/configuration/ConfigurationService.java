@@ -64,17 +64,17 @@ public class ConfigurationService {
         return replayConfigurationRepository.save(
                 ReplayConfiguration
                         .builder()
-                        .fromReplay(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
+                        .fromBlockNumber(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
                         .build());
     }
 
     public BigInteger getFromReplay() {
-        return this.getReplayConfiguration().getFromReplay();
+        return this.getReplayConfiguration().getFromBlockNumber();
     }
 
     public void setFromReplay(BigInteger fromReplay) {
         ReplayConfiguration replayConfiguration = this.getReplayConfiguration();
-        replayConfiguration.setFromReplay(fromReplay);
+        replayConfiguration.setFromBlockNumber(fromReplay);
         replayConfigurationRepository.save(replayConfiguration);
     }
 

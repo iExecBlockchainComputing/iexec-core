@@ -37,7 +37,7 @@ class ReplayConfiguration {
     @Version
     private Long version;
 
-    private BigInteger fromReplay;
+    private BigInteger fromBlockNumber;
 
 }
 

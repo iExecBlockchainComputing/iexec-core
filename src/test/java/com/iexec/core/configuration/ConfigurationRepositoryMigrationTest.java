@@ -77,7 +77,7 @@ public class ConfigurationRepositoryMigrationTest {
     }
 
     @Test
-    public void shouldNotMoveFromReplayFieldSinceMissingFieldInLegecy() {
+    public void shouldNotMoveFromReplayFieldSinceMissingFieldInLegacy() {
         when(replayConfigurationRepository.count()).thenReturn(0L);
         Document document = new Document("firstKey", "firstValue");
         mockFindFirstConfiguration(document);

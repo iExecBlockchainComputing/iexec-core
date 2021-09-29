@@ -96,7 +96,7 @@ public class ConfigurationServiceTests {
     @Test
     public void shouldGetFromReplayFromDatabase() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromReplay(BigInteger.TEN)
+            .fromBlockNumber(BigInteger.TEN)
             .build();
         List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
 
@@ -111,7 +111,7 @@ public class ConfigurationServiceTests {
     @Test
     public void shouldGetZeroAsFromReplay() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromReplay(BigInteger.ZERO)
+            .fromBlockNumber(BigInteger.ZERO)
             .build();
 
         when(replayConfigurationRepository.count()).thenReturn((long) 0);
@@ -126,7 +126,7 @@ public class ConfigurationServiceTests {
     @Test
     public void shouldSetFromReplay() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromReplay(BigInteger.ONE)
+            .fromBlockNumber(BigInteger.ONE)
             .build();
         List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
 
