@@ -566,8 +566,8 @@ public class TaskService implements TaskUpdateRequestConsumer {
 
         Optional<Replicate> oReplicate = replicatesService.getReplicate(task.getChainTaskId(), uploadingReplicateAddress);
 
-        if (!oReplicate.isPresent()) {
-            requestUpload(task);
+        if (oReplicate.isEmpty()) {
+            requestNewUpload(task);
             return;
         }
 
@@ -579,7 +579,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                                                 replicate.getLastRelevantStatus().get() == ReplicateStatus.RESULT_UPLOADING;
 
         if (!isReplicateUploading && !isReplicateRecoveringToUpload) {
-            requestUpload(task);
+            requestNewUpload(task);
         }
     }
 
@@ -595,6 +595,17 @@ public class TaskService implements TaskUpdateRequestConsumer {
                     .build());
             updateTaskStatusAndSave(task, FAILED);
         }
+    }
+
+    /**
+     * Ask for a newly-randomly-selected worker to upload its result.
+     * Clean current task's uploading worker wallet address before doing so.
+     */
+    private void requestNewUpload(Task task) {
+        task.setUploadingWorkerWalletAddress(null);
+        taskRepository.save(task);
+
+        requestUpload(task);
     }
 
     private void requestUpload(Task task) {
