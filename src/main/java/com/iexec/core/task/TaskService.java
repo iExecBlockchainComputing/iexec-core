@@ -504,6 +504,9 @@ public class TaskService implements TaskUpdateRequestConsumer {
 
     private void uploadRequested2UploadingResult(Task task) {
         boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
+        if (!isTaskInUploadRequested) {
+            return;
+        }
 
         boolean isThereAWorkerRequestedToUpload =
                 replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
@@ -512,10 +515,6 @@ public class TaskService implements TaskUpdateRequestConsumer {
         boolean isThereAWorkerUploading =
                 replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
                 ReplicateStatus.RESULT_UPLOADING) > 0;
-
-        if (!isTaskInUploadRequested) {
-            return;
-        }
 
         if (isThereAWorkerUploading) {
             updateTaskStatusAndSave(task, RESULT_UPLOADING);
