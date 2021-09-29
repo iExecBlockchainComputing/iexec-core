@@ -437,11 +437,8 @@ public class TaskService implements TaskUpdateRequestConsumer {
      * When all workers have failed to run the task, we send the new status as soon as possible.
      * It avoids a state within which we know the task won't be updated anymore, but we wait for a timeout.
      * <br>
-     * We consider that all workers are in a `RUNNING_FAILED` status when:
-     * <ol>
-     *     <li>All alive workers have tried to run the task;</li>
-     *     <li>All alive workers that have tried to run the task have failed.</li>
-     * </ol>
+     * We consider that all workers are in a `RUNNING_FAILED` status
+     * when all alive workers have tried to run the task, but they have failed.
      *
      * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
      */
@@ -463,9 +460,9 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 .collect(Collectors.toList());
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
-        final boolean notAllAliveWorkersTried = replicatesOfAliveWorkers.size() != aliveWorkers.size();
+        final boolean allAliveWorkersTried = replicatesOfAliveWorkers.size() == aliveWorkers.size();
 
-        if (notAllAliveWorkersTried) {
+        if (!allAliveWorkersTried) {
             return;
         }
 
