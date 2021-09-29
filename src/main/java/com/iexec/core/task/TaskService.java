@@ -31,6 +31,7 @@ import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -504,13 +505,13 @@ public class TaskService implements TaskUpdateRequestConsumer {
     private void uploadRequested2UploadingResult(Task task) {
         boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
 
+        boolean isThereAWorkerRequestedToUpload =
+                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
+                        ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
+
         boolean isThereAWorkerUploading =
                 replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
                 ReplicateStatus.RESULT_UPLOADING) > 0;
-
-        boolean isThereAWorkerRequestedToUpload =
-                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
-                ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
 
         if (!isTaskInUploadRequested) {
             return;
@@ -598,6 +599,11 @@ public class TaskService implements TaskUpdateRequestConsumer {
     }
 
     private void requestUpload(Task task) {
+        if (!StringUtils.isEmpty(task.getUploadingWorkerWalletAddress())) {
+            log.info("Upload requested but uploading wallet is already known. [task: {}, uploadingWallet:{}]",
+                    task.getChainTaskId(), task.getUploadingWorkerWalletAddress());
+            return;
+        }
 
         Optional<Replicate> optionalReplicate = replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId());
         if (optionalReplicate.isPresent()) {
