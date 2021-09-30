@@ -68,6 +68,7 @@ public class TaskServiceTests {
     private final Date contributionDeadline = new Date();
     private final Date finalDeadline = new Date();
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
+    private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
     private final static String RESULT_LINK = "/ipfs/the_result_string";
 
     @Mock
@@ -786,6 +787,7 @@ public class TaskServiceTests {
     public void shouldUpdateRunning2RunningFailedOn1Worker() {
         Task task = getStubTask();
         task.changeStatus(RUNNING);
+        task.setTag(TEE_TAG);
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -818,6 +820,7 @@ public class TaskServiceTests {
     public void shouldUpdateRunning2RunningFailedOn2Workers() {
         Task task = getStubTask();
         task.changeStatus(RUNNING);
+        task.setTag(TEE_TAG);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -854,9 +857,81 @@ public class TaskServiceTests {
     }
 
     @Test
+    public void shouldNotUpdateRunning2RunningFailedOn1WorkerAsNonTeeTask() {
+        Task task = getStubTask();
+        task.changeStatus(RUNNING);
+        task.setTag(NO_TEE_TAG);
+
+        // 1 replicate has tried to run the task:
+        // - R1 is in `COMPUTE_FAILED` status;
+        Replicate replicate1 = new Replicate();
+        replicate1.setWalletAddress(WALLET_WORKER_1);
+        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        replicate1.setStatusUpdateList(new ArrayList<>());
+        replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1));
+        final List<Worker> workersList = replicatesList
+                .getReplicates()
+                .stream()
+                .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
+                .collect(Collectors.toList());
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskService.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getDateOfStatus(RUNNING)).isPresent();
+    }
+
+    @Test
+    public void shouldNotUpdateRunning2RunningFailedOn2WorkersAsNonTeeTask() {
+        Task task = getStubTask();
+        task.changeStatus(RUNNING);
+        task.setTag(NO_TEE_TAG);
+
+        // 2 replicates have tried to run the task:
+        // - R1 is in `COMPUTE_FAILED` status;
+        // - R2 is in `APP_DOWNLOAD_FAILED` status.
+        Replicate replicate1 = new Replicate();
+        replicate1.setWalletAddress(WALLET_WORKER_1);
+        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        replicate1.setStatusUpdateList(new ArrayList<>());
+        replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
+
+        Replicate replicate2 = new Replicate();
+        replicate2.setWalletAddress(WALLET_WORKER_2);
+        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        replicate2.setStatusUpdateList(new ArrayList<>());
+        replicate2.updateStatus(ReplicateStatus.APP_DOWNLOAD_FAILED, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList();
+        replicatesList.setReplicates(List.of(replicate1, replicate2));
+        final List<Worker> workersList = replicatesList
+                .getReplicates()
+                .stream()
+                .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
+                .collect(Collectors.toList());
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskService.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getDateOfStatus(RUNNING)).isPresent();
+    }
+
+    @Test
     public void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillComputing() {
         Task task = getStubTask();
         task.changeStatus(RUNNING);
+        task.setTag(TEE_TAG);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -895,6 +970,7 @@ public class TaskServiceTests {
     public void shouldNotUpdateRunning2AllWorkersFailedSinceOneHasReachedComputed() {
         Task task = getStubTask();
         task.changeStatus(RUNNING);
+        task.setTag(TEE_TAG);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -932,6 +1008,7 @@ public class TaskServiceTests {
     public void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillHasToBeLaunched() {
         Task task = getStubTask();
         task.changeStatus(RUNNING);
+        task.setTag(TEE_TAG);
 
         // 1 replicates have tried to run the task and 1 is still to be run:
         // - R1 is in `COMPUTE_FAILED` status;

@@ -434,7 +434,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
     }
 
     /**
-     * When all workers have failed to run the task, we send the new status as soon as possible.
+     * In TEE mode, when all workers have failed to run the task, we send the new status as soon as possible.
      * It avoids a state within which we know the task won't be updated anymore, but we wait for a timeout.
      * <br>
      * We consider that all workers are in a `RUNNING_FAILED` status
@@ -444,7 +444,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
      */
     private void running2RunningFailed(Task task) {
         boolean isRunningTask = task.getCurrentStatus().equals(RUNNING);
-        if (!isRunningTask) {
+        if (!isRunningTask || !task.isTeeTask()) {
             return;
         }
 
