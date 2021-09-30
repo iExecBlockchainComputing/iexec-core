@@ -118,9 +118,9 @@ dependencies {
     libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 
     // mongock
-    implementation platform('com.github.cloudyrock.mongock:mongock-bom:4.2.7.BETA')
-    implementation 'com.github.cloudyrock.mongock:mongock-spring-v5'
-    implementation 'com.github.cloudyrock.mongock:mongodb-springdata-v2-driver'
+    compile platform('com.github.cloudyrock.mongock:mongock-bom:4.2.7.BETA')
+    compile 'com.github.cloudyrock.mongock:mongock-spring-v5'
+    compile 'com.github.cloudyrock.mongock:mongodb-springdata-v2-driver'
 }
 
 jacoco {
