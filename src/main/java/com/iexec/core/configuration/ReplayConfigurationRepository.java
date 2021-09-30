@@ -16,28 +16,8 @@
 
 package com.iexec.core.configuration;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-import java.math.BigInteger;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-class Configuration {
-
-    @Id
-    private String id;
-
-    @Version
-    private Long version;
-
-    private BigInteger lastSeenBlockWithDeal;
+interface ReplayConfigurationRepository extends MongoRepository<ReplayConfiguration, String> {
 
 }
-
