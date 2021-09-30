@@ -24,12 +24,15 @@ import java.math.BigInteger;
 @Service
 public class ConfigurationService {
 
-    private ConfigurationRepository configurationRepository;
-    private ChainConfig chainConfig;
+    private final ConfigurationRepository configurationRepository;
+    private final ReplayConfigurationRepository replayConfigurationRepository;
+    private final ChainConfig chainConfig;
 
     public ConfigurationService(ConfigurationRepository configurationRepository,
+                                ReplayConfigurationRepository replayConfigurationRepository,
                                 ChainConfig chainConfig) {
         this.configurationRepository = configurationRepository;
+        this.replayConfigurationRepository = replayConfigurationRepository;
         this.chainConfig = chainConfig;
     }
 
@@ -41,7 +44,6 @@ public class ConfigurationService {
             Configuration
                     .builder()
                     .lastSeenBlockWithDeal(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
-                    .fromReplay(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
                     .build());
     }
 
@@ -55,14 +57,25 @@ public class ConfigurationService {
         configurationRepository.save(configuration);
     }
 
+    private ReplayConfiguration getReplayConfiguration() {
+        if (replayConfigurationRepository.count() > 0)
+            return replayConfigurationRepository.findAll().get(0);
+
+        return replayConfigurationRepository.save(
+                ReplayConfiguration
+                        .builder()
+                        .fromBlockNumber(BigInteger.valueOf(chainConfig.getStartBlockNumber()))
+                        .build());
+    }
+
     public BigInteger getFromReplay() {
-        return this.getConfiguration().getFromReplay();
+        return this.getReplayConfiguration().getFromBlockNumber();
     }
 
     public void setFromReplay(BigInteger fromReplay) {
-        Configuration configuration = this.getConfiguration();
-        configuration.setFromReplay(fromReplay);
-        configurationRepository.save(configuration);
+        ReplayConfiguration replayConfiguration = this.getReplayConfiguration();
+        replayConfiguration.setFromBlockNumber(fromReplay);
+        replayConfigurationRepository.save(replayConfiguration);
     }
 
 }

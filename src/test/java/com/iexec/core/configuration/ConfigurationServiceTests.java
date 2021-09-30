@@ -35,6 +35,8 @@ public class ConfigurationServiceTests {
 
     @Mock
     private ConfigurationRepository configurationRepository;
+    @Mock
+    private ReplayConfigurationRepository replayConfigurationRepository;
 
     @Mock
     private ChainConfig chainConfig;
@@ -93,13 +95,13 @@ public class ConfigurationServiceTests {
 
     @Test
     public void shouldGetFromReplayFromDatabase() {
-        Configuration configuration = Configuration.builder()
-            .fromReplay(BigInteger.TEN)
+        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
+            .fromBlockNumber(BigInteger.TEN)
             .build();
-        List<Configuration> configurationList = Collections.singletonList(configuration);
+        List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
 
-        when(configurationRepository.count()).thenReturn((long) 1);
-        when(configurationRepository.findAll()).thenReturn(configurationList);
+        when(replayConfigurationRepository.count()).thenReturn((long) 1);
+        when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
 
         BigInteger fromReplay = configurationService.getFromReplay();
 
@@ -108,12 +110,12 @@ public class ConfigurationServiceTests {
 
     @Test
     public void shouldGetZeroAsFromReplay() {
-        Configuration configuration = Configuration.builder()
-            .fromReplay(BigInteger.ZERO)
+        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
+            .fromBlockNumber(BigInteger.ZERO)
             .build();
 
-        when(configurationRepository.count()).thenReturn((long) 0);
-        when(configurationRepository.save(any())).thenReturn(configuration);
+        when(replayConfigurationRepository.count()).thenReturn((long) 0);
+        when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
         when(chainConfig.getStartBlockNumber()).thenReturn(0L);
 
         BigInteger fromReplay = configurationService.getFromReplay();
@@ -123,18 +125,18 @@ public class ConfigurationServiceTests {
 
     @Test
     public void shouldSetFromReplay() {
-        Configuration configuration = Configuration.builder()
-            .fromReplay(BigInteger.ONE)
+        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
+            .fromBlockNumber(BigInteger.ONE)
             .build();
-        List<Configuration> configurationList = Collections.singletonList(configuration);
+        List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
 
-        when(configurationRepository.count()).thenReturn((long) 1);
-        when(configurationRepository.findAll()).thenReturn(configurationList);
-        when(configurationRepository.save(any())).thenReturn(configuration);
+        when(replayConfigurationRepository.count()).thenReturn((long) 1);
+        when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
+        when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
 
         configurationService.setFromReplay(BigInteger.TEN);;
 
-        assertThat(configuration.getFromReplay()).isEqualTo(BigInteger.TEN);
+        assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.TEN);
     }
 
 }
