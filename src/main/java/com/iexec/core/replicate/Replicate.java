@@ -62,7 +62,7 @@ public class Replicate {
     }
 
     @JsonIgnore
-    public Optional<ReplicateStatus> getLastRelevantStatus() {
+    public Optional<ReplicateStatus> getLastRelevantStatus() {  // FIXME: remove Optional and add a no-args constructor
         // ignore cases like: WORKER_LOST and RECOVERING
 
         List<ReplicateStatus> statusList = getStatusUpdateList().stream()

@@ -21,23 +21,23 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.Web3jService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.task.update.TaskUpdateRequestConsumer;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.worker.Worker;
+import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -54,24 +54,23 @@ public class TaskService implements TaskUpdateRequestConsumer {
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final Web3jService web3jService;
+    private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
 
     public TaskService(
-        TaskRepository taskRepository,
-        TaskUpdateRequestManager taskUpdateRequestManager,
-        IexecHubService iexecHubService,
-        ReplicatesService replicatesService,
-        ApplicationEventPublisher applicationEventPublisher,
-        Web3jService web3jService,
-        BlockchainAdapterService blockchainAdapterService
+            TaskRepository taskRepository,
+            TaskUpdateRequestManager taskUpdateRequestManager,
+            IexecHubService iexecHubService,
+            ReplicatesService replicatesService,
+            ApplicationEventPublisher applicationEventPublisher,
+            WorkerService workerService, BlockchainAdapterService blockchainAdapterService
     ) {
         this.taskRepository = taskRepository;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.web3jService = web3jService;
+        this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.taskUpdateRequestManager.setRequestConsumer(this);
     }
@@ -256,6 +255,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
                 break;
             case RUNNING:
                 running2ConsensusReached(task);
+                running2RunningFailed(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
             case CONSENSUS_REACHED:
@@ -430,6 +430,60 @@ public class TaskService implements TaskUpdateRequestConsumer {
                     .chainTaskId(task.getChainTaskId())
                     .build());
         }
+    }
+
+    /**
+     * In TEE mode, when all workers have failed to run the task, we send the new status as soon as possible.
+     * It avoids a state within which we know the task won't be updated anymore, but we wait for a timeout.
+     * <br>
+     * We consider that all workers are in a `RUNNING_FAILED` status
+     * when all alive workers have tried to run the task, but they have failed.
+     *
+     * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
+     */
+    private void running2RunningFailed(Task task) {
+        boolean isRunningTask = task.getCurrentStatus().equals(RUNNING);
+        if (!isRunningTask || !task.isTeeTask()) {
+            return;
+        }
+
+        final ReplicatesList replicatesList = replicatesService.getReplicatesList(task.getChainTaskId()).orElseThrow();
+        final List<Worker> aliveWorkers = workerService.getAliveWorkers();
+
+        final List<Replicate> replicatesOfAliveWorkers = aliveWorkers
+                .stream()
+                .map(Worker::getWalletAddress)
+                .map(replicatesList::getReplicateOfWorker)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+
+        // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
+        final boolean allAliveWorkersTried = replicatesOfAliveWorkers.size() == aliveWorkers.size();
+
+        if (!allAliveWorkersTried) {
+            return;
+        }
+
+        // If not all alive workers have failed while running the task, that's not a running failure.
+        boolean notAllReplicatesFailed = replicatesOfAliveWorkers
+                .stream()
+                .map(Replicate::getLastRelevantStatus)
+                .map(Optional::get)
+                .anyMatch(Predicate.not(ReplicateStatus::isFailedBeforeComputed));
+
+        if (notAllReplicatesFailed) {
+            return;
+        }
+
+        // If all alive workers have failed on this task, its computation should be stopped.
+        // It could denote that the task is wrong
+        // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
+        updateTaskStatusAndSave(task, RUNNING_FAILED);
+        updateTaskStatusAndSave(task, FAILED);
+        applicationEventPublisher.publishEvent(TaskRunningFailedEvent.builder()
+                .chainTaskId(task.getChainTaskId())
+                .build());
     }
 
     private void consensusReached2AtLeastOneReveal2UploadRequested(Task task) {

@@ -38,6 +38,7 @@ public class TaskWorkflow extends Workflow<TaskStatus> {
         // This is where the whole workflow is defined
         addTransition(INITIALIZED, RUNNING);
         addTransition(RUNNING, CONSENSUS_REACHED);
+        addTransition(RUNNING, RUNNING_FAILED);
         addTransition(CONSENSUS_REACHED, AT_LEAST_ONE_REVEALED);
         addTransition(AT_LEAST_ONE_REVEALED, RESULT_UPLOAD_REQUESTED);
         addTransition(RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING);
