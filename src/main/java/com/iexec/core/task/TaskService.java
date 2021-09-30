@@ -37,7 +37,6 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -482,7 +481,7 @@ public class TaskService implements TaskUpdateRequestConsumer {
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
         updateTaskStatusAndSave(task, RUNNING_FAILED);
         updateTaskStatusAndSave(task, FAILED);
-        applicationEventPublisher.publishEvent(TaskComputeFailedEvent.builder()
+        applicationEventPublisher.publishEvent(TaskRunningFailedEvent.builder()
                 .chainTaskId(task.getChainTaskId())
                 .build());
     }

@@ -173,9 +173,9 @@ public class TaskListeners {
     }
 
     @EventListener
-    public void onTaskComputeFailedEvent(TaskComputeFailedEvent event) {
+    public void onTaskRunningFailedEvent(TaskRunningFailedEvent event) {
         String chainTaskId = event.getChainTaskId();
-        log.info("Received TaskComputeFailedEvent [chainTaskId:{}] ", chainTaskId);
+        log.info("Received TaskRunningFailedEvent [chainTaskId:{}] ", chainTaskId);
 
         notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)

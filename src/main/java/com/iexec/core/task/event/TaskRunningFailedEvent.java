@@ -23,6 +23,6 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 @Builder
-public class TaskComputeFailedEvent {
+public class TaskRunningFailedEvent {
     private String chainTaskId;
 }

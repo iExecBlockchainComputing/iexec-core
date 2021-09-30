@@ -155,11 +155,11 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onTaskComputeFailedEvent() {
+    public void onTaskRunningFailedEvent() {
         when(replicatesService.getReplicates(CHAIN_TASK_ID))
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 
-        taskListeners.onTaskComputeFailedEvent(new TaskComputeFailedEvent(CHAIN_TASK_ID));
+        taskListeners.onTaskRunningFailedEvent(new TaskRunningFailedEvent(CHAIN_TASK_ID));
         verify(notificationService).sendTaskNotification(
                 TaskNotification.builder()
                         .chainTaskId(CHAIN_TASK_ID)
