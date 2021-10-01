@@ -17,12 +17,14 @@
 package com.iexec.core;
 
 import com.iexec.core.chain.DealWatcherService;
+import io.changock.runner.spring.v5.config.EnableChangock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
+@EnableChangock
 @SpringBootApplication
 public class Application implements CommandLineRunner {
 

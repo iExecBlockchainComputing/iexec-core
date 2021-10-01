@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.1.6.RELEASE'
+        springBootVersion = '2.2.13.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -58,6 +58,7 @@ ext {
     //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
     //Greenwich.SR2 is a patch for Greenwich.RELEASE
     springCloudVersion = 'Greenwich.SR2'
+    mongockVersion = '4.2.7.BETA'
 }
 
 dependencyManagement {
@@ -116,6 +117,10 @@ dependencies {
     // package cloud
     springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
     libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
+
+    // mongock
+    implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
+    implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
 }
 
 jacoco {
