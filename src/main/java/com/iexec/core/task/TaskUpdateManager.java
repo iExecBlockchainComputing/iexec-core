@@ -76,7 +76,6 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     /**
      * Async called when a task update request is received
-     * @param chainTaskId
      */
     @Override
     public void onTaskUpdateRequest(String chainTaskId) {
@@ -88,9 +87,10 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         return taskUpdateRequestManager.publishRequest(chainTaskId);
     }
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     void updateTaskRunnable(String chainTaskId) {
         Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return;
         }
         Task task = optional.get();
@@ -125,6 +125,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 running2ConsensusReached(task);
                 running2RunningFailed(task);
                 initializedOrRunning2ContributionTimeout(task);
+                break;
+            case RUNNING_FAILED:
+                toFailed(task);
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2UploadRequested(task);
@@ -216,14 +219,14 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .requestInitialize(task.getChainDealId(), task.getTaskIndex())
                 .filter(chainTaskId -> chainTaskId.equalsIgnoreCase(task.getChainTaskId()))
                 .ifPresentOrElse(chainTaskId -> {
-                    log.info("Requested initialize on blockchain " +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.info("Requested initialize on blockchain [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
                     updateTaskRunnable(task.getChainTaskId());
                 }, () -> {
-                    log.error("Failed to request initialize on blockchain " +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.error("Failed to request initialize on blockchain [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, INITIALIZE_FAILED);
                     updateTaskStatusAndSave(task, FAILED);
                 });
@@ -235,21 +238,21 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .isInitialized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
                     if (isSuccess != null && isSuccess) {
-                        log.info("Initialized on blockchain (tx mined)" +
-                                "[chainTaskId:{}]", task.getChainTaskId());
+                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]",
+                                task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
                         task.setInitializationBlockNumber(task.getDealBlockNumber());
                         updateTaskStatusAndSave(task, INITIALIZED, null);
                         replicatesService.createEmptyReplicateList(task.getChainTaskId());
                         return;
                     }
-                    log.error("Initialization failed on blockchain (tx reverted)" +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, INITIALIZE_FAILED);
                     updateTaskStatusAndSave(task, FAILED);
                 }, () -> log.error("Unable to check initialization on blockchain " +
-                        "(likely too long), should use a detector " +
-                        "[chainTaskId:{}]", task.getChainTaskId()));
+                        "(likely too long), should use a detector [chainTaskId:{}]",
+                        task.getChainTaskId()));
     }
 
     private void initialized2Running(Task task) {
@@ -268,7 +271,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
         if (isTaskInRunningStatus && isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-            if (!optional.isPresent()) return;
+            if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
 
             // change the the revealDeadline and consensus of the task from the chainTask info
@@ -386,7 +389,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         //TODO Update reopen call
         Optional<ChainReceipt> optionalChainReceipt = Optional.empty(); //iexecHubService.reOpen(task.getChainTaskId());
 
-        if (!optionalChainReceipt.isPresent()) {
+        if (optionalChainReceipt.isEmpty()) {
             log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());
             updateTaskStatusAndSave(task, REOPEN_FAILED);
             updateTaskStatusAndSave(task, FAILED);
@@ -402,7 +405,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     public void reopening2Reopened(Task task, ChainReceipt chainReceipt) {
         Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!oChainTask.isPresent()) {
+        if (oChainTask.isEmpty()) {
             return;
         }
         ChainTask chainTask = oChainTask.get();
@@ -488,7 +491,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
         Optional<Replicate> oReplicate = replicatesService.getReplicate(task.getChainTaskId(), uploadingReplicateAddress);
 
-        if (!oReplicate.isPresent()) {
+        if (oReplicate.isEmpty()) {
             requestUpload(task);
             return;
         }
@@ -540,7 +543,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return;
         }
         ChainTask chainTask = optional.get();
@@ -561,14 +564,14 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .requestFinalize(task.getChainTaskId(), task.getResultLink(),
                         task.getChainCallbackData())
                 .ifPresentOrElse(chainTaskId -> {
-                    log.info("Requested finalize on blockchain " +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.info("Requested finalize on blockchain [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, FINALIZING);
                     //Watch finalizing to finalized
                     updateTaskRunnable(task.getChainTaskId());
                 }, () -> {
-                    log.error("Failed to request finalize on blockchain " +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.error("Failed to request finalize on blockchain [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, FINALIZE_FAILED);
                     updateTaskStatusAndSave(task, FAILED);
                 });
