@@ -20,6 +20,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskUpdateManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -30,10 +31,12 @@ import java.util.List;
 @Service
 public class UnstartedTxDetector implements Detector {
 
-    private TaskService taskService;
+    private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
 
-    public UnstartedTxDetector(TaskService taskService) {
+    public UnstartedTxDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getUnstartedTx()}")
@@ -44,7 +47,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetFinalizingTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     TaskStatus.RESULT_UPLOADED, TaskStatus.FINALIZING, task.getChainTaskId());
-            taskService.updateTask(task.getChainTaskId());
+            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
         }
 
         //start initialize when needed
@@ -52,7 +55,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetInitializedTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     TaskStatus.RECEIVED, TaskStatus.INITIALIZING, task.getChainTaskId());
-            taskService.updateTask(task.getChainTaskId());
+            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
         }
     }
 }

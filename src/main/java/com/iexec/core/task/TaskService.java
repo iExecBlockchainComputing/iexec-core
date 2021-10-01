@@ -183,15 +183,6 @@ public class TaskService {
                 .orElse(null);
     }
 
-    /**
-     * Async method for requesting task update
-     * @param chainTaskId
-     * @return
-     */
-    public CompletableFuture<Boolean> updateTask(String chainTaskId) {
-        return taskUpdateRequestManager.publishRequest(chainTaskId);
-    }
-
     public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
         taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
     }

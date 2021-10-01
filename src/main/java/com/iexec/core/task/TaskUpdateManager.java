@@ -83,7 +83,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         this.updateTaskRunnable(chainTaskId);
     }
 
-    private CompletableFuture<Boolean> publishUpdateTaskRequest(String chainTaskId) {
+    public CompletableFuture<Boolean> publishUpdateTaskRequest(String chainTaskId) {
         return taskUpdateRequestManager.publishRequest(chainTaskId);
     }
 

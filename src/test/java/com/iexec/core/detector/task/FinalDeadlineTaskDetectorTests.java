@@ -16,18 +16,19 @@
 
 package com.iexec.core.detector.task;
 
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import org.jetbrains.annotations.NotNull;
+import com.iexec.core.task.TaskUpdateManager;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
@@ -41,6 +42,9 @@ public class FinalDeadlineTaskDetectorTests {
 
     @Mock
     private TaskService taskService;
+
+    @Mock private
+    TaskUpdateManager taskUpdateManager;
 
     @InjectMocks
     private FinalDeadlineTaskDetector finalDeadlineTaskDetector;
@@ -65,8 +69,8 @@ public class FinalDeadlineTaskDetectorTests {
 
         finalDeadlineTaskDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1))
-                .updateTask(any());
+        Mockito.verify(taskUpdateManager, Mockito.times(1))
+                .publishUpdateTaskRequest(any());
     }
 
     @Test
@@ -78,7 +82,7 @@ public class FinalDeadlineTaskDetectorTests {
 
         finalDeadlineTaskDetector.detect();
 
-        Mockito.verify(taskService, never())
-                .updateTask(any());
+        Mockito.verify(taskUpdateManager, never())
+                .publishUpdateTaskRequest(any());
     }
 }

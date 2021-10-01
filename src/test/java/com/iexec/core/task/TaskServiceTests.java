@@ -33,8 +33,8 @@ import static com.iexec.core.task.TaskStatus.RUNNING;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 // TODO
 public class TaskServiceTests {
@@ -201,14 +201,5 @@ public class TaskServiceTests {
                 .thenReturn(Optional.of(task));
 
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
-    }
-
-    // updateTask
-
-
-    @Test
-    public void shouldTriggerUpdateTaskAsynchronously() {
-        taskService.updateTask(CHAIN_TASK_ID);
-        verify(updateRequestManager).publishRequest(eq(CHAIN_TASK_ID));
     }
 }

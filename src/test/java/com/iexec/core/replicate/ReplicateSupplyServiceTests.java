@@ -33,6 +33,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -72,6 +73,7 @@ public class ReplicateSupplyServiceTests {
     @Mock private ReplicatesService replicatesService;
     @Mock private SignatureService signatureService;
     @Mock private TaskService taskService;
+    @Mock private TaskUpdateManager taskUpdateManager;
     @Mock private WorkerService workerService;
     @Mock private SmsService smsService;
     @Mock private Web3jService web3jService;
@@ -898,7 +900,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(true);
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        when(taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
@@ -936,7 +938,7 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        when(taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =

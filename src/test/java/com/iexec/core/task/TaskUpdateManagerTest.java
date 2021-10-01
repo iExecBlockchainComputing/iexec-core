@@ -55,8 +55,7 @@ import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class TaskUpdateManagerTest {
     private final long maxExecutionTime = 60000;
@@ -1275,5 +1274,13 @@ public class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+    }
+
+    // publishRequest
+
+    @Test
+    public void shouldTriggerUpdateTaskAsynchronously() {
+        taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID);
+        verify(taskUpdateRequestManager).publishRequest(eq(CHAIN_TASK_ID));
     }
 }

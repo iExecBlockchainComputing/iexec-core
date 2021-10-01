@@ -23,6 +23,7 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -44,7 +45,7 @@ public class TaskListenerTest {
     private static final String WALLET1 = "wallet1";
     private static final String WALLET2 = "wallet2";
     @Mock
-    private TaskService taskService;
+    private TaskUpdateManager taskUpdateManager;
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -65,7 +66,7 @@ public class TaskListenerTest {
         TaskCreatedEvent event = new TaskCreatedEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskService).updateTask(anyString());
+        verify(taskUpdateManager).publishUpdateTaskRequest(anyString());
     }
 
     @Test
