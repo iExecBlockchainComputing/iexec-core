@@ -20,7 +20,6 @@ import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +27,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -42,17 +40,14 @@ public class TaskService {
             taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
 
     private final TaskRepository taskRepository;
-    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
 
     public TaskService(
             TaskRepository taskRepository,
-            TaskUpdateRequestManager taskUpdateRequestManager,
             IexecHubService iexecHubService,
             ReplicatesService replicatesService) {
         this.taskRepository = taskRepository;
-        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
     }
