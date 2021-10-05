@@ -542,7 +542,6 @@ public class TaskUpdateManagerTest {
                 .winnerCounter(2)
                 .build()));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(taskService.isConsensusReached(task)).thenReturn(true);
         when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskRepository.save(task)).thenReturn(task);
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);

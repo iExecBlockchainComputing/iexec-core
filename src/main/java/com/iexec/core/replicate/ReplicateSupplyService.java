@@ -135,7 +135,7 @@ public class ReplicateSupplyService {
 
             // no need to ge further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskService.isConsensusReached(task)) {
+            if (taskUpdateManager.isConsensusReached(task)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
                 continue;
             }
@@ -321,7 +321,7 @@ public class ReplicateSupplyService {
 
         if (didReplicateContribute) {
 
-            if (!taskService.isConsensusReached(task)) {
+            if (!taskUpdateManager.isConsensusReached(task)) {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 

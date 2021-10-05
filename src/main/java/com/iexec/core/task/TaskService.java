@@ -151,22 +151,6 @@ public class TaskService {
                         List.of(RECEIVED, INITIALIZING), new Date());
     }
 
-    public boolean isConsensusReached(Task task) {
-
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (!optional.isPresent()) return false;
-
-        ChainTask chainTask = optional.get();
-
-        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-
-        int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
-        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
-
-        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
-    }
-
     public boolean isExpired(String chainTaskId) {
         Date finalDeadline = getTaskFinalDeadline(chainTaskId);
         return finalDeadline != null && finalDeadline.before(new Date());

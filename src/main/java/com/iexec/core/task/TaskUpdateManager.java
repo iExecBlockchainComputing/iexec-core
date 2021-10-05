@@ -265,9 +265,25 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         }
     }
 
+    public boolean isConsensusReached(Task task) {
+
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (optional.isEmpty()) return false;
+
+        ChainTask chainTask = optional.get();
+
+        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+
+        int onChainWinners = chainTask.getWinnerCounter();
+        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
+        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
+
+        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
+    }
+
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
-        boolean isConsensusReached = taskService.isConsensusReached(task);
+        boolean isConsensusReached = isConsensusReached(task);
 
         if (isTaskInRunningStatus && isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
