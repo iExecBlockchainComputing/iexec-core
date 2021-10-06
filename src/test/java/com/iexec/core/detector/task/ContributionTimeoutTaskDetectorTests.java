@@ -22,6 +22,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,9 @@ public class ContributionTimeoutTaskDetectorTests {
     @Mock
     private WorkerService workerService;
 
+    @Mock
+    private TaskUpdateManager taskUpdateManager;
+
     @Spy
     @InjectMocks
     private ContributionTimeoutTaskDetector contributionDetector;
@@ -67,8 +71,8 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .updateTask(any());
+        Mockito.verify(taskUpdateManager, Mockito.times(0))
+                .publishUpdateTaskRequest(any());
     }
 
     @Test
@@ -89,8 +93,8 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskService, Mockito.times(0))
-                .updateTask(any());
+        Mockito.verify(taskUpdateManager, Mockito.times(0))
+                .publishUpdateTaskRequest(any());
     }
 
 
@@ -107,7 +111,7 @@ public class ContributionTimeoutTaskDetectorTests {
 
         contributionDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1))
-                .updateTask(any());
+        Mockito.verify(taskUpdateManager, Mockito.times(1))
+                .publishUpdateTaskRequest(any());
     }
 }

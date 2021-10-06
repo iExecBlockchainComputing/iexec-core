@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.listener.ReplicateListeners;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -48,6 +49,8 @@ public class ReplicateListenersTests {
     private ContributionUnnotifiedDetector contributionUnnotifiedDetector;
     @Mock
     private ReplicatesService replicatesService;
+    @Mock
+    private TaskUpdateManager taskUpdateManager;
 
     @InjectMocks
     private ReplicateListeners replicateListeners;
@@ -68,7 +71,7 @@ public class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(taskService, Mockito.times(someStatuses.size())).updateTask(any());
+        Mockito.verify(taskUpdateManager, Mockito.times(someStatuses.size())).publishUpdateTaskRequest(any());
     }
 
     @Test

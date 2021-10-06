@@ -22,6 +22,7 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskUpdateManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -38,14 +39,17 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 @Service
 public class ReplicateResultUploadTimeoutDetector implements Detector {
 
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
+    private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
+    private final ReplicatesService replicatesService;
 
     public ReplicateResultUploadTimeoutDetector(
             TaskService taskService,
+            TaskUpdateManager taskUpdateManager,
             ReplicatesService replicatesService
     ) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
         this.replicatesService = replicatesService;
     }
 
@@ -79,7 +83,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             }
 
             if (hasReplicateAlreadyFailedToUpload) {
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
                 return;
             }
 
@@ -90,7 +94,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         RESULT_UPLOAD_REQUEST_FAILED);
 
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
                 return;
             }
 
@@ -98,7 +102,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
                 replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                         RESULT_UPLOAD_FAILED);
 
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
                 return;
             }
         }
