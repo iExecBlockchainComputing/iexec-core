@@ -19,6 +19,7 @@ package com.iexec.core.task;
 import com.iexec.common.chain.*;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -31,7 +32,6 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -50,11 +50,9 @@ import java.util.stream.Collectors;
 
 import static com.iexec.common.utils.DateTimeUtils.sleep;
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.task.TaskStatus.COMPLETED;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class TaskUpdateManagerTest {
@@ -244,8 +242,14 @@ public class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
     }
 
-    // not sure if a "shouldNotUpdateReceived2InitializingSinceCurrentStatusIsNotReceived" test
-    // is required
+    @Test
+    public void shouldNotUpdateReceived2InitializingSinceCurrentStatusIsNotReceived() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(INITIALIZED);
+
+        taskUpdateManager.received2Initializing(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
 
     @Test
     public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
@@ -901,6 +905,100 @@ public class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
+    // Tests on AT_LEAST_ONE_REVEALED
+    @Test
+    public void shouldRequestUploadAfterOneRevealed() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(AT_LEAST_ONE_REVEALED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+        when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+    }
+
+    @Test
+    public void shouldNotRequestUploadAfterOneRevealedAsWorkerLost() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(AT_LEAST_ONE_REVEALED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
+    }
+
+    // Tests on reopening2Reopened transition
+    @Test
+    public void shouldUpdateReopening2Reopened() {
+        final Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(REOPENING);
+
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        final Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
+        final Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate1, replicate2));
+
+        doNothing().when(replicatesService).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getConsensus()).isNull();
+        assertThat(task.getRevealDeadline().toInstant()).isEqualTo(new Date(0).toInstant());
+        assertThat(task.getDateOfStatus(REOPENED)).isPresent();
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+
+        verify(replicatesService, times(2)).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
+    }
+
+    @Test
+    public void shouldNotUpdateReopening2ReopenedSinceUnknownChainTask() {
+        final Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(REOPENING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getCurrentStatus()).isEqualTo(REOPENING);
+
+        verify(replicatesService, times(0)).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
+    }
+
+    // Tests on REOPENED
+    @Test
+    public void shouldUpdateReopened() {
+        final Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(REOPENED);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
+
     // Tests on uploadRequested2UploadingResult transition
     @Test
     public void shouldUpdateFromUploadRequestedToUploadingResult() {
@@ -931,6 +1029,21 @@ public class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RESULT_UPLOAD_REQUESTED);
+    }
+
+    // Tests on uploadRequested2UploadRequestTimeout transition
+    @Test
+    public void shouldUpdateUploadRequested2UploadRequestTimeout() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(RESULT_UPLOAD_REQUESTED);
+        task.setFinalDeadline(new Date(0));
+
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.uploadRequested2UploadRequestTimeout(task);
+
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RESULT_UPLOAD_REQUEST_TIMEOUT);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.FAILED);
     }
 
     // Test on resultUploading2Uploaded2Finalizing2Finalized
@@ -974,18 +1087,16 @@ public class TaskUpdateManagerTest {
     // Tests on finalizing2Finalized transition
 
     @Test
-    public void shouldUpdateFinalizing2Finalized2Completed() {
+    public void shouldUpdateFinalized2Completed() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
-        task.changeStatus(FINALIZING);
+        task.changeStatus(FINALIZED);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
-        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
 
     @Test
@@ -1072,6 +1183,248 @@ public class TaskUpdateManagerTest {
         int size = task.getDateStatusList().size();
         assertThat(task.getDateStatusList().get(size - 2).getStatus()).isEqualTo(RESULT_UPLOADING);
         assertThat(task.getDateStatusList().get(size - 1).getStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploading2UploadedSinceNoUploadingReplicate() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADING);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
+        when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
+
+        doNothing().when(replicatesService)
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+
+        verify(replicatesService).updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInUploadingStatus() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RESULT_UPLOADING).build());
+
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADING);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate));
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADING);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInRecoveringUploadingStatus() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RESULT_UPLOADING).build());
+        replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RECOVERING).build());
+
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADING);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate));
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADING);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateNotInUploadingNorRecoveringUploadingStatus() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.REVEALED).build());
+
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADING);
+        task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate));
+        when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
+
+        doNothing().when(replicatesService)
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+
+        verify(replicatesService).updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+    }
+
+    // Tests on resultUploading2UploadTimeout transition
+    @Test
+    public void shouldUpdateResultUploading2UploadTimeout() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(RESULT_UPLOADING);
+        task.setFinalDeadline(new Date(0));
+
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.resultUploading2UploadTimeout(task);
+
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RESULT_UPLOAD_TIMEOUT);
+        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.FAILED);
+    }
+
+    // Tests on resultUploaded2Finalizing transition
+    @Test
+    public void shouldUpdateResultUploaded2Finalizing() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADED);
+
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.setResultLink(RESULT_LINK);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.canFinalize(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.of(CHAIN_TASK_ID));
+
+        when(blockchainAdapterService.isFinalized(any())).thenReturn(Optional.of(true));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        TaskStatus lastButOneStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus();
+        TaskStatus lastButTwoStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus();
+        TaskStatus lastButThreeStatus = task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus();
+
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+        assertThat(lastButOneStatus).isEqualTo(FINALIZED);
+        assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
+        assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploaded2FinalizingSinceCantFinalize() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADED);
+
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.setResultLink(RESULT_LINK);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.canFinalize(CHAIN_TASK_ID)).thenReturn(false);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploaded2FinalizingSinceRevealsNotEqual() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADED);
+
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.setResultLink(RESULT_LINK);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.canFinalize(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(2);
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploaded2FinalizingSinceNotEnoughGas() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADED);
+
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.setResultLink(RESULT_LINK);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.canFinalize(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(iexecHubService.hasEnoughGas()).thenReturn(false);
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
+    }
+
+    @Test
+    public void shouldNotUpdateResultUploaded2FinalizingSinceCantRequestFinalize() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOADED);
+
+        ChainTask chainTask = ChainTask.builder().revealCounter(1).build();
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.setResultLink(RESULT_LINK);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.canFinalize(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(blockchainAdapterService.requestFinalize(eq(CHAIN_TASK_ID), any(), any())).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getDateOfStatus(FINALIZE_FAILED)).isPresent();
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    // Tests on RESULT_UPLOAD_REQUEST_TIMEOUT
+    @Test
+    public void shouldNotUpdateAnythingOnResultUploadRequestTimeout() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RESULT_UPLOAD_REQUEST_TIMEOUT);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOAD_REQUEST_TIMEOUT);
+    }
+
+    // Tests on finalizedToCompleted transition
+    @Test
+    public void shouldUpdateFinalizing2Finalized2Completed() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+
+        taskUpdateManager.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
 
 
@@ -1273,6 +1626,64 @@ public class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTaskRunnable(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+    }
+
+    // Tests on toFailed() automatic transitions
+    @Test
+    public void shouldUpdateToFailed() {
+        final TaskStatus[] statusThatAutomaticallyFail = new TaskStatus[]{
+                INITIALIZE_FAILED,
+                RUNNING_FAILED,
+                CONTRIBUTION_TIMEOUT,
+                REOPEN_FAILED,
+                RESULT_UPLOAD_TIMEOUT,
+                FINALIZE_FAILED};
+
+        for (TaskStatus status : statusThatAutomaticallyFail) {
+            Task task = getStubTask(maxExecutionTime);
+            task.changeStatus(status);
+            task.setChainTaskId(CHAIN_TASK_ID);
+
+            when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+            when(taskRepository.save(task)).thenReturn(task);
+
+            taskUpdateManager.updateTaskRunnable(task.getChainTaskId());
+
+            assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+        }
+    }
+
+    // Tests on requestUpload
+    @Test
+    public void shouldRequestUpload() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+        when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.requestUpload(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+    }
+
+    @Test
+    public void shouldNotRequestUpload() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(AT_LEAST_ONE_REVEALED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        // For example, this could happen if replicate is lost after having revealed.
+        when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.empty());
+
+        taskUpdateManager.requestUpload(task);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
     }
 
     // publishRequest
