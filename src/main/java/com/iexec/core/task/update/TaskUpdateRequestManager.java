@@ -19,6 +19,7 @@ package com.iexec.core.task.update;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
+import com.iexec.core.utils.TargetedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,7 @@ public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+    private final TargetedLock<String> taskUpdateLocks = new TargetedLock<>();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -83,8 +85,7 @@ public class TaskUpdateRequestManager {
             log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
             try {
                 String chainTaskId = queue.take();
-                CompletableFuture.runAsync(() ->
-                        consumer.onTaskUpdateRequest(chainTaskId));
+                taskUpdateLocks.runAsyncWithLock(chainTaskId, () -> consumer.onTaskUpdateRequest(chainTaskId));
             } catch (InterruptedException e) {
                 log.error("The unexpected happened", e);
                 Thread.currentThread().interrupt();
