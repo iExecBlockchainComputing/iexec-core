@@ -47,9 +47,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
     public void detect() {
         log.debug("Trying to detect tasks with upload timeout");
 
-        List<Task> inUploadStatus = taskService.findByCurrentStatus(Arrays.asList(
-                TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING));
+        List<Task> inUploadStatus = taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING);
 
         for (Task task : inUploadStatus) {
             String chainTaskId = task.getChainTaskId();

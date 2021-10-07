@@ -959,7 +959,7 @@ public class ReplicateSupplyServiceTests {
     // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
     public void shouldTellReplicateToUploadResultSinceRequested() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
-        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);

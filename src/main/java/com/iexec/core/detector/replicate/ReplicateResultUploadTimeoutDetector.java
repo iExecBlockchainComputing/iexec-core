@@ -59,11 +59,8 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
         // check all tasks with status upload result requested
         // Timeout for the replicate uploading its result is 2 min.
         log.debug("Detecting result upload timeout");
-        List<TaskStatus> taskUploadStatuses = Arrays.asList(
-                TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING);
 
-        for (Task task : taskService.findByCurrentStatus(taskUploadStatuses)) {
+        for (Task task : taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING)) {
             String chainTaskId = task.getChainTaskId();
             String uploadingWallet = task.getUploadingWorkerWalletAddress();
 
@@ -90,21 +87,10 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
                     chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
-            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOAD_REQUESTED) {
-                replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        RESULT_UPLOAD_REQUEST_FAILED);
+            replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
+                    RESULT_UPLOAD_FAILED);
 
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
-                return;
-            }
-
-            if (task.getCurrentStatus() == TaskStatus.RESULT_UPLOADING) {
-                replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                        RESULT_UPLOAD_FAILED);
-
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
-                return;
-            }
+            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
         }
     }
 }

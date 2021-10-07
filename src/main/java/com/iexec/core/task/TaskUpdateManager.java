@@ -148,10 +148,6 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
             case REOPEN_FAILED:
                 toFailed(task);
                 break;
-            case RESULT_UPLOAD_REQUESTED:
-                uploadRequested2UploadingResult(task);
-                uploadRequested2UploadRequestTimeout(task);
-                break;
             case RESULT_UPLOADING:
                 resultUploading2Uploaded(task);
                 resultUploading2UploadTimeout(task);
@@ -159,8 +155,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
             case RESULT_UPLOADED:
                 resultUploaded2Finalizing(task);
                 break;
-            case RESULT_UPLOAD_REQUEST_TIMEOUT:
-                break;
+
             case RESULT_UPLOAD_TIMEOUT:
                 toFailed(task);
                 break;
@@ -442,45 +437,6 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         }
     }
 
-    void uploadRequested2UploadingResult(Task task) {
-        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
-
-        boolean isThereAWorkerUploading =
-                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
-                        ReplicateStatus.RESULT_UPLOADING) > 0;
-
-        boolean isThereAWorkerRequestedToUpload =
-                replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
-                        ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
-
-        if (!isTaskInUploadRequested) {
-            return;
-        }
-
-        if (isThereAWorkerUploading) {
-            updateTaskStatusAndSave(task, RESULT_UPLOADING);
-            return;
-        }
-
-        if (!isThereAWorkerRequestedToUpload) {
-            requestUpload(task);
-        }
-    }
-
-    void uploadRequested2UploadRequestTimeout(Task task) {
-        boolean isTaskInUploadRequested = task.getCurrentStatus().equals(RESULT_UPLOAD_REQUESTED);
-        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
-                && new Date().after(task.getFinalDeadline());
-
-        if (isTaskInUploadRequested && isNowAfterFinalDeadline) {
-            updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUEST_TIMEOUT);
-            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
-            updateTaskStatusAndSave(task, FAILED);
-        }
-    }
-
     void resultUploading2Uploaded(Task task) {
         boolean isTaskInResultUploading = task.getCurrentStatus().equals(RESULT_UPLOADING);
         Optional<Replicate> oUploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
@@ -546,7 +502,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
-            updateTaskStatusAndSave(task, RESULT_UPLOAD_REQUESTED);
+            updateTaskStatusAndSave(task, RESULT_UPLOADING);
             replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
                     ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 

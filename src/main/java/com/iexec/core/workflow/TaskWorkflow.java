@@ -40,8 +40,7 @@ public class TaskWorkflow extends Workflow<TaskStatus> {
         addTransition(RUNNING, CONSENSUS_REACHED);
         addTransition(RUNNING, RUNNING_FAILED);
         addTransition(CONSENSUS_REACHED, AT_LEAST_ONE_REVEALED);
-        addTransition(AT_LEAST_ONE_REVEALED, RESULT_UPLOAD_REQUESTED);
-        addTransition(RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING);
+        addTransition(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING);
         addTransition(RESULT_UPLOADING, RESULT_UPLOADED);
         addTransition(RESULT_UPLOADED, COMPLETED);
         addTransition(RESULT_UPLOADING, FAILED);

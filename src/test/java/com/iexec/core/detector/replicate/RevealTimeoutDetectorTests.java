@@ -79,8 +79,7 @@ public class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
-        List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+        List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED, TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(taskList);
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
@@ -111,7 +110,7 @@ public class RevealTimeoutDetectorTests {
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
         List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+                TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(Collections.emptyList());
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
@@ -129,7 +128,7 @@ public class RevealTimeoutDetectorTests {
     @Test
     public void shouldNotDetectAnyRevealTimeout() {
         List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOAD_REQUESTED, TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+                TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList))
                 .thenReturn(Collections.emptyList());
