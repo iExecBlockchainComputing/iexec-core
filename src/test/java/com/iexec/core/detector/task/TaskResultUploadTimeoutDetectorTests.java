@@ -63,10 +63,7 @@ public class TaskResultUploadTimeoutDetectorTests {
                 .finalDeadline(oneMinuteBeforeNow)
                 .build();
 
-        List<TaskStatus> statuses = Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING);
-
-        when(taskService.findByCurrentStatus(statuses))
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING))
                 .thenReturn(Collections.singletonList(task));
 
         taskResultUploadTimeoutDetector.detect();
@@ -84,10 +81,7 @@ public class TaskResultUploadTimeoutDetectorTests {
                 .finalDeadline(oneMinuteBeforeNow)
                 .build();
 
-        List<TaskStatus> statuses = Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING);
-
-        when(taskService.findByCurrentStatus(statuses))
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING))
                 .thenReturn(Collections.singletonList(task));
 
         taskResultUploadTimeoutDetector.detect();
