@@ -155,7 +155,6 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
             case RESULT_UPLOADED:
                 resultUploaded2Finalizing(task);
                 break;
-
             case RESULT_UPLOAD_TIMEOUT:
                 toFailed(task);
                 break;
