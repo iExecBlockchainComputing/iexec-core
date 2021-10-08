@@ -93,4 +93,12 @@ public class TaskUpdateRequestManager {
         }
     }
 
+    /**
+     * Clear released locks every hour so that we don't have memory leaks.
+     */
+    @Scheduled(fixedDelay = 1000*60*60)
+    public void clearLocks() {
+        taskUpdateLocks.clearReleasedLocks();
+    }
+
 }

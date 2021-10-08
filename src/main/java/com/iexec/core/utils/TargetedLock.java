@@ -16,8 +16,6 @@
 
 package com.iexec.core.utils;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -27,17 +25,20 @@ import java.util.function.Supplier;
  * Provide a way to avoid parallel runs of an action.
  * Locks are based on a key, so that two actions with the same key can't be run at the same time
  * but two actions with different keys can be run at the same time.
+ * <br>
+ * In order to avoid memory leaks, {@link TargetedLock#clearReleasedLocks()} should be regularly called.
  *
  * @param <K> Type of the key.
  */
 public class TargetedLock<K> {
-    private final ConcurrentHashMap<K, Object> locks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<K, Lock> locks = new ConcurrentHashMap<>();
 
     public <R> R runWithLock(K key, Supplier<R> action) {
         // `ConcurrentHashMap::computeIfAbsent` is atomic, so there can't be any race condition there.
-        synchronized (locks.computeIfAbsent(key, id -> new Object())) {
+        synchronized (locks.computeIfAbsent(key, id -> new Lock())) {
+            locks.get(key).lock();
             final R result = action.get();
-            locks.remove(key);
+            locks.get(key).release();
             return result;
         }
     }
@@ -67,5 +68,41 @@ public class TargetedLock<K> {
 
     public boolean hasCurrentLocks() {
         return !locks.isEmpty();
+    }
+
+    /**
+     * Clear all released locks.
+     * This method should be called regularly in order to avoid memory leaks.
+     */
+    public void clearReleasedLocks() {
+        locks.keySet()
+                .stream()
+                .filter(key -> !locks.get(key).isLocked())
+                .forEach(locks::remove);
+    }
+
+    /**
+     * Simple lock object.
+     * Synchronize its internal state so that it can't be locked or unlocked by two process at the same time.
+     */
+    private static final class Lock {
+        private Boolean isLocked;
+        private final Object internalLock = new Object();
+
+        public boolean isLocked() {
+            return isLocked;
+        }
+
+        public void release() {
+            synchronized (internalLock) {
+                isLocked = false;
+            }
+        }
+
+        public void lock() {
+            synchronized (internalLock) {
+                isLocked = true;
+            }
+        }
     }
 }

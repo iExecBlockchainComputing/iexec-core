@@ -3,12 +3,17 @@ package com.iexec.core.utils;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class TargetedLockTest {
     /**
@@ -21,33 +26,23 @@ public class TargetedLockTest {
      */
     private <K> void runWithLock(int numberOfRunsPerGroup,
                                  int numberOfActions,
-                                 Function<Integer, K> keyProvider,
-                                 Runnable action) throws InterruptedException, ExecutionException {
+                                 Function<Integer, K> keyProvider) throws InterruptedException, ExecutionException {
+        final TargetedLock<K> locks = new TargetedLock<>();
+
         final ConcurrentLinkedQueue<Integer> actionsOrder = new ConcurrentLinkedQueue<>();
         // Run the given action a bunch of times.
-        // Before each run, we sleep a bit so that another task can run if authorized by the lock.
         final Consumer<Integer> runActionAndGetOrder = (i) -> {
-            final Random random = new Random();
             for (int j = 0; j < numberOfRunsPerGroup; j++) {
-                try {
-                    Thread.sleep(random.nextInt(10));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                action.run();
                 actionsOrder.add(i);
             }
         };
 
         // Run the action a bunch of times with different input and potentially different key each time.
         // Wait for the completion of all actions.
-        final List<CompletableFuture<Void>> asyncTasks = new ArrayList<>();
-        final TargetedLock<K> locks = new TargetedLock<>();
-        for (int i = 0; i < numberOfActions; i++) {
-            K key = keyProvider.apply(i);
-            final int finalOrder = i;
-            asyncTasks.add(locks.runAsyncWithLock(key, () -> runActionAndGetOrder.accept(finalOrder)));
-        }
+        final List<CompletableFuture<Void>> asyncTasks = IntStream.range(0, numberOfActions)
+                .parallel()
+                .mapToObj(i -> locks.runAsyncWithLock(keyProvider.apply(i), () -> runActionAndGetOrder.accept(i)))
+                .collect(Collectors.toList());
 
         for (CompletableFuture<?> asyncTask : asyncTasks) {
             asyncTask.get();
@@ -73,6 +68,7 @@ public class TargetedLockTest {
 
         // At the end of the execution, no lock should remain.
         // Otherwise, that could be a memory leak.
+        locks.clearReleasedLocks();
         Assertions.assertThat(locks.hasCurrentLocks()).isFalse();
     }
 
@@ -84,7 +80,7 @@ public class TargetedLockTest {
      */
     @Test
     public void runWithLockOnConstantValue() throws ExecutionException, InterruptedException {
-        runWithLock(5, 10, i -> true, () -> {});
+        runWithLock(100, 100, i -> true);
     }
 
     /**
@@ -95,7 +91,7 @@ public class TargetedLockTest {
      */
     @Test
     public void runWithLockOnParity() throws ExecutionException, InterruptedException {
-        runWithLock(5, 10, i -> i % 2 == 0, () -> {});
+        runWithLock(100, 100, i -> i % 2 == 0);
     }
 
     /**
@@ -104,7 +100,7 @@ public class TargetedLockTest {
      */
     @Test
     public void runWithLockPerValue() throws ExecutionException, InterruptedException {
-        runWithLock(5, 10, Function.identity(), () -> {});
+        runWithLock(100, 100, Function.identity());
     }
 
     /**
