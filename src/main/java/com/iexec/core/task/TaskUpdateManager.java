@@ -74,13 +74,10 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         this.taskUpdateRequestManager.setRequestConsumer(this);
     }
 
-    /**
-     * Async called when a task update request is received
-     */
     @Override
     public void onTaskUpdateRequest(String chainTaskId) {
         log.info("Received task update request [chainTaskId:{}]", chainTaskId);
-        this.updateTaskRunnable(chainTaskId);
+        this.updateTask(chainTaskId);
     }
 
     public CompletableFuture<Boolean> publishUpdateTaskRequest(String chainTaskId) {
@@ -88,7 +85,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
-    void updateTaskRunnable(String chainTaskId) {
+    void updateTask(String chainTaskId) {
         Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
         if (optional.isEmpty()) {
             return;
@@ -217,7 +214,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                             task.getChainTaskId());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
-                    updateTaskRunnable(task.getChainTaskId());
+                    updateTask(task.getChainTaskId());
                 }, () -> {
                     log.error("Failed to request initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
@@ -547,7 +544,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                             task.getChainTaskId());
                     updateTaskStatusAndSave(task, FINALIZING);
                     //Watch finalizing to finalized
-                    updateTaskRunnable(task.getChainTaskId());
+                    updateTask(task.getChainTaskId());
                 }, () -> {
                     log.error("Failed to request finalize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
