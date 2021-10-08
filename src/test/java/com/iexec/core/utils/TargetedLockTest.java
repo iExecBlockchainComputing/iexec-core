@@ -47,7 +47,6 @@ public class TargetedLockTest {
         for (CompletableFuture<?> asyncTask : asyncTasks) {
             asyncTask.get();
         }
-        System.out.println(actionsOrder);
 
         // We loop through calls order and see if all calls for a given action have finished
         // before another action with the same key starts for this task.
