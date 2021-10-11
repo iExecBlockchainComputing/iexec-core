@@ -226,6 +226,8 @@ public class ReplicatesService {
 
     /*
      * This implicitly sets the modifier to POOL_MANAGER
+     *
+     * @Retryable is needed as it isn't triggered by a call from within the class itself.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
@@ -237,6 +239,8 @@ public class ReplicatesService {
 
     /*
      * This implicitly sets the modifier to POOL_MANAGER
+     *
+     * @Retryable is needed as it isn't triggered by a call from within the class itself.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public void updateReplicateStatus(String chainTaskId,
