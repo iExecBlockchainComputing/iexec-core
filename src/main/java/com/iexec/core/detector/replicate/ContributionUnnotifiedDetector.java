@@ -78,7 +78,8 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute() * " + DETECTOR_MULTIPLIER + "}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute() * " + DETECTOR_MULTIPLIER + "}",
+            initialDelayString = "#{@cronConfiguration.getContribute() / 2}")
     public void detectOnchainContributed() {
         log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * DETECTOR_MULTIPLIER);
         dectectOnchainCompleted(
