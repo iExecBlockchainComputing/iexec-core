@@ -78,7 +78,8 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_REVEAL
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal() * " + DETECTOR_MULTIPLIER + "}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal() * " + DETECTOR_MULTIPLIER + "}",
+            initialDelayString = "#{@cronConfiguration.getReveal() / 2}")
     public void detectOnchainRevealed() {
         log.debug("Detect onchain Revealed [retryIn:{}]",
                 cronConfiguration.getReveal() * DETECTOR_MULTIPLIER);
