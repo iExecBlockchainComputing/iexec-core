@@ -237,6 +237,14 @@ public class ReplicatesService {
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
     }
 
+    @Recover
+    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+                                      String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus) {
+        logUpdateReplicateStatusRecover(exception);
+    }
+
     /*
      * This implicitly sets the modifier to POOL_MANAGER
      *
@@ -249,6 +257,15 @@ public class ReplicatesService {
                                       ReplicateStatusDetails details) {
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
         updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
+    }
+
+    @Recover
+    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+                                      String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusDetails details) {
+        logUpdateReplicateStatusRecover(exception);
     }
 
     /*
@@ -338,26 +355,11 @@ public class ReplicatesService {
     public void updateReplicateStatus(OptimisticLockingFailureException exception,
                                       String chainTaskId,
                                       String walletAddress,
-                                      ReplicateStatus newStatus) {
-        log.error("Could not update replicate status, maximum number of retries reached");
-        exception.printStackTrace();
-    }
-
-    @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
-        log.error("Could not update replicate status, maximum number of retries reached");
-        exception.printStackTrace();
-    }
-
-    @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
                                       ReplicateStatusUpdate statusUpdate) {
+        logUpdateReplicateStatusRecover(exception);
+    }
+
+    private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
         log.error("Could not update replicate status, maximum number of retries reached");
         exception.printStackTrace();
     }
