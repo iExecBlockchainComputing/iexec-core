@@ -34,7 +34,7 @@ import java.util.List;
 @Service
 public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private static final int DETECTOR_MULTIPLIER = 10;
+    private static final int LESS_OFTEN_DETECTOR_FREQUENCY = 10;
     private final List<TaskStatus> dectectWhenOffchainTaskStatuses;
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
@@ -65,7 +65,7 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
     public void detectOnChainChanges() {
         detectOnchainContributedWhenOffchainContributing();
 
-        detectorOccurrence = (detectorOccurrence + 1) % DETECTOR_MULTIPLIER;
+        detectorOccurrence = (detectorOccurrence + 1) % LESS_OFTEN_DETECTOR_FREQUENCY;
         if (detectorOccurrence == 0) {
             detectOnchainContributed();
         }
@@ -95,7 +95,7 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
      */
     public void detectOnchainContributed() {
-        log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * DETECTOR_MULTIPLIER);
+        log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
         dectectOnchainCompleted(
                 dectectWhenOffchainTaskStatuses,
                 offchainCompleting,
