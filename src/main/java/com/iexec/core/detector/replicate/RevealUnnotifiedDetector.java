@@ -60,8 +60,8 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
     public void detectOnChainChanges() {
         detectOnchainRevealedWhenOffchainRevealed();
 
-        detectorOccurrence = (detectorOccurrence + 1) % LESS_OFTEN_DETECTOR_FREQUENCY;
-        if (detectorOccurrence == 0) {
+        detectorOccurrence++;
+        if (detectorOccurrence % LESS_OFTEN_DETECTOR_FREQUENCY == 0) {
             detectOnchainRevealed();
         }
     }
