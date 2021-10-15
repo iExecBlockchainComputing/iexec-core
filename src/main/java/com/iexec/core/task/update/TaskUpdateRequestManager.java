@@ -17,9 +17,9 @@
 package com.iexec.core.task.update;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import com.iexec.core.utils.TargetedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -36,7 +36,7 @@ public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private final TargetedLock<String> taskUpdateLocks = new TargetedLock<>();
+    private final ConcurrentHashMap<String, AtomicBoolean> locks = new ConcurrentHashMap<>();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -82,23 +82,33 @@ public class TaskUpdateRequestManager {
         }
 
         while (!Thread.currentThread().isInterrupted()){
-            log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
-            try {
-                String chainTaskId = queue.take();
-                taskUpdateLocks.runAsyncWithLock(chainTaskId, () -> consumer.onTaskUpdateRequest(chainTaskId));
-            } catch (InterruptedException e) {
-                log.error("The unexpected happened", e);
-                Thread.currentThread().interrupt();
-            }
+            waitForTaskUpdateRequest();
         }
     }
 
     /**
-     * Clear released locks every hour so that we don't have memory leaks.
+     * Wait for new task update request and run the update once a request is arrived.
+     * 2 requests can be run in parallel if they don't target the same task.
+     * <br>
+     * Interrupts current thread if queue taking has been stopped during the execution.
      */
-    @Scheduled(fixedDelay = 1000*60*60)
-    public void clearLocks() {
-        taskUpdateLocks.clearReleasedLocks();
+    private void waitForTaskUpdateRequest() {
+        log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
+        try {
+            String chainTaskId = queue.take();
+            locks.putIfAbsent(chainTaskId, new AtomicBoolean(true)); // create lock if necessary
+            CompletableFuture.runAsync(() -> {
+                synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
+                    consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
+                }
+                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
+                    locks.remove(chainTaskId);
+                }
+            });
+        } catch (InterruptedException e) {
+            log.error("The unexpected happened", e);
+            Thread.currentThread().interrupt();
+        }
     }
 
 }
