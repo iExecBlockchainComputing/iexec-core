@@ -34,12 +34,14 @@ import java.util.List;
 @Service
 public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private static final int DETECTOR_MULTIPLIER = 10;
+    private static final int LESS_OFTEN_DETECTOR_FREQUENCY = 10;
     private final List<TaskStatus> dectectWhenOffchainTaskStatuses;
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
     private final int detectorRate;
+
+    private int detectorOccurrence;
 
     public ContributionUnnotifiedDetector(TaskService taskService,
                                           ReplicatesService replicatesService,
@@ -54,12 +56,26 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
         this.detectorRate = cronConfiguration.getContribute();
     }
 
+    /**
+     * Detects onchain CONTRIBUTED only if replicates are offchain CONTRIBUTING and
+     * onchain CONTRIBUTED if replicates are not CONTRIBUTED.
+     * The second detection is not always ran, depending on the detector run occurrences.
+     */
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
+    public void detectOnChainChanges() {
+        detectOnchainContributedWhenOffchainContributing();
+
+        detectorOccurrence++;
+        if (detectorOccurrence % LESS_OFTEN_DETECTOR_FREQUENCY == 0) {
+            detectOnchainContributed();
+        }
+    }
+
     /*
      * Detecting onchain CONTRIBUTED only if replicates are offchain CONTRIBUTING
      * (worker didn't notify last offchain CONTRIBUTED)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
     public void detectOnchainContributedWhenOffchainContributing() {
         log.debug("Detect onchain Contributed (when offchain Contributing) [retryIn:{}]",
                 this.detectorRate);
@@ -78,9 +94,8 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_CONTRIBUTE_SINCE_TASK_NOT_ACTIVE
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute() * " + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainContributed() {
-        log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * DETECTOR_MULTIPLIER);
+        log.debug("Detect onchain Contributed [retryIn:{}]", this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
         dectectOnchainCompleted(
                 dectectWhenOffchainTaskStatuses,
                 offchainCompleting,

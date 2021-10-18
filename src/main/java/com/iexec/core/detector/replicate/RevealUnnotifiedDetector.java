@@ -34,12 +34,14 @@ import java.util.List;
 @Service
 public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    private static final int DETECTOR_MULTIPLIER = 10;
+    private static final int LESS_OFTEN_DETECTOR_FREQUENCY = 10;
     private final List<TaskStatus> dectectWhenTaskStatuses;
     private final ReplicateStatus offchainCompleting;
     private final ReplicateStatus offchainCompleted;
     private final ChainContributionStatus onchainCompleted;
     private final CronConfiguration cronConfiguration;
+
+    private int detectorOccurrence;
 
     public RevealUnnotifiedDetector(TaskService taskService,
                                     ReplicatesService replicatesService,
@@ -54,12 +56,21 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
         onchainCompleted = ChainContributionStatus.REVEALED;
     }
 
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal()}")
+    public void detectOnChainChanges() {
+        detectOnchainRevealedWhenOffchainRevealed();
+
+        detectorOccurrence++;
+        if (detectorOccurrence % LESS_OFTEN_DETECTOR_FREQUENCY == 0) {
+            detectOnchainRevealed();
+        }
+    }
+
     /*
      * Detecting onchain REVEALED only if replicates are offchain REVEALING
      * (worker didn't notify last offchain REVEALED)
      * We want to detect them very often since it's highly probable
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal()}")
     public void detectOnchainRevealedWhenOffchainRevealed() {
         log.debug("Detect onchain Revealed (when offchain Revealing) [retryIn:{}]",
                 cronConfiguration.getReveal());
@@ -78,10 +89,9 @@ public class RevealUnnotifiedDetector extends UnnotifiedAbstractDetector {
      * - Frequently but no so often since it's eth node resource consuming and less probable
      * - When we receive a CANT_REVEAL
      */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getReveal() * " + DETECTOR_MULTIPLIER + "}")
     public void detectOnchainRevealed() {
         log.debug("Detect onchain Revealed [retryIn:{}]",
-                cronConfiguration.getReveal() * DETECTOR_MULTIPLIER);
+                cronConfiguration.getReveal() * LESS_OFTEN_DETECTOR_FREQUENCY);
         dectectOnchainCompleted(
                 dectectWhenTaskStatuses,
                 offchainCompleting,
