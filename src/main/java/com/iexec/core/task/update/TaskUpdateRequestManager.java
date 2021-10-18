@@ -17,7 +17,6 @@
 package com.iexec.core.task.update;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +35,7 @@ public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private final ConcurrentHashMap<String, AtomicBoolean> locks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -96,7 +95,7 @@ public class TaskUpdateRequestManager {
         log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
         try {
             String chainTaskId = queue.take();
-            locks.putIfAbsent(chainTaskId, new AtomicBoolean(true)); // create lock if necessary
+            locks.putIfAbsent(chainTaskId, new Object()); // create lock if necessary
             CompletableFuture.runAsync(() -> {
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
