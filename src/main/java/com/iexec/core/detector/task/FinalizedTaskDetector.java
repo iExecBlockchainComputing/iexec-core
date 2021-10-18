@@ -53,7 +53,7 @@ public class FinalizedTaskDetector implements Detector {
             Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
             if (chainTask.isPresent() && chainTask.get().getStatus().equals(ChainTaskStatus.COMPLETED)) {
                 log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
-                        TaskStatus.FINALIZING, TaskStatus.FINALIZED, task.getChainTaskId());
+                        task.getCurrentStatus(), TaskStatus.FINALIZED, task.getChainTaskId());
                 taskService.updateTask(task.getChainTaskId());
             }
         }

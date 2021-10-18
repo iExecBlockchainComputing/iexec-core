@@ -43,7 +43,7 @@ public class UnstartedTxDetector implements Detector {
         List<Task> notYetFinalizingTasks = taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADED);
         for (Task task : notYetFinalizingTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
-                    TaskStatus.RESULT_UPLOADED, TaskStatus.FINALIZING, task.getChainTaskId());
+                    task.getCurrentStatus(), TaskStatus.FINALIZING, task.getChainTaskId());
             taskService.updateTask(task.getChainTaskId());
         }
 
@@ -51,7 +51,7 @@ public class UnstartedTxDetector implements Detector {
         List<Task> notYetInitializedTasks = taskService.getInitializableTasks();
         for (Task task : notYetInitializedTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
-                    TaskStatus.RECEIVED, TaskStatus.INITIALIZING, task.getChainTaskId());
+                    task.getCurrentStatus(), TaskStatus.INITIALIZING, task.getChainTaskId());
             taskService.updateTask(task.getChainTaskId());
         }
     }
