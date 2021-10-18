@@ -370,6 +370,19 @@ public class TaskService implements TaskUpdateRequestConsumer {
 
     private void initializing2Initialized(Task task, ChainReceipt chainReceipt) {
         String chainTaskId = task.getChainTaskId();
+        if (!INITIALIZING.equals(task.getCurrentStatus())){
+            return;
+        }
+
+        ChainTaskStatus onChainStatus = iexecHubService.getChainTask(chainTaskId)
+                .map(ChainTask::getStatus)
+                .orElse(null);
+        if (!ChainTaskStatus.ACTIVE.equals(onChainStatus)){
+            log.warn("Cannot upgrade to initialized status [chainTaskId:{}, " +
+                            "onChainStatus{}]", chainTaskId, onChainStatus);
+            return;
+        }
+
         long initializationBlock = chainReceipt != null? chainReceipt.getBlockNumber() : 0;
         if (initializationBlock == 0){
             log.warn("Initialization block is empty, using deal block [chainTaskId:{}" +

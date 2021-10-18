@@ -487,6 +487,35 @@ public class TaskServiceTests {
     }
 
     @Test
+    public void shouldPartiallyUpdateForReceived2Initializing2InitializedSinceNotActiveTaskOnChain() {
+        Task task = getStubTask();
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        Pair<String, ChainReceipt> pair = Pair.of(CHAIN_TASK_ID, null);
+
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+
+        when(taskRepository.save(task)).thenReturn(task);
+        when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .build()));
+
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
+
+        // test that double call doesn't change anything
+        taskService.updateTaskRunnable(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
+    }
+
+    @Test
     public void shouldUpdateReceived2Initializing2Initialized() {
         Task task = getStubTask();
         task.changeStatus(RECEIVED);
@@ -502,6 +531,7 @@ public class TaskServiceTests {
         when(taskRepository.save(task)).thenReturn(task);
         when(iexecHubService.initialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(pair));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
 
