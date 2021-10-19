@@ -456,11 +456,12 @@ public class ReplicatesService {
     }
 
     @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
                                       String chainTaskId,
                                       String walletAddress,
                                       ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
+        return Optional.empty();
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
