@@ -68,6 +68,32 @@ public class RevealUnnotifiedDetectorTests {
         MockitoAnnotations.initMocks(this);
     }
 
+    // Detector aggregator
+    @Test
+    public void shouldDetectBothChangesOnChain() {
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
+
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(REVEALING).modifier(WORKER).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
+
+        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
+        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
+        when(iexecHubService.getRevealBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
+                .blockNumber(10L)
+                .txHash("0xabcef")
+                .build());
+
+        for (int i = 0; i < 10; i++) {
+            revealDetector.detectOnChainChanges();
+        }
+
+        Mockito.verify(replicatesService, Mockito.times(11))    // 10 detectors #1 & 1 detector #2
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+    }
+
 
     //Detector#1 after contributing
 
