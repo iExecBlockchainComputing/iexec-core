@@ -227,6 +227,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     }
 
     void initializing2Initialized(Task task) {
+        if (!INITIALIZING.equals(task.getCurrentStatus())){
+            return;
+        }
         // TODO: the block where initialization happened can be found
         blockchainAdapterService
                 .isInitialized(task.getChainTaskId())

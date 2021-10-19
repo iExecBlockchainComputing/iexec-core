@@ -62,7 +62,7 @@ public class ReopenedTaskDetector implements Detector {
             ChainTask chainTask = oChainTask.get();
             if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
                 log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
-                        TaskStatus.REOPENING, TaskStatus.REOPENED, task.getChainTaskId());
+                        task.getCurrentStatus(), TaskStatus.REOPENED, task.getChainTaskId());
                 taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
             }
         }

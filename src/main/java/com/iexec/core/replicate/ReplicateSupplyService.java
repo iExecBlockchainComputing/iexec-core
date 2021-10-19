@@ -152,11 +152,10 @@ public class ReplicateSupplyService {
             }
             taskService.lockTaskAccessForNewReplicate(chainTaskId);
 
-            boolean isFewBlocksAfterInitialization = isFewBlocksAfterInitialization(task);
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
 
-            if (isFewBlocksAfterInitialization && !hasWorkerAlreadyParticipated
+            if (!hasWorkerAlreadyParticipated
                     && consensusService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
 
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
