@@ -16,7 +16,9 @@
 
 package com.iexec.core.task.update;
 
+import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +36,8 @@ import org.springframework.stereotype.Component;
 public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final ExecutorService taskUpdateExecutorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicBoolean> locks = new ConcurrentHashMap<>();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -96,18 +97,27 @@ public class TaskUpdateRequestManager {
         log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
         try {
             String chainTaskId = queue.take();
-            locks.putIfAbsent(chainTaskId, new Object()); // create lock if necessary
+            locks.putIfAbsent(chainTaskId, new AtomicBoolean(true)); // create lock if necessary
             CompletableFuture.runAsync(() -> {
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
+                    locks.get(chainTaskId).set(false);
                 }
-                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
-                    locks.remove(chainTaskId);
-                }
-            }, taskUpdateExecutorService);
+            });
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    @Scheduled(fixedRate = 5)
+    void clearLocks() {
+        for (Map.Entry<String, AtomicBoolean> entry : locks.entrySet()) {
+            final String chainTaskId = entry.getKey();
+            final AtomicBoolean lock = entry.getValue();
+            if (!queue.contains(chainTaskId) && !lock.get()){
+                locks.remove(chainTaskId);  // prune task lock if not required anymore
+            }
         }
     }
 
