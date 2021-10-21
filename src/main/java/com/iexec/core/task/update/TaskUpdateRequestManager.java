@@ -97,7 +97,6 @@ public class TaskUpdateRequestManager {
             String chainTaskId = queue.take();
             CompletableFuture.runAsync(() -> {
                 locks.putIfAbsent(chainTaskId, new Object()); // create lock if necessary
-                System.out.println(chainTaskId + ":"  + Thread.currentThread().getName());
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
                 }
