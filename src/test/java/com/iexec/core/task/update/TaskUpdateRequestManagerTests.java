@@ -82,9 +82,6 @@ public class TaskUpdateRequestManagerTests {
         Awaitility
                 .await()
                 .until(() -> callsOrder.size() == callsPerUpdate * updates.size());
-//        while (callsOrder.size() < callsPerUpdate * updates.size()) {
-//            Thread.sleep(10);
-//        }
 
         asyncRun.cancel(true);
 

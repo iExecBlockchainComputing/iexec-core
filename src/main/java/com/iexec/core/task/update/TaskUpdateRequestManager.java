@@ -16,14 +16,12 @@
 
 package com.iexec.core.task.update;
 
-import java.util.Map;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 /**
  * This class is used to perform updates on a task one by one.
