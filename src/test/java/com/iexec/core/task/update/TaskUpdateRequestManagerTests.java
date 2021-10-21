@@ -9,6 +9,7 @@ import org.mockito.MockitoAnnotations;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TaskUpdateRequestManagerTests {
 
@@ -100,5 +101,38 @@ public class TaskUpdateRequestManagerTests {
 
             foundOutputsForKeyGroup.merge(updateId, 1, (currentValue, defaultValue) -> currentValue + 1);
         }
+    }
+
+    @Test
+    public void shouldRemoveSomeLocks() throws NoSuchFieldException, IllegalAccessException {
+        final Field locksField = TaskUpdateRequestManager.class
+                .getDeclaredField("locks");
+        locksField.setAccessible(true);
+        //noinspection unchecked
+        final ConcurrentHashMap<String, AtomicBoolean> locks = (ConcurrentHashMap<String, AtomicBoolean>) locksField.get(taskUpdateRequestManager);
+
+        final Field queueField = TaskUpdateRequestManager.class
+                .getDeclaredField("queue");
+        queueField.setAccessible(true);
+        //noinspection unchecked
+        final BlockingQueue<String> queue = (BlockingQueue<String>) queueField.get(taskUpdateRequestManager);
+        queue.add("1");
+        queue.add("3");
+
+        locks.put("1", new AtomicBoolean(true));
+        locks.put("2", new AtomicBoolean(true));
+        locks.put("3", new AtomicBoolean(false));
+        locks.put("4", new AtomicBoolean(false));
+
+        // Check that `clearLocks` effectively removes all locks
+        taskUpdateRequestManager.clearLocks();
+        Assertions.assertThat(locks.size()).isEqualTo(3);
+        Assertions.assertThat(locks.containsKey("1")).isTrue();
+        Assertions.assertThat(locks.containsKey("2")).isTrue();
+        Assertions.assertThat(locks.containsKey("3")).isTrue();
+
+        Assertions.assertThat(locks.get("1")).isTrue();
+        Assertions.assertThat(locks.get("2")).isTrue();
+        Assertions.assertThat(locks.get("3")).isFalse();
     }
 }

@@ -110,7 +110,7 @@ public class TaskUpdateRequestManager {
         }
     }
 
-    @Scheduled(fixedRate = 5)
+    @Scheduled(fixedRate = 10 * 60 * 1000)  // Run once every 10 minutes
     void clearLocks() {
         for (Map.Entry<String, AtomicBoolean> entry : locks.entrySet()) {
             final String chainTaskId = entry.getKey();
