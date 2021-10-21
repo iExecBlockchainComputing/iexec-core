@@ -34,6 +34,7 @@ import org.springframework.stereotype.Component;
 public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
+    private final ExecutorService taskUpdateExecutorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
     private TaskUpdateRequestConsumer consumer;
@@ -100,10 +101,10 @@ public class TaskUpdateRequestManager {
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
                 }
-//                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
-//                    locks.remove(chainTaskId);
-//                }
-            });
+                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
+                    locks.remove(chainTaskId);
+                }
+            }, taskUpdateExecutorService);
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
             Thread.currentThread().interrupt();
