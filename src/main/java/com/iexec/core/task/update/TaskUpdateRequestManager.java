@@ -100,9 +100,9 @@ public class TaskUpdateRequestManager {
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
                 }
-                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
-                    locks.remove(chainTaskId);
-                }
+//                if (!queue.contains(chainTaskId)){ // prune task lock if not required anymore
+//                    locks.remove(chainTaskId);
+//                }
             });
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
