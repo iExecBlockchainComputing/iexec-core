@@ -37,7 +37,7 @@ public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private final ConcurrentHashMap<String, AtomicBoolean> locks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -97,11 +97,13 @@ public class TaskUpdateRequestManager {
         log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
         try {
             String chainTaskId = queue.take();
-            locks.putIfAbsent(chainTaskId, new AtomicBoolean(true)); // create lock if necessary
+            locks.putIfAbsent(chainTaskId, new Object()); // create lock if necessary
             CompletableFuture.runAsync(() -> {
                 synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-                    locks.get(chainTaskId).set(false);
+                }
+                if (!queue.contains(chainTaskId)){
+                    locks.remove(chainTaskId);  // prune task lock if not required anymore
                 }
             });
         } catch (InterruptedException e) {
@@ -109,16 +111,4 @@ public class TaskUpdateRequestManager {
             Thread.currentThread().interrupt();
         }
     }
-
-    @Scheduled(fixedRate = 10 * 60 * 1000)  // Run once every 10 minutes
-    void clearLocks() {
-        for (Map.Entry<String, AtomicBoolean> entry : locks.entrySet()) {
-            final String chainTaskId = entry.getKey();
-            final AtomicBoolean lock = entry.getValue();
-            if (!queue.contains(chainTaskId) && !lock.get()){
-                locks.remove(chainTaskId);  // prune task lock if not required anymore
-            }
-        }
-    }
-
 }

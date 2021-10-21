@@ -1,6 +1,7 @@
 package com.iexec.core.task.update;
 
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -78,9 +79,12 @@ public class TaskUpdateRequestManagerTests {
         // We need to run this method as a new thread, so we can interrupt it after all tasks have run.
         final CompletableFuture<Void> asyncRun = CompletableFuture.runAsync(taskUpdateRequestManager::consumeAndNotify);
 
-        while (callsOrder.size() < callsPerUpdate * updates.size()) {
-            Thread.sleep(10);
-        }
+        Awaitility
+                .await()
+                .until(() -> callsOrder.size() == callsPerUpdate * updates.size());
+//        while (callsOrder.size() < callsPerUpdate * updates.size()) {
+//            Thread.sleep(10);
+//        }
 
         asyncRun.cancel(true);
 
@@ -101,43 +105,5 @@ public class TaskUpdateRequestManagerTests {
 
             foundOutputsForKeyGroup.merge(updateId, 1, (currentValue, defaultValue) -> currentValue + 1);
         }
-    }
-
-    @Test
-    public void shouldRemoveSomeLocks() throws NoSuchFieldException, IllegalAccessException {
-        // Make some fields accessible so that it is easier to test
-        final Field locksField = TaskUpdateRequestManager.class
-                .getDeclaredField("locks");
-        locksField.setAccessible(true);
-        //noinspection unchecked
-        final ConcurrentHashMap<String, AtomicBoolean> locks = (ConcurrentHashMap<String, AtomicBoolean>) locksField.get(taskUpdateRequestManager);
-
-        final Field queueField = TaskUpdateRequestManager.class
-                .getDeclaredField("queue");
-        queueField.setAccessible(true);
-        //noinspection unchecked
-        final BlockingQueue<String> queue = (BlockingQueue<String>) queueField.get(taskUpdateRequestManager);
-
-        // Add some test data
-        queue.add("1");
-        queue.add("3");
-
-        locks.put("1", new AtomicBoolean(true));
-        locks.put("2", new AtomicBoolean(true));
-        locks.put("3", new AtomicBoolean(false));
-        locks.put("4", new AtomicBoolean(false));
-
-        // Check that `clearLocks` effectively removes locks:
-        // - for tasks whose update is finished;
-        // - and there's no update for these tasks waiting in the queue.
-        taskUpdateRequestManager.clearLocks();
-        Assertions.assertThat(locks.size()).isEqualTo(3);
-        Assertions.assertThat(locks.containsKey("1")).isTrue();
-        Assertions.assertThat(locks.containsKey("2")).isTrue();
-        Assertions.assertThat(locks.containsKey("3")).isTrue();
-
-        Assertions.assertThat(locks.get("1")).isTrue();
-        Assertions.assertThat(locks.get("2")).isTrue();
-        Assertions.assertThat(locks.get("3")).isFalse();
     }
 }
