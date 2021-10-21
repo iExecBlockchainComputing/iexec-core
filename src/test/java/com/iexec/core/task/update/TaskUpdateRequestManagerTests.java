@@ -105,6 +105,7 @@ public class TaskUpdateRequestManagerTests {
 
     @Test
     public void shouldRemoveSomeLocks() throws NoSuchFieldException, IllegalAccessException {
+        // Make some fields accessible so that it is easier to test
         final Field locksField = TaskUpdateRequestManager.class
                 .getDeclaredField("locks");
         locksField.setAccessible(true);
@@ -116,6 +117,8 @@ public class TaskUpdateRequestManagerTests {
         queueField.setAccessible(true);
         //noinspection unchecked
         final BlockingQueue<String> queue = (BlockingQueue<String>) queueField.get(taskUpdateRequestManager);
+
+        // Add some test data
         queue.add("1");
         queue.add("3");
 
@@ -124,7 +127,9 @@ public class TaskUpdateRequestManagerTests {
         locks.put("3", new AtomicBoolean(false));
         locks.put("4", new AtomicBoolean(false));
 
-        // Check that `clearLocks` effectively removes all locks
+        // Check that `clearLocks` effectively removes locks:
+        // - for tasks whose update is finished;
+        // - and there's no update for these tasks waiting in the queue.
         taskUpdateRequestManager.clearLocks();
         Assertions.assertThat(locks.size()).isEqualTo(3);
         Assertions.assertThat(locks.containsKey("1")).isTrue();
