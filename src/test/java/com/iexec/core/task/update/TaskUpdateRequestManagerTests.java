@@ -63,6 +63,7 @@ public class TaskUpdateRequestManagerTests {
                 try {
                     Thread.sleep(random.nextInt(10));
                 } catch (InterruptedException ignored) {}
+                System.out.println("[" + new Date() + " ] " + chainTaskId + ":" + updateId + " => " + i);
                 callsOrder.add(updateId);
             }
         };
