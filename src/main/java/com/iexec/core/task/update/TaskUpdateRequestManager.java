@@ -17,6 +17,7 @@
 package com.iexec.core.task.update;
 
 import lombok.extern.slf4j.Slf4j;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,10 +33,16 @@ import java.util.function.Supplier;
 @Slf4j
 @Component
 public class TaskUpdateRequestManager {
+    /**
+     * An XL task timeout happens after 100 hours.
+     */
+    private static final long LONGEST_TASK_TIMEOUT = 100;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
+            .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
+            .build();
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -96,12 +103,8 @@ public class TaskUpdateRequestManager {
         try {
             String chainTaskId = queue.take();
             CompletableFuture.runAsync(() -> {
-                locks.putIfAbsent(chainTaskId, new Object()); // create lock if necessary
-                synchronized (locks.get(chainTaskId)){ // require one update on a same task at a time
+                synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-                }
-                if (!queue.contains(chainTaskId)){
-                    locks.remove(chainTaskId);  // prune task lock if not required anymore
                 }
             });
         } catch (InterruptedException e) {
