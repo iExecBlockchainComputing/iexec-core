@@ -52,16 +52,16 @@ public class TaskUpdateRequestManagerTests {
         final ConcurrentHashMap<Integer, String> taskForUpdateId = new ConcurrentHashMap<>();
         final int callsPerUpdate = 10;
         final List<String> updates = List.of("1", "1", "2", "2", "1");
+        final Random random = new Random();
 
         // Consuming a task update should only log the call a few times, while sleeping between each log
         // so that another task could be updated at the same time if authorized by lock.
         final TaskUpdateRequestConsumer consumer = chainTaskId -> {
-            final Random random = new Random();
-            final int updateId = random.nextInt(100);
+            final int updateId = (int)System.nanoTime() % Integer.MAX_VALUE;
             taskForUpdateId.put(updateId, chainTaskId);
             for (int i = 0; i < callsPerUpdate; i++) {
                 try {
-                    Thread.sleep(random.nextInt(10));
+                    TimeUnit.MILLISECONDS.sleep(random.nextInt(10));
                 } catch (InterruptedException ignored) {}
                 callsOrder.add(updateId);
             }

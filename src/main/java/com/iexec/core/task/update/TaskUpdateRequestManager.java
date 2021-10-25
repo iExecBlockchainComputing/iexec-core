@@ -16,6 +16,7 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.core.utils.TaskExecutorUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -37,12 +38,19 @@ public class TaskUpdateRequestManager {
      * An XL task timeout happens after 100 hours.
      */
     private static final long LONGEST_TASK_TIMEOUT = 100;
+    /**
+     * Max number of threads to update task for each core.
+     */
+    private static final int TASK_UPDATE_THREADS_PER_CORE = 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
             .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
             .build();
+    private final Executor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
+            "task-update-",
+            TASK_UPDATE_THREADS_PER_CORE);
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -106,7 +114,7 @@ public class TaskUpdateRequestManager {
                 synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())){ // require one update on a same task at a time
                     consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
                 }
-            });
+            }, taskUpdateExecutor);
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
             Thread.currentThread().interrupt();
