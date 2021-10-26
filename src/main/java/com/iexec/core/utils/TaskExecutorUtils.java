@@ -16,6 +16,17 @@ public class TaskExecutorUtils {
         return executor;
     }
 
+    public static ThreadPoolTaskExecutor newThreadPoolTaskExecutor(
+        String threadNamePrefix,
+        int poolSize
+    ) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(poolSize);
+        executor.setThreadNamePrefix(threadNamePrefix);
+        executor.initialize();
+        return executor;
+    }
+
     // TODO remove this
     public static ThreadPoolTaskExecutor singleThreadWithFixedSizeQueue(
         int queueSize,

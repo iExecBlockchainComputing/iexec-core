@@ -16,12 +16,14 @@
 
 package com.iexec.core.task.update;
 
-import java.util.concurrent.*;
-import java.util.function.Supplier;
-
+import com.iexec.core.utils.TaskExecutorUtils;
 import lombok.extern.slf4j.Slf4j;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 /**
  * This class is used to perform updates on a task one by one.
@@ -32,9 +34,23 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class TaskUpdateRequestManager {
+    /**
+     * An XL task timeout happens after 100 hours.
+     */
+    private static final long LONGEST_TASK_TIMEOUT = 100;
+    /**
+     * Max number of threads to update task for each core.
+     */
+    private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+    private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
+            .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
+            .build();
+    private final Executor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
+            "task-update-",
+            TASK_UPDATE_THREADS_POOL_SIZE);
     private TaskUpdateRequestConsumer consumer;
 
     /**
@@ -80,16 +96,28 @@ public class TaskUpdateRequestManager {
         }
 
         while (!Thread.currentThread().isInterrupted()){
-            log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
-            try {
-                String chainTaskId = queue.take();
-                CompletableFuture.runAsync(() ->
-                        consumer.onTaskUpdateRequest(chainTaskId));
-            } catch (InterruptedException e) {
-                log.error("The unexpected happened", e);
-                Thread.currentThread().interrupt();
-            }
+            waitForTaskUpdateRequest();
         }
     }
 
+    /**
+     * Wait for new task update request and run the update once a request is arrived.
+     * 2 requests can be run in parallel if they don't target the same task.
+     * <br>
+     * Interrupts current thread if queue taking has been stopped during the execution.
+     */
+    private void waitForTaskUpdateRequest() {
+        log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
+        try {
+            String chainTaskId = queue.take();
+            CompletableFuture.runAsync(() -> {
+                synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())){ // require one update on a same task at a time
+                    consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
+                }
+            }, taskUpdateExecutor);
+        } catch (InterruptedException e) {
+            log.error("The unexpected happened", e);
+            Thread.currentThread().interrupt();
+        }
+    }
 }
