@@ -103,10 +103,31 @@ public class ReplicatesController {
         statusUpdate.setDate(new Date());
         statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
-        return replicatesService
-                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
-                .build());
+        final UpdateReplicateStatusArgs updateReplicateStatusArgs = replicatesService.computeUpdateReplicateStatusArgs(
+                chainTaskId,
+                walletAddress,
+                statusUpdate);
+        final ReplicateStatusUpdateError replicateStatusUpdateError = replicatesService.canUpdateReplicateStatus(
+                chainTaskId,
+                walletAddress,
+                statusUpdate,
+                updateReplicateStatusArgs);
+
+        switch (replicateStatusUpdateError) {
+            case NO_ERROR:
+                return replicatesService
+                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
+                                .build());
+            case ALREADY_REPORTED:
+                return status(HttpStatus.ALREADY_REPORTED.value())
+                        .body(TaskNotificationType.PLEASE_WAIT);
+            case UNKNOWN_REPLICATE:
+            case BAD_WORKFLOW_TRANSITION:
+            case GENERIC_CANT_UPDATE:
+            default:
+                return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+        }
     }
 }

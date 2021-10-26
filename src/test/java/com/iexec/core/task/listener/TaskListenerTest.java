@@ -23,6 +23,7 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -44,7 +45,7 @@ public class TaskListenerTest {
     private static final String WALLET1 = "wallet1";
     private static final String WALLET2 = "wallet2";
     @Mock
-    private TaskService taskService;
+    private TaskUpdateManager taskUpdateManager;
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -65,7 +66,7 @@ public class TaskListenerTest {
         TaskCreatedEvent event = new TaskCreatedEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskService).updateTask(anyString());
+        verify(taskUpdateManager).publishUpdateTaskRequest(anyString());
     }
 
     @Test
@@ -144,6 +145,22 @@ public class TaskListenerTest {
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 
         taskListeners.onTaskFailedEvent(new TaskFailedEvent(CHAIN_TASK_ID));
+        verify(notificationService).sendTaskNotification(
+                TaskNotification.builder()
+                        .chainTaskId(CHAIN_TASK_ID)
+                        .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                        .workersAddress(Collections.emptyList())
+                        .build()
+        );
+        verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
+    }
+
+    @Test
+    public void onTaskRunningFailedEvent() {
+        when(replicatesService.getReplicates(CHAIN_TASK_ID))
+                .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
+
+        taskListeners.onTaskRunningFailedEvent(new TaskRunningFailedEvent(CHAIN_TASK_ID));
         verify(notificationService).sendTaskNotification(
                 TaskNotification.builder()
                         .chainTaskId(CHAIN_TASK_ID)

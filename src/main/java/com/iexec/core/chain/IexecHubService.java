@@ -92,11 +92,12 @@ public class IexecHubService extends IexecHubAbstractService {
      * @param taskIndex
      * @return true if the task is found with the status UNSET, false otherwise.
      */
+    //TODO Migrate to common
     public boolean isTaskInUnsetStatusOnChain(String chainDealId, int taskIndex) {
         String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
-        Optional<ChainTask> optional = getChainTask(generatedChainTaskId);
-        return optional.map(chainTask -> chainTask.getStatus().equals(ChainTaskStatus.UNSET))
-                .orElse(false);
+        Optional<ChainTask> chainTask = getChainTask(generatedChainTaskId);
+        return chainTask.isEmpty()
+                || ChainTaskStatus.UNSET.equals(chainTask.get().getStatus());
     }
 
     /**
@@ -166,7 +167,7 @@ public class IexecHubService extends IexecHubAbstractService {
         return new Date(startTime + maxTime * 10);
     }
 
-
+    @Deprecated
     public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
         log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
         try {

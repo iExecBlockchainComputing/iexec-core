@@ -20,6 +20,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskUpdateManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,10 +34,12 @@ import java.util.List;
 @Service
 public class TaskResultUploadTimeoutDetector implements Detector {
 
-    private TaskService taskService;
+    private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
 
-    public TaskResultUploadTimeoutDetector(TaskService taskService) {
+    public TaskResultUploadTimeoutDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getResultUploadTimeout()}")
@@ -44,9 +47,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
     public void detect() {
         log.debug("Trying to detect tasks with upload timeout");
 
-        List<Task> inUploadStatus = taskService.findByCurrentStatus(Arrays.asList(
-                TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING));
+        List<Task> inUploadStatus = taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING);
 
         for (Task task : inUploadStatus) {
             String chainTaskId = task.getChainTaskId();
@@ -56,7 +57,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
             if (isNowAfterFinalDeadline) {
                 log.info("found task in status {} after final deadline [chainTaskId:{}]",
                         task.getCurrentStatus(), chainTaskId);
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
             }
         }
     }

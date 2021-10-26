@@ -24,6 +24,7 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,16 +39,16 @@ import java.util.List;
 @Slf4j
 public class TaskListeners {
 
-    private TaskService taskService;
-    private NotificationService notificationService;
-    private ReplicatesService replicatesService;
-    private WorkerService workerService;
+    private final TaskUpdateManager taskUpdateManager;
+    private final NotificationService notificationService;
+    private final ReplicatesService replicatesService;
+    private final WorkerService workerService;
 
-    public TaskListeners(TaskService taskService,
+    public TaskListeners(TaskUpdateManager taskUpdateManager,
                          NotificationService notificationService,
                          ReplicatesService replicatesService,
                          WorkerService workerService) {
-        this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
         this.workerService = workerService;
@@ -57,7 +58,7 @@ public class TaskListeners {
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
         log.info("Received TaskCreatedEvent [chainTaskId:{}]", event.getChainTaskId());
-        taskService.updateTask(event.getChainTaskId());
+        taskUpdateManager.publishUpdateTaskRequest(event.getChainTaskId());
     }
 
     @EventListener
@@ -155,9 +156,7 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
-            workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
-        }
+        removeChainTaskIdFromWorkers(chainTaskId);
     }
 
     @EventListener
@@ -171,6 +170,24 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
+        removeChainTaskIdFromWorkers(chainTaskId);
+    }
+
+    @EventListener
+    public void onTaskRunningFailedEvent(TaskRunningFailedEvent event) {
+        String chainTaskId = event.getChainTaskId();
+        log.info("Received TaskRunningFailedEvent [chainTaskId:{}] ", chainTaskId);
+
+        notificationService.sendTaskNotification(TaskNotification.builder()
+                .chainTaskId(chainTaskId)
+                .taskNotificationType(TaskNotificationType.PLEASE_ABORT)
+                .workersAddress(Collections.emptyList())
+                .build());
+
+        removeChainTaskIdFromWorkers(chainTaskId);
+    }
+
+    private void removeChainTaskIdFromWorkers(String chainTaskId) {
         for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
             workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }

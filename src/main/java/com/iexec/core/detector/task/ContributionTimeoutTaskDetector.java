@@ -20,6 +20,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskUpdateManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -31,10 +32,12 @@ import java.util.Date;
 @Service
 public class ContributionTimeoutTaskDetector implements Detector {
 
-    private TaskService taskService;
+    private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
 
-    public ContributionTimeoutTaskDetector(TaskService taskService) {
+    public ContributionTimeoutTaskDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
@@ -45,7 +48,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {
                 log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
             }
         }
     }

@@ -16,10 +16,7 @@
 
 package com.iexec.core.task;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public enum TaskStatus {
     RECEIVED,
@@ -27,14 +24,13 @@ public enum TaskStatus {
     INITIALIZED,
     INITIALIZE_FAILED,
     RUNNING,
+    RUNNING_FAILED,
     CONTRIBUTION_TIMEOUT,
     CONSENSUS_REACHED,
     REOPENING,
     REOPENED,
     REOPEN_FAILED,
     AT_LEAST_ONE_REVEALED,
-    RESULT_UPLOAD_REQUESTED,
-    RESULT_UPLOAD_REQUEST_TIMEOUT,
     RESULT_UPLOADING,
     RESULT_UPLOADED,
     RESULT_UPLOAD_TIMEOUT,
@@ -58,7 +54,6 @@ public enum TaskStatus {
         return Arrays.asList(
             CONSENSUS_REACHED,
             AT_LEAST_ONE_REVEALED,
-            RESULT_UPLOAD_REQUESTED,
             RESULT_UPLOADING,
             RESULT_UPLOADED
         );
@@ -83,10 +78,7 @@ public enum TaskStatus {
     }
 
     public static boolean isInResultUploadPhase(TaskStatus status) {
-        return Arrays.asList(
-            RESULT_UPLOAD_REQUESTED,
-            RESULT_UPLOADING
-        ).contains(status);
+        return RESULT_UPLOADING == status;
     }
 
     public static boolean isInCompletionPhase(TaskStatus status) {

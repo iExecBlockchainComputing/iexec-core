@@ -33,6 +33,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.Before;
@@ -70,6 +71,7 @@ public class ReplicateSupplyServiceTests {
     @Mock private ReplicatesService replicatesService;
     @Mock private SignatureService signatureService;
     @Mock private TaskService taskService;
+    @Mock private TaskUpdateManager taskUpdateManager;
     @Mock private WorkerService workerService;
     @Mock private SmsService smsService;
     @Mock private Web3jService web3jService;
@@ -337,7 +339,7 @@ public class ReplicateSupplyServiceTests {
         replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         // the call should only happen once over the two tasks
-        Mockito.verify(taskService, Mockito.times(1))
+        Mockito.verify(taskUpdateManager, Mockito.times(1))
                 .isConsensusReached(any());
     }
 
@@ -655,7 +657,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(false);
+        when(taskUpdateManager.isConsensusReached(taskList.get(0))).thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -691,7 +693,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(true);
+        when(taskUpdateManager.isConsensusReached(taskList.get(0))).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -831,7 +833,7 @@ public class ReplicateSupplyServiceTests {
                 .thenReturn(true);
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        when(taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
@@ -869,7 +871,7 @@ public class ReplicateSupplyServiceTests {
         when(replicatesService.didReplicateRevealOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        when(taskService.updateTask(CHAIN_TASK_ID)).thenReturn(future);
+        when(taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID)).thenReturn(future);
         future.complete(true);
 
         List<TaskNotification> missedTaskNotifications =
@@ -890,7 +892,7 @@ public class ReplicateSupplyServiceTests {
     // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
     public void shouldTellReplicateToUploadResultSinceRequested() {
         List<String> ids = Arrays.asList(CHAIN_TASK_ID);
-        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOAD_REQUESTED);
+        List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);

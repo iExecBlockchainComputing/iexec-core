@@ -23,6 +23,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskUpdateManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,12 +34,15 @@ import java.util.Optional;
 @Service
 public class ReopenedTaskDetector implements Detector {
 
-    private TaskService taskService;
-    private IexecHubService iexecHubService;
+    private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
+    private final IexecHubService iexecHubService;
 
     public ReopenedTaskDetector(TaskService taskService,
+                                TaskUpdateManager taskUpdateManager,
                                 IexecHubService iexecHubService) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
         this.iexecHubService = iexecHubService;
     }
 
@@ -59,7 +63,7 @@ public class ReopenedTaskDetector implements Detector {
             if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
                 log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
                         task.getCurrentStatus(), TaskStatus.REOPENED, task.getChainTaskId());
-                taskService.updateTask(task.getChainTaskId());
+                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
             }
         }
     }

@@ -21,6 +21,7 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
 
+import com.iexec.core.task.TaskUpdateManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -39,6 +40,9 @@ public class TaskResultUploadTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
+
+    @Mock
+    private TaskUpdateManager taskUpdateManager;
 
     @InjectMocks
     private TaskResultUploadTimeoutDetector taskResultUploadTimeoutDetector;
@@ -59,15 +63,12 @@ public class TaskResultUploadTimeoutDetectorTests {
                 .finalDeadline(oneMinuteBeforeNow)
                 .build();
 
-        List<TaskStatus> statuses = Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING);
-
-        when(taskService.findByCurrentStatus(statuses))
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING))
                 .thenReturn(Collections.singletonList(task));
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(1)).updateTask(chainTaskId); 
+        Mockito.verify(taskUpdateManager, Mockito.times(1)).publishUpdateTaskRequest(chainTaskId);
     }
 
     @Test
@@ -80,15 +81,12 @@ public class TaskResultUploadTimeoutDetectorTests {
                 .finalDeadline(oneMinuteBeforeNow)
                 .build();
 
-        List<TaskStatus> statuses = Arrays.asList(TaskStatus.RESULT_UPLOAD_REQUESTED,
-                TaskStatus.RESULT_UPLOADING);
-
-        when(taskService.findByCurrentStatus(statuses))
+        when(taskService.findByCurrentStatus(TaskStatus.RESULT_UPLOADING))
                 .thenReturn(Collections.singletonList(task));
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskService, Mockito.times(0)).updateTask(chainTaskId); 
+        Mockito.verify(taskUpdateManager, Mockito.times(0)).publishUpdateTaskRequest(chainTaskId);
     }
 
 }
