@@ -41,7 +41,7 @@ public class TaskUpdateRequestManager {
     /**
      * Max number of threads to update task for each core.
      */
-    private static final int TASK_UPDATE_THREADS_PER_CORE = 2;
+    private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
@@ -50,7 +50,7 @@ public class TaskUpdateRequestManager {
             .build();
     private final Executor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
             "task-update-",
-            TASK_UPDATE_THREADS_PER_CORE);
+            TASK_UPDATE_THREADS_POOL_SIZE);
     private TaskUpdateRequestConsumer consumer;
 
     /**

@@ -18,10 +18,10 @@ public class TaskExecutorUtils {
 
     public static ThreadPoolTaskExecutor newThreadPoolTaskExecutor(
         String threadNamePrefix,
-        int threadsPerCore
+        int poolSize
     ) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(Runtime.getRuntime().availableProcessors() * threadsPerCore);
+        executor.setCorePoolSize(poolSize);
         executor.setThreadNamePrefix(threadNamePrefix);
         executor.initialize();
         return executor;
