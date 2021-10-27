@@ -496,7 +496,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     void requestUpload(Task task) {
         boolean isThereAWorkerUploading = replicatesService
                 .getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
-                        ReplicateStatus.RESULT_UPLOADING) > 0;
+                        ReplicateStatus.RESULT_UPLOADING,
+                        ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
 
         if (isThereAWorkerUploading) {
             log.info("Upload is requested but an upload is already in process. [chainTaskId: {}]", task.getChainTaskId());
