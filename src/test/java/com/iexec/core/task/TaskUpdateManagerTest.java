@@ -1602,7 +1602,11 @@ public class TaskUpdateManagerTest {
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID,ReplicateStatus.RESULT_UPLOADING)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(
+                CHAIN_TASK_ID,
+                ReplicateStatus.RESULT_UPLOADING,
+                ReplicateStatus.RESULT_UPLOAD_REQUESTED)
+        ).thenReturn(0);
         when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
         doNothing().when(replicatesService).updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -1620,7 +1624,11 @@ public class TaskUpdateManagerTest {
         task.changeStatus(AT_LEAST_ONE_REVEALED);
         task.setChainTaskId(CHAIN_TASK_ID);
 
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID,ReplicateStatus.RESULT_UPLOADING)).thenReturn(0);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(
+                CHAIN_TASK_ID,
+                ReplicateStatus.RESULT_UPLOADING,
+                ReplicateStatus.RESULT_UPLOAD_REQUESTED)
+        ).thenReturn(0);
         // For example, this could happen if replicate is lost after having revealed.
         when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
@@ -1634,7 +1642,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldRequestUploadSinceUploadInProgress() {
+    public void shouldNotRequestUploadSinceUploadInProgress() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(AT_LEAST_ONE_REVEALED);
@@ -1644,11 +1652,17 @@ public class TaskUpdateManagerTest {
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.RESULT_UPLOADING)).thenReturn(1);
+        when(replicatesService.getNbReplicatesWithCurrentStatus(
+                CHAIN_TASK_ID,
+                ReplicateStatus.RESULT_UPLOADING,
+                ReplicateStatus.RESULT_UPLOAD_REQUESTED)
+        ).thenReturn(1);
 
         taskUpdateManager.requestUpload(task);
 
         assertThat(task.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
+        verify(replicatesService, Mockito.times(0))
+                .getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
         verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.RESULT_UPLOAD_REQUESTED);
         verify(applicationEventPublisher, Mockito.times(0))
