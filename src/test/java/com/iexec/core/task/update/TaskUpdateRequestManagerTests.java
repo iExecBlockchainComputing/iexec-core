@@ -10,7 +10,6 @@ import org.mockito.MockitoAnnotations;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TaskUpdateRequestManagerTests {
 
@@ -47,7 +46,7 @@ public class TaskUpdateRequestManagerTests {
     }
 
     @Test
-    public void shouldNotUpdateAtTheSameTime() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
+    public void shouldNotUpdateAtTheSameTime() throws NoSuchFieldException, IllegalAccessException {
         final ConcurrentLinkedQueue<Integer> callsOrder = new ConcurrentLinkedQueue<>();
         final ConcurrentHashMap<Integer, String> taskForUpdateId = new ConcurrentHashMap<>();
         final int callsPerUpdate = 10;
