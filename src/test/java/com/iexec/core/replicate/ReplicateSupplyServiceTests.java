@@ -18,11 +18,13 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
+import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.task.TaskAbortCause;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
@@ -728,7 +730,9 @@ public class ReplicateSupplyServiceTests {
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
-        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT);
+        TaskNotificationExtra notificationExtra = missedTaskNotifications.get(0).getTaskNotificationExtra();
+        assertThat(notificationExtra.getTaskAbortCause()).isEqualTo(TaskAbortCause.CONTRIBUTION_TIMEOUT);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
@@ -754,7 +758,9 @@ public class ReplicateSupplyServiceTests {
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
-        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT);
+        TaskNotificationExtra notificationExtra = missedTaskNotifications.get(0).getTaskNotificationExtra();
+        assertThat(notificationExtra.getTaskAbortCause()).isEqualTo(TaskAbortCause.CONSENSUS_REACHED);
 
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING

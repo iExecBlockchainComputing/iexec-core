@@ -19,11 +19,11 @@ package com.iexec.core.task.listener;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
+import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.WorkerService;
@@ -72,10 +72,10 @@ public class TaskListeners {
             workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }
 
-        notificationService.sendTaskNotification(TaskNotification.builder()
+        notificationService.sendTaskNotification(TaskNotification.abortBuilder()
                 .chainTaskId(chainTaskId)
                 .workersAddress(workerAddresses)
-                .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT)
+                .taskAbortCause(TaskAbortCause.CONTRIBUTION_TIMEOUT)
                 .build());
         log.info("NotifyAbortContributionTimeout completed[workerAddresses:{}]", workerAddresses);
     }
@@ -113,10 +113,11 @@ public class TaskListeners {
 
         // losers: please abort
         if (!losers.isEmpty()) {
-            notificationService.sendTaskNotification(TaskNotification.builder()
-                    .taskNotificationType(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED)
+            notificationService.sendTaskNotification(TaskNotification.abortBuilder()
                     .chainTaskId(chainTaskId)
-                    .workersAddress(losers).build()
+                    .workersAddress(losers)
+                    .taskAbortCause(TaskAbortCause.CONSENSUS_REACHED)
+                    .build()
             );
         }
     }
