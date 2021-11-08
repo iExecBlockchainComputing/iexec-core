@@ -22,7 +22,6 @@ import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
