@@ -179,13 +179,6 @@ public class ReplicateSupplyService {
         return Optional.empty();
     }
 
-    private boolean isFewBlocksAfterInitialization(Task task) {
-        long lastBlock = web3jService.getLatestBlockNumber();
-        long initializationBlock = task.getInitializationBlockNumber();
-        boolean isFewBlocksAfterInitialization = lastBlock >= initializationBlock + 2;
-        return lastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
-    }
-
     /**
      * Get notifications missed by the worker during the time it was absent.
      * 
