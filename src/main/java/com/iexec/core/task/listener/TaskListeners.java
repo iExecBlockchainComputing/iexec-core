@@ -72,10 +72,12 @@ public class TaskListeners {
             workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }
 
-        notificationService.sendTaskNotification(TaskNotification.abortBuilder()
+        notificationService.sendTaskNotification(TaskNotification.builder()
                 .chainTaskId(chainTaskId)
                 .workersAddress(workerAddresses)
-                .taskAbortCause(TaskAbortCause.CONTRIBUTION_TIMEOUT)
+                .taskNotificationExtra(TaskNotificationExtra.builder()
+                        .taskAbortCause(TaskAbortCause.CONTRIBUTION_TIMEOUT)
+                        .build())
                 .build());
         log.info("NotifyAbortContributionTimeout completed[workerAddresses:{}]", workerAddresses);
     }
@@ -113,10 +115,12 @@ public class TaskListeners {
 
         // losers: please abort
         if (!losers.isEmpty()) {
-            notificationService.sendTaskNotification(TaskNotification.abortBuilder()
+            notificationService.sendTaskNotification(TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .workersAddress(losers)
-                    .taskAbortCause(TaskAbortCause.CONSENSUS_REACHED)
+                    .taskNotificationExtra(TaskNotificationExtra.builder()
+                            .taskAbortCause(TaskAbortCause.CONSENSUS_REACHED)
+                            .build())
                     .build()
             );
         }
