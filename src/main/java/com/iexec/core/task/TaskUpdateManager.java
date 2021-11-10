@@ -127,7 +127,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 toFailed(task);
                 break;
             case CONSENSUS_REACHED:
-                consensusReached2AtLeastOneReveal2UploadRequested(task);
+                consensusReached2AtLeastOneReveal2ResultUploading(task);
                 consensusReached2Reopening(task);
                 break;
             case CONTRIBUTION_TIMEOUT:
@@ -367,7 +367,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .build());
     }
 
-    void consensusReached2AtLeastOneReveal2UploadRequested(Task task) {
+    void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
         boolean condition1 = task.getCurrentStatus().equals(CONSENSUS_REACHED);
         boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
@@ -496,7 +496,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     void requestUpload(Task task) {
         boolean isThereAWorkerUploading = replicatesService
                 .getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
-                        ReplicateStatus.RESULT_UPLOADING) > 0;
+                        ReplicateStatus.RESULT_UPLOADING,
+                        ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
 
         if (isThereAWorkerUploading) {
             log.info("Upload is requested but an upload is already in process. [chainTaskId: {}]", task.getChainTaskId());

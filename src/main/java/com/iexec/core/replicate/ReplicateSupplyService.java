@@ -23,6 +23,7 @@ import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
@@ -178,36 +179,37 @@ public class ReplicateSupplyService {
         return Optional.empty();
     }
 
-    private boolean isFewBlocksAfterInitialization(Task task) {
-        long lastBlock = web3jService.getLatestBlockNumber();
-        long initializationBlock = task.getInitializationBlockNumber();
-        boolean isFewBlocksAfterInitialization = lastBlock >= initializationBlock + 2;
-        return lastBlock > 0 && initializationBlock > 0 && isFewBlocksAfterInitialization;
-    }
-
+    /**
+     * Get notifications missed by the worker during the time it was absent.
+     * 
+     * @param blockNumber last seen blocknumber by the worker
+     * @param walletAddress of the worker
+     * @return list of missed notifications. Can be empty if no notification is found
+     */
     public List<TaskNotification> getMissedTaskNotifications(long blockNumber, String walletAddress) {
-
         List<String> chainTaskIdList = workerService.getChainTaskIds(walletAddress);
         List<Task> tasksWithWorkerParticipation = taskService.getTasksByChainTaskIds(chainTaskIdList);
         List<TaskNotification> taskNotifications = new ArrayList<>();
-
         for (Task task : tasksWithWorkerParticipation) {
             String chainTaskId = task.getChainTaskId();
 
             Optional<Replicate> oReplicate = replicatesService.getReplicate(chainTaskId, walletAddress);
-            if (!oReplicate.isPresent()) continue;
-
+            if (!oReplicate.isPresent()) {
+                continue;
+            }
             Replicate replicate = oReplicate.get();
-
             boolean isRecoverable = replicate.isRecoverable();
-            if (!isRecoverable) continue;
-
+            if (!isRecoverable) {
+                continue;
+            }
             String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
-            if (task.isTeeTask() && enclaveChallenge.isEmpty()) continue;
-
+            if (task.isTeeTask() && enclaveChallenge.isEmpty()) {
+                continue;
+            }
             Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
-            if (!taskNotificationType.isPresent()) continue;
-
+            if (!taskNotificationType.isPresent()) {
+                continue;
+            }
             TaskNotificationExtra taskNotificationExtra =
                     getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
 
@@ -240,6 +242,8 @@ public class ReplicateSupplyService {
             case PLEASE_REVEAL:
                 taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
                 break;
+            case PLEASE_ABORT:
+                taskNotificationExtra.setTaskAbortCause(getTaskAbortCause(task));
             default:
                 break;
         }
@@ -251,13 +255,11 @@ public class ReplicateSupplyService {
         if (task.inContributionPhase()) {
             return recoverReplicateInContributionPhase(task, replicate, blockNumber);
         }
-
-        if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)) {
-            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONTRIBUTION_TIMEOUT);
-        }
-
-        if (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED) && !replicate.containsContributedStatus()) {
-            return Optional.of(TaskNotificationType.PLEASE_ABORT_CONSENSUS_REACHED);
+        // CONTRIBUTION_TIMEOUT or CONSENSUS_REACHED without contribution
+        if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)
+                || (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED)
+                        && !replicate.containsContributedStatus())) {
+            return Optional.of(TaskNotificationType.PLEASE_ABORT);
         }
 
         Optional<TaskNotificationType> oRecoveryAction = Optional.empty();
@@ -449,4 +451,14 @@ public class ReplicateSupplyService {
         return Optional.empty();
     }
 
+    private TaskAbortCause getTaskAbortCause(Task task) {
+        switch (task.getCurrentStatus()) {
+            case CONSENSUS_REACHED:
+                return TaskAbortCause.CONSENSUS_REACHED;
+            case CONTRIBUTION_TIMEOUT:
+                return TaskAbortCause.CONTRIBUTION_TIMEOUT;
+            default:
+                return TaskAbortCause.UNKNOWN;
+        }
+    }
 }
