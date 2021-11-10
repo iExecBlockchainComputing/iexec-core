@@ -11,6 +11,7 @@ pipeline {
                     sh './gradlew clean test sonarqube -Dsonar.projectKey=iexec-core -Dsonar.host.url=$address_sonar -Dsonar.login=$core_token --refresh-dependencies --no-daemon'
                  }
                  junit 'build/test-results/**/*.xml'
+                 jacoco ()
              }
         }
 
