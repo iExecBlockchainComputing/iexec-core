@@ -132,13 +132,6 @@ dependencies {
 jacoco {
     toolVersion = "0.8.3"
 }
-
-jacocoTestReport {
-    reports.xml.enabled true
-    reports.xml.destination file("${jacoco.reportsDir}/test/cov.xml")
-}
-
-// the test coverage report will be created just before the build
 build.dependsOn jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
