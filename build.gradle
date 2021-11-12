@@ -126,16 +126,7 @@ dependencies {
     implementation 'net.jodah:expiringmap:0.5.10'
 
     // awaitility
-    implementation 'org.awaitility:awaitility:4.0.1'
-
-    // web3j dependency
-    compile "org.web3j:core:4.7.0"
-
-    //jaxb required with Java 11
-    implementation 'javax.xml.bind:jaxb-api:2.3.0'
-
-    // failsafe
-    implementation 'net.jodah:failsafe:2.4.4'
+    testImplementation 'org.awaitility:awaitility:4.0.1'
 }
 
 jacoco {
