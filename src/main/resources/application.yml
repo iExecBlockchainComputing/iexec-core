@@ -54,6 +54,7 @@ chain:
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
 blockchain-adapter:
+  protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
   host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:blockchain-adapter}
   port: ${IEXEC_CORE_CHAIN_ADAPTER_PORT:13010}
   user:
