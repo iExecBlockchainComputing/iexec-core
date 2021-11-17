@@ -18,6 +18,8 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
+import com.iexec.common.config.PublicChainConfig;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
@@ -34,10 +36,15 @@ public class BlockchainAdapterService {
 
     public static final int WATCH_PERIOD_SECONDS = 1;//To tune
     public static final int MAX_ATTEMPTS = 50;
-    private final BlockchainAdapterClient blockchainAdapterClient;
 
-    public BlockchainAdapterService(BlockchainAdapterClient blockchainAdapterClient) {
-        this.blockchainAdapterClient = blockchainAdapterClient;
+    private final AuthenticatedBlockchainAdapterClient authenticatedClient;
+    private final UnauthenticatedBlockchainAdapterClient unauthenticatedClient;
+    private PublicChainConfig publicChainConfig;
+
+    public BlockchainAdapterService(AuthenticatedBlockchainAdapterClient authenticatedClient,
+                                    UnauthenticatedBlockchainAdapterClient unauthenticatedClient) {
+        this.authenticatedClient = authenticatedClient;
+        this.unauthenticatedClient = unauthenticatedClient;
     }
 
     /**
@@ -50,7 +57,7 @@ public class BlockchainAdapterService {
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
         try {
             ResponseEntity<String> initializeResponseEntity =
-                    blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
+                    authenticatedClient.requestInitializeTask(chainDealId, taskIndex);
             if (initializeResponseEntity.getStatusCode().is2xxSuccessful()
                     && !StringUtils.isEmpty(initializeResponseEntity.getBody())) {
                 String chainTaskId = initializeResponseEntity.getBody();
@@ -73,7 +80,7 @@ public class BlockchainAdapterService {
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
     public Optional<Boolean> isInitialized(String chainTaskId) {
-        return isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
+        return isCommandCompleted(authenticatedClient::getStatusForInitializeTaskRequest,
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
     }
 
@@ -90,7 +97,7 @@ public class BlockchainAdapterService {
                                             String callbackData) {
         try {
             ResponseEntity<String> finalizeResponseEntity =
-                    blockchainAdapterClient.requestFinalizeTask(chainTaskId,
+                    authenticatedClient.requestFinalizeTask(chainTaskId,
                             new TaskFinalizeArgs(resultLink, callbackData));
             if (finalizeResponseEntity.getStatusCode().is2xxSuccessful()
                     && !StringUtils.isEmpty(finalizeResponseEntity.getBody())) {
@@ -113,7 +120,7 @@ public class BlockchainAdapterService {
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
     public Optional<Boolean> isFinalized(String chainTaskId) {
-        return isCommandCompleted(blockchainAdapterClient::getStatusForFinalizeTaskRequest,
+        return isCommandCompleted(authenticatedClient::getStatusForFinalizeTaskRequest,
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
     }
 
@@ -165,4 +172,27 @@ public class BlockchainAdapterService {
         return Optional.empty();
     }
 
+    /**
+     * Retrieve and store the public chain config.
+     */
+    public PublicChainConfig getPublicChainConfig() {
+        if (publicChainConfig != null) {
+            return publicChainConfig;
+        }
+
+        try {
+            final ResponseEntity<PublicChainConfig> response =
+                    unauthenticatedClient.getPublicChainConfig();
+            if (response.getStatusCode().is2xxSuccessful() && response.hasBody()) {
+                final PublicChainConfig config = response.getBody();
+                log.info("Received public chain config [publicChainConfig:{}]",
+                        config);
+                this.publicChainConfig = config;
+                return config;
+            }
+        } catch (FeignException e) {
+            log.error("Failed to get public chain config:", e);
+        }
+        return null;
+    }
 }

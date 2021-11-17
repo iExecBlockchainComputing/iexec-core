@@ -25,12 +25,15 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Client for authenticated requests only.
+ */
 @FeignClient(
         name = "BlockchainAdapterClient",
         url = "#{blockchainAdapterClientConfig.url}",
         configuration = BlockchainAdapterClientFeignConfig.class
 )
-public interface BlockchainAdapterClient {
+public interface AuthenticatedBlockchainAdapterClient {
 
     @GetMapping("/tasks/{chainTaskId}")
     ResponseEntity<ChainTask> getTask(

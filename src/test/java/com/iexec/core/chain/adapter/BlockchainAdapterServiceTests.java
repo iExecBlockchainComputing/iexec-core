@@ -18,6 +18,7 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
+import com.iexec.common.config.PublicChainConfig;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +29,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BlockchainAdapterServiceTests {
 
@@ -42,7 +43,10 @@ public class BlockchainAdapterServiceTests {
     public static final int ATTEMPT = 0;
 
     @Mock
-    private BlockchainAdapterClient blockchainAdapterClient;
+    private AuthenticatedBlockchainAdapterClient authenticatedBlockchainAdapterClient;
+
+    @Mock
+    private UnauthenticatedBlockchainAdapterClient unauthenticatedClient;
 
     @InjectMocks
     private BlockchainAdapterService blockchainAdapterService;
@@ -56,7 +60,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitialize() {
-        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(authenticatedBlockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -65,7 +69,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitializeFailedSinceNot200() {
-        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(authenticatedBlockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.badRequest().build());
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -74,7 +78,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestInitializeFailedSinceNoBody() {
-        when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
+        when(authenticatedBlockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok().build());
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
@@ -83,7 +87,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void isInitialized() {
-        when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
+        when(authenticatedBlockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
         Assertions.assertThat(blockchainAdapterService.isInitialized(CHAIN_TASK_ID))
                 .isEqualTo(Optional.of(true));
@@ -93,7 +97,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalize() {
-        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(authenticatedBlockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
@@ -102,7 +106,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalizeFailedSinceNot200() {
-        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(authenticatedBlockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok().build());
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
@@ -111,7 +115,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void requestFinalizeFailedSinceNoBody() {
-        when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
+        when(authenticatedBlockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.badRequest().build());
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
@@ -120,7 +124,7 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void isFinalized() {
-        when(blockchainAdapterClient.getStatusForFinalizeTaskRequest(CHAIN_TASK_ID))
+        when(authenticatedBlockchainAdapterClient.getStatusForFinalizeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
         Assertions.assertThat(blockchainAdapterService.isFinalized(CHAIN_TASK_ID))
                 .isEqualTo(Optional.of(true));
@@ -130,13 +134,13 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void isCommandCompletedWithSuccess() {
-        when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
+        when(authenticatedBlockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
                 .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
                 .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
 
         Optional<Boolean> commandCompleted = blockchainAdapterService
-                .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
+                .isCommandCompleted(authenticatedBlockchainAdapterClient::getStatusForInitializeTaskRequest,
                 CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS, ATTEMPT);
         Assertions.assertThat(commandCompleted.isPresent()).isTrue();
         Assertions.assertThat(commandCompleted.get()).isTrue();
@@ -144,17 +148,47 @@ public class BlockchainAdapterServiceTests {
 
     @Test
     public void isCommandCompletedWithFailure() {
-        when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
+        when(authenticatedBlockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
                 .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
                 .thenReturn(ResponseEntity.ok(CommandStatus.FAILURE));
 
         Optional<Boolean> commandCompleted = blockchainAdapterService
-                .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
+                .isCommandCompleted(authenticatedBlockchainAdapterClient::getStatusForInitializeTaskRequest,
                 CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS, ATTEMPT);
         Assertions.assertThat(commandCompleted.isPresent()).isTrue();
         Assertions.assertThat(commandCompleted.get()).isFalse();
     }
 
+    // region getPublicChainConfig
+    @Test
+    public void shouldGetPublicChainConfigOnlyOnce() {
+        final PublicChainConfig expectedChainConfig = new PublicChainConfig();
+        when(unauthenticatedClient.getPublicChainConfig())
+                .thenReturn(ResponseEntity.ok(expectedChainConfig));
 
+        final PublicChainConfig actualChainConfig =
+                blockchainAdapterService.getPublicChainConfig();
+
+        Assertions.assertThat(actualChainConfig).isEqualTo(expectedChainConfig);
+        Assertions.assertThat(blockchainAdapterService.getPublicChainConfig())
+                .isEqualTo(expectedChainConfig);
+
+        // When calling `blockchainAdapterService.getPublicChainConfig()` again,
+        // it should retrieve the cached value.
+        blockchainAdapterService.getPublicChainConfig();
+        verify(unauthenticatedClient, times(1)).getPublicChainConfig();
+    }
+
+    @Test
+    public void shouldNotGetPublicChainConfigSinceNotFound() {
+        when(unauthenticatedClient.getPublicChainConfig())
+                .thenReturn(ResponseEntity.notFound().build());
+
+        final PublicChainConfig actualChainConfig =
+                blockchainAdapterService.getPublicChainConfig();
+        Assertions.assertThat(actualChainConfig).isNull();
+    }
+
+    // endregion
 }
