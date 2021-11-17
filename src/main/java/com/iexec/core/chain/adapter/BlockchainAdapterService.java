@@ -37,14 +37,11 @@ public class BlockchainAdapterService {
     public static final int WATCH_PERIOD_SECONDS = 1;//To tune
     public static final int MAX_ATTEMPTS = 50;
 
-    private final AuthenticatedBlockchainAdapterClient authenticatedClient;
-    private final UnauthenticatedBlockchainAdapterClient unauthenticatedClient;
+    private final BlockchainAdapterClient blockchainAdapterClient;
     private PublicChainConfig publicChainConfig;
 
-    public BlockchainAdapterService(AuthenticatedBlockchainAdapterClient authenticatedClient,
-                                    UnauthenticatedBlockchainAdapterClient unauthenticatedClient) {
-        this.authenticatedClient = authenticatedClient;
-        this.unauthenticatedClient = unauthenticatedClient;
+    public BlockchainAdapterService(BlockchainAdapterClient blockchainAdapterClient) {
+        this.blockchainAdapterClient = blockchainAdapterClient;
     }
 
     /**
@@ -57,7 +54,7 @@ public class BlockchainAdapterService {
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
         try {
             ResponseEntity<String> initializeResponseEntity =
-                    authenticatedClient.requestInitializeTask(chainDealId, taskIndex);
+                    blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
             if (initializeResponseEntity.getStatusCode().is2xxSuccessful()
                     && !StringUtils.isEmpty(initializeResponseEntity.getBody())) {
                 String chainTaskId = initializeResponseEntity.getBody();
@@ -80,7 +77,7 @@ public class BlockchainAdapterService {
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
     public Optional<Boolean> isInitialized(String chainTaskId) {
-        return isCommandCompleted(authenticatedClient::getStatusForInitializeTaskRequest,
+        return isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
     }
 
@@ -97,7 +94,7 @@ public class BlockchainAdapterService {
                                             String callbackData) {
         try {
             ResponseEntity<String> finalizeResponseEntity =
-                    authenticatedClient.requestFinalizeTask(chainTaskId,
+                    blockchainAdapterClient.requestFinalizeTask(chainTaskId,
                             new TaskFinalizeArgs(resultLink, callbackData));
             if (finalizeResponseEntity.getStatusCode().is2xxSuccessful()
                     && !StringUtils.isEmpty(finalizeResponseEntity.getBody())) {
@@ -120,7 +117,7 @@ public class BlockchainAdapterService {
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
     public Optional<Boolean> isFinalized(String chainTaskId) {
-        return isCommandCompleted(authenticatedClient::getStatusForFinalizeTaskRequest,
+        return isCommandCompleted(blockchainAdapterClient::getStatusForFinalizeTaskRequest,
                 chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
     }
 
@@ -182,7 +179,7 @@ public class BlockchainAdapterService {
 
         try {
             final ResponseEntity<PublicChainConfig> response =
-                    unauthenticatedClient.getPublicChainConfig();
+                    blockchainAdapterClient.getPublicChainConfig();
             if (response.getStatusCode().is2xxSuccessful() && response.hasBody()) {
                 final PublicChainConfig config = response.getBody();
                 log.info("Received public chain config [publicChainConfig:{}]",

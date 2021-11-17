@@ -20,6 +20,7 @@ package com.iexec.core.chain.adapter;
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
+import com.iexec.common.config.PublicChainConfig;
 import feign.FeignException;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,7 @@ import org.springframework.web.bind.annotation.*;
         url = "#{blockchainAdapterClientConfig.url}",
         configuration = BlockchainAdapterClientFeignConfig.class
 )
-public interface AuthenticatedBlockchainAdapterClient {
+public interface BlockchainAdapterClient {
 
     @GetMapping("/tasks/{chainTaskId}")
     ResponseEntity<ChainTask> getTask(
@@ -57,4 +58,6 @@ public interface AuthenticatedBlockchainAdapterClient {
     ResponseEntity<CommandStatus> getStatusForFinalizeTaskRequest(
             @PathVariable String chainTaskId) throws FeignException;
 
+    @GetMapping("/config/chain")
+    ResponseEntity<PublicChainConfig> getPublicChainConfig() throws FeignException;
 }
