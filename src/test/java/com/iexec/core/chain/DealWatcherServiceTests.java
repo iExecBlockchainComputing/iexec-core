@@ -33,7 +33,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.math.BigInteger;
 import java.util.Optional;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 

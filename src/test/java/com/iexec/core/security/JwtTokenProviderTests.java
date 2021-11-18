@@ -25,7 +25,7 @@ import org.mockito.MockitoAnnotations;
 
 import io.jsonwebtoken.MalformedJwtException;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public class JwtTokenProviderTests {
