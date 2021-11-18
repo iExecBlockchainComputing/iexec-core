@@ -181,11 +181,10 @@ public class BlockchainAdapterService {
             final ResponseEntity<PublicChainConfig> response =
                     blockchainAdapterClient.getPublicChainConfig();
             if (response.getStatusCode().is2xxSuccessful() && response.hasBody()) {
-                final PublicChainConfig config = response.getBody();
+                publicChainConfig = response.getBody();
                 log.info("Received public chain config [publicChainConfig:{}]",
-                        config);
-                this.publicChainConfig = config;
-                return config;
+                        publicChainConfig);
+                return publicChainConfig;
             }
         } catch (FeignException e) {
             log.error("Failed to get public chain config:", e);
