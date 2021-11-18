@@ -28,8 +28,8 @@ import java.util.Optional;
 
 import com.iexec.core.task.TaskService;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -46,7 +46,7 @@ public class TaskStdoutServiceTests {
     @InjectMocks
     private StdoutService stdoutService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }

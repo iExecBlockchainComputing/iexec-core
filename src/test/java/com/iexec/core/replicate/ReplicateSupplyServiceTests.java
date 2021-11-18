@@ -38,8 +38,8 @@ import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -83,7 +83,7 @@ public class ReplicateSupplyServiceTests {
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }

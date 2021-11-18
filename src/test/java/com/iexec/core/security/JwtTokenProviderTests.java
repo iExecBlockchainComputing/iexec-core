@@ -16,15 +16,16 @@
 
 package com.iexec.core.security;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import io.jsonwebtoken.MalformedJwtException;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public class JwtTokenProviderTests {
@@ -37,7 +38,7 @@ public class JwtTokenProviderTests {
     @InjectMocks
     private JwtTokenProvider jwtTokenProvider;
 
-    @Before
+    @BeforeEach
     public void init() { MockitoAnnotations.initMocks(this); }
 
     @Test
@@ -114,10 +115,10 @@ public class JwtTokenProviderTests {
         assertThat(walletAddress).isEqualTo(WALLET_WORKER);
     }
 
-    @Test(expected=MalformedJwtException.class)
+    @Test
     public void shouldThrowJwtExceptionSinceNotValidToken() {
         jwtTokenProvider.init();
-        jwtTokenProvider.getWalletAddress("non.valid.token");
+        Assertions.assertThrows(MalformedJwtException.class, () -> jwtTokenProvider.getWalletAddress("non.valid.token"));
     }
 
     @Test

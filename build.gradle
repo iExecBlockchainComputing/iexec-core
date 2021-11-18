@@ -129,6 +129,10 @@ dependencies {
     testImplementation 'org.awaitility:awaitility:4.0.1'
 }
 
+test {
+    useJUnitPlatform()
+}
+
 jacoco {
     toolVersion = "0.8.3"
 }
