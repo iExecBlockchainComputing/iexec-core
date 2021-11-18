@@ -22,8 +22,8 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
 
 import com.iexec.core.task.TaskUpdateManager;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -31,10 +31,8 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 public class TaskResultUploadTimeoutDetectorTests {
 
@@ -47,7 +45,7 @@ public class TaskResultUploadTimeoutDetectorTests {
     @InjectMocks
     private TaskResultUploadTimeoutDetector taskResultUploadTimeoutDetector;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }

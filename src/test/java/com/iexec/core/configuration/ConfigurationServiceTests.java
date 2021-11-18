@@ -17,8 +17,8 @@
 package com.iexec.core.configuration;
 
 import com.iexec.core.chain.ChainConfig;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -44,7 +44,7 @@ public class ConfigurationServiceTests {
     @InjectMocks
     private ConfigurationService configurationService;
 
-    @Before
+    @BeforeEach
     public void init() { MockitoAnnotations.initMocks(this); }
 
     @Test

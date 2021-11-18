@@ -18,8 +18,8 @@ package com.iexec.core.task;
 
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -51,13 +51,13 @@ public class TaskServiceTests {
     @InjectMocks
     private TaskService taskService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
 
     @Test
-    public void shouldNotgetTaskWithTrust() {
+    public void shouldNotGetTaskWithTrust() {
         when(taskRepository.findByChainTaskId("dummyId")).thenReturn(Optional.empty());
         Optional<Task> task = taskService.getTaskByChainTaskId("dummyId");
         assertThat(task.isPresent()).isFalse();

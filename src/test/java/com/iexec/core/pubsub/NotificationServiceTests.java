@@ -16,8 +16,8 @@
 
 package com.iexec.core.pubsub;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -36,7 +36,7 @@ public class NotificationServiceTests {
     @InjectMocks
     private NotificationService notificationService;
 
-    @Before
+    @BeforeEach
     public void init() { MockitoAnnotations.initMocks(this); }
 
     @Test

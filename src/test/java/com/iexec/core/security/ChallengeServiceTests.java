@@ -16,8 +16,8 @@
 
 package com.iexec.core.security;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -29,7 +29,7 @@ public class ChallengeServiceTests {
 
     private ChallengeService challengeService = new ChallengeService();
 
-    @Before
+    @BeforeEach
     public void init() { MockitoAnnotations.initMocks(this); }
 
     @Test
