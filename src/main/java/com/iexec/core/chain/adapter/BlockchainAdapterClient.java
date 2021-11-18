@@ -26,9 +26,6 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Client for authenticated requests only.
- */
 @FeignClient(
         name = "BlockchainAdapterClient",
         url = "#{blockchainAdapterClientConfig.url}",
