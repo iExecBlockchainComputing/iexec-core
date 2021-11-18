@@ -37,9 +37,6 @@ public class ChainConfig {
     @Value("${chain.privateAddress}")
     private String privateChainAddress;
 
-    @Value("#{blockchainAdapterService.publicChainConfig.nodeAddress}")
-    private String publicChainAddress;
-
     @Value("#{blockchainAdapterService.publicChainConfig.hubAddress}")
     private String hubAddress;
 
