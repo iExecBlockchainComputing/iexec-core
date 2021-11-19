@@ -17,6 +17,7 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.*;
+import com.iexec.common.contract.IexecSmartContractConnectionPolicy;
 import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
@@ -60,8 +61,11 @@ public class IexecHubService extends IexecHubAbstractService {
                            Web3jService web3jService,
                            ChainConfig chainConfig,
                            @Value("${chain.final-deadline-ratio}") Integer expectedFinalDeadlineRatio) {
-        super(credentialsService.getCredentials(), web3jService,
-                chainConfig.getHubAddress(), expectedFinalDeadlineRatio);
+        super(
+                credentialsService.getCredentials(),
+                web3jService,
+                chainConfig.getHubAddress(),
+                new IexecSmartContractConnectionPolicy(expectedFinalDeadlineRatio));
         this.credentialsService = credentialsService;
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
