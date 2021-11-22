@@ -52,7 +52,6 @@ chain:
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
-  final-deadline-ratio: ${IEXEC_FINAl_DEADLINE_RATIO:10}
 
 blockchain-adapter:
   protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
