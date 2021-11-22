@@ -19,7 +19,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'jacoco'
 
 group = 'com.iexec.core'
@@ -38,23 +38,6 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-configurations {
-    springBootJar
-    libraryJar
-}
-
-def LIBRARY_JAR_NAME = project.name + "-library"
-jar {
-    enabled = true
-    baseName = LIBRARY_JAR_NAME
-}
-
-// the project will create two artifacts: one spring boot executable and one library
-artifacts {
-    springBootJar file: file('build/libs/' + project.name + '-' + version + '.jar')
-    libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
-}
-
 ext {
     //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
     //Greenwich.SR2 is a patch for Greenwich.RELEASE
@@ -71,7 +54,6 @@ dependencyManagement {
 dependencies {
     // iexec
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
-    //implementation files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}-all.jar")
 
     // spring
     implementation ("org.springframework.boot:spring-boot-starter") {
@@ -115,10 +97,6 @@ dependencies {
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
 
-    // package cloud
-    springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
-    libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
-
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
@@ -128,6 +106,11 @@ dependencies {
 
     // awaitility
     testImplementation 'org.awaitility:awaitility:4.0.1'
+}
+
+jar {
+    enabled = true
+    archiveClassifier.set('library')
 }
 
 test {
@@ -155,39 +138,25 @@ project.ext.getNexusMaven = {
     }
 }
 
-uploadSpringBootJar {
-    description 'Upload the executable jar version of the core'
-    repositories.mavenDeployer {
-        pom.groupId = project.group
-        pom.artifactId = project.name
-        pom.version = version
-        configuration = configurations.springBootJar
-        repository(url: getNexusMaven()) {
-            authentication(userName: project.nexusUser, password: project.nexusPassword)
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact bootJar
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username nexusUser
+                password nexusPassword
+            }
+            url getNexusMaven
         }
     }
 }
 
-uploadLibraryJar {
-    description 'Upload the library jar version of the core'
-    repositories.mavenDeployer {
-        pom.groupId = project.group
-        pom.artifactId = LIBRARY_JAR_NAME
-        pom.version = version
-        configuration = configurations.libraryJar
-        repository(url: getNexusMaven()) {
-            authentication(userName: project.nexusUser, password: project.nexusPassword)
-        }
-    }
-}
-
-uploadLibraryJar.enabled = canUploadArchives
-uploadSpringBootJar.enabled = canUploadArchives
-uploadArchives.enabled = canUploadArchives
-
-uploadArchives.dependsOn uploadLibraryJar
-uploadArchives.dependsOn uploadSpringBootJar
-
+publish.enabled canUploadArchives
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
