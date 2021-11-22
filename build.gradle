@@ -19,7 +19,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'jacoco'
 
 group = 'com.iexec.core'
@@ -28,6 +28,7 @@ targetCompatibility = 11
 
 
 repositories {
+    mavenLocal()
     mavenCentral()
     jcenter()
     maven {
@@ -35,23 +36,6 @@ repositories {
     }
 
     maven { url "https://jitpack.io" }
-}
-
-configurations {
-    springBootJar
-    libraryJar
-}
-
-def LIBRARY_JAR_NAME = project.name + "-library"
-jar {
-    enabled = true
-    baseName = LIBRARY_JAR_NAME
-}
-
-// the project will create two artifacts: one spring boot executable and one library
-artifacts {
-    springBootJar file: file('build/libs/' + project.name + '-' + version + '.jar')
-    libraryJar file: file('build/libs/' + LIBRARY_JAR_NAME + '-' + version + '.jar')
 }
 
 ext {
@@ -69,54 +53,49 @@ dependencyManagement {
 
 dependencies {
     // iexec
-    compile "com.iexec.common:iexec-common:$iexecCommonVersion"
-    //compile files("../iexec-common/build/libs/iexec-common-${iexecCommonVersion}.jar")
+    implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
 
     // spring
-    compile("org.springframework.boot:spring-boot-starter") {
+    implementation ("org.springframework.boot:spring-boot-starter") {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging' //required for Graylog
     }
-    compile "org.springframework.boot:spring-boot-starter-web"
-    compile "org.springframework.boot:spring-boot-starter-data-mongodb"
-    compile "org.springframework.boot:spring-boot-starter-websocket"
-    compile "org.springframework.retry:spring-retry"
-    compile "org.springframework.boot:spring-boot-starter-aop"
-    compile "org.springframework.boot:spring-boot-starter-security"
-    compile "org.springframework.boot:spring-boot-starter-actuator"
-    compile "org.springframework.cloud:spring-cloud-starter-openfeign"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
+    implementation "org.springframework.boot:spring-boot-starter-websocket"
+    implementation "org.springframework.retry:spring-retry"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
 
     // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
     implementation 'com.squareup.okhttp3:okhttp:4.3.1' // Web3j issue: https://github.com/web3j/web3j/issues/1180
     // NoSuchMethodError: 'byte[] kotlin.collections.ArraysKt.copyInto(byte[], byte[], int, int, int)'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.3.50' // https://stackoverflow.com/a/57907899
 
-    testCompile "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
 
     // swagger
-    compile "io.springfox:springfox-swagger2:2.9.2"
-    compile "io.springfox:springfox-swagger-ui:2.9.2"
+    implementation "io.springfox:springfox-swagger2:2.9.2"
+    implementation "io.springfox:springfox-swagger-ui:2.9.2"
 
     // jason web token
-    compile "io.jsonwebtoken:jjwt:0.7.0"
+    implementation "io.jsonwebtoken:jjwt:0.7.0"
 
     // expiring map
-    compile "net.jodah:expiringmap:0.5.8"
+    implementation "net.jodah:expiringmap:0.5.8"
 
     // ipfs
-    compile "com.github.ipfs:java-ipfs-http-client:1.2.3"
+    implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
 
-    //graylog
-    compile 'biz.paluch.logging:logstash-gelf:1.5.1'
+    // graylog
+    implementation 'biz.paluch.logging:logstash-gelf:1.5.1'
 
-    compile 'io.micrometer:micrometer-registry-prometheus:1.1.5'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.1.5'
 
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
-
-    // package cloud
-    springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
-    libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
@@ -127,6 +106,15 @@ dependencies {
 
     // awaitility
     testImplementation 'org.awaitility:awaitility:4.0.1'
+}
+
+jar {
+    enabled = true
+    archiveClassifier.set('library')
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jacoco {
@@ -150,39 +138,25 @@ project.ext.getNexusMaven = {
     }
 }
 
-uploadSpringBootJar {
-    description 'Upload the executable jar version of the core'
-    repositories.mavenDeployer {
-        pom.groupId = project.group
-        pom.artifactId = project.name
-        pom.version = version
-        configuration = configurations.springBootJar
-        repository(url: getNexusMaven()) {
-            authentication(userName: project.nexusUser, password: project.nexusPassword)
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact bootJar
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username nexusUser
+                password nexusPassword
+            }
+            url getNexusMaven
         }
     }
 }
 
-uploadLibraryJar {
-    description 'Upload the library jar version of the core'
-    repositories.mavenDeployer {
-        pom.groupId = project.group
-        pom.artifactId = LIBRARY_JAR_NAME
-        pom.version = version
-        configuration = configurations.libraryJar
-        repository(url: getNexusMaven()) {
-            authentication(userName: project.nexusUser, password: project.nexusPassword)
-        }
-    }
-}
-
-uploadLibraryJar.enabled = canUploadArchives
-uploadSpringBootJar.enabled = canUploadArchives
-uploadArchives.enabled = canUploadArchives
-
-uploadArchives.dependsOn uploadLibraryJar
-uploadArchives.dependsOn uploadSpringBootJar
-
+publish.enabled canUploadArchives
 
 import org.apache.tools.ant.filters.ReplaceTokens
 

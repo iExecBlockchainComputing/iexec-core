@@ -2,8 +2,8 @@ package com.iexec.core.task.update;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
@@ -18,7 +18,7 @@ public class TaskUpdateRequestManagerTests {
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }

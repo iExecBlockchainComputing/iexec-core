@@ -19,9 +19,8 @@ package com.iexec.core.workflow;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,7 +28,7 @@ public class ReplicateWorkflowTests {
 
     private ReplicateWorkflow replicateWorkflow;
 
-    @Before
+    @BeforeEach
     public void setup() {
         replicateWorkflow = ReplicateWorkflow.getInstance();
     }

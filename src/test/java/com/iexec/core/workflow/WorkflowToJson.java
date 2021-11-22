@@ -16,7 +16,7 @@
 
 package com.iexec.core.workflow;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class WorkflowToJson {
 

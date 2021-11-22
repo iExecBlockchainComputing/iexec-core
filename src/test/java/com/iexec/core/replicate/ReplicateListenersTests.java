@@ -23,8 +23,8 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.listener.ReplicateListeners;
 import com.iexec.core.worker.WorkerService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -56,7 +56,7 @@ public class ReplicateListenersTests {
     private ReplicateListeners replicateListeners;
 
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
