@@ -38,11 +38,6 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-configurations {
-    springBootJar
-    libraryJar
-}
-
 ext {
     //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
     //Greenwich.SR2 is a patch for Greenwich.RELEASE
@@ -101,10 +96,6 @@ dependencies {
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
-
-    // package cloud
-    springBootJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
-    libraryJar "io.packagecloud.maven.wagon:maven-packagecloud-wagon:0.0.6"
 
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
