@@ -28,19 +28,16 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class ChainConfig {
 
-    @Value("${chain.id}")
+    @Value("#{blockchainAdapterService.publicChainConfig.chainId}")
     private Integer chainId;
 
-    @Value("${chain.sidechain}")
+    @Value("#{blockchainAdapterService.publicChainConfig.isSidechain()}")
     private boolean isSidechain;
 
     @Value("${chain.privateAddress}")
     private String privateChainAddress;
 
-    @Value("${chain.publicAddress}")
-    private String publicChainAddress;
-
-    @Value("${chain.hubAddress}")
+    @Value("#{blockchainAdapterService.publicChainConfig.iexecHubContractAddress}")
     private String hubAddress;
 
     @Value("${chain.poolAddress}")

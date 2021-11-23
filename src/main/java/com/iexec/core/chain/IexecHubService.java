@@ -58,7 +58,10 @@ public class IexecHubService extends IexecHubAbstractService {
     public IexecHubService(CredentialsService credentialsService,
                            Web3jService web3jService,
                            ChainConfig chainConfig) {
-        super(credentialsService.getCredentials(), web3jService, chainConfig.getHubAddress());
+        super(
+                credentialsService.getCredentials(),
+                web3jService,
+                chainConfig.getHubAddress());
         this.credentialsService = credentialsService;
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);

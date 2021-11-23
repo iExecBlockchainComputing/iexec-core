@@ -149,11 +149,7 @@ public class WorkerController {
     @GetMapping(path = "/workers/config")
     public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
         PublicConfiguration config = PublicConfiguration.builder()
-                .chainId(chainConfig.getChainId())
-                .blockchainURL(chainConfig.getPublicChainAddress())
-                .iexecHubAddress(chainConfig.getHubAddress())
                 .workerPoolAddress(chainConfig.getPoolAddress())
-                .isSidechain(chainConfig.isSidechain())
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
