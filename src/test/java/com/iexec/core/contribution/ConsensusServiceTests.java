@@ -16,11 +16,16 @@
 
 package com.iexec.core.contribution;
 
+import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -29,6 +34,7 @@ import static org.mockito.Mockito.when;
 public class ConsensusServiceTests {
 
     private final static String CHAIN_TASK_ID = "0xtaskId";
+    private final static List<Replicate> REPLICATES = Collections.emptyList();
     private final static long MAX_EXECUTION_TIME = 60000;
 
     /*
@@ -39,6 +45,9 @@ public class ConsensusServiceTests {
 
     @Mock
     private PredictionService predictionService;
+
+    @Mock
+    private ReplicatesService replicatesService;
 
     @InjectMocks
     private ConsensusService consensusService;
@@ -54,8 +63,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 0;
         int worstPredictionsWeight = 0;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 
@@ -68,8 +78,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 2;
         int worstPredictionsWeight = 0;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 
@@ -82,8 +93,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 4;
         int worstPredictionsWeight = 0;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 
@@ -96,8 +108,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 5;
         int worstPredictionsWeight = 0;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 
@@ -110,8 +123,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 5;
         int worstPredictionsWeight = 1;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 
@@ -124,8 +138,9 @@ public class ConsensusServiceTests {
         int bestPredictionWeight = 25;
         int worstPredictionsWeight = 5;
 
-        when(predictionService.getBestPredictionWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
-        when(predictionService.getWorstPredictionsWeight(CHAIN_TASK_ID)).thenReturn(worstPredictionsWeight);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(REPLICATES);
+        when(predictionService.getBestPredictionWeight(REPLICATES, MAX_EXECUTION_TIME)).thenReturn(bestPredictionWeight);
+        when(predictionService.getWorstPredictionsWeight(REPLICATES)).thenReturn(worstPredictionsWeight);
         boolean needMoreContributionsForConsensus =
                 consensusService.doesTaskNeedMoreContributionsForConsensus(CHAIN_TASK_ID, trust, MAX_EXECUTION_TIME);
 

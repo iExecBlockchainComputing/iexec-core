@@ -16,17 +16,24 @@
 
 package com.iexec.core.contribution;
 
+import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
 public class ConsensusService {
 
-    private PredictionService predictionService;
+    private final PredictionService predictionService;
+    private final ReplicatesService replicatesService;
 
-    public ConsensusService(PredictionService predictionService) {
+    public ConsensusService(PredictionService predictionService,
+                            ReplicatesService replicatesService) {
         this.predictionService = predictionService;
+        this.replicatesService = replicatesService;
     }
 
 
@@ -41,8 +48,10 @@ public class ConsensusService {
     public boolean doesTaskNeedMoreContributionsForConsensus(String chainTaskId, int trust, long maxExecutionTime) {
         trust = Math.max(trust, 1);//ensure trust equals 1
 
-        int bestPredictionWeight = predictionService.getBestPredictionWeight(chainTaskId, maxExecutionTime);
-        int worstPredictionsWeight = predictionService.getWorstPredictionsWeight(chainTaskId);
+        final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+
+        int bestPredictionWeight = predictionService.getBestPredictionWeight(replicates, maxExecutionTime);
+        int worstPredictionsWeight = predictionService.getWorstPredictionsWeight(replicates);
 
         int allPredictionsWeight = worstPredictionsWeight + bestPredictionWeight;
 
@@ -59,10 +68,4 @@ public class ConsensusService {
     private boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
         return pendingAndContributedBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
     }
-
-
-
-
-
-
 }

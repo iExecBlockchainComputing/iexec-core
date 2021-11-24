@@ -18,11 +18,9 @@ package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.*;
@@ -36,13 +34,9 @@ import static org.mockito.Mockito.when;
 
 public class ContributionServiceTests {
 
-    private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static String A = "0xA";
     private final static String B = "0xB";
     private final static long MAX_EXECUTION_TIME = 60000;
-
-    @Mock
-    private ReplicatesService replicatesService;
 
     @InjectMocks
     private ContributionService contributionService;
@@ -71,10 +65,8 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2, replicate3);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getContributedWeight(CHAIN_TASK_ID, A)).isEqualTo(15);
-        assertThat(contributionService.getContributedWeight(CHAIN_TASK_ID, B)).isEqualTo(10);
+        assertThat(contributionService.getContributedWeight(replicates, A)).isEqualTo(15);
+        assertThat(contributionService.getContributedWeight(replicates, B)).isEqualTo(10);
     }
 
     @Test
@@ -86,9 +78,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getContributedWeight(CHAIN_TASK_ID, A)).isEqualTo(0);
+        assertThat(contributionService.getContributedWeight(replicates, A)).isEqualTo(0);
     }
 
     @Test
@@ -100,9 +90,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getContributedWeight(CHAIN_TASK_ID, A)).isEqualTo(0);
+        assertThat(contributionService.getContributedWeight(replicates, A)).isEqualTo(0);
     }
 
     @Test
@@ -114,9 +102,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getContributedWeight(CHAIN_TASK_ID, A)).isEqualTo(0);
+        assertThat(contributionService.getContributedWeight(replicates, A)).isEqualTo(0);
     }
 
     @Test
@@ -133,9 +119,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(15);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(15);
     }
 
     @Test
@@ -147,9 +131,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(0);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(0);
     }
 
     @Test
@@ -166,9 +148,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
@@ -185,9 +165,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
@@ -204,9 +182,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
@@ -223,9 +199,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getPendingWeight(CHAIN_TASK_ID, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
@@ -248,9 +222,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2, replicate3);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getDistinctContributions(CHAIN_TASK_ID)).isEqualTo(new HashSet<>(Arrays.asList(A, B)));
+        assertThat(contributionService.getDistinctContributions(replicates)).isEqualTo(new HashSet<>(Arrays.asList(A, B)));
     }
 
     @Test
@@ -260,9 +232,7 @@ public class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
-
-        assertThat(contributionService.getDistinctContributions(CHAIN_TASK_ID)).isEmpty();
+        assertThat(contributionService.getDistinctContributions(replicates)).isEmpty();
     }
 
 }
