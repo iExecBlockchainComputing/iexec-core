@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 
-public class ConsensusServiceTests {
+class ConsensusServiceTests {
 
     private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static List<Replicate> REPLICATES = Collections.emptyList();
@@ -53,12 +53,12 @@ public class ConsensusServiceTests {
     private ConsensusService consensusService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.initMocks(this);
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust0() {
+    void shouldNeedMoreContributionsTrust0() {
         int trust = 0;
         int bestPredictionWeight = 0;
         int worstPredictionsWeight = 0;
@@ -73,7 +73,7 @@ public class ConsensusServiceTests {
     }
 
     @Test
-    public void shouldNotNeedMoreContributionsTrust0() {
+    void shouldNotNeedMoreContributionsTrust0() {
         int trust = 0;
         int bestPredictionWeight = 2;
         int worstPredictionsWeight = 0;
@@ -88,7 +88,7 @@ public class ConsensusServiceTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5() {
+    void shouldNeedMoreContributionsTrust5() {
         int trust = 5;
         int bestPredictionWeight = 4;
         int worstPredictionsWeight = 0;
@@ -103,7 +103,7 @@ public class ConsensusServiceTests {
     }
 
     @Test
-    public void shouldNotNeedMoreContributionsTrust5() {
+    void shouldNotNeedMoreContributionsTrust5() {
         int trust = 5;
         int bestPredictionWeight = 5;
         int worstPredictionsWeight = 0;
@@ -118,7 +118,7 @@ public class ConsensusServiceTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5Worst1() {
+    void shouldNeedMoreContributionsTrust5Worst1() {
         int trust = 5;
         int bestPredictionWeight = 5;
         int worstPredictionsWeight = 1;
@@ -133,7 +133,7 @@ public class ConsensusServiceTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5Worst5() {
+    void shouldNeedMoreContributionsTrust5Worst5() {
         int trust = 5;
         int bestPredictionWeight = 25;
         int worstPredictionsWeight = 5;

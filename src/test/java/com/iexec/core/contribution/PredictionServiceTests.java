@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 
-public class PredictionServiceTests {
+class PredictionServiceTests {
 
     private final static List<Replicate> REPLICATES = Collections.emptyList();
     private final static long MAX_EXECUTION_TIME = 60000;
@@ -46,19 +46,19 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetEmptyContributedBestPrediction() {
+    void shouldGetEmptyContributedBestPrediction() {
 
         when(contributionService.getDistinctContributions(REPLICATES)).thenReturn(new HashSet<>());
 
         Prediction contributedBestPrediction = predictionService.getContributedBestPrediction(REPLICATES);
 
-        assertThat(contributedBestPrediction.getContribution()).isEqualTo("");
-        assertThat(contributedBestPrediction.getWeight()).isEqualTo(0);
+        assertThat(contributedBestPrediction.getContribution()).isEmpty();
+        assertThat(contributedBestPrediction.getWeight()).isZero();
 
     }
 
     @Test
-    public void shouldGetContributedBestPrediction() {
+    void shouldGetContributedBestPrediction() {
         String contributionA = "a";
         String contributionB = "b";
         int contributionWeightA = 5;
@@ -77,7 +77,7 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeight() {
+    void shouldGetBestPredictionWeight() {
         String contributedBestPredictionContribution = "a";
         int contributedBestPredictionWeight = 5;
 
@@ -91,7 +91,7 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeightWithNoContributed() {
+    void shouldGetBestPredictionWeightWithNoContributed() {
         String contributedBestPredictionContribution = "";
         int contributedBestPredictionWeight = 0;
 
@@ -105,7 +105,7 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeightWithNoPending() {
+    void shouldGetBestPredictionWeightWithNoPending() {
         String contributedBestPredictionContribution = "a";
         int contributedBestPredictionWeight = 5;
 
@@ -119,7 +119,7 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetWorstPredictionsWeight() {
+    void shouldGetWorstPredictionsWeight() {
         String contributionA = "a";
         String contributionB = "b";
         String contributionC = "c";
@@ -139,7 +139,7 @@ public class PredictionServiceTests {
     }
 
     @Test
-    public void shouldGetSameWorstPredictionsWeightSincePendingDoesNotAffectSum() {
+    void shouldGetSameWorstPredictionsWeightSincePendingDoesNotAffectSum() {
         String contributionA = "a";
         String contributionB = "b";
         String contributionC = "c";
