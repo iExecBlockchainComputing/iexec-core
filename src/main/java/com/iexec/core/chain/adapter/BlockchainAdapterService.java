@@ -18,6 +18,8 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
+import com.iexec.common.config.PublicChainConfig;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +36,9 @@ public class BlockchainAdapterService {
 
     public static final int WATCH_PERIOD_SECONDS = 1;//To tune
     public static final int MAX_ATTEMPTS = 50;
+
     private final BlockchainAdapterClient blockchainAdapterClient;
+    private PublicChainConfig publicChainConfig;
 
     public BlockchainAdapterService(BlockchainAdapterClient blockchainAdapterClient) {
         this.blockchainAdapterClient = blockchainAdapterClient;
@@ -165,4 +169,26 @@ public class BlockchainAdapterService {
         return Optional.empty();
     }
 
+    /**
+     * Retrieve and store the public chain config.
+     */
+    public PublicChainConfig getPublicChainConfig() {
+        if (publicChainConfig != null) {
+            return publicChainConfig;
+        }
+
+        try {
+            final ResponseEntity<PublicChainConfig> response =
+                    blockchainAdapterClient.getPublicChainConfig();
+            if (response.getStatusCode().is2xxSuccessful() && response.hasBody()) {
+                publicChainConfig = response.getBody();
+                log.info("Received public chain config [publicChainConfig:{}]",
+                        publicChainConfig);
+                return publicChainConfig;
+            }
+        } catch (FeignException e) {
+            log.error("Failed to get public chain config:", e);
+        }
+        return null;
+    }
 }

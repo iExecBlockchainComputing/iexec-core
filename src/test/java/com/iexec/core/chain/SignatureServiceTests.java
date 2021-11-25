@@ -22,14 +22,14 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.HashUtils;
 import com.iexec.core.configuration.SmsConfiguration;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.web3j.crypto.Credentials;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 
@@ -41,7 +41,7 @@ public class SignatureServiceTests {
     @InjectMocks
     private SignatureService signatureService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
@@ -55,7 +55,7 @@ public class SignatureServiceTests {
 
         String expected = "0x54a76d209e8167e1ffa3bde8e3e7b30068423ca9554e1d605d8ee8fd0f165562";
 
-        assertEquals(expected, HashUtils.concatenateAndHash(workerWallet, chainTaskid, enclaveWallet));
+        Assertions.assertEquals(expected, HashUtils.concatenateAndHash(workerWallet, chainTaskid, enclaveWallet));
     }
 
     @Test
@@ -82,7 +82,7 @@ public class SignatureServiceTests {
                         new byte[]{(byte)28}))
                 .build();
 
-        assertEquals(authorization, expected);
+        Assertions.assertEquals(authorization, expected);
 
     }
 }

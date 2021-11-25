@@ -27,8 +27,8 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
 import java.util.Arrays;
@@ -64,7 +64,7 @@ public class ContributionUnnotifiedDetectorTests {
     @InjectMocks
     private ContributionUnnotifiedDetector contributionDetector;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }

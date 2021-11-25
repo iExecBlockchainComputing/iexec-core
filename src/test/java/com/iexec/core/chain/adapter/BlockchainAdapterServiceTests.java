@@ -18,9 +18,10 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
+import com.iexec.common.config.PublicChainConfig;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -28,7 +29,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BlockchainAdapterServiceTests {
 
@@ -47,7 +48,7 @@ public class BlockchainAdapterServiceTests {
     @InjectMocks
     private BlockchainAdapterService blockchainAdapterService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
@@ -156,5 +157,35 @@ public class BlockchainAdapterServiceTests {
         Assertions.assertThat(commandCompleted.get()).isFalse();
     }
 
+    // region getPublicChainConfig
+    @Test
+    public void shouldGetPublicChainConfigOnlyOnce() {
+        final PublicChainConfig expectedChainConfig = new PublicChainConfig();
+        when(blockchainAdapterClient.getPublicChainConfig())
+                .thenReturn(ResponseEntity.ok(expectedChainConfig));
 
+        final PublicChainConfig actualChainConfig =
+                blockchainAdapterService.getPublicChainConfig();
+
+        Assertions.assertThat(actualChainConfig).isEqualTo(expectedChainConfig);
+        Assertions.assertThat(blockchainAdapterService.getPublicChainConfig())
+                .isEqualTo(expectedChainConfig);
+
+        // When calling `blockchainAdapterService.getPublicChainConfig()` again,
+        // it should retrieve the cached value.
+        blockchainAdapterService.getPublicChainConfig();
+        verify(blockchainAdapterClient, times(1)).getPublicChainConfig();
+    }
+
+    @Test
+    public void shouldNotGetPublicChainConfigSinceNotFound() {
+        when(blockchainAdapterClient.getPublicChainConfig())
+                .thenReturn(ResponseEntity.notFound().build());
+
+        final PublicChainConfig actualChainConfig =
+                blockchainAdapterService.getPublicChainConfig();
+        Assertions.assertThat(actualChainConfig).isNull();
+    }
+
+    // endregion
 }

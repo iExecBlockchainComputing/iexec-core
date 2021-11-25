@@ -3,8 +3,8 @@ package com.iexec.core.sms;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.feign.SmsClient;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -21,7 +21,7 @@ public class SmsServiceTests {
     @InjectMocks
     private SmsService smsService;
 
-    @Before
+    @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
     }
