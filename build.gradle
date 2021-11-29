@@ -12,15 +12,15 @@ buildscript {
 }
 
 plugins {
-    id "org.sonarqube" version "2.7"
+    id 'java'
+    id 'eclipse'
+    id 'jacoco'
+    id 'org.sonarqube' version '2.7'
+    id 'maven-publish'
 }
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'maven-publish'
-apply plugin: 'jacoco'
 
 group = 'com.iexec.core'
 sourceCompatibility = 11
@@ -120,7 +120,14 @@ test {
 jacoco {
     toolVersion = "0.8.3"
 }
-build.dependsOn jacocoTestReport
+// sonarqube code coverage requires jacoco XML report
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+}
+tasks.test.finalizedBy    tasks.jacocoTestReport
+tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
 def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "master"
