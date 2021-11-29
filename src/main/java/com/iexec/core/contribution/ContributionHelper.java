@@ -18,27 +18,28 @@ package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
-import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-@Service
-public class ContributionService {
+public class ContributionHelper {
+
+    private ContributionHelper() {
+    }
+
     /*
      *
      * Get weight of a contributed
      *
      * */
-    int getContributedWeight(List<Replicate> replicates, String contribution) {
+    static int getContributedWeight(List<Replicate> replicates, String contribution) {
         int groupWeight = 0;
-
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
+            if (!lastRelevantStatus.isPresent()) {
                 continue;
             }
 
@@ -58,13 +59,13 @@ public class ContributionService {
      * Should exclude workers that have not CONTRIBUTED yet after t=date(CREATED)+1T
      *
      * */
-    int getPendingWeight(List<Replicate> replicates, long maxExecutionTime) {
+    static int getPendingWeight(List<Replicate> replicates, long maxExecutionTime) {
         int pendingGroupWeight = 0;
 
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
+            if (!lastRelevantStatus.isPresent()) {
                 continue;
             }
 
@@ -85,13 +86,14 @@ public class ContributionService {
      * Retrieves distinct contributions
      *
      * */
-    Set<String> getDistinctContributions(List<Replicate> replicates) {
+    static Set<String> getDistinctContributions(List<Replicate> replicates) {
+
         Set<String> distinctContributions = new HashSet<>();
 
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
+            if (!lastRelevantStatus.isPresent()) {
                 continue;
             }
 

@@ -17,25 +17,15 @@
 package com.iexec.core.contribution;
 
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Slf4j
-@Service
-public class ConsensusService {
+public class ConsensusHelper {
 
-    private final PredictionService predictionService;
-    private final ReplicatesService replicatesService;
-
-    public ConsensusService(PredictionService predictionService,
-                            ReplicatesService replicatesService) {
-        this.predictionService = predictionService;
-        this.replicatesService = replicatesService;
+    private ConsensusHelper() {
     }
-
 
     /*
      *
@@ -45,13 +35,15 @@ public class ConsensusService {
      * Return false means a consensus is possible now, no need to add new workers
      *
      */
-    public boolean doesTaskNeedMoreContributionsForConsensus(String chainTaskId, int trust, long maxExecutionTime) {
+    public static boolean doesTaskNeedMoreContributionsForConsensus(
+            String chainTaskId,
+            List<Replicate> replicates,
+            int trust,
+            long maxExecutionTime) {
         trust = Math.max(trust, 1);//ensure trust equals 1
 
-        final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
-
-        int bestPredictionWeight = predictionService.getBestPredictionWeight(replicates, maxExecutionTime);
-        int worstPredictionsWeight = predictionService.getWorstPredictionsWeight(replicates);
+        int bestPredictionWeight = PredictionHelper.getBestPredictionWeight(replicates, maxExecutionTime);
+        int worstPredictionsWeight = PredictionHelper.getWorstPredictionsWeight(replicates);
 
         int allPredictionsWeight = worstPredictionsWeight + bestPredictionWeight;
 
@@ -65,7 +57,7 @@ public class ConsensusService {
         return needsMoreContributions;
     }
 
-    private boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
+    private static boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
         return pendingAndContributedBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
     }
 }

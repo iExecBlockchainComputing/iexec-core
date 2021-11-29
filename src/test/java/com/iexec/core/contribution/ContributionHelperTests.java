@@ -18,9 +18,11 @@ package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicatesService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.*;
@@ -32,22 +34,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-class ContributionServiceTests {
+public class ContributionHelperTests {
 
+    private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static String A = "0xA";
     private final static String B = "0xB";
     private final static long MAX_EXECUTION_TIME = 60000;
 
-    @InjectMocks
-    private ContributionService contributionService;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.initMocks(this);
-    }
-
     @Test
-    void shouldGetContributedWeight() {
+    public void shouldGetContributedWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -65,12 +60,12 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2, replicate3);
 
-        assertThat(contributionService.getContributedWeight(replicates, A)).isEqualTo(15);
-        assertThat(contributionService.getContributedWeight(replicates, B)).isEqualTo(10);
+        assertThat(ContributionHelper.getContributedWeight(replicates, A)).isEqualTo(15);
+        assertThat(ContributionHelper.getContributedWeight(replicates, B)).isEqualTo(10);
     }
 
     @Test
-    void shouldNotGetContributedWeightSinceNoContribution() {
+    public void shouldNotGetContributedWeightSinceNoContribution() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn("");
@@ -78,11 +73,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        assertThat(contributionService.getContributedWeight(replicates, A)).isZero();
+        assertThat(ContributionHelper.getContributedWeight(replicates, A)).isZero();
     }
 
     @Test
-    void shouldNotGetContributedWeightSinceNoWeight() {
+    public void shouldNotGetContributedWeightSinceNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -90,11 +85,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        assertThat(contributionService.getContributedWeight(replicates, A)).isZero();
+        assertThat(ContributionHelper.getContributedWeight(replicates, A)).isZero();
     }
 
     @Test
-    void shouldNotGetContributedWeightSinceNoTContributed() {
+    public void shouldNotGetContributedWeightSinceNoTContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTING));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -102,11 +97,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        assertThat(contributionService.getContributedWeight(replicates, A)).isZero();
+        assertThat(ContributionHelper.getContributedWeight(replicates, A)).isZero();
     }
 
     @Test
-    void shouldGetPendingWeight() {
+    public void shouldGetPendingWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -119,11 +114,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(15);
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(15);
     }
 
     @Test
-    void shouldCount0PendingWeightSinceContributed() {
+    public void shouldCount0PendingWeightSinceContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
@@ -131,11 +126,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isZero();
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isZero();
     }
 
     @Test
-    void shouldCountOnlyPendingWeightForOneSinceOtherFailed() {
+    public void shouldCountOnlyPendingWeightForOneSinceOtherFailed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -148,11 +143,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
-    void shouldCountOnlyPendingWeightForOneSinceOtherContributed() {
+    public void shouldCountOnlyPendingWeightForOneSinceOtherContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -165,11 +160,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
-    void shouldCountOnlyPendingWeightForOneSinceOtherVeryOld() {
+    public void shouldCountOnlyPendingWeightForOneSinceOtherVeryOld() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -182,11 +177,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
-    void shouldCountOnlyPendingWeightForOneSinceOtherNoWeight() {
+    public void shouldCountOnlyPendingWeightForOneSinceOtherNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -199,11 +194,11 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
 
-        assertThat(contributionService.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
+        assertThat(ContributionHelper.getPendingWeight(replicates, MAX_EXECUTION_TIME)).isEqualTo(3);
     }
 
     @Test
-    void shouldGetDistinctContributions() {
+    public void shouldGetDistinctContributions() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -222,17 +217,17 @@ class ContributionServiceTests {
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2, replicate3);
 
-        assertThat(contributionService.getDistinctContributions(replicates)).isEqualTo(new HashSet<>(Arrays.asList(A, B)));
+        assertThat(ContributionHelper.getDistinctContributions(replicates)).isEqualTo(new HashSet<>(Arrays.asList(A, B)));
     }
 
     @Test
-    void shouldNotGetDistinctContributionsSinceNotContributed() {
+    public void shouldNotGetDistinctContributionsSinceNotContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 
-        assertThat(contributionService.getDistinctContributions(replicates)).isEmpty();
+        assertThat(ContributionHelper.getDistinctContributions(replicates)).isEmpty();
     }
 
 }
