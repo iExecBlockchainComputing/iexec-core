@@ -27,7 +27,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class ConsensusHelperTests {
+class ConsensusHelperTests {
 
     private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static long MAX_EXECUTION_TIME = 60000;
@@ -39,7 +39,7 @@ public class ConsensusHelperTests {
     * */
 
     @Test
-    public void shouldNeedMoreContributionsTrust0() {
+    void shouldNeedMoreContributionsTrust0() {
         int trust = 0;
 
         final List<Replicate> replicates = Collections.emptyList();
@@ -51,7 +51,7 @@ public class ConsensusHelperTests {
     }
 
     @Test
-    public void shouldNotNeedMoreContributionsTrust0() {
+    void shouldNotNeedMoreContributionsTrust0() {
         int trust = 0;
         int bestPredictionWeight = 2;
 
@@ -68,7 +68,7 @@ public class ConsensusHelperTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5() {
+    void shouldNeedMoreContributionsTrust5() {
         int trust = 5;
         int bestPredictionWeight = 4;
 
@@ -85,7 +85,7 @@ public class ConsensusHelperTests {
     }
 
     @Test
-    public void shouldNotNeedMoreContributionsTrust5() {
+    void shouldNotNeedMoreContributionsTrust5() {
         int trust = 5;
         int bestPredictionWeight = 5;
 
@@ -102,7 +102,7 @@ public class ConsensusHelperTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5Worst1() {
+    void shouldNeedMoreContributionsTrust5Worst1() {
         int trust = 5;
         int bestPredictionWeight = 5;
         int worstPredictionsWeight = 1;
@@ -128,7 +128,7 @@ public class ConsensusHelperTests {
     }
 
     @Test
-    public void shouldNeedMoreContributionsTrust5Worst5() {
+    void shouldNeedMoreContributionsTrust5Worst5() {
         int trust = 5;
         int bestPredictionWeight = 25;
         int worstPredictionsWeight = 5;

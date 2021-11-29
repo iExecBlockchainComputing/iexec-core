@@ -18,12 +18,7 @@ package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 
@@ -34,15 +29,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class ContributionHelperTests {
+class ContributionHelperTests {
 
-    private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static String A = "0xA";
     private final static String B = "0xB";
     private final static long MAX_EXECUTION_TIME = 60000;
 
     @Test
-    public void shouldGetContributedWeight() {
+    void shouldGetContributedWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -65,7 +59,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldNotGetContributedWeightSinceNoContribution() {
+    void shouldNotGetContributedWeightSinceNoContribution() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn("");
@@ -77,7 +71,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldNotGetContributedWeightSinceNoWeight() {
+    void shouldNotGetContributedWeightSinceNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -89,7 +83,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldNotGetContributedWeightSinceNoTContributed() {
+    void shouldNotGetContributedWeightSinceNoTContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTING));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -101,7 +95,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldGetPendingWeight() {
+    void shouldGetPendingWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -118,7 +112,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldCount0PendingWeightSinceContributed() {
+    void shouldCount0PendingWeightSinceContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
@@ -130,7 +124,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldCountOnlyPendingWeightForOneSinceOtherFailed() {
+    void shouldCountOnlyPendingWeightForOneSinceOtherFailed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -147,7 +141,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldCountOnlyPendingWeightForOneSinceOtherContributed() {
+    void shouldCountOnlyPendingWeightForOneSinceOtherContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -164,7 +158,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldCountOnlyPendingWeightForOneSinceOtherVeryOld() {
+    void shouldCountOnlyPendingWeightForOneSinceOtherVeryOld() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -181,7 +175,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldCountOnlyPendingWeightForOneSinceOtherNoWeight() {
+    void shouldCountOnlyPendingWeightForOneSinceOtherNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
@@ -198,7 +192,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldGetDistinctContributions() {
+    void shouldGetDistinctContributions() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
         when(replicate1.getContributionHash()).thenReturn(A);
@@ -221,7 +215,7 @@ public class ContributionHelperTests {
     }
 
     @Test
-    public void shouldNotGetDistinctContributionsSinceNotContributed() {
+    void shouldNotGetDistinctContributionsSinceNotContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
 

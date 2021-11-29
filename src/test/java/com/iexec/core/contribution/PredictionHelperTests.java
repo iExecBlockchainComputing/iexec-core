@@ -27,22 +27,22 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class PredictionHelperTests {
+class PredictionHelperTests {
 
     private final static String CHAIN_TASK_ID = "0xtaskId";
     private final static long MAX_EXECUTION_TIME = 60000;
 
     @Test
-    public void shouldGetEmptyContributedBestPrediction() {
+    void shouldGetEmptyContributedBestPrediction() {
         Prediction contributedBestPrediction = PredictionHelper.getContributedBestPrediction(Collections.emptyList());
 
-        assertThat(contributedBestPrediction.getContribution()).isEqualTo("");
-        assertThat(contributedBestPrediction.getWeight()).isEqualTo(0);
+        assertThat(contributedBestPrediction.getContribution()).isEmpty();
+        assertThat(contributedBestPrediction.getWeight()).isZero();
 
     }
 
     @Test
-    public void shouldGetContributedBestPrediction() {
+    void shouldGetContributedBestPrediction() {
         String contributionA = "a";
         String contributionB = "b";
         int contributionWeightA = 5;
@@ -67,7 +67,7 @@ public class PredictionHelperTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeight() {
+    void shouldGetBestPredictionWeight() {
         String contributedBestPredictionContribution = "a";
         int contributedBestPredictionWeight = 5;
         int pendingWeight = 5;
@@ -89,7 +89,7 @@ public class PredictionHelperTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeightWithNoContributed() {
+    void shouldGetBestPredictionWeightWithNoContributed() {
         int pendingWeight = 5;
 
         final Replicate pendingReplicate = new Replicate("0x2", CHAIN_TASK_ID);
@@ -104,7 +104,7 @@ public class PredictionHelperTests {
     }
 
     @Test
-    public void shouldGetBestPredictionWeightWithNoPending() {
+    void shouldGetBestPredictionWeightWithNoPending() {
         String contributedBestPredictionContribution = "a";
         int contributedBestPredictionWeight = 5;
 
@@ -121,7 +121,7 @@ public class PredictionHelperTests {
     }
 
     @Test
-    public void shouldGetWorstPredictionsWeight() {
+    void shouldGetWorstPredictionsWeight() {
         String contributionA = "a";
         String contributionB = "b";
         String contributionC = "c";
@@ -152,7 +152,7 @@ public class PredictionHelperTests {
     }
 
     @Test
-    public void shouldGetSameWorstPredictionsWeightSincePendingDoesNotAffectSum() {
+    void shouldGetSameWorstPredictionsWeightSincePendingDoesNotAffectSum() {
         String contributionA = "a";
         String contributionB = "b";
         String contributionC = "c";
