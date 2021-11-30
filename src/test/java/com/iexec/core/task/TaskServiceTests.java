@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -155,8 +156,31 @@ public class TaskServiceTests {
     @Test
     public void shouldGetInitializedOrRunningTasks() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(
+                Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Direction.ASC, "contributionDeadline")))
                 .thenReturn(tasks);
+        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
+                .isEqualTo(tasks);
+    }
+
+    @Test
+    public void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
+        Task task1 = getStubTask(maxExecutionTime);
+        task1.setCurrentStatus(INITIALIZED);
+        task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
+
+        Task task2 = getStubTask(maxExecutionTime);
+        task2.setCurrentStatus(RUNNING);
+        task2.setContributionDeadline(Date.from(Instant.now().plus(3, ChronoUnit.MINUTES)));
+
+        List<Task> tasks = Arrays.asList(task2, task1);
+
+        when(taskRepository.findByCurrentStatus(
+                Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Direction.ASC, "contributionDeadline")))
+                .thenReturn(tasks);
+
         Assertions.assertThat(taskService.getInitializedOrRunningTasks())
                 .isEqualTo(tasks);
     }

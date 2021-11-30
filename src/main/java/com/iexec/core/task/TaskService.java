@@ -17,6 +17,7 @@
 package com.iexec.core.task;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -109,7 +110,8 @@ public class TaskService {
     }
 
     public List<Task> getInitializedOrRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Direction.ASC, "contributionDeadline"));
     }
 
     public List<Task> getTasksInNonFinalStatuses() {
