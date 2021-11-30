@@ -18,20 +18,15 @@ package com.iexec.core.contribution;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.core.replicate.Replicate;
-import com.iexec.core.replicate.ReplicatesService;
-import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-@Service
-public class ContributionService {
+public class ContributionHelper {
 
-    private final ReplicatesService replicatesService;
-
-    public ContributionService(ReplicatesService replicatesService) {
-        this.replicatesService = replicatesService;
+    private ContributionHelper() {
     }
 
     /*
@@ -39,9 +34,9 @@ public class ContributionService {
      * Get weight of a contributed
      *
      * */
-    int getContributedWeight(String chainTaskId, String contribution) {
+    static int getContributedWeight(List<Replicate> replicates, String contribution) {
         int groupWeight = 0;
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+        for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
             if (!lastRelevantStatus.isPresent()) {
@@ -64,10 +59,10 @@ public class ContributionService {
      * Should exclude workers that have not CONTRIBUTED yet after t=date(CREATED)+1T
      *
      * */
-    int getPendingWeight(String chainTaskId, long maxExecutionTime) {
+    static int getPendingWeight(List<Replicate> replicates, long maxExecutionTime) {
         int pendingGroupWeight = 0;
 
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+        for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
             if (!lastRelevantStatus.isPresent()) {
@@ -91,11 +86,11 @@ public class ContributionService {
      * Retrieves distinct contributions
      *
      * */
-    Set<String> getDistinctContributions(String chainTaskId) {
+    static Set<String> getDistinctContributions(List<Replicate> replicates) {
 
         Set<String> distinctContributions = new HashSet<>();
 
-        for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
+        for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
             if (!lastRelevantStatus.isPresent()) {

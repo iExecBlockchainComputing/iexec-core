@@ -16,25 +16,21 @@
 
 package com.iexec.core.contribution;
 
-import org.springframework.stereotype.Service;
+import com.iexec.core.replicate.Replicate;
 
+import java.util.List;
 import java.util.Set;
 
-@Service
-public class PredictionService {
-
-    private ContributionService contributionService;
-
-    public PredictionService(ContributionService contributionService) {
-        this.contributionService = contributionService;
+public class PredictionHelper {
+    private PredictionHelper() {
     }
 
-    Prediction getContributedBestPrediction(String chainTaskId) {
-        Set<String> distinctContributions = contributionService.getDistinctContributions(chainTaskId);
+    static Prediction getContributedBestPrediction(List<Replicate> replicates) {
+        Set<String> distinctContributions = ContributionHelper.getDistinctContributions(replicates);
         Prediction bestPrediction = Prediction.builder().contribution("").weight(0).build();
 
         for (String predictionContribution : distinctContributions) {
-            int predictionWeight = contributionService.getContributedWeight(chainTaskId, predictionContribution);
+            int predictionWeight = ContributionHelper.getContributedWeight(replicates, predictionContribution);
 
             if (predictionWeight >= bestPrediction.getWeight()) {
                 bestPrediction.setContribution(predictionContribution);
@@ -44,8 +40,8 @@ public class PredictionService {
         return bestPrediction;
     }
 
-    private int getContributedBestPredictionWeight(String chainTaskId) {
-        return this.getContributedBestPrediction(chainTaskId).getWeight();
+    private static int getContributedBestPredictionWeight(List<Replicate> replicates) {
+        return getContributedBestPrediction(replicates).getWeight();
     }
 
     /*
@@ -54,9 +50,9 @@ public class PredictionService {
      * Counting pending and contributed
      *
      * */
-    int getBestPredictionWeight(String chainTaskId, long maxExecutionTime) {
-        int contributedBestPredictionWeight = getContributedBestPredictionWeight(chainTaskId);
-        int pendingWeight = contributionService.getPendingWeight(chainTaskId, maxExecutionTime);
+    static int getBestPredictionWeight(List<Replicate> replicates, long maxExecutionTime) {
+        int contributedBestPredictionWeight = getContributedBestPredictionWeight(replicates);
+        int pendingWeight = ContributionHelper.getPendingWeight(replicates, maxExecutionTime);
 
         int bestPredictionWeight;
         if (pendingWeight == 0 && contributedBestPredictionWeight == 0) {
@@ -76,14 +72,14 @@ public class PredictionService {
      * Sum all prediction weights but exclude contributed best prediction weight
      *
      * */
-    int getWorstPredictionsWeight(String chainTaskId) {
-        Set<String> distinctContributions = contributionService.getDistinctContributions(chainTaskId);
-        String bestPredictionContribution = this.getContributedBestPrediction(chainTaskId).getContribution();
+    static int getWorstPredictionsWeight(List<Replicate> replicates) {
+        Set<String> distinctContributions = ContributionHelper.getDistinctContributions(replicates);
+        String bestPredictionContribution = getContributedBestPrediction(replicates).getContribution();
 
         int allOtherPredictionsWeight = 0;
 
         for (String contribution : distinctContributions) {
-            int predictionWeight = contributionService.getContributedWeight(chainTaskId, contribution);
+            int predictionWeight = ContributionHelper.getContributedWeight(replicates, contribution);
 
             if (!contribution.equals(bestPredictionContribution)) {
                 allOtherPredictionsWeight = allOtherPredictionsWeight + predictionWeight;
