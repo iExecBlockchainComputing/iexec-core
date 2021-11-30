@@ -27,7 +27,7 @@ import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
-import com.iexec.core.contribution.ConsensusService;
+import com.iexec.core.contribution.ConsensusHelper;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -56,7 +56,6 @@ public class ReplicateSupplyService {
     private final SmsService smsService;
     private final Web3jService web3jService;
     private final ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
-    private final ConsensusService consensusService;
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -65,8 +64,7 @@ public class ReplicateSupplyService {
                                   WorkerService workerService,
                                   SmsService smsService,
                                   Web3jService web3jService,
-                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector,
-                                  ConsensusService consensusService) {
+                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskService = taskService;
@@ -75,7 +73,6 @@ public class ReplicateSupplyService {
         this.smsService = smsService;
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
-        this.consensusService = consensusService;
     }
 
     /*
@@ -156,9 +153,13 @@ public class ReplicateSupplyService {
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
 
-            if (!hasWorkerAlreadyParticipated
-                    && consensusService.doesTaskNeedMoreContributionsForConsensus(chainTaskId, task.getTrust(), task.getMaxExecutionTime())) {
-
+            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+            final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
+                    chainTaskId,
+                    replicates,
+                    task.getTrust(),
+                    task.getMaxExecutionTime());
+            if (!hasWorkerAlreadyParticipated && taskNeedsMoreContributions) {
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock

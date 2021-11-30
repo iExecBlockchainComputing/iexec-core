@@ -16,19 +16,16 @@
 
 package com.iexec.core.contribution;
 
+import com.iexec.core.replicate.Replicate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
-@Service
-public class ConsensusService {
+public class ConsensusHelper {
 
-    private PredictionService predictionService;
-
-    public ConsensusService(PredictionService predictionService) {
-        this.predictionService = predictionService;
+    private ConsensusHelper() {
     }
-
 
     /*
      *
@@ -38,11 +35,15 @@ public class ConsensusService {
      * Return false means a consensus is possible now, no need to add new workers
      *
      */
-    public boolean doesTaskNeedMoreContributionsForConsensus(String chainTaskId, int trust, long maxExecutionTime) {
+    public static boolean doesTaskNeedMoreContributionsForConsensus(
+            String chainTaskId,
+            List<Replicate> replicates,
+            int trust,
+            long maxExecutionTime) {
         trust = Math.max(trust, 1);//ensure trust equals 1
 
-        int bestPredictionWeight = predictionService.getBestPredictionWeight(chainTaskId, maxExecutionTime);
-        int worstPredictionsWeight = predictionService.getWorstPredictionsWeight(chainTaskId);
+        int bestPredictionWeight = PredictionHelper.getBestPredictionWeight(replicates, maxExecutionTime);
+        int worstPredictionsWeight = PredictionHelper.getWorstPredictionsWeight(replicates);
 
         int allPredictionsWeight = worstPredictionsWeight + bestPredictionWeight;
 
@@ -56,13 +57,7 @@ public class ConsensusService {
         return needsMoreContributions;
     }
 
-    private boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
+    private static boolean isConsensusPossibleNow(int trust, int pendingAndContributedBestPredictionWeight, int allPredictionsWeight) {
         return pendingAndContributedBestPredictionWeight * trust > (1 + allPredictionsWeight) * (trust - 1);
     }
-
-
-
-
-
-
 }
