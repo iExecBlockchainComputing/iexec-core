@@ -128,7 +128,7 @@ class ConsensusHelperTests {
     }
 
     @Test
-    void shouldNeedMoreContributionsTrust5Worst5() {
+    void shouldNotNeedMoreContributionsTrust5Worst5() {
         int trust = 5;
         int bestPredictionWeight = 25;
         int worstPredictionsWeight = 5;
