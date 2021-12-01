@@ -129,12 +129,12 @@ jacocoTestReport {
 tasks.test.finalizedBy    tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
-def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
+def gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+def gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
 def isMasterBranch = gitBranch == "master"
 def isDevelopBranch = gitBranch == "develop"
-def canUploadArchives = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
-def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
-def isSnapshotVersion = project.version.contains("SNAPSHOT")
+def canUploadArchives = (isMasterBranch || isDevelopBranch) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
+def isSnapshotVersion = project.version.endsWith("-SNAPSHOT")
 
 project.ext.getNexusMaven = {
     def nexusMavenBase = "https://nexus.iex.ec/repository"
@@ -184,49 +184,40 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
-def imageName = "nexus.iex.ec/iexec-core"
+String imageName   = 'nexus.iex.ec/iexec-core'
 
-project.ext.getDockerImageNameFull = {
-    def imageNameWithVersion = imageName + ":${version}"
-    if (isSnapshotVersion) {
-        return imageNameWithVersion + "-" + gitShortCommit
-    } else {
-        return imageNameWithVersion
-    }
+ext.bootJarPath = relativePath(tasks.bootJar.outputs.files.singleFile)
+ext.ociImageNameFull = ""
+
+if (gitBranch.equals('master') || gitBranch.startsWith('release/') || gitBranch.startsWith('hotfix/')) {
+    ext.ociImageNameFull = imageName + ':' + version
+}
+if (gitBranch.equals('develop')) {
+    ext.ociImageNameFull = imageName + ':dev-' + gitShortCommit
+}
+if (gitBranch.startsWith('feature/') || gitBranch.startsWith('bugfix/')) {
+    ext.ociImageNameFull = imageName + ':feature-' + gitShortCommit
 }
 
-project.ext.getDockerImageNameShortCommit = {
-    return imageName + ":" + gitShortCommit
-}
-
-task prepareDockerFile(type: Copy) {
-    delete 'build/main/resources/'
-    from 'Dockerfile'
-    into 'build/main/resources/'
-    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
-}
-
+ext.ociImageNameDev         = imageName + ':dev'
+ext.ociImageNameShortCommit = imageName + ':' + gitShortCommit
 
 task buildImage(type: Exec) {
-    description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageNameFull() + " . &&" +
-            "docker tag " + getDockerImageNameFull() + " " + imageName + ":dev")
+    dependsOn tasks.bootJar
+    description 'Build OCI image'
+    commandLine("sh", "-c", "docker build --build-arg spring_boot_jar=$bootJarPath -t $ociImageNameFull ."
+            + " && docker tag $ociImageNameFull $ociImageNameDev")
 }
-
-buildImage.dependsOn prepareDockerFile
-buildImage.enabled = (isMasterBranch || isDevelopBranch ) || project.hasProperty("forceDockerBuild")
 
 task pushImage(type: Exec) {
+    dependsOn tasks.buildImage
     if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
-        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " nexus.iex.ec && " +
-                "docker push " + getDockerImageNameFull() + " && " +
-                "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
-                "docker push " + getDockerImageNameShortCommit() + " && " +
-                "docker logout")
+        commandLine("sh", "-c", "docker login -u $nexusUser -p $nexusPassword nexus.iex.ec"
+                + " && docker tag  $ociImageNameFull $ociImageNameShortCommit"
+                + " && docker push $ociImageNameShortCommit"
+                + " && docker push $ociImageNameFull"
+                + " && docker logout")
     } else {
-        println "Credentials for DockerHub are missing, the images cannot be pushed"
+        println "Credentials for registry are missing, the images cannot be pushed"
     }
 }
-
-pushImage.dependsOn buildImage
-pushImage.enabled = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
