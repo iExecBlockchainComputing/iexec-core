@@ -208,16 +208,3 @@ task buildImage(type: Exec) {
     commandLine("sh", "-c", "docker build --build-arg spring_boot_jar=$bootJarPath -t $ociImageNameFull ."
             + " && docker tag $ociImageNameFull $ociImageNameDev")
 }
-
-task pushImage(type: Exec) {
-    dependsOn tasks.buildImage
-    if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
-        commandLine("sh", "-c", "docker login -u $nexusUser -p $nexusPassword nexus.iex.ec"
-                + " && docker tag  $ociImageNameFull $ociImageNameShortCommit"
-                + " && docker push $ociImageNameShortCommit"
-                + " && docker push $ociImageNameFull"
-                + " && docker logout")
-    } else {
-        println "Credentials for registry are missing, the images cannot be pushed"
-    }
-}
