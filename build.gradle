@@ -184,6 +184,8 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
+ext.bootJarPath = relativePath(tasks.bootJar.outputs.files.singleFile)
+
 def imageName = "nexus.iex.ec/iexec-core"
 
 project.ext.getDockerImageNameFull = {
