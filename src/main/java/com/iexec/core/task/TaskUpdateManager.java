@@ -251,18 +251,26 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(
+
+        // We explicitly exclude START_FAILED as it could denote some serious issues
+        // The task should not transition to `RUNNING` in this case.
+        final int nbReplicatesContainingStartingStatus = replicatesService.getNbReplicatesWithCurrentStatus(
                 chainTaskId,
-                ReplicateStatus.STARTING,
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
                 ReplicateStatus.APP_DOWNLOADED,
                 ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
                 ReplicateStatus.DATA_DOWNLOADED,
                 ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
                 ReplicateStatus.COMPUTED,
                 ReplicateStatus.CONTRIBUTING,
-                ReplicateStatus.CONTRIBUTED) > 0;
+                ReplicateStatus.CONTRIBUTE_FAILED,
+                ReplicateStatus.CONTRIBUTED
+        );
+        boolean condition1 = nbReplicatesContainingStartingStatus > 0;
         boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2) {
