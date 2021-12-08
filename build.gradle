@@ -134,11 +134,6 @@ jacocoTestReport {
 tasks.test.finalizedBy    tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
-def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
-def isMasterBranch = gitBranch == "master"
-def isDevelopBranch = gitBranch == "develop"
-def canUploadArchives = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
-
 publishing {
     publications {
         maven(MavenPublication) {
@@ -156,8 +151,6 @@ publishing {
         }
     }
 }
-
-publish.enabled canUploadArchives
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
