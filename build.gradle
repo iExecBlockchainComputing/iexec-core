@@ -194,7 +194,7 @@ ext.ociImageName   = "local/${rootProject.name}"
 
 task buildImage(type: Exec) {
     group 'Build'
-    description 'Build an OCI image from a Dockerfile.'
+    description 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar
     commandLine("sh", "-c", "docker build --build-arg spring_boot_jar=$bootJarPath -t $ociImageName:$gitShortCommit . &&" +
             "docker tag $ociImageName:$gitShortCommit $ociImageName:dev")
