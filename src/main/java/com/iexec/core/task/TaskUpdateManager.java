@@ -251,7 +251,18 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     void initialized2Running(Task task) {
         String chainTaskId = task.getChainTaskId();
-        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(chainTaskId, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED) > 0;
+        boolean condition1 = replicatesService.getNbReplicatesWithCurrentStatus(
+                chainTaskId,
+                ReplicateStatus.STARTING,
+                ReplicateStatus.STARTED,
+                ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOADED,
+                ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOADED,
+                ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTED,
+                ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTED) > 0;
         boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
         if (condition1 && condition2) {
