@@ -411,15 +411,18 @@ public class TaskUpdateManagerTest {
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(
                 task.getChainTaskId(),
-                ReplicateStatus.STARTING,
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
                 ReplicateStatus.APP_DOWNLOADED,
                 ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
                 ReplicateStatus.DATA_DOWNLOADED,
                 ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
                 ReplicateStatus.COMPUTED,
                 ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
                 ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
@@ -1435,15 +1438,18 @@ public class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(
                 CHAIN_TASK_ID,
-                ReplicateStatus.STARTING,
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
                 ReplicateStatus.APP_DOWNLOADED,
                 ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
                 ReplicateStatus.DATA_DOWNLOADED,
                 ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
                 ReplicateStatus.COMPUTED,
                 ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
                 ReplicateStatus.CONTRIBUTED)).thenReturn(3);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
 
@@ -1460,15 +1466,18 @@ public class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(
                 CHAIN_TASK_ID,
-                ReplicateStatus.STARTING,
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
                 ReplicateStatus.APP_DOWNLOADED,
                 ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
                 ReplicateStatus.DATA_DOWNLOADED,
                 ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
                 ReplicateStatus.COMPUTED,
                 ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
                 ReplicateStatus.CONTRIBUTED)).thenReturn(4);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
