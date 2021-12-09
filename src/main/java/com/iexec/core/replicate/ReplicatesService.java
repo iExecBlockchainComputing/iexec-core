@@ -141,6 +141,18 @@ public class ReplicatesService {
         return nbReplicates;
     }
 
+    public int getNbReplicatesWithLastRelevantStatus(String chainTaskId, ReplicateStatus... listStatus) {
+        int nbReplicates = 0;
+        for (Replicate replicate : getReplicates(chainTaskId)) {
+            for (ReplicateStatus status : listStatus) {
+                if (Objects.equals(replicate.getLastRelevantStatus().orElse(null), status)) {
+                    nbReplicates++;
+                }
+            }
+        }
+        return nbReplicates;
+    }
+
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
         Set<String> addressReplicates = new HashSet<>();
         for (Replicate replicate : getReplicates(chainTaskId)) {

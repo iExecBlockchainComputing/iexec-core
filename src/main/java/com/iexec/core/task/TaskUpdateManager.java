@@ -254,8 +254,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
         // We explicitly exclude START_FAILED as it could denote some serious issues
         // The task should not transition to `RUNNING` in this case.
-        final int nbReplicatesContainingStartingStatus = replicatesService.getNbReplicatesWithCurrentStatus(
-                chainTaskId,
+        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
                 ReplicateStatus.APP_DOWNLOAD_FAILED,
@@ -269,7 +268,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 ReplicateStatus.CONTRIBUTING,
                 ReplicateStatus.CONTRIBUTE_FAILED,
                 ReplicateStatus.CONTRIBUTED
-        );
+        };
+        final int nbReplicatesContainingStartingStatus = replicatesService.getNbReplicatesWithLastRelevantStatus(chainTaskId, acceptableStatus);
         boolean condition1 = nbReplicatesContainingStartingStatus > 0;
         boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
 
