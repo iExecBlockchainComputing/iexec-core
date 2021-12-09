@@ -173,7 +173,7 @@ compileJava.dependsOn createVersion
 
 ext.bootJarPath    = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
-ext.ociImageName   = "local/${rootProject.name}"
+ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
 task buildImage(type: Exec) {
     group 'Build'
