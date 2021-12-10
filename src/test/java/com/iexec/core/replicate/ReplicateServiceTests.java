@@ -260,6 +260,61 @@ public class ReplicateServiceTests {
     }
 
     @Test
+    public void shouldGetCorrectNbReplicatesWithOneLastRelevantStatus() {
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        Replicate replicate3 = new Replicate(WALLET_WORKER_3, CHAIN_TASK_ID);
+        replicate3.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        Replicate replicate4 = new Replicate(WALLET_WORKER_4, CHAIN_TASK_ID);
+        replicate4.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        replicate4.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2, replicate3, replicate4));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING)).isEqualTo(3);
+        assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, COMPUTED)).isEqualTo(1);
+        assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldGetCorrectNbReplicatesWithMultipleLastReleveantStatus() {
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        Replicate replicate3 = new Replicate(WALLET_WORKER_3, CHAIN_TASK_ID);
+        replicate3.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        Replicate replicate4 = new Replicate(WALLET_WORKER_4, CHAIN_TASK_ID);
+        replicate4.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        replicate4.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
+        replicate4.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        Replicate replicate5 = new Replicate(WALLET_WORKER_4, CHAIN_TASK_ID);
+        replicate5.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
+        replicate5.updateStatus(RECOVERING, ReplicateStatusModifier.WORKER);
+
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2, replicate3, replicate4, replicate5));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        int shouldBe2 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, COMPUTED, CONTRIBUTED);
+        assertThat(shouldBe2).isEqualTo(2);
+
+        int shouldBe3 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED);
+        assertThat(shouldBe3).isEqualTo(4);
+
+        int shouldBe4 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED,
+                CONTRIBUTED);
+        assertThat(shouldBe4).isEqualTo(5);
+
+    }
+
+    @Test
     public void shouldGetCorrectNbReplicatesContainingOneStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);

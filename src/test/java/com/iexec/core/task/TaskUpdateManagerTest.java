@@ -409,7 +409,24 @@ public class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
-        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(2);
+        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
+                ReplicateStatus.STARTED,
+                ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
+                ReplicateStatus.APP_DOWNLOADED,
+                ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                ReplicateStatus.DATA_DOWNLOADED,
+                ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
+                ReplicateStatus.COMPUTED,
+                ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
+                ReplicateStatus.CONTRIBUTED
+        };
+
+        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
+                .thenReturn(2);
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
         when(taskRepository.save(task)).thenReturn(task);
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
@@ -1420,9 +1437,25 @@ public class TaskUpdateManagerTest {
     public void shouldUpdateTaskToRunningFromWorkersInRunning() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
+        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
+                ReplicateStatus.STARTED,
+                ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
+                ReplicateStatus.APP_DOWNLOADED,
+                ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                ReplicateStatus.DATA_DOWNLOADED,
+                ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
+                ReplicateStatus.COMPUTED,
+                ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
+                ReplicateStatus.CONTRIBUTED
+        };
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(3);
+        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
+                .thenReturn(3);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -1434,9 +1467,25 @@ public class TaskUpdateManagerTest {
     public void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
+        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
+                ReplicateStatus.STARTED,
+                ReplicateStatus.APP_DOWNLOADING,
+                ReplicateStatus.APP_DOWNLOAD_FAILED,
+                ReplicateStatus.APP_DOWNLOADED,
+                ReplicateStatus.DATA_DOWNLOADING,
+                ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                ReplicateStatus.DATA_DOWNLOADED,
+                ReplicateStatus.COMPUTING,
+                ReplicateStatus.COMPUTE_FAILED,
+                ReplicateStatus.COMPUTED,
+                ReplicateStatus.CONTRIBUTING,
+                ReplicateStatus.CONTRIBUTE_FAILED,
+                ReplicateStatus.CONTRIBUTED
+        };
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(4);
+        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
+                .thenReturn(4);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
