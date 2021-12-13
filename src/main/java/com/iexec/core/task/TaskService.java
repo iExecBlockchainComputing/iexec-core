@@ -111,7 +111,7 @@ public class TaskService {
 
     public List<Task> getInitializedOrRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, "contributionDeadline"));
+                Sort.by(Sort.Direction.ASC, Task.CONTRIBUTION_DEADLINE_FIELD_NAME));
     }
 
     public List<Task> getTasksInNonFinalStatuses() {

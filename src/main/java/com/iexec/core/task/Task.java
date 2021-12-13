@@ -28,6 +28,7 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -54,6 +55,8 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
         unique = true)
 public class Task {
 
+    public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
+
     @Id
     private String id;
 
@@ -78,6 +81,7 @@ public class Task {
     private String uploadingWorkerWalletAddress;
     private String consensus;
     private long consensusReachedBlockNumber;
+    @Field(CONTRIBUTION_DEADLINE_FIELD_NAME)
     private Date contributionDeadline;
     private Date revealDeadline;
     private Date finalDeadline;

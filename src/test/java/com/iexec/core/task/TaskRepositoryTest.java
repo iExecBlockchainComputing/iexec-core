@@ -73,7 +73,7 @@ class TaskRepositoryTest {
         taskRepository.saveAll(Arrays.asList(task1, task2));
 
         List<Task> foundTasks = taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, "contributionDeadline"));
+                Sort.by(Sort.Direction.ASC, Task.CONTRIBUTION_DEADLINE_FIELD_NAME));
         Assertions.assertThat(foundTasks.size()).isEqualTo(taskRepository.count());
         Assertions.assertThat(foundTasks.get(0)).isEqualToComparingFieldByField(task2);
         Assertions.assertThat(foundTasks.get(1)).isEqualToComparingFieldByField((task1));
