@@ -1,9 +1,11 @@
 package com.iexec.core.task;
 
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -38,6 +40,21 @@ class TaskRepositoryTest {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @BeforeEach
+    void init() {
+        taskRepository.deleteAll();
+    }
+
+    @Test
+    void shouldFailWhenDuplicateUniqueDealIdx() {
+        Task task1 = getStubTask(maxExecutionTime);
+        Task task2 = getStubTask(maxExecutionTime);
+        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
+                .isInstanceOf(DuplicateKeyException.class)
+                .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
+                .hasMessageContaining("duplicate key error collection: iexec.task index: unique_deal_idx dup key");
+    }
 
     @Test
     void shouldFindTasksOrderedByContributionDeadline() {
