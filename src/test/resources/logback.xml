@@ -23,7 +23,7 @@
     <logger name="org.springframework.web" level="${LOG_LEVEL}"/>
 
     <!-- iexec -->
-    <logger name="com.iexec" leve="DEBUG"/>
+    <logger name="com.iexec" level="DEBUG"/>
 
     <!-- testcontainers -->
     <logger name="org.testcontainers" level="INFO"/>
