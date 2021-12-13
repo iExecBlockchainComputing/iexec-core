@@ -73,7 +73,7 @@ public class TaskService {
     ) {
         return taskRepository
                 .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
-                .<Optional<Task>>map((task) -> {
+                .<Optional<Task>>map(task -> {
                         log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
                                 "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
                                 taskIndex, imageName, commandLine, trust);

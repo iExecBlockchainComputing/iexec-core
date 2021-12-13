@@ -16,7 +16,6 @@
 
 package com.iexec.core.task;
 
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// TODO
 public class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
@@ -45,9 +43,6 @@ public class TaskServiceTests {
 
     @Mock
     private TaskRepository taskRepository;
-
-    @Mock
-    private TaskUpdateRequestManager updateRequestManager;
 
     @InjectMocks
     private TaskService taskService;
