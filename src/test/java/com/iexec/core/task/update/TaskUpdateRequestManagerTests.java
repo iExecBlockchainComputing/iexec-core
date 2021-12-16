@@ -1,20 +1,31 @@
 package com.iexec.core.task.update;
 
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class TaskUpdateRequestManagerTests {
+import static org.mockito.Mockito.when;
 
+class TaskUpdateRequestManagerTests {
 
     public static final String CHAIN_TASK_ID = "chainTaskId";
+
+    @Mock
+    private TaskService taskService;
+
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
@@ -23,34 +34,51 @@ public class TaskUpdateRequestManagerTests {
         MockitoAnnotations.initMocks(this);
     }
 
+    // region publishRequest()
     @Test
-    public void shouldPublishRequest() throws ExecutionException, InterruptedException {
+    void shouldPublishRequest() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(new Task()));
+
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isTrue();
     }
 
     @Test
-    public void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
+    void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(""))
+                .thenReturn(Optional.empty());
+
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest("");
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
     }
 
     @Test
-    public void shouldNotPublishRequestSinceItemAlreadyAdded() throws ExecutionException, InterruptedException {
+    void shouldNotPublishRequestSinceItemAlreadyAdded() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
         taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
     }
+    // endregion
 
+    // region consumeAndNotify()
     @Test
-    public void shouldNotUpdateAtTheSameTime() throws NoSuchFieldException, IllegalAccessException {
+    void shouldNotUpdateAtTheSameTime() throws NoSuchFieldException, IllegalAccessException {
         final ConcurrentLinkedQueue<Integer> callsOrder = new ConcurrentLinkedQueue<>();
         final ConcurrentHashMap<Integer, String> taskForUpdateId = new ConcurrentHashMap<>();
         final int callsPerUpdate = 10;
-        final List<String> updates = List.of("1", "1", "2", "2", "1");
+        final List<Task> updates = Stream.of("1", "1", "2", "2", "1")
+                .map(id -> Task.builder().chainTaskId(id).currentStatus(TaskStatus.RUNNING).build())
+                .collect(Collectors.toList());
         final Random random = new Random();
 
         // Consuming a task update should only log the call a few times, while sleeping between each log
@@ -72,7 +100,7 @@ public class TaskUpdateRequestManagerTests {
                 .getDeclaredField("queue");
         queueField.setAccessible(true);
         //noinspection unchecked
-        final BlockingQueue<String> queue = (BlockingQueue<String>) queueField.get(taskUpdateRequestManager);
+        final BlockingQueue<Task> queue = (BlockingQueue<Task>) queueField.get(taskUpdateRequestManager);
         queue.addAll(updates);
 
         // We need to run this method as a new thread, so we can interrupt it after all tasks have run.
@@ -105,4 +133,36 @@ public class TaskUpdateRequestManagerTests {
             foundOutputsForKeyGroup.merge(updateId, 1, (currentValue, defaultValue) -> currentValue + 1);
         }
     }
+    // endregion
+
+    // region createQueue()
+    @Test
+    void shouldGetInOrder() {
+        final PriorityBlockingQueue<Task> queue = taskUpdateRequestManager.createQueue();
+
+        Task initializingTask = Task.builder().currentStatus(TaskStatus.INITIALIZING).build();
+        Task completedTask = Task.builder().currentStatus(TaskStatus.COMPLETED).build();
+        Task runningTask = Task.builder().currentStatus(TaskStatus.RUNNING).build();
+        Task initializedTask = Task.builder().currentStatus(TaskStatus.INITIALIZED).build();
+        Task consensusReachedTask = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).build();
+
+        queue.add(initializingTask);
+        queue.add(completedTask);
+        queue.add(runningTask);
+        queue.add(initializedTask);
+        queue.add(consensusReachedTask);
+
+        final List<Task> prioritizedTasks = new ArrayList<>();
+        queue.drainTo(prioritizedTasks);
+
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactlyInAnyOrder(
+                        completedTask,
+                        consensusReachedTask,
+                        runningTask,
+                        initializedTask,
+                        initializingTask
+                );
+    }
+    // endregion
 }

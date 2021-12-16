@@ -16,13 +16,19 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
 import com.iexec.core.utils.TaskExecutorUtils;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
@@ -44,7 +50,9 @@ public class TaskUpdateRequestManager {
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Task> queue = createQueue();
+    private final AtomicInteger updatingThreads = new AtomicInteger(0);
+
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
             .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
             .build();
@@ -52,6 +60,12 @@ public class TaskUpdateRequestManager {
             "task-update-",
             TASK_UPDATE_THREADS_POOL_SIZE);
     private TaskUpdateRequestConsumer consumer;
+
+    private final TaskService taskService;
+
+    public TaskUpdateRequestManager(TaskService taskService) {
+        this.taskService = taskService;
+    }
 
     /**
      * Publish TaskUpdateRequest async
@@ -63,11 +77,17 @@ public class TaskUpdateRequestManager {
             if (chainTaskId.isEmpty()){
                 return false;
             }
-            if (queue.contains(chainTaskId)){
+            if (queue.stream().anyMatch(task -> chainTaskId.equals(task.getChainTaskId()))){
                 log.warn("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
-            boolean isOffered = queue.offer(chainTaskId);
+            final Optional<Task> task = taskService.getTaskByChainTaskId(chainTaskId);
+            if (task.isEmpty()) {
+                log.warn("No such task. [chainTaskId: {}]", chainTaskId);
+                return false;
+            }
+
+            boolean isOffered = queue.offer(task.get());
             log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
             return isOffered;
         };
@@ -89,15 +109,28 @@ public class TaskUpdateRequestManager {
      * Retries consuming and notifying if interrupted
      */
     @Scheduled(fixedDelay = 1000)
+    @SneakyThrows
     public void consumeAndNotify() {
         if (consumer == null){
             log.warn("Waiting for consumer before consuming [queueSize:{}]", queue.size());
             return;
         }
 
-        while (!Thread.currentThread().isInterrupted()){
-            waitForTaskUpdateRequest();
+        // We should only start threads to complete the thread pool.
+        // This is useless for a fresh start but could be handy
+        // if current thread is stopped and current method is rescheduled.
+        final int nbThreadsToStart = TASK_UPDATE_THREADS_POOL_SIZE - updatingThreads.get();
+        for (int i = 0; i < nbThreadsToStart; i++) {
+            startTaskUpdateThread();
         }
+    }
+
+    private void startTaskUpdateThread() {
+        // When a task update is achieved or if there's an issue,
+        // we can start another task update.
+        // This should ensure a constant number of waiting and running threads.
+        CompletableFuture.runAsync(this::waitForTaskUpdateRequest, taskUpdateExecutor)
+                .thenRunAsync(this::startTaskUpdateThread);
     }
 
     /**
@@ -107,17 +140,29 @@ public class TaskUpdateRequestManager {
      * Interrupts current thread if queue taking has been stopped during the execution.
      */
     private void waitForTaskUpdateRequest() {
+        updatingThreads.incrementAndGet();
         log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
         try {
-            String chainTaskId = queue.take();
-            CompletableFuture.runAsync(() -> {
-                synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())){ // require one update on a same task at a time
-                    consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-                }
-            }, taskUpdateExecutor);
+            final Task task = queue.take();
+            String chainTaskId = task.getChainTaskId();
+            log.info("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
+            synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
+                consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
+            }
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
             Thread.currentThread().interrupt();
+        } finally {
+            updatingThreads.decrementAndGet();
         }
+    }
+
+    PriorityBlockingQueue<Task> createQueue() {
+        // Tasks whose status are the more advanced should be computed before others
+        final Comparator<Task> comparator = Comparator.comparing(task -> task.getCurrentStatus().ordinal(), Comparator.reverseOrder());
+        return new PriorityBlockingQueue<>(
+                TASK_UPDATE_THREADS_POOL_SIZE,
+                comparator
+        );
     }
 }
