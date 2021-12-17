@@ -349,8 +349,9 @@ class ReplicateSupplyServiceTests {
         replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         // the call should only happen once over the two tasks
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .isConsensusReached(any());
+        Mockito.verify(contributionTimeoutTaskDetector).detect();
+        Mockito.verify(taskUpdateManager).isConsensusReached(task1);
+        Mockito.verify(taskUpdateManager, Mockito.never()).isConsensusReached(taskDeadlineReached);
     }
 
     @Test
