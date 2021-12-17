@@ -239,6 +239,7 @@ public class ReplicateSupplyService {
                 break;
             case PLEASE_ABORT:
                 taskNotificationExtra.setTaskAbortCause(getTaskAbortCause(task));
+                break;
             default:
                 break;
         }
