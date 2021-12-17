@@ -114,7 +114,9 @@ public class ReplicateSupplyService {
         List<Task> validTasks = runningTasks.stream()
                 .filter(task -> ! task.isContributionDeadlineReached())
                 .collect(Collectors.toCollection(ArrayList::new));
-        if (validTasks.size() != runningTasks.size()) contributionTimeoutTaskDetector.detect();
+        if (validTasks.size() != runningTasks.size()) {
+            contributionTimeoutTaskDetector.detect();
+        }
 
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
