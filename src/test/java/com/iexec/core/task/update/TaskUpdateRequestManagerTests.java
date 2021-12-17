@@ -85,7 +85,12 @@ class TaskUpdateRequestManagerTests {
         final ConcurrentHashMap<Integer, String> taskForUpdateId = new ConcurrentHashMap<>();
         final int callsPerUpdate = 10;
         final List<Task> updates = Stream.of("1", "1", "2", "2", "1")
-                .map(id -> Task.builder().chainTaskId(id).currentStatus(TaskStatus.RUNNING).build())
+                .map(id -> Task
+                        .builder()
+                        .chainTaskId(id)
+                        .currentStatus(TaskStatus.RUNNING)
+                        .contributionDeadline(new Date())
+                        .build())
                 .collect(Collectors.toList());
         final Random random = new Random();
 
