@@ -150,7 +150,7 @@ class TaskUpdateRequestManagerTests {
 
     // region createQueue()
     @Test
-    void shouldGetInOrder() {
+    void shouldGetInOrderForStatus() {
         final PriorityBlockingQueue<Task> queue = taskUpdateRequestManager.createQueue();
 
         Task initializingTask = Task.builder().currentStatus(TaskStatus.INITIALIZING).build();
@@ -159,11 +159,17 @@ class TaskUpdateRequestManagerTests {
         Task initializedTask = Task.builder().currentStatus(TaskStatus.INITIALIZED).build();
         Task consensusReachedTask = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).build();
 
-        queue.add(initializingTask);
-        queue.add(completedTask);
-        queue.add(runningTask);
-        queue.add(initializedTask);
-        queue.add(consensusReachedTask);
+        List<Task> tasks = new ArrayList<>(
+                List.of(
+                        initializingTask,
+                        completedTask,
+                        runningTask,
+                        initializedTask,
+                        consensusReachedTask
+                )
+        );
+        Collections.shuffle(tasks);
+        queue.addAll(tasks);
 
         final List<Task> prioritizedTasks = new ArrayList<>();
         queue.drainTo(prioritizedTasks);
@@ -175,6 +181,71 @@ class TaskUpdateRequestManagerTests {
                         runningTask,
                         initializedTask,
                         initializingTask
+                );
+    }
+
+    @Test
+    void shouldGetInOrderForContributionDeadline() {
+        final PriorityBlockingQueue<Task> queue = taskUpdateRequestManager.createQueue();
+
+        final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
+        final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
+        final Date d3 = new GregorianCalendar(2021, Calendar.JANUARY, 3).getTime();
+        final Date d4 = new GregorianCalendar(2021, Calendar.JANUARY, 4).getTime();
+        final Date d5 = new GregorianCalendar(2021, Calendar.JANUARY, 5).getTime();
+
+        Task t1 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d1).build();
+        Task t2 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d2).build();
+        Task t3 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d3).build();
+        Task t4 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d4).build();
+        Task t5 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d5).build();
+
+        List<Task> tasks = new ArrayList<>(List.of(t1, t2, t3, t4, t5));
+        Collections.shuffle(tasks);
+        System.out.println(tasks);
+        queue.addAll(tasks);
+
+        final List<Task> prioritizedTasks = new ArrayList<>();
+        queue.drainTo(prioritizedTasks);
+        System.out.println(prioritizedTasks);
+
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactlyInAnyOrder(
+                        t1,
+                        t2,
+                        t3,
+                        t4,
+                        t5
+                );
+    }
+
+    @Test
+    void shouldGetInOrderForStatusAndContributionDeadline() {
+        final PriorityBlockingQueue<Task> queue = taskUpdateRequestManager.createQueue();
+
+        final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
+        final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
+
+        Task t1 = Task.builder().currentStatus(TaskStatus.INITIALIZING).contributionDeadline(d2).build();
+        Task t2 = Task.builder().currentStatus(TaskStatus.INITIALIZED).contributionDeadline(d2).build();
+        Task t3 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d1).build();
+        Task t4 = Task.builder().currentStatus(TaskStatus.COMPLETED).contributionDeadline(d1).build();
+        Task t5 = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).contributionDeadline(d1).build();
+
+        List<Task> tasks = new ArrayList<>(List.of(t1, t2, t3, t4, t5));
+        Collections.shuffle(tasks);
+        queue.addAll(tasks);
+
+        final List<Task> prioritizedTasks = new ArrayList<>();
+        queue.drainTo(prioritizedTasks);
+
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactlyInAnyOrder(
+                        t3,
+                        t4,
+                        t5,
+                        t1,
+                        t2
                 );
     }
     // endregion
