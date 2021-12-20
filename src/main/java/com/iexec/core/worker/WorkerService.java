@@ -192,7 +192,7 @@ public class WorkerService {
         int runningReplicateNb = worker.getComputingChainTaskIds().size();
 
         if (runningReplicateNb >= workerMaxNbTasks) {
-            log.info("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
+            log.debug("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
                     walletAddress, runningReplicateNb, workerMaxNbTasks);
             return false;
         }
