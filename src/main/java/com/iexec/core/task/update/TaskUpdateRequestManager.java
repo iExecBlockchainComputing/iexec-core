@@ -119,6 +119,10 @@ public class TaskUpdateRequestManager {
         // We should only start threads to complete the thread pool.
         // This is useless for a fresh start but could be handy
         // if current thread is stopped and current method is rescheduled.
+
+        // Note that we start a bunch of threads at a time,
+        // so we're sure we don't have more than this number of requests to handle
+        // before handling a priority request.
         final int nbThreadsToStart = TASK_UPDATE_THREADS_POOL_SIZE - updatingThreads.get();
         for (int i = 0; i < nbThreadsToStart; i++) {
             startTaskUpdateThread();
