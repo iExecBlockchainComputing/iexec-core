@@ -175,7 +175,7 @@ class TaskUpdateRequestManagerTests {
         queue.drainTo(prioritizedTasks);
 
         Assertions.assertThat(prioritizedTasks)
-                .containsExactlyInAnyOrder(
+                .containsExactly(
                         completedTask,
                         consensusReachedTask,
                         runningTask,
@@ -210,7 +210,7 @@ class TaskUpdateRequestManagerTests {
         System.out.println(prioritizedTasks);
 
         Assertions.assertThat(prioritizedTasks)
-                .containsExactlyInAnyOrder(
+                .containsExactly(
                         t1,
                         t2,
                         t3,
@@ -226,13 +226,12 @@ class TaskUpdateRequestManagerTests {
         final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
         final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
 
-        Task t1 = Task.builder().currentStatus(TaskStatus.INITIALIZING).contributionDeadline(d2).build();
-        Task t2 = Task.builder().currentStatus(TaskStatus.INITIALIZED).contributionDeadline(d2).build();
-        Task t3 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d1).build();
-        Task t4 = Task.builder().currentStatus(TaskStatus.COMPLETED).contributionDeadline(d1).build();
-        Task t5 = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).contributionDeadline(d1).build();
+        Task t1 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d1).build();
+        Task t2 = Task.builder().currentStatus(TaskStatus.RUNNING).contributionDeadline(d2).build();
+        Task t3 = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).contributionDeadline(d1).build();
+        Task t4 = Task.builder().currentStatus(TaskStatus.CONSENSUS_REACHED).contributionDeadline(d2).build();
 
-        List<Task> tasks = new ArrayList<>(List.of(t1, t2, t3, t4, t5));
+        List<Task> tasks = new ArrayList<>(List.of(t1, t2, t3, t4));
         Collections.shuffle(tasks);
         queue.addAll(tasks);
 
@@ -240,10 +239,9 @@ class TaskUpdateRequestManagerTests {
         queue.drainTo(prioritizedTasks);
 
         Assertions.assertThat(prioritizedTasks)
-                .containsExactlyInAnyOrder(
+                .containsExactly(
                         t3,
                         t4,
-                        t5,
                         t1,
                         t2
                 );

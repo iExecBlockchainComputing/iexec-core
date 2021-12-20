@@ -159,7 +159,8 @@ public class TaskUpdateRequestManager {
 
     PriorityBlockingQueue<Task> createQueue() {
         // Tasks whose status are the more advanced should be computed before others
-        final Comparator<Task> comparator = Comparator.comparing((Task task) -> task.getCurrentStatus().ordinal(), Comparator.reverseOrder())
+        // Same goes for tasks whose contribution deadline is soon
+        final Comparator<Task> comparator = Comparator.comparing(Task::getCurrentStatus, Comparator.reverseOrder())
                 .thenComparing(Task::getContributionDeadline);
         return new PriorityBlockingQueue<>(
                 TASK_UPDATE_THREADS_POOL_SIZE,
