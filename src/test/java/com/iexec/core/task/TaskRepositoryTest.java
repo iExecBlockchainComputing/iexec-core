@@ -47,7 +47,7 @@ class TaskRepositoryTest {
         taskRepository.deleteAll();
     }
 
-    private String generateChainId() {
+    private String generateHexId() {
         int length = 64;
         StringBuilder sb = new StringBuilder("0x");
         for (int j = 0; j < length; j++) {
@@ -87,11 +87,47 @@ class TaskRepositoryTest {
 
     @Test
     void shouldFindTasksOrderedByCurrentStatusAndContributionDeadline() {
+        Task task1 = getStubTask(maxExecutionTime);
+        task1.setChainTaskId(generateHexId());
+        task1.setChainDealId(generateHexId());
+        task1.setCurrentStatus(RUNNING);
+        task1.setContributionDeadline(Date.from(Instant.now().plus(20, ChronoUnit.MINUTES)));
+
+        Task task2 = getStubTask(maxExecutionTime);
+        task2.setChainDealId(generateHexId());
+        task2.setChainTaskId(generateHexId());
+        task2.setCurrentStatus(INITIALIZED);
+        task2.setContributionDeadline(Date.from(Instant.now().plus(20, ChronoUnit.MINUTES)));
+
+        Task task3 = getStubTask(maxExecutionTime);
+        task3.setChainDealId(generateHexId());
+        task3.setChainTaskId(generateHexId());
+        task3.setCurrentStatus(INITIALIZED);
+        task3.setContributionDeadline(Date.from(Instant.now().plus(10, ChronoUnit.MINUTES)));
+
+        Task task4 = getStubTask(maxExecutionTime);
+        task4.setChainDealId(generateHexId());
+        task4.setChainTaskId(generateHexId());
+        task4.setCurrentStatus(RUNNING);
+        task4.setContributionDeadline(Date.from(Instant.now().plus(10, ChronoUnit.MINUTES)));
+
+        taskRepository.saveAll(Arrays.asList(task1, task2, task3, task4));
+
+        List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
+        Assertions.assertThat(foundTasks.size()).isEqualTo(4);
+        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task4);
+        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task1);
+        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task3);
+        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task2);
+    }
+
+    @Test
+    void shouldFindTasksOrderedByCurrentStatusAndContributionDeadlineWithFuzzyData() {
         List<Task> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Task task = getStubTask(maxExecutionTime);
-            task.setChainDealId(generateChainId());
-            task.setChainTaskId(generateChainId());
+            task.setChainDealId(generateHexId());
+            task.setChainTaskId(generateHexId());
             task.setCurrentStatus(generator.nextInt(50) % 2 == 0 ? RUNNING : INITIALIZED);
             int amountToAdd = generator.nextInt(10);
             task.setContributionDeadline(Date.from(Instant.now().plus(amountToAdd, ChronoUnit.MINUTES)));
