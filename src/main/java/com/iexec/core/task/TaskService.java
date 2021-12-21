@@ -111,7 +111,8 @@ public class TaskService {
 
     public List<Task> getInitializedOrRunningTasks() {
         return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, Task.CONTRIBUTION_DEADLINE_FIELD_NAME));
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     public List<Task> getTasksInNonFinalStatuses() {
@@ -172,6 +173,5 @@ public class TaskService {
     private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
         taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
-
 
 }

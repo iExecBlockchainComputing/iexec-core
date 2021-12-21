@@ -55,6 +55,7 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
         unique = true)
 public class Task {
 
+    public static final String CURRENT_STATUS_FIELD_NAME        = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
 
     @Id
@@ -75,6 +76,7 @@ public class Task {
     private String dappName;
     private String commandLine;
     private long initializationBlockNumber;
+    @Field(CURRENT_STATUS_FIELD_NAME)
     private TaskStatus currentStatus;
     private int trust;
     private int numWorkersNeeded;//TODO: Remove this field

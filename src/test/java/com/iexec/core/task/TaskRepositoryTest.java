@@ -16,9 +16,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static com.iexec.core.task.TaskStatus.INITIALIZED;
 import static com.iexec.core.task.TaskStatus.RUNNING;
@@ -27,6 +25,9 @@ import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 @DataMongoTest
 @Testcontainers
 class TaskRepositoryTest {
+
+    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
+    private static final Random generator = new Random();
 
     private final long maxExecutionTime = 60000;
 
@@ -46,8 +47,24 @@ class TaskRepositoryTest {
         taskRepository.deleteAll();
     }
 
+    private String generateChainId() {
+        int length = 64;
+        StringBuilder sb = new StringBuilder("0x");
+        for (int j = 0; j < length; j++) {
+            sb.append(HEX_ARRAY[generator.nextInt(HEX_ARRAY.length)]);
+        }
+        return sb.toString();
+    }
+
+    private List<Task> queryTasksOrderedByStatusThenContributionDeadline() {
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))
+        );
+    }
+
     @Test
-    void shouldFailWhenDuplicateUniqueDealIdx() {
+    void shouldFailWithDuplicateUniqueDealIdx() {
         Task task1 = getStubTask(maxExecutionTime);
         Task task2 = getStubTask(maxExecutionTime);
         Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
@@ -57,26 +74,38 @@ class TaskRepositoryTest {
     }
 
     @Test
-    void shouldFindTasksOrderedByContributionDeadline() {
+    void shouldFailWithDuplicateChainTaskId() {
         Task task1 = getStubTask(maxExecutionTime);
-        task1.setChainDealId("0x1");
-        task1.setChainTaskId("0x1");
-        task1.setCurrentStatus(INITIALIZED);
-        task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
-
+        task1.setTaskIndex(0);
         Task task2 = getStubTask(maxExecutionTime);
-        task2.setChainDealId("0x2");
-        task2.setChainTaskId("0x2");
-        task2.setCurrentStatus(RUNNING);
-        task2.setContributionDeadline(Date.from(Instant.now().plus(3, ChronoUnit.MINUTES)));
+        task2.setTaskIndex(1);
+        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
+                .isInstanceOf(DuplicateKeyException.class)
+                .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
+                .hasMessageContaining("duplicate key error collection: iexec.task index: chainTaskId dup key");
+    }
 
-        taskRepository.saveAll(Arrays.asList(task1, task2));
+    @Test
+    void shouldFindTasksOrderedByCurrentStatusAndContributionDeadline() {
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Task task = getStubTask(maxExecutionTime);
+            task.setChainDealId(generateChainId());
+            task.setChainTaskId(generateChainId());
+            task.setCurrentStatus(generator.nextInt(50) % 2 == 0 ? RUNNING : INITIALIZED);
+            int amountToAdd = generator.nextInt(10);
+            task.setContributionDeadline(Date.from(Instant.now().plus(amountToAdd, ChronoUnit.MINUTES)));
+            tasks.add(task);
+        }
+        taskRepository.saveAll(tasks);
+        tasks.sort(Comparator.comparing(Task::getCurrentStatus, Comparator.reverseOrder())
+                .thenComparing(Task::getContributionDeadline));
 
-        List<Task> foundTasks = taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, Task.CONTRIBUTION_DEADLINE_FIELD_NAME));
+        List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
         Assertions.assertThat(foundTasks.size()).isEqualTo(taskRepository.count());
-        Assertions.assertThat(foundTasks.get(0)).isEqualToComparingFieldByField(task2);
-        Assertions.assertThat(foundTasks.get(1)).isEqualToComparingFieldByField((task1));
+        for (Task task : tasks) {
+            Assertions.assertThat(task).isEqualToComparingFieldByField(foundTasks.remove(0));
+        }
     }
 
 }

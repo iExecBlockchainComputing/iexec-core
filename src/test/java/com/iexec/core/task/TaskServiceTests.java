@@ -153,7 +153,8 @@ public class TaskServiceTests {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
         when(taskRepository.findByCurrentStatus(
                 Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, "contributionDeadline")))
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
                 .thenReturn(tasks);
         Assertions.assertThat(taskService.getInitializedOrRunningTasks())
                 .isEqualTo(tasks);
@@ -173,7 +174,8 @@ public class TaskServiceTests {
 
         when(taskRepository.findByCurrentStatus(
                 Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Direction.ASC, "contributionDeadline")))
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
                 .thenReturn(tasks);
 
         Assertions.assertThat(taskService.getInitializedOrRunningTasks())
