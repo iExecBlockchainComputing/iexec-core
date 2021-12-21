@@ -23,12 +23,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
@@ -51,14 +51,16 @@ public class TaskUpdateRequestManager {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final BlockingQueue<Task> queue = createQueue();
-    private final AtomicInteger updatingThreads = new AtomicInteger(0);
 
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
             .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
             .build();
-    private final Executor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
+    private final ThreadPoolTaskExecutor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
             "task-update-",
             TASK_UPDATE_THREADS_POOL_SIZE);
+    private final ThreadPoolTaskExecutor requestWaitingExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
+            "request-waiting-",
+            1);
     private TaskUpdateRequestConsumer consumer;
 
     private final TaskService taskService;
@@ -116,48 +118,77 @@ public class TaskUpdateRequestManager {
             return;
         }
 
-        // We should only start threads to complete the thread pool.
-        // This is useless for a fresh start but could be handy
-        // if current thread is stopped and current method is rescheduled.
-
-        // Note that we start a bunch of threads at a time,
-        // so we're sure we don't have more than this number of requests to handle
-        // before handling a priority request.
-        final int nbThreadsToStart = TASK_UPDATE_THREADS_POOL_SIZE - updatingThreads.get();
-        for (int i = 0; i < nbThreadsToStart; i++) {
-            startTaskUpdateThread();
-        }
-    }
-
-    private void startTaskUpdateThread() {
-        // When a task update is achieved or if there's an issue,
-        // we can start another task update.
-        // This should ensure a constant number of waiting and running threads.
-        CompletableFuture.runAsync(this::waitForTaskUpdateRequest, taskUpdateExecutor)
-                .thenRunAsync(this::startTaskUpdateThread);
+        startTaskWaitingThreadIfNecessary();
     }
 
     /**
-     * Wait for new task update request and run the update once a request is arrived.
-     * 2 requests can be run in parallel if they don't target the same task.
+     * Starts a new request-waiting thread only if necessary.
+     * That means a new thread is started only if:
+     * <ul>
+     *     <li>No request-waiting thread is already started;</li>
+     *     <li>There's less than {@link TaskUpdateRequestManager#TASK_UPDATE_THREADS_POOL_SIZE}
+     *     threads already updating tasks.</li>
+     * </ul>
+     * Once a task update request has been received,
+     * immediately starts the update in a new thread.
+     * <br>
+     * When an update is achieved, calls itself
+     * and starts a new request-waiting thread if necessary.
+     */
+    private void startTaskWaitingThreadIfNecessary() {
+        if (requestWaitingExecutor.getActiveCount() == 0
+                && taskUpdateExecutor.getActiveCount() < TASK_UPDATE_THREADS_POOL_SIZE) {
+            // The idea here is the following:
+            //   1. Wait for a task update request to be available;
+            //   2. Update the task if a thread is free, or wait to update it otherwise;
+            //   3. Back to 1 if there's no request-waiting thread.
+            CompletableFuture
+                    .supplyAsync(this::waitForTaskUpdateRequest, requestWaitingExecutor)
+                    .thenAcceptAsync(this::updateTask, taskUpdateExecutor)
+                    // When a task update is achieved or if there's an issue,
+                    // we can start another task update.
+                    .thenRunAsync(this::startTaskWaitingThreadIfNecessary);
+        }
+    }
+
+    /**
+     * Waits for new task update request and return {@code Task} to update.
      * <br>
      * Interrupts current thread if queue taking has been stopped during the execution.
      */
-    private void waitForTaskUpdateRequest() {
-        updatingThreads.incrementAndGet();
+    private Task waitForTaskUpdateRequest() {
         log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
+
+        Task task;
         try {
-            final Task task = queue.take();
-            String chainTaskId = task.getChainTaskId();
-            log.info("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
-            synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
-                consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-            }
+            task = queue.take();
         } catch (InterruptedException e) {
             log.error("The unexpected happened", e);
             Thread.currentThread().interrupt();
-        } finally {
-            updatingThreads.decrementAndGet();
+            return null;
+        }
+
+        return task;
+    }
+
+    /**
+     * Updates a task.
+     * <br>
+     * 2 updates can be run in parallel if they don't target the same task.
+     * Otherwise, the second update will wait until the first one is achieved.
+     */
+    private void updateTask(Task task) {
+        if (task == null) {
+            return;
+        }
+
+        // We can potentially start a new request-waiting thread.
+        startTaskWaitingThreadIfNecessary();
+
+        String chainTaskId = task.getChainTaskId();
+        log.info("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
+        synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
+            consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
         }
     }
 
