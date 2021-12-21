@@ -93,6 +93,9 @@ public class TaskUpdateRequestManager {
             log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
             return isOffered;
         };
+        // TODO: find a better way to publish request.
+        // As of now, we do sequential requests to the DB which can cause a big load.
+        // We should aim to have some batch requests to unload the scheduler.
         return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
 
