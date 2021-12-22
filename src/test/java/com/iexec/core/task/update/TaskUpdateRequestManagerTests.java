@@ -33,13 +33,14 @@ class TaskUpdateRequestManagerTests {
     @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
+        taskUpdateRequestManager.setRequestConsumer(taskUpdate -> {});
     }
 
     // region publishRequest()
     @Test
     void shouldPublishRequest() throws ExecutionException, InterruptedException {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(new Task()));
+                .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
 
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         booleanCompletableFuture.join();

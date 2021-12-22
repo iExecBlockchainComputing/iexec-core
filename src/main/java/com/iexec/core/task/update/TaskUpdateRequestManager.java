@@ -57,8 +57,8 @@ public class TaskUpdateRequestManager {
     final ThreadPoolExecutor taskUpdateExecutor = new ThreadPoolExecutor(
             TASK_UPDATE_THREADS_POOL_SIZE,
             TASK_UPDATE_THREADS_POOL_SIZE,
-            60,
-            TimeUnit.SECONDS,
+            0,
+            TimeUnit.MILLISECONDS,
             queue
     );
     private TaskUpdateRequestConsumer consumer;
@@ -83,14 +83,17 @@ public class TaskUpdateRequestManager {
                 log.warn("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
-            final Optional<Task> task = taskService.getTaskByChainTaskId(chainTaskId);
-            if (task.isEmpty()) {
+            final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
+            if (oTask.isEmpty()) {
                 log.warn("No such task. [chainTaskId: {}]", chainTaskId);
                 return false;
             }
 
-            taskUpdateExecutor.execute(new TaskUpdate(task.get(), locks, consumer));
-            log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
+            final Task task = oTask.get();
+            taskUpdateExecutor.execute(new TaskUpdate(task, locks, consumer));
+            log.debug("Published task update request" +
+                    " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
+                    chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
             return true;
         };
         // TODO: find a better way to publish request.
