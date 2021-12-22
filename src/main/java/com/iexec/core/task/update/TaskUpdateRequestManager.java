@@ -18,15 +18,10 @@ package com.iexec.core.task.update;
 
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.utils.TaskExecutorUtils;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
@@ -50,17 +45,18 @@ public class TaskUpdateRequestManager {
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final BlockingQueue<Task> queue = createQueue();
-
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
             .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
             .build();
-    private final ThreadPoolTaskExecutor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
-            "task-update-",
-            TASK_UPDATE_THREADS_POOL_SIZE);
-    private final ThreadPoolTaskExecutor requestWaitingExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
-            "request-waiting-",
-            1);
+
+    final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
+    final ThreadPoolExecutor taskUpdateExecutor = new ThreadPoolExecutor(
+            TASK_UPDATE_THREADS_POOL_SIZE,
+            TASK_UPDATE_THREADS_POOL_SIZE,
+            60,
+            TimeUnit.SECONDS,
+            queue
+    );
     private TaskUpdateRequestConsumer consumer;
 
     private final TaskService taskService;
@@ -79,7 +75,7 @@ public class TaskUpdateRequestManager {
             if (chainTaskId.isEmpty()){
                 return false;
             }
-            if (queue.stream().anyMatch(task -> chainTaskId.equals(task.getChainTaskId()))){
+            if (queue.containsTask(chainTaskId)){
                 log.warn("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
@@ -89,9 +85,9 @@ public class TaskUpdateRequestManager {
                 return false;
             }
 
-            boolean isOffered = queue.offer(task.get());
+            taskUpdateExecutor.execute(new TaskUpdate(task.get(), locks, consumer));
             log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
-            return isOffered;
+            return true;
         };
         // TODO: find a better way to publish request.
         // As of now, we do sequential requests to the DB which can cause a big load.
@@ -106,103 +102,5 @@ public class TaskUpdateRequestManager {
      */
     public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
         this.consumer = consumer;
-    }
-
-    /**
-     * De-queues head anf notifies consumer.
-     *
-     * Retries consuming and notifying if interrupted
-     */
-    @Scheduled(fixedDelay = 1000)
-    @SneakyThrows
-    public void consumeAndNotify() {
-        if (consumer == null){
-            log.warn("Waiting for consumer before consuming [queueSize:{}]", queue.size());
-            return;
-        }
-
-        startTaskWaitingThreadIfNecessary();
-    }
-
-    /**
-     * Starts a new request-waiting thread only if necessary.
-     * That means a new thread is started only if:
-     * <ul>
-     *     <li>No request-waiting thread is already started;</li>
-     *     <li>There's less than {@link TaskUpdateRequestManager#TASK_UPDATE_THREADS_POOL_SIZE}
-     *     threads already updating tasks.</li>
-     * </ul>
-     * Once a task update request has been received,
-     * immediately starts the update in a new thread.
-     * <br>
-     * When an update is achieved, calls itself
-     * and starts a new request-waiting thread if necessary.
-     */
-    private void startTaskWaitingThreadIfNecessary() {
-        if (requestWaitingExecutor.getActiveCount() == 0
-                && taskUpdateExecutor.getActiveCount() < TASK_UPDATE_THREADS_POOL_SIZE) {
-            // The idea here is the following:
-            //   1. Wait for a task update request to be available;
-            //   2. Update the task if a thread is free, or wait to update it otherwise;
-            //   3. Back to 1 if there's no request-waiting thread.
-            CompletableFuture
-                    .supplyAsync(this::waitForTaskUpdateRequest, requestWaitingExecutor)
-                    .thenAcceptAsync(this::updateTask, taskUpdateExecutor)
-                    // When a task update is achieved or if there's an issue,
-                    // we can start another task update.
-                    .thenRunAsync(this::startTaskWaitingThreadIfNecessary);
-        }
-    }
-
-    /**
-     * Waits for new task update request and return {@code Task} to update.
-     * <br>
-     * Interrupts current thread if queue taking has been stopped during the execution.
-     */
-    private Task waitForTaskUpdateRequest() {
-        log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
-
-        Task task;
-        try {
-            task = queue.take();
-        } catch (InterruptedException e) {
-            log.error("The unexpected happened", e);
-            Thread.currentThread().interrupt();
-            return null;
-        }
-
-        return task;
-    }
-
-    /**
-     * Updates a task.
-     * <br>
-     * 2 updates can be run in parallel if they don't target the same task.
-     * Otherwise, the second update will wait until the first one is achieved.
-     */
-    private void updateTask(Task task) {
-        if (task == null) {
-            return;
-        }
-
-        // We can potentially start a new request-waiting thread.
-        startTaskWaitingThreadIfNecessary();
-
-        String chainTaskId = task.getChainTaskId();
-        log.info("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
-        synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
-            consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-        }
-    }
-
-    PriorityBlockingQueue<Task> createQueue() {
-        // Tasks whose status are the more advanced should be computed before others
-        // Same goes for tasks whose contribution deadline is soon
-        final Comparator<Task> comparator = Comparator.comparing(Task::getCurrentStatus, Comparator.reverseOrder())
-                .thenComparing(Task::getContributionDeadline);
-        return new PriorityBlockingQueue<>(
-                TASK_UPDATE_THREADS_POOL_SIZE,
-                comparator
-        );
     }
 }
