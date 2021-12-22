@@ -68,7 +68,7 @@ class TaskUpdate implements Runnable, Comparable<TaskUpdate> {
         }
 
         String chainTaskId = task.getChainTaskId();
-        log.info("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
+        log.debug("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
         synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
             consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
         }

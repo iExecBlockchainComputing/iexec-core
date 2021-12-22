@@ -50,6 +50,10 @@ public class TaskUpdateRequestManager {
             .build();
 
     final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
+    // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
+    // Otherwise, `taskUpdateExecutor` won't pop `maximumPoolSize` threads
+    // as new threads are popped only if the queue is full
+    // - which never happens with an unbounded queue.
     final ThreadPoolExecutor taskUpdateExecutor = new ThreadPoolExecutor(
             TASK_UPDATE_THREADS_POOL_SIZE,
             TASK_UPDATE_THREADS_POOL_SIZE,
