@@ -87,7 +87,7 @@ class TaskUpdateManager  {
             // Eventually should fire a "final deadline reached" notification to worker,
             // but here let's just trigger an updateTask() leading to a failed status
             // which will itself fire a generic "abort" notification
-            updateTask(chainTaskId);
+            toFailed(task);
             return;
         }
 
