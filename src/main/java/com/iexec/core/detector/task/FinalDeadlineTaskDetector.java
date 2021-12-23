@@ -19,7 +19,7 @@ package com.iexec.core.detector.task;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -31,11 +31,11 @@ import java.util.Date;
 public class FinalDeadlineTaskDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
 
-    public FinalDeadlineTaskDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
+    public FinalDeadlineTaskDetector(TaskService taskService, TaskUpdateRequestManager taskUpdateRequestManager) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalDeadline()}")
@@ -46,7 +46,7 @@ public class FinalDeadlineTaskDetector implements Detector {
             Date now = new Date();
             if (task.getFinalDeadline() != null && now.after(task.getFinalDeadline())) {
                 log.info("Task after final deadline found [chainTaskId:{}]", task.getChainTaskId());
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
             }
         }
     }

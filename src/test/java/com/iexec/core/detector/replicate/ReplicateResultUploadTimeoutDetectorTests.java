@@ -21,6 +21,8 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.*;
+import com.iexec.core.task.TaskStatusChange;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -37,7 +39,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
-public class ReplicateResultUploadTimeoutDetectorTests {
+class ReplicateResultUploadTimeoutDetectorTests {
 
     private final static String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
     private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
@@ -50,7 +52,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     private ReplicatesService replicatesService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private ReplicateResultUploadTimeoutDetector timeoutDetector;
@@ -61,7 +63,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectAnythingNoTimeout() {
+    void shouldNotDetectAnythingNoTimeout() {
         // the latest status change from the replicate is very new so it is not timed out.
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
@@ -89,7 +91,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldDetectOneReplicateWithResultUploadingLongAgo() {
+    void shouldDetectOneReplicateWithResultUploadingLongAgo() {
         // the latest status change from the replicate is very new so it is not timed out.
         Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
         Date threeMinutesAgo = addMinutesToDate(new Date(), -4);
@@ -118,11 +120,11 @@ public class ReplicateResultUploadTimeoutDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1)).publishUpdateTaskRequest(CHAIN_TASK_ID);
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1)).publishRequest(CHAIN_TASK_ID);
     }
 
     @Test
-    public void shouldNotDetectReplicatePreviouslyDetected() {
+    void shouldNotDetectReplicatePreviouslyDetected() {
         // the latest status change from the replicate is very new so it is not timed out.
         Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
         Date threeMinutesAgo = addMinutesToDate(new Date(), -4);

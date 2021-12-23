@@ -23,7 +23,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -35,14 +35,14 @@ import java.util.Optional;
 public class FinalizedTaskDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final IexecHubService iexecHubService;
 
     public FinalizedTaskDetector(TaskService taskService,
-                                 TaskUpdateManager taskUpdateManager,
+                                 TaskUpdateRequestManager taskUpdateRequestManager,
                                  IexecHubService iexecHubService) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
     }
 
@@ -58,7 +58,7 @@ public class FinalizedTaskDetector implements Detector {
             if (chainTask.isPresent() && chainTask.get().getStatus().equals(ChainTaskStatus.COMPLETED)) {
                 log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
                         task.getCurrentStatus(), TaskStatus.FINALIZED, task.getChainTaskId());
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
             }
         }
     }

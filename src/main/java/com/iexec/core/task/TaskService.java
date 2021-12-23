@@ -16,6 +16,10 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -37,9 +41,15 @@ public class TaskService {
             taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
 
     private final TaskRepository taskRepository;
+    private final IexecHubService iexecHubService;
+    private final ReplicatesService replicatesService;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository,
+                       IexecHubService iexecHubService,
+                       ReplicatesService replicatesService) {
         this.taskRepository = taskRepository;
+        this.iexecHubService = iexecHubService;
+        this.replicatesService = replicatesService;
     }
 
     /**
@@ -174,4 +184,18 @@ public class TaskService {
         taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
 
+    public boolean isConsensusReached(Task task) {
+        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        if (optional.isEmpty()) return false;
+
+        ChainTask chainTask = optional.get();
+
+        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+
+        int onChainWinners = chainTask.getWinnerCounter();
+        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
+        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
+
+        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
+    }
 }

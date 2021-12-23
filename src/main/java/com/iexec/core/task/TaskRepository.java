@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-interface TaskRepository extends MongoRepository<Task, String> {
+public interface TaskRepository extends MongoRepository<Task, String> {
 
     Optional<Task> findByChainTaskId(String id);
 

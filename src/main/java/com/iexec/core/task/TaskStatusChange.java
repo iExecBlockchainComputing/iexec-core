@@ -17,6 +17,7 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.iexec.core.task.TaskStatus;
 import lombok.*;
 
 import java.util.Date;
@@ -34,11 +35,11 @@ public class TaskStatusChange {
     private TaskStatus status;
     private ChainReceipt chainReceipt;
 
-    TaskStatusChange(TaskStatus status){
+    public TaskStatusChange(TaskStatus status){
         this(status, null);
     }
 
-    TaskStatusChange(TaskStatus status, ChainReceipt chainReceipt){
+    public TaskStatusChange(TaskStatus status, ChainReceipt chainReceipt){
         this.date = new Date();
         this.status = status;
         this.chainReceipt = chainReceipt;

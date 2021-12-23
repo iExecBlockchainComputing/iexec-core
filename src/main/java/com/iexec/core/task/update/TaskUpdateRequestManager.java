@@ -61,12 +61,14 @@ public class TaskUpdateRequestManager {
             TimeUnit.MILLISECONDS,
             queue
     );
-    private TaskUpdateRequestConsumer consumer;
 
     private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
 
-    public TaskUpdateRequestManager(TaskService taskService) {
+    public TaskUpdateRequestManager(TaskService taskService,
+                                    TaskUpdateManager taskUpdateManager) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
     }
 
     /**
@@ -90,7 +92,7 @@ public class TaskUpdateRequestManager {
             }
 
             final Task task = oTask.get();
-            taskUpdateExecutor.execute(new TaskUpdate(task, locks, consumer));
+            taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
             log.debug("Published task update request" +
                     " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
                     chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
@@ -102,12 +104,9 @@ public class TaskUpdateRequestManager {
         return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
 
-    /**
-     * Authorize one TaskUpdateRequest consumer subscription at a time.
-     * @param consumer
-     * @return
-     */
-    public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
-        this.consumer = consumer;
+    private void updateTask(String chainTaskId) {
+        synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
+            taskUpdateManager.updateTask(chainTaskId); // synchronously update task
+        }
     }
 }

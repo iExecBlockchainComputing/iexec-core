@@ -26,20 +26,23 @@ import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.contribution.ConsensusHelper;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -51,7 +54,7 @@ public class ReplicateSupplyService {
     private final ReplicatesService replicatesService;
     private final SignatureService signatureService;
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final SmsService smsService;
     private final Web3jService web3jService;
@@ -60,7 +63,7 @@ public class ReplicateSupplyService {
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
                                   TaskService taskService,
-                                  TaskUpdateManager taskUpdateManager,
+                                  TaskUpdateRequestManager taskUpdateRequestManager,
                                   WorkerService workerService,
                                   SmsService smsService,
                                   Web3jService web3jService,
@@ -68,7 +71,7 @@ public class ReplicateSupplyService {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.workerService = workerService;
         this.smsService = smsService;
         this.web3jService = web3jService;
@@ -129,8 +132,8 @@ public class ReplicateSupplyService {
 
             // no need to ge further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskUpdateManager.isConsensusReached(task)) {
-                taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            if (taskService.isConsensusReached(task)) {
+                taskUpdateRequestManager.publishRequest(chainTaskId);
                 continue;
             }
 
@@ -320,11 +323,11 @@ public class ReplicateSupplyService {
 
         if (didReplicateContribute) {
 
-            if (!taskUpdateManager.isConsensusReached(task)) {
+            if (!taskService.isConsensusReached(task)) {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
@@ -360,7 +363,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId).join();
+            taskUpdateRequestManager.publishRequest(chainTaskId).join();
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -416,7 +419,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
 
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 

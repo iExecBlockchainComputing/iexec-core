@@ -18,7 +18,7 @@ package com.iexec.core.detector.task;
 
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -31,24 +31,24 @@ import java.util.Collections;
 import static com.iexec.core.task.TaskStatus.*;
 import static org.mockito.Mockito.when;
 
-public class UnstartedTxDetectorTests {
+class UnstartedTxDetectorTests {
 
     @Mock
     private TaskService taskService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private UnstartedTxDetector unstartedTxDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.initMocks(this);
     }
 
     @Test
-    public void shouldTryUpdateTaskFromReceived() {
+    void shouldTryUpdateTaskFromReceived() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -57,12 +57,12 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
-    public void shouldNotTryUpdateTaskFromReceived() {
+    void shouldNotTryUpdateTaskFromReceived() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -71,12 +71,12 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
-    public void shouldTryUpdateTaskFromResultUploaded() {
+    void shouldTryUpdateTaskFromResultUploaded() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -85,12 +85,12 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
-    public void shouldNotTryUpdateTaskFromResultUploaded() {
+    void shouldNotTryUpdateTaskFromResultUploaded() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -99,8 +99,8 @@ public class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(task.getChainTaskId());
     }
 
 

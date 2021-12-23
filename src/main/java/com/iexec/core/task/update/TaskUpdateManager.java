@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task;
+package com.iexec.core.task.update;
 
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainTask;
@@ -25,9 +25,11 @@ import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskRepository;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.*;
-import com.iexec.core.task.update.TaskUpdateRequestConsumer;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,6 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -45,10 +46,9 @@ import static com.iexec.core.task.TaskStatus.*;
 
 @Service
 @Slf4j
-public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
+class TaskUpdateManager  {
     private final TaskService taskService;
     private final TaskRepository taskRepository;
-    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -57,7 +57,6 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     public TaskUpdateManager(TaskService taskService,
                              TaskRepository taskRepository,
-                             TaskUpdateRequestManager taskUpdateRequestManager,
                              IexecHubService iexecHubService,
                              ReplicatesService replicatesService,
                              ApplicationEventPublisher applicationEventPublisher,
@@ -65,23 +64,11 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                              BlockchainAdapterService blockchainAdapterService) {
         this.taskService = taskService;
         this.taskRepository = taskRepository;
-        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
-        this.taskUpdateRequestManager.setRequestConsumer(this);
-    }
-
-    @Override
-    public void onTaskUpdateRequest(String chainTaskId) {
-        log.info("Received task update request [chainTaskId:{}]", chainTaskId);
-        this.updateTask(chainTaskId);
-    }
-
-    public CompletableFuture<Boolean> publishUpdateTaskRequest(String chainTaskId) {
-        return taskUpdateRequestManager.publishRequest(chainTaskId);
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -100,7 +87,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
             // Eventually should fire a "final deadline reached" notification to worker,
             // but here let's just trigger an updateTask() leading to a failed status
             // which will itself fire a generic "abort" notification
-            publishUpdateTaskRequest(chainTaskId);
+            updateTask(chainTaskId);
             return;
         }
 
@@ -278,25 +265,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         }
     }
 
-    public boolean isConsensusReached(Task task) {
-
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
-        if (optional.isEmpty()) return false;
-
-        ChainTask chainTask = optional.get();
-
-        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-
-        int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
-        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
-
-        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
-    }
-
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
-        boolean isConsensusReached = isConsensusReached(task);
+        boolean isConsensusReached = taskService.isConsensusReached(task);
 
         if (isTaskInRunningStatus && isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());

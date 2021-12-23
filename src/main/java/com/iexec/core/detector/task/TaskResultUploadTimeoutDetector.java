@@ -20,12 +20,11 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -35,11 +34,11 @@ import java.util.List;
 public class TaskResultUploadTimeoutDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
 
-    public TaskResultUploadTimeoutDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
+    public TaskResultUploadTimeoutDetector(TaskService taskService, TaskUpdateRequestManager taskUpdateRequestManager) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getResultUploadTimeout()}")
@@ -57,7 +56,7 @@ public class TaskResultUploadTimeoutDetector implements Detector {
             if (isNowAfterFinalDeadline) {
                 log.info("found task in status {} after final deadline [chainTaskId:{}]",
                         task.getCurrentStatus(), chainTaskId);
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
             }
         }
     }
