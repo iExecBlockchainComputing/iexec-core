@@ -16,13 +16,13 @@
 
 package com.iexec.core.task;
 
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -36,7 +36,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// TODO
 public class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
@@ -44,9 +43,6 @@ public class TaskServiceTests {
 
     @Mock
     private TaskRepository taskRepository;
-
-    @Mock
-    private TaskUpdateRequestManager updateRequestManager;
 
     @InjectMocks
     private TaskService taskService;
@@ -155,8 +151,33 @@ public class TaskServiceTests {
     @Test
     public void shouldGetInitializedOrRunningTasks() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING)))
+        when(taskRepository.findByCurrentStatus(
+                Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
                 .thenReturn(tasks);
+        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
+                .isEqualTo(tasks);
+    }
+
+    @Test
+    public void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
+        Task task1 = getStubTask(maxExecutionTime);
+        task1.setCurrentStatus(INITIALIZED);
+        task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
+
+        Task task2 = getStubTask(maxExecutionTime);
+        task2.setCurrentStatus(RUNNING);
+        task2.setContributionDeadline(Date.from(Instant.now().plus(3, ChronoUnit.MINUTES)));
+
+        List<Task> tasks = Arrays.asList(task2, task1);
+
+        when(taskRepository.findByCurrentStatus(
+                Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
+                .thenReturn(tasks);
+
         Assertions.assertThat(taskService.getInitializedOrRunningTasks())
                 .isEqualTo(tasks);
     }
