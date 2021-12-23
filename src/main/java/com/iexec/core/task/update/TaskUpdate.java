@@ -77,9 +77,7 @@ class TaskUpdate implements Runnable, Comparable<TaskUpdate> {
     @Override
     public int compareTo(TaskUpdate otherTaskUpdate) {
         if (otherTaskUpdate == null) {
-            // A `null` element should be considered
-            // as the last one in an ordered collection.
-            return Integer.MAX_VALUE;
+            throw new NullPointerException("Can't compare a null task update.");
         }
         return Comparator.comparing(TaskUpdate::getCurrentStatus, Comparator.reverseOrder())
                 .thenComparing(TaskUpdate::getContributionDeadline)
