@@ -16,6 +16,7 @@
 
 package com.iexec.core.task;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -39,6 +40,9 @@ interface TaskRepository extends MongoRepository<Task, String> {
 
     @Query("{ 'currentStatus': {$in: ?0} }")
     List<Task> findByCurrentStatus(List<TaskStatus> statuses);
+
+    @Query("{ 'currentStatus': {$in: ?0} }")
+    List<Task> findByCurrentStatus(List<TaskStatus> statuses, Sort sort);
 
     @Query("{ 'currentStatus': {$nin: ?0} }")
     List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
