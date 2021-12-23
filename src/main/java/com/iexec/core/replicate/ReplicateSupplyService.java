@@ -129,6 +129,12 @@ public class ReplicateSupplyService {
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
+            // Check if task is still in contribution phase with INITIALIZED or RUNNING status
+            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
+            if (upToDateTask.isEmpty() || ! TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())) {
+                continue;
+            }
+
             // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskUpdateManager.isConsensusReached(task)) {
