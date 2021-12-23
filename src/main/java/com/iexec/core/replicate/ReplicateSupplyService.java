@@ -118,6 +118,8 @@ public class ReplicateSupplyService {
             contributionTimeoutTaskDetector.detect();
         }
 
+        // TODO : Remove this, the optional can never be empty
+        // This is covered in workerService.canAcceptMoreWorks
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
             return Optional.empty();
@@ -127,7 +129,7 @@ public class ReplicateSupplyService {
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
-            // no need to ge further if the consensus is already reached on-chain
+            // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskUpdateManager.isConsensusReached(task)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
@@ -135,6 +137,7 @@ public class ReplicateSupplyService {
             }
 
             // skip the task if it needs TEE and the worker doesn't support it
+            // TODO : access worker TEE status through workerService to avoid workerService.getWorker call
             boolean isTeeTask = task.isTeeTask();
             if (isTeeTask && !worker.isTeeEnabled()) {
                 continue;
