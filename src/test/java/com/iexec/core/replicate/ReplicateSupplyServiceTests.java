@@ -156,7 +156,7 @@ class ReplicateSupplyServiceTests {
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(taskService).getTaskByChainTaskId(CHAIN_TASK_ID);
-        Mockito.verifyNoInteractions(taskUpdateManager, replicatesService, signatureService, smsService);
+        Mockito.verifyNoInteractions(signatureService, smsService);
     }
 
     @Test
@@ -191,7 +191,7 @@ class ReplicateSupplyServiceTests {
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(taskService).getTaskByChainTaskId(CHAIN_TASK_ID);
-        Mockito.verifyNoInteractions(taskUpdateManager, replicatesService, signatureService, smsService);
+        Mockito.verifyNoInteractions(signatureService, smsService);
     }
 
     @Test
@@ -254,17 +254,17 @@ class ReplicateSupplyServiceTests {
                 .lastAliveDate(new Date())
                 .build();
 
-        Task runningTask1 = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
-        runningTask1.setMaxExecutionTime(maxExecutionTime);
-        runningTask1.changeStatus(RUNNING);
-        runningTask1.setTag(NO_TEE_TAG);
-        runningTask1.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(NO_TEE_TAG);
+        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
         when(taskService.getInitializedOrRunningTasks())
-                .thenReturn(Collections.singletonList(runningTask1));
+                .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask1));
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
 
@@ -274,7 +274,7 @@ class ReplicateSupplyServiceTests {
         assertThat(oAuthorization).isEmpty();
         assertTaskAccessForNewReplicateNotDeadLocking();
         Mockito.verify(replicatesService).hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1);
-        Mockito.verifyNoInteractions(smsService);
+        Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService, smsService);
     }
 
     @Test

@@ -129,12 +129,6 @@ public class ReplicateSupplyService {
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
-            // Check if task is still in contribution phase with INITIALIZED or RUNNING status
-            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
-            if (upToDateTask.isEmpty() || ! TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())) {
-                continue;
-            }
-
             // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskUpdateManager.isConsensusReached(task)) {
@@ -158,13 +152,24 @@ public class ReplicateSupplyService {
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
 
+            // Check if task is still in contribution phase with INITIALIZED or RUNNING status
+            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
+
+            if (upToDateTask.isEmpty()
+                    || ! TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
+                    || hasWorkerAlreadyParticipated) {
+                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
+                continue;
+            }
+
             final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
                     replicates,
                     task.getTrust(),
                     task.getMaxExecutionTime());
-            if (!hasWorkerAlreadyParticipated && taskNeedsMoreContributions) {
+
+            if (taskNeedsMoreContributions) {
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
