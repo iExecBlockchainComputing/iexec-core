@@ -26,7 +26,6 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskRepository;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.*;
@@ -48,7 +47,6 @@ import static com.iexec.core.task.TaskStatus.*;
 @Slf4j
 class TaskUpdateManager  {
     private final TaskService taskService;
-    private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -56,14 +54,12 @@ class TaskUpdateManager  {
     private final BlockchainAdapterService blockchainAdapterService;
 
     public TaskUpdateManager(TaskService taskService,
-                             TaskRepository taskRepository,
                              IexecHubService iexecHubService,
                              ReplicatesService replicatesService,
                              ApplicationEventPublisher applicationEventPublisher,
                              WorkerService workerService,
                              BlockchainAdapterService blockchainAdapterService) {
         this.taskService = taskService;
-        this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -167,9 +163,14 @@ class TaskUpdateManager  {
     Task updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus, chainReceipt);
-        Task savedTask = taskRepository.save(task);
-        log.info("UpdateTaskStatus suceeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
-        return savedTask;
+        Optional<Task> savedTask = taskService.updateTask(task);
+        if (savedTask.isPresent()) {
+            log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
+            return savedTask.get();
+        } else {
+            log.warn("UpdateTaskStatus failed [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
+            return null;
+        }
     }
 
     void received2Initializing(Task task) {

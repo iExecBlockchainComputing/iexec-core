@@ -103,6 +103,22 @@ public class TaskService {
                 });
     }
 
+    /**
+     * Updates a task if it already exists in DB.
+     * Otherwise, will not do anything.
+     * @param task Task to update.
+     * @return An {@link Optional<Task>} if task exists, {@link Optional#empty()} otherwise.
+     */
+    public Optional<Task> updateTask(Task task) {
+        final Optional<Task> knownTask = taskRepository
+                .findByChainTaskId(task.getChainTaskId());
+        if (knownTask.isPresent()) {
+            return Optional.of(taskRepository.save(task));
+        } else {
+            return Optional.empty();
+        }
+    }
+
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
         return taskRepository.findByChainTaskId(chainTaskId);
     }
