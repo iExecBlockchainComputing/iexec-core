@@ -110,13 +110,9 @@ public class TaskService {
      * @return An {@link Optional<Task>} if task exists, {@link Optional#empty()} otherwise.
      */
     public Optional<Task> updateTask(Task task) {
-        final Optional<Task> knownTask = taskRepository
-                .findByChainTaskId(task.getChainTaskId());
-        if (knownTask.isPresent()) {
-            return Optional.of(taskRepository.save(task));
-        } else {
-            return Optional.empty();
-        }
+        return taskRepository
+                .findByChainTaskId(task.getChainTaskId())
+                .map(taskRepository::save);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
