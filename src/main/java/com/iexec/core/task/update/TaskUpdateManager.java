@@ -81,7 +81,7 @@ class TaskUpdateManager  {
         if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())){
             updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
             // Eventually should fire a "final deadline reached" notification to worker,
-            // but here let's just trigger an updateTask() leading to a failed status
+            // but here let's just trigger an toFailed(task) leading to a failed status
             // which will itself fire a generic "abort" notification
             toFailed(task);
             return;
