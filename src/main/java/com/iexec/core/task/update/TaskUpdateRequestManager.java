@@ -16,12 +16,13 @@
 
 package com.iexec.core.task.update;
 
-import com.iexec.core.utils.TaskExecutorUtils;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
@@ -44,14 +45,29 @@ public class TaskUpdateRequestManager {
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
             .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
             .build();
-    private final Executor taskUpdateExecutor = TaskExecutorUtils.newThreadPoolTaskExecutor(
-            "task-update-",
-            TASK_UPDATE_THREADS_POOL_SIZE);
+
+    final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
+    // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
+    // Otherwise, `taskUpdateExecutor` won't pop `maximumPoolSize` threads
+    // as new threads are popped only if the queue is full
+    // - which never happens with an unbounded queue.
+    final ThreadPoolExecutor taskUpdateExecutor = new ThreadPoolExecutor(
+            TASK_UPDATE_THREADS_POOL_SIZE,
+            TASK_UPDATE_THREADS_POOL_SIZE,
+            0,
+            TimeUnit.MILLISECONDS,
+            queue
+    );
     private TaskUpdateRequestConsumer consumer;
+
+    private final TaskService taskService;
+
+    public TaskUpdateRequestManager(TaskService taskService) {
+        this.taskService = taskService;
+    }
 
     /**
      * Publish TaskUpdateRequest async
@@ -63,14 +79,26 @@ public class TaskUpdateRequestManager {
             if (chainTaskId.isEmpty()){
                 return false;
             }
-            if (queue.contains(chainTaskId)){
+            if (queue.containsTask(chainTaskId)){
                 log.warn("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
-            boolean isOffered = queue.offer(chainTaskId);
-            log.info("Published task update request [chainTaskId:{}, queueSize:{}]", chainTaskId, queue.size());
-            return isOffered;
+            final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
+            if (oTask.isEmpty()) {
+                log.warn("No such task. [chainTaskId: {}]", chainTaskId);
+                return false;
+            }
+
+            final Task task = oTask.get();
+            taskUpdateExecutor.execute(new TaskUpdate(task, locks, consumer));
+            log.debug("Published task update request" +
+                    " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
+                    chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
+            return true;
         };
+        // TODO: find a better way to publish request.
+        // As of now, we do sequential requests to the DB which can cause a big load.
+        // We should aim to have some batch requests to unload the scheduler.
         return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
 
@@ -81,43 +109,5 @@ public class TaskUpdateRequestManager {
      */
     public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
         this.consumer = consumer;
-    }
-
-    /**
-     * De-queues head anf notifies consumer.
-     *
-     * Retries consuming and notifying if interrupted
-     */
-    @Scheduled(fixedDelay = 1000)
-    public void consumeAndNotify() {
-        if (consumer == null){
-            log.warn("Waiting for consumer before consuming [queueSize:{}]", queue.size());
-            return;
-        }
-
-        while (!Thread.currentThread().isInterrupted()){
-            waitForTaskUpdateRequest();
-        }
-    }
-
-    /**
-     * Wait for new task update request and run the update once a request is arrived.
-     * 2 requests can be run in parallel if they don't target the same task.
-     * <br>
-     * Interrupts current thread if queue taking has been stopped during the execution.
-     */
-    private void waitForTaskUpdateRequest() {
-        log.info("Waiting requests from publisher [queueSize:{}]", queue.size());
-        try {
-            String chainTaskId = queue.take();
-            CompletableFuture.runAsync(() -> {
-                synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())){ // require one update on a same task at a time
-                    consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-                }
-            }, taskUpdateExecutor);
-        } catch (InterruptedException e) {
-            log.error("The unexpected happened", e);
-            Thread.currentThread().interrupt();
-        }
     }
 }
