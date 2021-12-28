@@ -112,7 +112,7 @@ public class TaskService {
     public Optional<Task> updateTask(Task task) {
         return taskRepository
                 .findByChainTaskId(task.getChainTaskId())
-                .map(taskRepository::save);
+                .map(existingTask -> taskRepository.save(task));
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
