@@ -17,7 +17,6 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.iexec.core.task.TaskStatus;
 import lombok.*;
 
 import java.util.Date;
