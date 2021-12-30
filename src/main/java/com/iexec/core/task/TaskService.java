@@ -196,8 +196,8 @@ public class TaskService {
         taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
 
-    public boolean isConsensusReached(Task task) {
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+    public boolean isConsensusReached(String chainTaskId) {
+        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
         if (optional.isEmpty()) return false;
 
         ChainTask chainTask = optional.get();
@@ -205,7 +205,7 @@ public class TaskService {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
+        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(chainTaskId, chainTask.getConsensusValue()) : 0;
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;

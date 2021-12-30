@@ -215,12 +215,12 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
-        when(taskService.isConsensusReached(runningTask)).thenReturn(true);
+        when(taskService.isConsensusReached(CHAIN_TASK_ID)).thenReturn(true);
 
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_2);
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(taskService).isConsensusReached(runningTask);
+        Mockito.verify(taskService).isConsensusReached(CHAIN_TASK_ID);
         Mockito.verifyNoInteractions(replicatesService, signatureService, smsService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -393,8 +393,8 @@ class ReplicateSupplyServiceTests {
 
         // the call should only happen once over the two tasks
         Mockito.verify(contributionTimeoutTaskDetector).detect();
-        Mockito.verify(taskService).isConsensusReached(task1);
-        Mockito.verify(taskService, Mockito.never()).isConsensusReached(taskDeadlineReached);
+        Mockito.verify(taskService).isConsensusReached(CHAIN_TASK_ID);
+        Mockito.verify(taskService, Mockito.never()).isConsensusReached(CHAIN_TASK_ID_2);
     }
 
     @Test
@@ -692,7 +692,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(false);
+        when(taskService.isConsensusReached(taskList.get(0).getChainTaskId())).thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -728,7 +728,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskService.isConsensusReached(taskList.get(0))).thenReturn(true);
+        when(taskService.isConsensusReached(taskList.get(0).getChainTaskId())).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);

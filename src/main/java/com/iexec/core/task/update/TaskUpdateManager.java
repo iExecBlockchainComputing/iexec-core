@@ -268,7 +268,7 @@ class TaskUpdateManager  {
 
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
-        boolean isConsensusReached = taskService.isConsensusReached(task);
+        boolean isConsensusReached = taskService.isConsensusReached(task.getChainTaskId());
 
         if (isTaskInRunningStatus && isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());

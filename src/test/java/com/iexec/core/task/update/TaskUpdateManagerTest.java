@@ -567,7 +567,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
-        when(taskService.isConsensusReached(task)).thenReturn(true);
+        when(taskService.isConsensusReached(CHAIN_TASK_ID)).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
