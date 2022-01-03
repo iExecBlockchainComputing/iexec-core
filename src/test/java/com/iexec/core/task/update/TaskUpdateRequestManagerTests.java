@@ -1,58 +1,94 @@
 package com.iexec.core.task.update;
 
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
+import net.jodah.expiringmap.ExpiringMap;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class TaskUpdateRequestManagerTests {
+import static org.mockito.Mockito.when;
 
+class TaskUpdateRequestManagerTests {
 
     public static final String CHAIN_TASK_ID = "chainTaskId";
+
+    @Mock
+    private TaskService taskService;
+
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @BeforeEach
     public void init() {
         MockitoAnnotations.initMocks(this);
+        taskUpdateRequestManager.setRequestConsumer(taskUpdate -> {});
     }
 
+    // region publishRequest()
     @Test
-    public void shouldPublishRequest() throws ExecutionException, InterruptedException {
+    void shouldPublishRequest() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
+
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isTrue();
     }
 
     @Test
-    public void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
+    void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest("");
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
     }
 
     @Test
-    public void shouldNotPublishRequestSinceItemAlreadyAdded() throws ExecutionException, InterruptedException {
-        taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+    void shouldNotPublishRequestSinceItemAlreadyAdded() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
+        taskUpdateRequestManager.queue.add(
+                buildTaskUpdate(CHAIN_TASK_ID, null, null, null, null)
+        );
+
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         booleanCompletableFuture.join();
+
         Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
     }
 
     @Test
-    public void shouldNotUpdateAtTheSameTime() throws NoSuchFieldException, IllegalAccessException {
+    void shouldNotPublishRequestSinceTaskDoesNotExist() throws ExecutionException, InterruptedException {
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.empty());
+
+        CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        booleanCompletableFuture.join();
+
+        Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
+    }
+    // endregion
+
+    // region consume tasks in order
+    @Test
+    void shouldNotUpdateAtTheSameTime() {
         final ConcurrentLinkedQueue<Integer> callsOrder = new ConcurrentLinkedQueue<>();
         final ConcurrentHashMap<Integer, String> taskForUpdateId = new ConcurrentHashMap<>();
         final int callsPerUpdate = 10;
-        final List<String> updates = List.of("1", "1", "2", "2", "1");
-        final Random random = new Random();
 
+        final Random random = new Random();
         // Consuming a task update should only log the call a few times, while sleeping between each log
         // so that another task could be updated at the same time if authorized by lock.
         final TaskUpdateRequestConsumer consumer = chainTaskId -> {
@@ -65,25 +101,19 @@ public class TaskUpdateRequestManagerTests {
                 callsOrder.add(updateId);
             }
         };
-        taskUpdateRequestManager.setRequestConsumer(consumer);
+        final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
+                .expiration(100, TimeUnit.HOURS)
+                .build();
 
-        // Ugly way to put some task updates in waiting queue.
-        final Field queueField = TaskUpdateRequestManager.class
-                .getDeclaredField("queue");
-        queueField.setAccessible(true);
-        //noinspection unchecked
-        final BlockingQueue<String> queue = (BlockingQueue<String>) queueField.get(taskUpdateRequestManager);
-        queue.addAll(updates);
+        final List<TaskUpdate> updates = Stream.of("1", "1", "2", "2", "1")
+                .map(id -> buildTaskUpdate(id, TaskStatus.RUNNING, new Date(), locks, consumer))
+                .collect(Collectors.toList());
 
-        // We need to run this method as a new thread, so we can interrupt it after all tasks have run.
-        final CompletableFuture<Void> asyncRun = CompletableFuture.runAsync(taskUpdateRequestManager::consumeAndNotify);
-
+        updates.forEach(taskUpdateRequestManager.taskUpdateExecutor::execute);
         Awaitility
                 .await()
                 .timeout(30, TimeUnit.SECONDS)
                 .until(() -> callsOrder.size() == callsPerUpdate * updates.size());
-
-        asyncRun.cancel(true);
 
         Assertions.assertThat(callsOrder.size()).isEqualTo(callsPerUpdate * updates.size());
 
@@ -104,5 +134,115 @@ public class TaskUpdateRequestManagerTests {
 
             foundOutputsForKeyGroup.merge(updateId, 1, (currentValue, defaultValue) -> currentValue + 1);
         }
+    }
+    // endregion
+
+    // region queue ordering
+    @Test
+    void shouldGetInOrderForStatus() throws InterruptedException {
+        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+
+        TaskUpdate initializingTask = buildTaskUpdate(null, TaskStatus.INITIALIZING, null, null, null);
+        TaskUpdate completedTask = buildTaskUpdate(null, TaskStatus.COMPLETED, null, null, null);
+        TaskUpdate runningTask = buildTaskUpdate(null, TaskStatus.RUNNING, null, null, null);
+        TaskUpdate initializedTask = buildTaskUpdate(null, TaskStatus.INITIALIZED, null, null, null);
+        TaskUpdate consensusReachedTask = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, null, null, null);
+
+        List<TaskUpdate> tasks = new ArrayList<>(
+                List.of(
+                        initializingTask,
+                        completedTask,
+                        runningTask,
+                        initializedTask,
+                        consensusReachedTask
+                )
+        );
+        Collections.shuffle(tasks);
+        queue.addAll(tasks);
+
+        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactly(
+                        completedTask,
+                        consensusReachedTask,
+                        runningTask,
+                        initializedTask,
+                        initializingTask
+                );
+    }
+
+    @Test
+    void shouldGetInOrderForContributionDeadline() throws InterruptedException {
+        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+
+        final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
+        final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
+        final Date d3 = new GregorianCalendar(2021, Calendar.JANUARY, 3).getTime();
+        final Date d4 = new GregorianCalendar(2021, Calendar.JANUARY, 4).getTime();
+        final Date d5 = new GregorianCalendar(2021, Calendar.JANUARY, 5).getTime();
+
+        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null, null);
+        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null, null);
+        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.RUNNING, d3, null, null);
+        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.RUNNING, d4, null, null);
+        TaskUpdate t5 = buildTaskUpdate(null, TaskStatus.RUNNING, d5, null, null);
+
+        List<TaskUpdate> tasks = new ArrayList<>(List.of(t1, t2, t3, t4, t5));
+        Collections.shuffle(tasks);
+        queue.addAll(tasks);
+
+        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactly(
+                        t1,
+                        t2,
+                        t3,
+                        t4,
+                        t5
+                );
+    }
+
+    @Test
+    void shouldGetInOrderForStatusAndContributionDeadline() throws InterruptedException {
+        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+
+        final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
+        final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
+
+        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null, null);
+        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null, null);
+        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d1, null, null);
+        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d2, null, null);
+
+        List<TaskUpdate> tasks = new ArrayList<>(List.of(t1, t2, t3, t4));
+        Collections.shuffle(tasks);
+        queue.addAll(tasks);
+
+        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
+        Assertions.assertThat(prioritizedTasks)
+                .containsExactly(
+                        t3,
+                        t4,
+                        t1,
+                        t2
+                );
+    }
+    // endregion
+    
+    private TaskUpdate buildTaskUpdate(String chainTaskId,
+                                       TaskStatus status,
+                                       Date contributionDeadline,
+                                       ConcurrentMap<String, Object> locks,
+                                       TaskUpdateRequestConsumer consumer) {
+        return new TaskUpdate(
+                Task
+                        .builder()
+                        .chainTaskId(chainTaskId)
+                        .currentStatus(status).
+                        contributionDeadline(contributionDeadline).
+                        build(),
+                locks,
+                consumer
+        );
     }
 }

@@ -17,6 +17,7 @@
 package com.iexec.core.task;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -72,7 +73,7 @@ public class TaskService {
     ) {
         return taskRepository
                 .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
-                .<Optional<Task>>map((task) -> {
+                .<Optional<Task>>map(task -> {
                         log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
                                 "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
                                 taskIndex, imageName, commandLine, trust);
@@ -109,7 +110,9 @@ public class TaskService {
     }
 
     public List<Task> getInitializedOrRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING));
+        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
+                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     public List<Task> getTasksInNonFinalStatuses() {
@@ -170,6 +173,5 @@ public class TaskService {
     private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
         taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
     }
-
 
 }

@@ -25,7 +25,9 @@ import com.iexec.core.task.event.TaskCreatedEvent;
 import io.reactivex.disposables.Disposable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -59,11 +61,12 @@ public class DealWatcherService {
     }
 
     /**
-     * This should be non-blocking to librate
+     * This should be non-blocking to liberate
      * the main thread, since deals can have
      * a large number of tasks (BoT).
      */
     @Async
+    @EventListener(ApplicationReadyEvent.class)
     public void run() {
         subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }

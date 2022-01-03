@@ -112,16 +112,14 @@ public class ReplicateSupplyService {
 
         // filter the Tasks that have reached the contribution deadline
         List<Task> validTasks = runningTasks.stream()
-                .filter(task -> {
-                    if (task.isContributionDeadlineReached()) {
-                        contributionTimeoutTaskDetector.detect();
-                        return false;
-                    } else {
-                        return true;
-                    }
-                })
+                .filter(task -> ! task.isContributionDeadlineReached())
                 .collect(Collectors.toCollection(ArrayList::new));
+        if (validTasks.size() != runningTasks.size()) {
+            contributionTimeoutTaskDetector.detect();
+        }
 
+        // TODO : Remove this, the optional can never be empty
+        // This is covered in workerService.canAcceptMoreWorks
         Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
             return Optional.empty();
@@ -131,7 +129,7 @@ public class ReplicateSupplyService {
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
 
-            // no need to ge further if the consensus is already reached on-chain
+            // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskUpdateManager.isConsensusReached(task)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
@@ -139,6 +137,7 @@ public class ReplicateSupplyService {
             }
 
             // skip the task if it needs TEE and the worker doesn't support it
+            // TODO : access worker TEE status through workerService to avoid workerService.getWorker call
             boolean isTeeTask = task.isTeeTask();
             if (isTeeTask && !worker.isTeeEnabled()) {
                 continue;
@@ -153,13 +152,24 @@ public class ReplicateSupplyService {
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
                     chainTaskId, walletAddress);
 
+            // Check if task is still in contribution phase with INITIALIZED or RUNNING status
+            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
+
+            if (upToDateTask.isEmpty()
+                    || ! TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
+                    || hasWorkerAlreadyParticipated) {
+                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
+                continue;
+            }
+
             final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
                     replicates,
                     task.getTrust(),
                     task.getMaxExecutionTime());
-            if (!hasWorkerAlreadyParticipated && taskNeedsMoreContributions) {
+
+            if (taskNeedsMoreContributions) {
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
@@ -195,7 +205,7 @@ public class ReplicateSupplyService {
             String chainTaskId = task.getChainTaskId();
 
             Optional<Replicate> oReplicate = replicatesService.getReplicate(chainTaskId, walletAddress);
-            if (!oReplicate.isPresent()) {
+            if (oReplicate.isEmpty()) {
                 continue;
             }
             Replicate replicate = oReplicate.get();
@@ -208,7 +218,7 @@ public class ReplicateSupplyService {
                 continue;
             }
             Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
-            if (!taskNotificationType.isPresent()) {
+            if (taskNotificationType.isEmpty()) {
                 continue;
             }
             TaskNotificationExtra taskNotificationExtra =
@@ -245,6 +255,7 @@ public class ReplicateSupplyService {
                 break;
             case PLEASE_ABORT:
                 taskNotificationExtra.setTaskAbortCause(getTaskAbortCause(task));
+                break;
             default:
                 break;
         }
@@ -292,7 +303,9 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (!replicate.getLastRelevantStatus().isPresent()) return Optional.empty();
+        if (replicate.getLastRelevantStatus().isEmpty()) {
+            return Optional.empty();
+        }
 
         boolean beforeContributing = replicate.isBeforeStatus(ReplicateStatus.CONTRIBUTING);
         boolean didReplicateStartContributing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTING);
@@ -313,10 +326,14 @@ public class ReplicateSupplyService {
 
         // we read the replicate from db to consider the changes added in the previous case
         Optional<Replicate> oReplicateWithLatestChanges = replicatesService.getReplicate(chainTaskId, walletAddress);
-        if (!oReplicateWithLatestChanges.isPresent()) return Optional.empty();
+        if (oReplicateWithLatestChanges.isEmpty()) {
+            return Optional.empty();
+        }
 
         Replicate replicateWithLatestChanges = oReplicateWithLatestChanges.get();
-        if (!replicateWithLatestChanges.getLastRelevantStatus().isPresent()) return Optional.empty();
+        if (replicateWithLatestChanges.getLastRelevantStatus().isEmpty()) {
+            return Optional.empty();
+        }
 
         boolean didReplicateContribute = replicateWithLatestChanges.getLastRelevantStatus().get()
                 .equals(ReplicateStatus.CONTRIBUTED);
@@ -346,7 +363,9 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (!replicate.getLastRelevantStatus().isPresent()) return Optional.empty();
+        if (replicate.getLastRelevantStatus().isEmpty()) {
+            return Optional.empty();
+        }
 
         boolean isInStatusContributed = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTED);
         boolean didReplicateStartRevealing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.REVEALING);
@@ -369,8 +388,13 @@ public class ReplicateSupplyService {
         // we read the replicate from db to consider the changes added in the previous case
         Optional<Replicate> oReplicateWithLatestChanges = replicatesService.getReplicate(chainTaskId, walletAddress);
 
+        if (oReplicateWithLatestChanges.isEmpty()) {
+            return Optional.empty();
+        }
         replicate = oReplicateWithLatestChanges.get();
-        if (!replicate.getLastRelevantStatus().isPresent()) return Optional.empty();
+        if (replicate.getLastRelevantStatus().isEmpty()) {
+            return Optional.empty();
+        }
 
         boolean didReplicateReveal = replicate.getLastRelevantStatus().get()
                 .equals(ReplicateStatus.REVEALED);
@@ -401,7 +425,9 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (!replicate.getLastRelevantStatus().isPresent()) return Optional.empty();
+        if (replicate.getLastRelevantStatus().isEmpty()) {
+            return Optional.empty();
+        }
 
         boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
         boolean didReplicateStartUploading = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADING);
@@ -439,7 +465,9 @@ public class ReplicateSupplyService {
     private Optional<TaskNotificationType> recoverReplicateIfRevealed(Replicate replicate) {
         // refresh task
         Optional<Task> oTask = taskService.getTaskByChainTaskId(replicate.getChainTaskId());
-        if (!oTask.isPresent()) return Optional.empty();
+        if (oTask.isEmpty()) {
+            return Optional.empty();
+        }
 
         if (replicate.containsRevealedStatus()) {
             if (oTask.get().getCurrentStatus().equals(TaskStatus.COMPLETED)) {

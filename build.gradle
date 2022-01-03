@@ -106,6 +106,11 @@ dependencies {
 
     // awaitility
     testImplementation 'org.awaitility:awaitility:4.0.1'
+
+    // mongo
+    testImplementation 'org.testcontainers:testcontainers:1.16.2'
+    testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
+    testImplementation 'org.testcontainers:mongodb:1.16.2'
 }
 
 jar {
@@ -115,6 +120,11 @@ jar {
 
 test {
     useJUnitPlatform()
+}
+
+task itest {
+    group 'Verification'
+    description 'Runs the integration tests.'
 }
 
 jacoco {
@@ -129,22 +139,6 @@ jacocoTestReport {
 tasks.test.finalizedBy    tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
-def gitBranch = 'git name-rev --name-only HEAD'.execute().text.trim()
-def isMasterBranch = gitBranch == "master"
-def isDevelopBranch = gitBranch == "develop"
-def canUploadArchives = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
-def gitShortCommit = 'git rev-parse --short HEAD'.execute().text.trim()
-def isSnapshotVersion = project.version.contains("SNAPSHOT")
-
-project.ext.getNexusMaven = {
-    def nexusMavenBase = "https://nexus.iex.ec/repository"
-    if (isSnapshotVersion) {
-        return nexusMavenBase + "/maven-snapshots/"
-    } else {
-        return nexusMavenBase + "/maven-releases/"
-    }
-}
-
 publishing {
     publications {
         maven(MavenPublication) {
@@ -155,15 +149,13 @@ publishing {
     repositories {
         maven {
             credentials {
-                username nexusUser
-                password nexusPassword
+                username project.hasProperty('nexusUser') ? nexusUser : ''
+                password project.hasProperty('nexusPassword') ? nexusPassword : ''
             }
-            url getNexusMaven
+            url project.hasProperty('nexusUrl') ? nexusUrl : ''
         }
     }
 }
-
-publish.enabled canUploadArchives
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
@@ -184,49 +176,14 @@ task createVersion(type: Copy) {
 // the createVersion task should be called before compileJava or the version service will not work
 compileJava.dependsOn createVersion
 
-def imageName = "nexus.iex.ec/iexec-core"
-
-project.ext.getDockerImageNameFull = {
-    def imageNameWithVersion = imageName + ":${version}"
-    if (isSnapshotVersion) {
-        return imageNameWithVersion + "-" + gitShortCommit
-    } else {
-        return imageNameWithVersion
-    }
-}
-
-project.ext.getDockerImageNameShortCommit = {
-    return imageName + ":" + gitShortCommit
-}
-
-task prepareDockerFile(type: Copy) {
-    delete 'build/main/resources/'
-    from 'Dockerfile'
-    into 'build/main/resources/'
-    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
-}
-
+ext.bootJarPath    = relativePath(tasks.bootJar.outputs.files.singleFile)
+ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
+ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
 task buildImage(type: Exec) {
-    description 'Build a docker image for the core'
-    commandLine("sh", "-c", "docker image build -f build/main/resources/Dockerfile -t " + getDockerImageNameFull() + " . &&" +
-            "docker tag " + getDockerImageNameFull() + " " + imageName + ":dev")
+    group 'Build'
+    description 'Builds an OCI image from a Dockerfile.'
+    dependsOn bootJar
+    commandLine("sh", "-c", "docker build --build-arg spring_boot_jar=$bootJarPath -t $ociImageName:$gitShortCommit . &&" +
+            "docker tag $ociImageName:$gitShortCommit $ociImageName:dev")
 }
-
-buildImage.dependsOn prepareDockerFile
-buildImage.enabled = (isMasterBranch || isDevelopBranch ) || project.hasProperty("forceDockerBuild")
-
-task pushImage(type: Exec) {
-    if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
-        commandLine("sh", "-c", "docker login -u " + project.nexusUser + " -p " + project.nexusPassword + " nexus.iex.ec && " +
-                "docker push " + getDockerImageNameFull() + " && " +
-                "docker tag " + getDockerImageNameFull() + " " + getDockerImageNameShortCommit() + " && " +
-                "docker push " + getDockerImageNameShortCommit() + " && " +
-                "docker logout")
-    } else {
-        println "Credentials for DockerHub are missing, the images cannot be pushed"
-    }
-}
-
-pushImage.dependsOn buildImage
-pushImage.enabled = (isMasterBranch || isDevelopBranch ) && project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")
