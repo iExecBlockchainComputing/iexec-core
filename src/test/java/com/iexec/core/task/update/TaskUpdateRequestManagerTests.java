@@ -104,7 +104,8 @@ class TaskUpdateRequestManagerTests {
                 for (int i = 0; i < callsPerUpdate; i++) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(random.nextInt(10));
-                    } catch (InterruptedException ignored) {
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                     callsOrder.add(updateId);
                 }
