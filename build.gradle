@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.4.13'
+        springBootVersion = '2.6.2'
     }
     repositories {
         mavenCentral()
@@ -39,7 +39,7 @@ repositories {
 }
 
 ext {
-    springCloudVersion = '2020.0.5'
+    springCloudVersion = '2021.0.0'
     mongockVersion = '4.2.7.BETA'
 }
 
@@ -73,9 +73,8 @@ dependencies {
 
     testImplementation "org.springframework.boot:spring-boot-starter-test"
 
-    // swagger
-    implementation "io.springfox:springfox-swagger2:2.9.2"
-    implementation "io.springfox:springfox-swagger-ui:2.9.2"
+    // Spring Doc
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
 
     // jason web token
     implementation "io.jsonwebtoken:jjwt:0.7.0"

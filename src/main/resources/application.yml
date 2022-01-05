@@ -25,3 +25,7 @@ cron:
       contribute:     120000  # 2m
       reveal: ${REVEAL_TIMEOUT_PERIOD:120000}  # 2m
       result-upload:  30000   # 30s
+
+springdoc:
+  packagesToScan: com.iexec.core
+  pathsToMatch: /**
