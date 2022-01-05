@@ -1,8 +1,12 @@
+server:
+  port: ${IEXEC_CORE_PORT:13000}
+
 spring:
-  profiles:
-    active: "prod"  # "prod" profile should be loaded by default.
   data:
     mongodb:
+      database: iexec
+      host: ${MONGO_HOST:localhost}
+      port: ${MONGO_PORT:13002}
       auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
 mongock:
   runner-type: InitializingBean
@@ -25,6 +29,72 @@ cron:
       contribute:     120000  # 2m
       reveal: ${REVEAL_TIMEOUT_PERIOD:120000}  # 2m
       result-upload:  30000   # 30s
+
+workers:
+  askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
+  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
+  # the whitelist format should be as follow (comma separated on one or multiple lines:
+  # whitelist: ${IEXEC_WHITELIST:address1,
+  #     address2,
+  #     address3}
+  whitelist: ${IEXEC_WORKERS_WHITELIST:}
+
+wallet:
+  encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
+  password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
+
+chain:
+  id: ${IEXEC_CHAIN_ID:17}
+  sidechain: ${IEXEC_IS_SIDECHAIN:false}
+  privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
+  publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
+  hubAddress: ${IEXEC_HUB_ADDRESS:0xBF6B2B07e47326B7c8bfCb4A5460bef9f0Fd2002}
+  poolAddress: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
+  startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
+  gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be send with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
+  gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
+
+blockchain-adapter:
+  protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
+  host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:blockchain-adapter}
+  port: ${IEXEC_CORE_CHAIN_ADAPTER_PORT:13010}
+  user:
+    name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
+    password: ${IEXEC_CORE_CHAIN_ADAPTER_PASSWORD:whatever}
+
+resultRepository:
+  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
+  host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
+  port: ${IEXEC_RESULT_REPOSITORY_PORT:13200}
+
+ipfs:
+  host: ${IEXEC_IPFS_HOST:127.0.0.1}
+  port: ${IEXEC_IPFS_PORT:5001}
+
+sms:
+  protocol: ${IEXEC_SMS_PROTOCOL:http}
+  host: ${IEXEC_SMS_HOST:localhost}
+  port: ${IEXEC_SMS_PORT:13300}
+
+management:
+  server:
+    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
+  endpoints:
+    web:
+      exposure:
+        # e.g: (spring default is "health, info", use comma for multiple values)
+        # health, info, httptrace
+        # or:
+        # *
+        include: ${IEXEC_CORE_MANAGEMENT_ACTUATORS:health, info}
+
+graylog:
+  host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}
+  port: ${IEXEC_CORE_GRAYLOG_PORT:12201}
+
+stdout:
+  purge-rate-in-days: ${IEXEC_STDOUT_PURGE_RATE_IN_DAYS:1}
+  availability-period-in-days: ${IEXEC_STDOUT_AVAILABILITY_PERIOD_IN_DAYS:3}
 
 springdoc:
   packagesToScan: com.iexec.core

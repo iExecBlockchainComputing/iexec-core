@@ -25,7 +25,6 @@ import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 
 @DataMongoTest
 @Testcontainers
-@TestPropertySource(properties = {"spring.profiles.active = test"}) // Just so "prod" profiles is not loaded
 class TaskRepositoryTest {
 
     private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
@@ -38,7 +37,8 @@ class TaskRepositoryTest {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getContainerIpAddress);
+        registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
     }
 
     @Autowired
