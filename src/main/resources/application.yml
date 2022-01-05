@@ -4,9 +4,7 @@ server:
 spring:
   data:
     mongodb:
-      database: iexec
-      host: ${MONGO_HOST:localhost}
-      port: ${MONGO_PORT:13002}
+      auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
 mongock:
   runner-type: InitializingBean
   change-logs-scan-package:

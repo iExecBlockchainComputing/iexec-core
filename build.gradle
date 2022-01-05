@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.2.13.RELEASE'
+        springBootVersion = '2.3.0.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -41,7 +41,7 @@ repositories {
 ext {
     //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
     //Greenwich.SR2 is a patch for Greenwich.RELEASE
-    springCloudVersion = 'Greenwich.SR2'
+    springCloudVersion = 'Hoxton.SR12'
     mongockVersion = '4.2.7.BETA'
 }
 
@@ -91,7 +91,7 @@ dependencies {
     // graylog
     implementation 'biz.paluch.logging:logstash-gelf:1.5.1'
 
-    implementation 'io.micrometer:micrometer-registry-prometheus:1.1.5'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.8.1'
 
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"

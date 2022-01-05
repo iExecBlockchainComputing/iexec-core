@@ -9,6 +9,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -24,6 +25,7 @@ import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 
 @DataMongoTest
 @Testcontainers
+@TestPropertySource(properties = {"spring.config.location = classpath:/application.yml"})
 class TaskRepositoryTest {
 
     private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
@@ -70,7 +72,7 @@ class TaskRepositoryTest {
         Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
-                .hasMessageContaining("duplicate key error collection: iexec.task index: unique_deal_idx dup key");
+                .hasMessageContainingAll("E11000", "duplicate key error collection", "unique_deal_idx dup key");
     }
 
     @Test
@@ -82,7 +84,7 @@ class TaskRepositoryTest {
         Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
-                .hasMessageContaining("duplicate key error collection: iexec.task index: chainTaskId dup key");
+                .hasMessageContainingAll("E11000", "duplicate key error collection", "chainTaskId dup key");
     }
 
     @Test
