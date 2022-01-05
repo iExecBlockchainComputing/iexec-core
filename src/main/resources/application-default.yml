@@ -1,5 +1,0 @@
-# This property file will be loaded along `application.yml` if no other profile is explicitly set.
-
-spring:
-  profiles:
-    include: prod

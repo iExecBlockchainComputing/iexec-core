@@ -25,7 +25,7 @@ import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 
 @DataMongoTest
 @Testcontainers
-@TestPropertySource(properties = {"spring.config.location = classpath:/application.yml"})
+@TestPropertySource(properties = {"spring.profiles.active = test"}) // Just so "prod" profiles is not loaded
 class TaskRepositoryTest {
 
     private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();

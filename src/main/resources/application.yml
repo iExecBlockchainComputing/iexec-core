@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: "prod"  # "prod" profile should be loaded by default.
   data:
     mongodb:
       auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
