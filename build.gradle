@@ -26,6 +26,17 @@ group = 'com.iexec.core'
 sourceCompatibility = 11
 targetCompatibility = 11
 
+ext {
+    //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
+    //Greenwich.SR2 is a patch for Greenwich.RELEASE
+    springCloudVersion = 'Greenwich.SR2'
+    mongockVersion = '4.2.7.BETA'
+    gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+}
+
+if (gitBranch != 'main' && gitBranch != 'master' && ! (gitBranch ==~ '(release|hotifx|support)/.*')) {
+    version += '-NEXT-SNAPSHOT'
+}
 
 repositories {
     mavenLocal()
@@ -36,13 +47,6 @@ repositories {
     }
 
     maven { url "https://jitpack.io" }
-}
-
-ext {
-    //https://github.com/spring-cloud/spring-cloud-openfeign/issues/171
-    //Greenwich.SR2 is a patch for Greenwich.RELEASE
-    springCloudVersion = 'Greenwich.SR2'
-    mongockVersion = '4.2.7.BETA'
 }
 
 dependencyManagement {
