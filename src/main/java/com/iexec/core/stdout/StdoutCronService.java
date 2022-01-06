@@ -33,11 +33,8 @@ public class StdoutCronService {
     @Value("${stdout.availability-period-in-days}")
     private int availabilityDays;
 
-    @Value("${stdout.purge-rate-in-days}")
-    private int purgeRateInDays;
-
-    private StdoutService stdoutService;
-    private TaskService taskService;
+    private final StdoutService stdoutService;
+    private final TaskService taskService;
 
     public StdoutCronService(
         StdoutService stdoutService,
@@ -47,11 +44,9 @@ public class StdoutCronService {
         this.taskService = taskService;
     }
 
-    public long getPurgeRateInMs() {
-        return TimeUnit.DAYS.toMillis(purgeRateInDays);
-    }
-
-    @Scheduled(fixedRateString = "#{@stdoutCronService.getPurgeRateInMs()}")
+    @Scheduled(
+            fixedRateString = "${stdout.purge-rate-in-days}",
+            timeUnit = TimeUnit.DAYS)
     void purgeStdout() {
         Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
         List<String> chainTaskIds = taskService
