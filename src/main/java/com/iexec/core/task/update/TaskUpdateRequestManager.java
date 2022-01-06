@@ -80,7 +80,7 @@ public class TaskUpdateRequestManager {
                 return false;
             }
             if (queue.containsTask(chainTaskId)){
-                log.warn("Request already published [chainTaskId:{}]", chainTaskId);
+                log.debug("Request already published [chainTaskId:{}]", chainTaskId);
                 return false;
             }
             final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
