@@ -31,6 +31,9 @@ public class OpenApiConfig {
         this.versionService = versionService;
     }
 
+    /*
+     * Swagger URI: /swagger-ui/index.html
+     */
     @Bean
     public OpenAPI api() {
         return new OpenAPI().info(
