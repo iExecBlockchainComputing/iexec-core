@@ -164,11 +164,15 @@ class TaskUpdateManager  {
         TaskStatus currentStatus = task.getCurrentStatus();
         task.changeStatus(newStatus, chainReceipt);
         Optional<Task> savedTask = taskService.updateTask(task);
+
+        // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (savedTask.isPresent()) {
             log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
             return savedTask.get();
         } else {
-            log.warn("UpdateTaskStatus failed [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
+            log.warn("UpdateTaskStatus failed. Chain Task is probably unknown." +
+                    " [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
+                    task.getChainTaskId(), currentStatus, newStatus);
             return null;
         }
     }
