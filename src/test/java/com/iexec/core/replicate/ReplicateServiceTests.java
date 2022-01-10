@@ -381,7 +381,7 @@ public class ReplicateServiceTests {
                 .thenReturn(Optional.of(replicatesList));
 
         assertThat(replicatesService.getNbValidContributedWinners(
-                CHAIN_TASK_ID,
+                replicatesList.getReplicates(),
                 contributionHash
         )).isOne();        
     }

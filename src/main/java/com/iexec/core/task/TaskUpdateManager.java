@@ -278,9 +278,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         }
     }
 
-    public boolean isConsensusReached(Task task) {
+    public boolean isConsensusReached(String chainTaskId, List<Replicate> replicates) {
 
-        Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
         if (optional.isEmpty()) return false;
 
         ChainTask chainTask = optional.get();
@@ -288,7 +288,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(task.getChainTaskId(), chainTask.getConsensusValue()) : 0;
+        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(replicates, chainTask.getConsensusValue()) : 0;
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
@@ -296,22 +296,24 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
 
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
-        boolean isConsensusReached = isConsensusReached(task);
+        final String chainTaskId = task.getChainTaskId();
+        List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+        boolean isConsensusReached = isConsensusReached(chainTaskId, replicates);
 
         if (isTaskInRunningStatus && isConsensusReached) {
-            Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+            Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
             if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
 
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
-            long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
+            long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
             task.setConsensusReachedBlockNumber(consensusBlockNumber);
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
+                    .chainTaskId(chainTaskId)
                     .consensus(task.getConsensus())
                     .blockNumber(task.getConsensusReachedBlockNumber())
                     .build());

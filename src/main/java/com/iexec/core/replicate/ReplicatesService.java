@@ -168,9 +168,9 @@ public class ReplicatesService {
         return addressReplicates.size();
     }
 
-    public int getNbValidContributedWinners(String chainTaskId, String contributionHash) {
+    public int getNbValidContributedWinners(List<Replicate> replicates, String contributionHash) {
         int nbValidWinners = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
+        for (Replicate replicate : replicates) {
             Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
             if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
                     && contributionHash.equals(replicate.getContributionHash())) {

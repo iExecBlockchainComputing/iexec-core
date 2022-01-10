@@ -128,10 +128,11 @@ public class ReplicateSupplyService {
 
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
+            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
 
             // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskUpdateManager.isConsensusReached(task)) {
+            if (taskUpdateManager.isConsensusReached(chainTaskId, replicates)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
                 continue;
             }
@@ -162,7 +163,6 @@ public class ReplicateSupplyService {
                 continue;
             }
 
-            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
                     replicates,
@@ -339,8 +339,8 @@ public class ReplicateSupplyService {
                 .equals(ReplicateStatus.CONTRIBUTED);
 
         if (didReplicateContribute) {
-
-            if (!taskUpdateManager.isConsensusReached(task)) {
+            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+            if (!taskUpdateManager.isConsensusReached(chainTaskId, replicates)) {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 

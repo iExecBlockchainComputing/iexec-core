@@ -203,6 +203,7 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .lastAliveDate(new Date())
                 .build();
+        List<Replicate> replicates = List.of(new Replicate());
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
         runningTask.setMaxExecutionTime(maxExecutionTime);
@@ -215,13 +216,14 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Collections.singletonList(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
-        when(taskUpdateManager.isConsensusReached(runningTask)).thenReturn(true);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
+        when(taskUpdateManager.isConsensusReached(CHAIN_TASK_ID, replicates)).thenReturn(true);
 
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_2);
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(taskUpdateManager).isConsensusReached(runningTask);
-        Mockito.verifyNoInteractions(replicatesService, signatureService, smsService);
+        Mockito.verify(taskUpdateManager).isConsensusReached(CHAIN_TASK_ID, replicates);
+        Mockito.verifyNoInteractions(signatureService, smsService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
 
@@ -393,8 +395,8 @@ class ReplicateSupplyServiceTests {
 
         // the call should only happen once over the two tasks
         Mockito.verify(contributionTimeoutTaskDetector).detect();
-        Mockito.verify(taskUpdateManager).isConsensusReached(task1);
-        Mockito.verify(taskUpdateManager, Mockito.never()).isConsensusReached(taskDeadlineReached);
+        Mockito.verify(taskUpdateManager).isConsensusReached(CHAIN_TASK_ID, List.of(replicate));
+        Mockito.verify(taskUpdateManager, Mockito.never()).isConsensusReached(CHAIN_TASK_ID_2, List.of(replicate));
     }
 
     @Test
@@ -425,7 +427,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(taskService).isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID);
-        Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, replicatesService, signatureService, smsService);
+        Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService, smsService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
 
@@ -531,7 +533,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(taskService, Mockito.never()).isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID);
-        Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, replicatesService, signatureService, smsService);
+        Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService, smsService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
 
@@ -682,6 +684,7 @@ class ReplicateSupplyServiceTests {
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
+        final List<Replicate> replicates = List.of(replicate1.get(), replicate2.get());
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
@@ -692,7 +695,8 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskUpdateManager.isConsensusReached(taskList.get(0))).thenReturn(false);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
+        when(taskUpdateManager.isConsensusReached(CHAIN_TASK_ID, replicates)).thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
@@ -718,6 +722,7 @@ class ReplicateSupplyServiceTests {
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
+        List<Replicate> replicates = List.of(replicate1.get(), replicate2.get());
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
@@ -728,7 +733,8 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
         when(replicatesService.didReplicateContributeOnchain(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(taskUpdateManager.isConsensusReached(taskList.get(0))).thenReturn(true);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
+        when(taskUpdateManager.isConsensusReached(CHAIN_TASK_ID, replicates)).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
