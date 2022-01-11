@@ -128,11 +128,17 @@ public class ReplicateSupplyService {
 
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
-            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+            final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+            // If there's no replicatesList, the task is probably not initialized.
+            if (oReplicatesList.isEmpty()) {
+                continue;
+            }
+
+            final ReplicatesList replicatesList = oReplicatesList.get();
 
             // no need to go further if the consensus is already reached on-chain
             // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskUpdateManager.isConsensusReached(chainTaskId, replicates)) {
+            if (taskUpdateManager.isConsensusReached(replicatesList)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
                 continue;
             }
@@ -165,7 +171,7 @@ public class ReplicateSupplyService {
 
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
-                    replicates,
+                    replicatesList.getReplicates(),
                     task.getTrust(),
                     task.getMaxExecutionTime());
 
@@ -339,8 +345,11 @@ public class ReplicateSupplyService {
                 .equals(ReplicateStatus.CONTRIBUTED);
 
         if (didReplicateContribute) {
-            final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
-            if (!taskUpdateManager.isConsensusReached(chainTaskId, replicates)) {
+            final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+            if (oReplicatesList.isEmpty()) {
+                return Optional.empty();
+            }
+            if (!taskUpdateManager.isConsensusReached(oReplicatesList.get())) {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 

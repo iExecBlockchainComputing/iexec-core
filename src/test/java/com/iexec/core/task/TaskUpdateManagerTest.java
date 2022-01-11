@@ -559,6 +559,7 @@ public class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID)));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)

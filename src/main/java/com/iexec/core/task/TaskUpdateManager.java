@@ -278,9 +278,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         }
     }
 
-    public boolean isConsensusReached(String chainTaskId, List<Replicate> replicates) {
+    public boolean isConsensusReached(ReplicatesList replicatesList) {
 
-        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
+        Optional<ChainTask> optional = iexecHubService.getChainTask(replicatesList.getChainTaskId());
         if (optional.isEmpty()) return false;
 
         ChainTask chainTask = optional.get();
@@ -288,7 +288,9 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(replicates, chainTask.getConsensusValue()) : 0;
+        int offChainWinners = isChainTaskRevealing
+                ? replicatesService.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue())
+                : 0;
         boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
 
         return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
@@ -297,8 +299,13 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
         final String chainTaskId = task.getChainTaskId();
-        List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
-        boolean isConsensusReached = isConsensusReached(chainTaskId, replicates);
+        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+        if (oReplicatesList.isEmpty()) {
+            log.error("Can't transition task to `ConsensusReached` when no replicatesList exists" +
+                    " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+        boolean isConsensusReached = isConsensusReached(oReplicatesList.get());
 
         if (isTaskInRunningStatus && isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
