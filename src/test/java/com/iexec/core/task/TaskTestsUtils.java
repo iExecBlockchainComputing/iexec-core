@@ -31,7 +31,7 @@ public class TaskTestsUtils {
 
     final static String DAPP_NAME = "dappName";
     final static String COMMAND_LINE = "commandLine";
-    final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
+    final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
     final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
     final static String RESULT_LINK = "/ipfs/the_result_string";
 

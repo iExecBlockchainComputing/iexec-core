@@ -87,7 +87,7 @@ class ReplicateSupplyServiceTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     void workerCanWorkAndHasGas(String workerAddress) {

@@ -61,7 +61,7 @@ public class RevealTimeoutDetectorTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test

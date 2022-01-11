@@ -30,7 +30,7 @@ public class ChallengeServiceTests {
     private ChallengeService challengeService = new ChallengeService();
 
     @BeforeEach
-    public void init() { MockitoAnnotations.initMocks(this); }
+    public void init() { MockitoAnnotations.openMocks(this); }
 
     @Test
     public void shouldGetSameChallengeForSameWallet() {

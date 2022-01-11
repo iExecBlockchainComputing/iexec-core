@@ -53,7 +53,7 @@ public class ReplicateControllerTests {
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     // available replicate

@@ -47,7 +47,7 @@ public class TaskResultUploadTimeoutDetectorTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
 

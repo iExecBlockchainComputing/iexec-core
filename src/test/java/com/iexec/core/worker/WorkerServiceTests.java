@@ -44,7 +44,7 @@ public class WorkerServiceTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     // getWorker

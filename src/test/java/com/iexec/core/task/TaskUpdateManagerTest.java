@@ -97,7 +97,7 @@ public class TaskUpdateManagerTest {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     // Tests on consensusReached2Reopening transition

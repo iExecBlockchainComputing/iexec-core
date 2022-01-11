@@ -50,7 +50,7 @@ public class BlockchainAdapterServiceTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     //Initialize

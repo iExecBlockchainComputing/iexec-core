@@ -51,7 +51,7 @@ public class FinalDeadlineTaskDetectorTests {
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     private Task getTask() {

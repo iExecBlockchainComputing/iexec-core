@@ -39,7 +39,7 @@ public class JwtTokenProviderTests {
     private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
-    public void init() { MockitoAnnotations.initMocks(this); }
+    public void init() { MockitoAnnotations.openMocks(this); }
 
     @Test
     public void shouldResolveToken() {
