@@ -204,7 +204,7 @@ class WorkerServiceTests {
                 .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(10)))
                 .build();
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
-        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }
@@ -226,7 +226,7 @@ class WorkerServiceTests {
                 .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)))
                 .build();
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
-        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isFalse();
     }

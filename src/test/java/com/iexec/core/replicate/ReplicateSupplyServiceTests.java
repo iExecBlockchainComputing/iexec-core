@@ -612,7 +612,7 @@ class ReplicateSupplyServiceTests {
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
         List<TaskNotification> taskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(taskNotifications).isEmpty();
 
@@ -635,7 +635,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -662,7 +662,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -813,7 +813,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -840,7 +840,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -941,7 +941,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -967,7 +967,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -994,7 +994,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1023,7 +1023,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1052,7 +1052,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1080,7 +1080,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1110,7 +1110,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1134,7 +1134,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isEmpty();
 
