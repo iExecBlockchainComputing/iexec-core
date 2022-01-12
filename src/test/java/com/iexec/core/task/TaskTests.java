@@ -28,13 +28,13 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static com.iexec.common.utils.DateTimeUtils.now;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TaskTests {
+class TaskTests {
 
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
 
     @Test
-    public void shouldInitializeProperly(){
+    void shouldInitializeProperly(){
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
 
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
@@ -42,7 +42,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldSetCurrentStatus() {
+    void shouldSetCurrentStatus() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
         assertThat(task.getDateStatusList().size()).isEqualTo(1);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RECEIVED);
@@ -60,7 +60,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldGetCorrectLastStatusChange(){
+    void shouldGetCorrectLastStatusChange(){
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
 
@@ -79,7 +79,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldReturnTrueWhenConsensusReachedSinceAWhile(){
+    void shouldReturnTrueWhenConsensusReachedSinceAWhile(){
         final long maxExecutionTime = 60;
         Task task = new Task();
         task.setMaxExecutionTime(maxExecutionTime);
@@ -93,7 +93,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldReturnFalseWhenConsensusReachedSinceNotLong(){
+    void shouldReturnFalseWhenConsensusReachedSinceNotLong(){
         final long maxExecutionTime = 60;
         Task task = new Task();
         task.setMaxExecutionTime(maxExecutionTime);
@@ -107,7 +107,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldContributionDeadlineBeReached() {
+    void shouldContributionDeadlineBeReached() {
         Task task = new Task();
         // contribution deadline in the past
         task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
@@ -115,7 +115,7 @@ public class TaskTests {
     }
 
     @Test
-    public void shouldContributionDeadlineNotBeReached() {
+    void shouldContributionDeadlineNotBeReached() {
         Task task = new Task();
         // contribution deadline in the future
         task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));

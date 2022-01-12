@@ -41,7 +41,7 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class RevealTimeoutDetectorTests {
+class RevealTimeoutDetectorTests {
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd249";
@@ -60,12 +60,12 @@ public class RevealTimeoutDetectorTests {
     private RevealTimeoutDetector revealDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void souldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
+    void souldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
@@ -96,7 +96,7 @@ public class RevealTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldDetectTaskAfterRevealDealLineWithZero() {
+    void shouldDetectTaskAfterRevealDealLineWithZero() {
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
@@ -127,7 +127,7 @@ public class RevealTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectAnyRevealTimeout() {
+    void shouldNotDetectAnyRevealTimeout() {
         List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
                 TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
 
@@ -150,7 +150,7 @@ public class RevealTimeoutDetectorTests {
 
 
     @Test
-    public void shouldUpdateOneReplicateToRevealTimeout() {
+    void shouldUpdateOneReplicateToRevealTimeout() {
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
@@ -177,7 +177,7 @@ public class RevealTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldNotUpdateSinceTaskIsNotTimedout() {
+    void shouldNotUpdateSinceTaskIsNotTimedout() {
         Date twoMinutesInFuture = addMinutesToDate(new Date(), 2);
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);

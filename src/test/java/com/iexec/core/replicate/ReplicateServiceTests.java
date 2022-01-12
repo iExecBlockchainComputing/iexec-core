@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-public class ReplicateServiceTests {
+class ReplicateServiceTests {
 
     private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
             .workerWeight(1)
@@ -73,12 +73,12 @@ public class ReplicateServiceTests {
     private ReplicatesService replicatesService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldCreateNewReplicate() {
+    void shouldCreateNewReplicate() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -97,7 +97,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotCreateNewReplicate() {
+    void shouldNotCreateNewReplicate() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -121,14 +121,14 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldCreateEmptyReplicateList() {
+    void shouldCreateEmptyReplicateList() {
         replicatesService.createEmptyReplicateList(CHAIN_TASK_ID);
 
         Mockito.verify(replicatesRepository, Mockito.times(1)).save(new ReplicatesList(CHAIN_TASK_ID));
     }
 
     @Test
-    public void shouldGetReplicates() {
+    void shouldGetReplicates() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -141,13 +141,13 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotGetReplicates() {
+    void shouldNotGetReplicates() {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
         assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).isEmpty();
     }
 
     @Test
-    public void shouldGetReplicate() {
+    void shouldGetReplicate() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -162,13 +162,13 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotGetReplicate1() {
+    void shouldNotGetReplicate1() {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
         assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).isEqualTo(Optional.empty());
     }
 
     @Test
-    public void shouldNotGetReplicate2() {
+    void shouldNotGetReplicate2() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -182,7 +182,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldHaveWorkerAlreadyContributed() {
+    void shouldHaveWorkerAlreadyContributed() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -197,7 +197,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotHaveWorkerAlreadyContributed() {
+    void shouldNotHaveWorkerAlreadyContributed() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -211,7 +211,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesWithOneStatus() {
+    void shouldGetCorrectNbReplicatesWithOneStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -230,7 +230,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesWithMultipleStatus() {
+    void shouldGetCorrectNbReplicatesWithMultipleStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -260,7 +260,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesWithOneLastRelevantStatus() {
+    void shouldGetCorrectNbReplicatesWithOneLastRelevantStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -282,7 +282,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesWithMultipleLastReleveantStatus() {
+    void shouldGetCorrectNbReplicatesWithMultipleLastReleveantStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -315,7 +315,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesContainingOneStatus() {
+    void shouldGetCorrectNbReplicatesContainingOneStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -334,7 +334,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetCorrectNbReplicatesContainingMultipleStatus() {
+    void shouldGetCorrectNbReplicatesContainingMultipleStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -365,7 +365,7 @@ public class ReplicateServiceTests {
     // getNbValidContributedWinners
 
     @Test
-    public void shouldGetOneContributionWinnerAmongTwoContributors() {
+    void shouldGetOneContributionWinnerAmongTwoContributors() {
         String contributionHash = "hash";
         String badContributionHash = "badHash";
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -387,7 +387,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGetReplicateWithRevealStatus() {
+    void shouldGetReplicateWithRevealStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -409,7 +409,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotGetReplicateWithRevealStatusSinceEmptyReplicatesList() {
+    void shouldNotGetReplicateWithRevealStatusSinceEmptyReplicatesList() {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
         Optional<Replicate> optional = replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
@@ -417,7 +417,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotGetReplicateWithRevealStatusWithNonEmptyList() {
+    void shouldNotGetReplicateWithRevealStatusWithNonEmptyList() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -437,7 +437,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldUpdateReplicateStatusWithoutStdout(){
+    void shouldUpdateReplicateStatusWithoutStdout(){
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -476,7 +476,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldUpdateReplicateStatusWithStdout(){
+    void shouldUpdateReplicateStatusWithStdout(){
         String stdout = "This is an stdout message !";
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
@@ -503,7 +503,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceNoReplicateList(){
+    void shouldNotUpdateReplicateStatusSinceNoReplicateList(){
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, new ReplicateStatusUpdate(REVEALING));
@@ -514,7 +514,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceNoMatchingReplicate(){
+    void shouldNotUpdateReplicateStatusSinceNoMatchingReplicate(){
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -535,7 +535,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceInvalidWorkflowTransition() {
+    void shouldNotUpdateReplicateStatusSinceInvalidWorkflowTransition() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -555,7 +555,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceWrongOnChainStatus(){
+    void shouldNotUpdateReplicateStatusSinceWrongOnChainStatus(){
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -577,7 +577,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusToContributedSinceGetContributionFailed() {
+    void shouldNotUpdateReplicateStatusToContributedSinceGetContributionFailed() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -602,7 +602,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusToContributedSinceCannotGetWorkerWeight() {
+    void shouldNotUpdateReplicateStatusToContributedSinceCannotGetWorkerWeight() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -632,17 +632,17 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusToResultUploadingSinceResultIsNotUploaded() {
+    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultIsNotUploaded() {
         //TODO After having moved isResultUploaded() method to another class
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusToResultUploadingSinceResultLinkMissing() {
+    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultLinkMissing() {
         //TODO After having moved isResultUploaded() method to another class
     }
 
     @Test
-    public void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
+    void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -660,7 +660,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotSetContributionHashSinceRevealing() {
+    void shouldNotSetContributionHashSinceRevealing() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -697,7 +697,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldUpdateToResultUploaded() {
+    void shouldUpdateToResultUploaded() {
         String stdout = "This is an stdout message !";
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
@@ -729,7 +729,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGet2OffChainReplicatesWithStatusContributed(){
+    void shouldGet2OffChainReplicatesWithStatusContributed(){
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
@@ -747,7 +747,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGet1OffChainReplicatesWithStatusContributed(){
+    void shouldGet1OffChainReplicatesWithStatusContributed(){
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
@@ -764,7 +764,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldGet0OffChainReplicatesWithStatusContributed(){
+    void shouldGet0OffChainReplicatesWithStatusContributed(){
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
@@ -782,7 +782,7 @@ public class ReplicateServiceTests {
     // getReplicateWithResultUploadedStatus
 
     @Test
-    public void should() {
+    void should() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
@@ -801,25 +801,25 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldFindReplicateContributedOnchain() {
+    void shouldFindReplicateContributedOnchain() {
         when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
 
     @Test
-    public void shouldNotFindReplicateContributedOnchain() {
+    void shouldNotFindReplicateContributedOnchain() {
         when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(false);
     }
 
     @Test
-    public void shouldFindReplicateRevealedOnchain() {
+    void shouldFindReplicateRevealedOnchain() {
         when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
 
     @Test
-    public void shouldNotFindReplicateRevealedOnchain() {
+    void shouldNotFindReplicateRevealedOnchain() {
         when(iexecHubService.repeatIsContributedTrue(any(), any()))
                 .thenReturn(true);
     }
@@ -827,7 +827,7 @@ public class ReplicateServiceTests {
     // isResultUploaded
 
     @Test
-    public void shouldCheckResultServiceAndReturnTrue() {
+    void shouldCheckResultServiceAndReturnTrue() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
@@ -843,7 +843,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldCheckResultServiceAndReturnFalse() {
+    void shouldCheckResultServiceAndReturnFalse() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
@@ -859,7 +859,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldReturnFalseSinceTaskNotFound() {
+    void shouldReturnFalseSinceTaskNotFound() {
         when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
 
@@ -869,7 +869,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldReturnTrueForCallbackTask() {
+    void shouldReturnTrueForCallbackTask() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback("callback")
@@ -884,7 +884,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldReturnTrueForTeeTask() {
+    void shouldReturnTrueForTeeTask() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
@@ -901,7 +901,7 @@ public class ReplicateServiceTests {
     // didReplicateContributeOnchain
 
     @Test
-    public void shouldReturnFindReplicateContributedOnchain() {
+    void shouldReturnFindReplicateContributedOnchain() {
         when(
                 iexecHubService.isStatusTrueOnChain(
                         CHAIN_TASK_ID,
@@ -920,7 +920,7 @@ public class ReplicateServiceTests {
     // didReplicateRevealOnchain
 
     @Test
-    public void shouldFindReplicatedReveledOnchain() {
+    void shouldFindReplicatedReveledOnchain() {
         when(
                 iexecHubService.isStatusTrueOnChain(
                         CHAIN_TASK_ID,
@@ -939,7 +939,7 @@ public class ReplicateServiceTests {
     // setRevealTimeoutStatusIfNeeded
 
     @Test
-    public void shouldSetTriggerReplicateUpdateIfRevealTimeout() {
+    void shouldSetTriggerReplicateUpdateIfRevealTimeout() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
 
@@ -951,7 +951,7 @@ public class ReplicateServiceTests {
     // canUpdateReplicateStatus
 
     @Test
-    public void shouldAuthorizeUpdate() {
+    void shouldAuthorizeUpdate() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -968,7 +968,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateSinceNoMatchingReplicate() {
+    void shouldNotAuthorizeUpdateSinceNoMatchingReplicate() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -985,7 +985,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateSinceAlreadyReported() {
+    void shouldNotAuthorizeUpdateSinceAlreadyReported() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1002,7 +1002,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateSinceBadWorkflowTransition() {
+    void shouldNotAuthorizeUpdateSinceBadWorkflowTransition() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1019,7 +1019,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateSinceContributeFailed() {
+    void shouldNotAuthorizeUpdateSinceContributeFailed() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1036,7 +1036,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateSinceRevealFailed() {
+    void shouldNotAuthorizeUpdateSinceRevealFailed() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1053,7 +1053,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldAuthorizeUpdateOnResultUploadFailed() {
+    void shouldAuthorizeUpdateOnResultUploadFailed() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1074,7 +1074,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithCallback() {
+    void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithCallback() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1095,7 +1095,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithTee() {
+    void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithTee() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
@@ -1116,7 +1116,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnContributedSinceNoBlockAvailable() {
+    void shouldNotAuthorizeUpdateOnContributedSinceNoBlockAvailable() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
 
@@ -1134,7 +1134,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnContributedSinceWorkerWeightNotValid() {
+    void shouldNotAuthorizeUpdateOnContributedSinceWorkerWeightNotValid() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
 
@@ -1157,7 +1157,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnContributedSinceNoChainContribution() {
+    void shouldNotAuthorizeUpdateOnContributedSinceNoChainContribution() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
 
@@ -1181,7 +1181,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnContributedSinceNoChainContributionResultHash() {
+    void shouldNotAuthorizeUpdateOnContributedSinceNoChainContributionResultHash() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
 
@@ -1205,7 +1205,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldAuthorizeUpdateOnResultUploaded() {
+    void shouldAuthorizeUpdateOnResultUploaded() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
@@ -1229,7 +1229,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnResultUploadedSinceNoChainCallbackData() {
+    void shouldNotAuthorizeUpdateOnResultUploadedSinceNoChainCallbackData() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
@@ -1250,7 +1250,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnResultUploadedSinceNoResultLink() {
+    void shouldNotAuthorizeUpdateOnResultUploadedSinceNoResultLink() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
@@ -1272,7 +1272,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void shouldNotAuthorizeUpdateOnResultUploadedSinceResultNotUploaded() {
+    void shouldNotAuthorizeUpdateOnResultUploadedSinceResultNotUploaded() {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
@@ -1296,7 +1296,7 @@ public class ReplicateServiceTests {
     // computeUpdateReplicateStatusArgs
 
     @Test
-    public void computeUpdateReplicateStatusArgsContributed() {
+    void computeUpdateReplicateStatusArgsContributed() {
         final int expectedWorkerWeight = 1;
         final ChainContribution expectedChainContribution = new ChainContribution();
         final String unexpectedResultLink = "resultLink";
@@ -1327,7 +1327,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void computeUpdateReplicateStatusArgsResultUploaded() {
+    void computeUpdateReplicateStatusArgsResultUploaded() {
         final int unexpectedWorkerWeight = 1;
         final ChainContribution unexpectedChainContribution = new ChainContribution();
         final String expectedResultLink = "resultLink";
@@ -1364,7 +1364,7 @@ public class ReplicateServiceTests {
     }
 
     @Test
-    public void computeUpdateReplicateStatusArgsResultUploadFailed() {
+    void computeUpdateReplicateStatusArgsResultUploadFailed() {
         final int unexpectedWorkerWeight = 1;
         final ChainContribution unexpectedChainContribution = new ChainContribution();
         final String unexpectedResultLink = "resultLink";

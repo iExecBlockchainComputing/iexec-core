@@ -35,7 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class TaskStdoutServiceTests {
+class TaskStdoutServiceTests {
 
     private static final String STDOUT = "This is an stdout string";
 
@@ -47,12 +47,12 @@ public class TaskStdoutServiceTests {
     private StdoutService stdoutService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldAddReplicateStdout() {
+    void shouldAddReplicateStdout() {
         ArgumentCaptor<TaskStdout> argumentCaptor = ArgumentCaptor.forClass(TaskStdout.class);
         stdoutService.addReplicateStdout(CHAIN_TASK_ID, WORKER_ADDRESS, STDOUT);
         verify(stdoutRepository, times(1)).save(argumentCaptor.capture());
@@ -62,7 +62,7 @@ public class TaskStdoutServiceTests {
     }
 
     @Test
-    public void shouldGetReplicateStdout() {
+    void shouldGetReplicateStdout() {
         ReplicateStdout replicateStdout = new ReplicateStdout(WORKER_ADDRESS, STDOUT);
         TaskStdout taskStdout = TaskStdout.builder()
                 .chainTaskId(CHAIN_TASK_ID)

@@ -14,7 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class StdoutCronServiceTests {
+class StdoutCronServiceTests {
 
     @Mock
     private StdoutService stdoutService;
@@ -26,12 +26,12 @@ public class StdoutCronServiceTests {
     private StdoutCronService stdoutCronService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldCleanStdout() {
+    void shouldCleanStdout() {
         List<String> ids = List.of("id1", "id2");
         when(taskService.getChainTaskIdsOfTasksExpiredBefore(any()))
                 .thenReturn(ids);

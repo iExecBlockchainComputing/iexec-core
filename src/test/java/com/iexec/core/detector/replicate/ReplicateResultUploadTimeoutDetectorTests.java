@@ -37,7 +37,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
-public class ReplicateResultUploadTimeoutDetectorTests {
+class ReplicateResultUploadTimeoutDetectorTests {
 
     private final static String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
     private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
@@ -56,12 +56,12 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     private ReplicateResultUploadTimeoutDetector timeoutDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldNotDetectAnythingNoTimeout() {
+    void shouldNotDetectAnythingNoTimeout() {
         // the latest status change from the replicate is very new so it is not timed out.
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
@@ -89,7 +89,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldDetectOneReplicateWithResultUploadingLongAgo() {
+    void shouldDetectOneReplicateWithResultUploadingLongAgo() {
         // the latest status change from the replicate is very new so it is not timed out.
         Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
         Date threeMinutesAgo = addMinutesToDate(new Date(), -4);
@@ -122,7 +122,7 @@ public class ReplicateResultUploadTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectReplicatePreviouslyDetected() {
+    void shouldNotDetectReplicatePreviouslyDetected() {
         // the latest status change from the replicate is very new so it is not timed out.
         Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
         Date threeMinutesAgo = addMinutesToDate(new Date(), -4);

@@ -31,7 +31,7 @@ import java.util.Collections;
 import static com.iexec.core.task.TaskStatus.*;
 import static org.mockito.Mockito.when;
 
-public class UnstartedTxDetectorTests {
+class UnstartedTxDetectorTests {
 
     @Mock
     private TaskService taskService;
@@ -43,12 +43,12 @@ public class UnstartedTxDetectorTests {
     private UnstartedTxDetector unstartedTxDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldTryUpdateTaskFromReceived() {
+    void shouldTryUpdateTaskFromReceived() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -62,7 +62,7 @@ public class UnstartedTxDetectorTests {
     }
 
     @Test
-    public void shouldNotTryUpdateTaskFromReceived() {
+    void shouldNotTryUpdateTaskFromReceived() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -76,7 +76,7 @@ public class UnstartedTxDetectorTests {
     }
 
     @Test
-    public void shouldTryUpdateTaskFromResultUploaded() {
+    void shouldTryUpdateTaskFromResultUploaded() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)
@@ -90,7 +90,7 @@ public class UnstartedTxDetectorTests {
     }
 
     @Test
-    public void shouldNotTryUpdateTaskFromResultUploaded() {
+    void shouldNotTryUpdateTaskFromResultUploaded() {
         Task task = Task.builder()
                 .chainDealId("0x1")
                 .taskIndex(0)

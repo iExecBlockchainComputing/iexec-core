@@ -86,7 +86,7 @@ class ReplicateSupplyServiceTests {
     private ReplicateSupplyService replicateSupplyService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 

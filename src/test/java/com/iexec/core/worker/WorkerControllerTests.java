@@ -25,7 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-public class WorkerControllerTests {
+class WorkerControllerTests {
 
     private static final String TOKEN = "token";
     private static final String WALLET = "wallet";
@@ -62,14 +62,14 @@ public class WorkerControllerTests {
     private WorkerController workerController;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     // ping
 
     @Test
-    public void shouldAcceptPing() {
+    void shouldAcceptPing() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
@@ -80,7 +80,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
+    void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
@@ -93,7 +93,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotAcceptPingSinceUnauthorizedJwt() {
+    void shouldNotAcceptPingSinceUnauthorizedJwt() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
@@ -102,7 +102,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
+    void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.empty());
 
@@ -114,7 +114,7 @@ public class WorkerControllerTests {
     // getChallenge
 
     @Test
-    public void shouldGetChallenge() {
+    void shouldGetChallenge() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
 
@@ -125,7 +125,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldGetSameChallengeForSameWorker() {
+    void shouldGetSameChallengeForSameWorker() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
 
@@ -140,7 +140,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldGetDifferentChallengesForDifferentWorkers() {
+    void shouldGetDifferentChallengesForDifferentWorkers() {
         String wallet1 = WALLET;
         String wallet2 = "otherWallet";
         String challenge1 = "challenge1";
@@ -160,7 +160,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotGetChallengeSinceNotAllowedToJoin() {
+    void shouldNotGetChallengeSinceNotAllowedToJoin() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(false);
 
         ResponseEntity<String> response = workerController.getChallenge(WALLET);
@@ -171,12 +171,12 @@ public class WorkerControllerTests {
     // getToken
 
     @Test
-    public void shouldGetToken() {
+    void shouldGetToken() {
         // TODO
     }
 
     @Test
-    public void shouldNotGetTokenSinceNotAllowed() {
+    void shouldNotGetTokenSinceNotAllowed() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(false);
         
         ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
@@ -184,7 +184,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotGetTokenSinceSignatureNotValid() {
+    void shouldNotGetTokenSinceSignatureNotValid() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
         
@@ -195,7 +195,7 @@ public class WorkerControllerTests {
     // registerWorker
 
     @Test
-    public void shouldRegisterWorker() {
+    void shouldRegisterWorker() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
         when(workerService.addWorker(any())).thenReturn(WORKER);
@@ -209,7 +209,7 @@ public class WorkerControllerTests {
 
 
     @Test
-    public void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
+    void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
         WORKER_MODEL.setGpuEnabled(true);
         WORKER.setMaxNbTasks(1);
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
@@ -225,7 +225,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotRegisterWorkerSinceUnauthorized() {
+    void shouldNotRegisterWorkerSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<Worker> response =
@@ -237,7 +237,7 @@ public class WorkerControllerTests {
     // getPublicConfiguration
 
     @Test
-    public void shouldGetPublicConfiguration() {
+    void shouldGetPublicConfiguration() {
         when(credentialsService.getCredentials()).thenReturn(mock(Credentials.class));
         assertThat(workerController.getPublicConfiguration().getStatusCode())
                 .isEqualTo(HttpStatus.OK);
@@ -246,7 +246,7 @@ public class WorkerControllerTests {
     // getTasksInProgress
 
     @Test
-    public void shouldGetTasksInProgress() {
+    void shouldGetTasksInProgress() {
         List<String> list = List.of("t1", "t2");
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
@@ -258,7 +258,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotGetTasksInProgressSinceUnauthorized() {
+    void shouldNotGetTasksInProgressSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
         ResponseEntity<List<String>> response =
                 workerController.getComputingTasks(TOKEN);

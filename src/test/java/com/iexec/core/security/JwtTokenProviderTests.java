@@ -28,7 +28,7 @@ import io.jsonwebtoken.MalformedJwtException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class JwtTokenProviderTests {
+class JwtTokenProviderTests {
 
     private final static String WALLET_WORKER = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
@@ -39,10 +39,10 @@ public class JwtTokenProviderTests {
     private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
-    public void init() { MockitoAnnotations.openMocks(this); }
+    void init() { MockitoAnnotations.openMocks(this); }
 
     @Test
-    public void shouldResolveToken() {
+    void shouldResolveToken() {
         String bearerToken = "Bearer eb604db8eba185df03ea4f5";
 
         jwtTokenProvider.init();
@@ -52,7 +52,7 @@ public class JwtTokenProviderTests {
     } 
 
     @Test
-    public void shouldNotResolveTokenSinceNotValidOne() {
+    void shouldNotResolveTokenSinceNotValidOne() {
         String notBearerToken = "Not Bearer eb604db8eba185df03ea4f5";
 
         jwtTokenProvider.init();
@@ -62,7 +62,7 @@ public class JwtTokenProviderTests {
     } 
 
     @Test
-    public void shouldNotResolveTokenSinceNullOne() {
+    void shouldNotResolveTokenSinceNullOne() {
         String nullToken = null;
 
         jwtTokenProvider.init();
@@ -72,7 +72,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void isValidTokenTrue() {
+    void isValidTokenTrue() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
         
         jwtTokenProvider.init();
@@ -83,7 +83,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void isValidTokenFalseSinceNotSameChallenge() {
+    void isValidTokenFalseSinceNotSameChallenge() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge1", "challenge2");
         
         jwtTokenProvider.init();
@@ -94,7 +94,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void isValidTokenFalseSinceNotValidOne() {
+    void isValidTokenFalseSinceNotValidOne() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
 
         jwtTokenProvider.init();
@@ -105,7 +105,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void shouldGetCorrectWalletAddress() {
+    void shouldGetCorrectWalletAddress() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
 
         jwtTokenProvider.init();
@@ -116,13 +116,13 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void shouldThrowJwtExceptionSinceNotValidToken() {
+    void shouldThrowJwtExceptionSinceNotValidToken() {
         jwtTokenProvider.init();
         Assertions.assertThrows(MalformedJwtException.class, () -> jwtTokenProvider.getWalletAddress("non.valid.token"));
     }
 
     @Test
-    public void shouldGetCorrectWalletAddressFromBearerToken() {
+    void shouldGetCorrectWalletAddressFromBearerToken() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
 
         jwtTokenProvider.init();
@@ -134,7 +134,7 @@ public class JwtTokenProviderTests {
     }
 
     @Test
-    public void shouldNotGetWalletAddressSinceNotValidBearerToken() {
+    void shouldNotGetWalletAddressSinceNotValidBearerToken() {
         when(challengeService.getChallenge(WALLET_WORKER)).thenReturn("challenge");
 
         jwtTokenProvider.init();

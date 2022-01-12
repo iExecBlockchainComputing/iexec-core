@@ -30,7 +30,7 @@ class TaskUpdateRequestManagerTests {
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
         taskUpdateRequestManager.setRequestConsumer(taskUpdate -> {});
     }

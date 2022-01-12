@@ -31,7 +31,7 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
-public class BlockchainAdapterServiceTests {
+class BlockchainAdapterServiceTests {
 
     public static final String CHAIN_TASK_ID = "CHAIN_TASK_ID";
     public static final String CHAIN_DEAL_ID = "CHAIN_DEAL_ID";
@@ -49,14 +49,14 @@ public class BlockchainAdapterServiceTests {
     private BlockchainAdapterService blockchainAdapterService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     //Initialize
 
     @Test
-    public void requestInitialize() {
+    void requestInitialize() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
@@ -65,7 +65,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void requestInitializeFailedSinceNot200() {
+    void requestInitializeFailedSinceNot200() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.badRequest().build());
 
@@ -74,7 +74,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void requestInitializeFailedSinceNoBody() {
+    void requestInitializeFailedSinceNoBody() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
                 .thenReturn(ResponseEntity.ok().build());
 
@@ -83,7 +83,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void isInitialized() {
+    void isInitialized() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
         Assertions.assertThat(blockchainAdapterService.isInitialized(CHAIN_TASK_ID))
@@ -93,7 +93,7 @@ public class BlockchainAdapterServiceTests {
     // Finalize
 
     @Test
-    public void requestFinalize() {
+    void requestFinalize() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
 
@@ -102,7 +102,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void requestFinalizeFailedSinceNot200() {
+    void requestFinalizeFailedSinceNot200() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.ok().build());
 
@@ -111,7 +111,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void requestFinalizeFailedSinceNoBody() {
+    void requestFinalizeFailedSinceNoBody() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
                 .thenReturn(ResponseEntity.badRequest().build());
 
@@ -120,7 +120,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void isFinalized() {
+    void isFinalized() {
         when(blockchainAdapterClient.getStatusForFinalizeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
         Assertions.assertThat(blockchainAdapterService.isFinalized(CHAIN_TASK_ID))
@@ -130,7 +130,7 @@ public class BlockchainAdapterServiceTests {
     // Testing ability to pull & wait
 
     @Test
-    public void isCommandCompletedWithSuccess() {
+    void isCommandCompletedWithSuccess() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
                 .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
@@ -144,7 +144,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void isCommandCompletedWithFailure() {
+    void isCommandCompletedWithFailure() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
                 .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
                 .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
@@ -159,7 +159,7 @@ public class BlockchainAdapterServiceTests {
 
     // region getPublicChainConfig
     @Test
-    public void shouldGetPublicChainConfigOnlyOnce() {
+    void shouldGetPublicChainConfigOnlyOnce() {
         final PublicChainConfig expectedChainConfig = new PublicChainConfig();
         when(blockchainAdapterClient.getPublicChainConfig())
                 .thenReturn(ResponseEntity.ok(expectedChainConfig));
@@ -178,7 +178,7 @@ public class BlockchainAdapterServiceTests {
     }
 
     @Test
-    public void shouldNotGetPublicChainConfigSinceNotFound() {
+    void shouldNotGetPublicChainConfigSinceNotFound() {
         when(blockchainAdapterClient.getPublicChainConfig())
                 .thenReturn(ResponseEntity.notFound().build());
 

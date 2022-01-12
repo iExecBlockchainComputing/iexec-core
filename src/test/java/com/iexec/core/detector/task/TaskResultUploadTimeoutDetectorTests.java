@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Date;
 
-public class TaskResultUploadTimeoutDetectorTests {
+class TaskResultUploadTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
@@ -46,13 +46,13 @@ public class TaskResultUploadTimeoutDetectorTests {
     private TaskResultUploadTimeoutDetector taskResultUploadTimeoutDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
 
     @Test
-    public void shouldDetectResultUploadTimeout() {
+    void shouldDetectResultUploadTimeout() {
         String chainTaskId = "chainTaskId";
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), -1);
 
@@ -70,7 +70,7 @@ public class TaskResultUploadTimeoutDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectResultUploadTimeoutSinceStillBeforeDeadline() {
+    void shouldNotDetectResultUploadTimeoutSinceStillBeforeDeadline() {
         String chainTaskId = "chainTaskId";
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), 1);
 

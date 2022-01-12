@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
-public class FinalDeadlineTaskDetectorTests {
+class FinalDeadlineTaskDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
@@ -50,7 +50,7 @@ public class FinalDeadlineTaskDetectorTests {
     private FinalDeadlineTaskDetector finalDeadlineTaskDetector;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
@@ -61,7 +61,7 @@ public class FinalDeadlineTaskDetectorTests {
     }
 
     @Test
-    public void shouldDetectTaskAfterFinalDeadline() {
+    void shouldDetectTaskAfterFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
 
@@ -74,7 +74,7 @@ public class FinalDeadlineTaskDetectorTests {
     }
 
     @Test
-    public void shouldDetectTaskBeforeFinalDeadline() {
+    void shouldDetectTaskBeforeFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
 

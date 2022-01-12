@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TaskServiceTests {
+class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
     private final Date finalDeadline = new Date();
@@ -48,19 +48,19 @@ public class TaskServiceTests {
     private TaskService taskService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldNotGetTaskWithTrust() {
+    void shouldNotGetTaskWithTrust() {
         when(taskRepository.findByChainTaskId("dummyId")).thenReturn(Optional.empty());
         Optional<Task> task = taskService.getTaskByChainTaskId("dummyId");
         assertThat(task.isPresent()).isFalse();
     }
 
     @Test
-    public void shouldGetOneTask() {
+    void shouldGetOneTask() {
         Task task = getStubTask(maxExecutionTime);
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
@@ -70,7 +70,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldAddTask() {
+    void shouldAddTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
 
@@ -82,7 +82,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotAddTask() {
+    void shouldNotAddTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
         when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
@@ -92,7 +92,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldFindByCurrentStatus() {
+    void shouldFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
 
         Task task = getStubTask(maxExecutionTime);
@@ -110,7 +110,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotFindByCurrentStatus() {
+    void shouldNotFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
         when(taskRepository.findByCurrentStatus(status)).thenReturn(Collections.emptyList());
 
@@ -120,7 +120,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldFindByCurrentStatusList() {
+    void shouldFindByCurrentStatusList() {
         List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
         Task task = getStubTask(maxExecutionTime);
@@ -138,7 +138,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldNotFindByCurrentStatusList() {
+    void shouldNotFindByCurrentStatusList() {
         List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
         when(taskRepository.findByCurrentStatus(statusList)).thenReturn(Collections.emptyList());
 
@@ -149,7 +149,7 @@ public class TaskServiceTests {
 
 
     @Test
-    public void shouldGetInitializedOrRunningTasks() {
+    void shouldGetInitializedOrRunningTasks() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
         when(taskRepository.findByCurrentStatus(
                 Arrays.asList(INITIALIZED, RUNNING),
@@ -161,7 +161,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
+    void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
         Task task1 = getStubTask(maxExecutionTime);
         task1.setCurrentStatus(INITIALIZED);
         task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
@@ -183,7 +183,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldGetTasksInNonFinalStatuses() {
+    void shouldGetTasksInNonFinalStatuses() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
         when(taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses()))
                 .thenReturn(tasks);
@@ -192,7 +192,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldGetTasksWhereFinalDeadlineIsPossible() {
+    void shouldGetTasksWhereFinalDeadlineIsPossible() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
         when(taskRepository.findByCurrentStatusNotIn(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible()))
                 .thenReturn(tasks);
@@ -201,7 +201,7 @@ public class TaskServiceTests {
     }
 
     @Test
-    public void shouldGetChainTaskIdsOfTasksExpiredBefore() {
+    void shouldGetChainTaskIdsOfTasksExpiredBefore() {
         Date date = new Date();
         Task task = mock(Task.class);
         when(task.getChainTaskId()).thenReturn(CHAIN_TASK_ID);
@@ -215,7 +215,7 @@ public class TaskServiceTests {
     // isExpired
 
     @Test
-    public void shouldFindTaskExpired() {
+    void shouldFindTaskExpired() {
         Task task = getStubTask(maxExecutionTime);
         task.setFinalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID))
