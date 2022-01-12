@@ -88,7 +88,7 @@ class ConfigurationServiceTests {
         when(configurationRepository.findAll()).thenReturn(configurationList);
         when(configurationRepository.save(any())).thenReturn(configuration);
 
-        configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);;
+        configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);
 
         assertThat(configuration.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
     }
@@ -134,7 +134,7 @@ class ConfigurationServiceTests {
         when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
         when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
 
-        configurationService.setFromReplay(BigInteger.TEN);;
+        configurationService.setFromReplay(BigInteger.TEN);
 
         assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.TEN);
     }
