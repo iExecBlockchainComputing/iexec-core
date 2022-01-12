@@ -86,8 +86,7 @@ public class Workflow<T> {
 
     public boolean isValidTransition(T from, T to){
         return possibleTransitions.containsKey(from)
-            ? possibleTransitions.get(from).contains(to)
-            : false;
+                && possibleTransitions.get(from).contains(to);
     }
 
     List<T> toList(T... statuses) {
