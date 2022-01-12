@@ -48,7 +48,7 @@ class JwtTokenProviderTests {
         jwtTokenProvider.init();
         String resolvedToken = jwtTokenProvider.resolveToken(bearerToken);
 
-        assertThat(resolvedToken).isEqualTo(bearerToken.substring(7, bearerToken.length()));
+        assertThat(resolvedToken).isEqualTo(bearerToken.substring(7));
     } 
 
     @Test
