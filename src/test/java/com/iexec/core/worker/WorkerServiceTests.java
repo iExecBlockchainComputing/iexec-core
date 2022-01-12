@@ -610,7 +610,7 @@ class WorkerServiceTests {
         Worker worker2 = getDummyWorker("0x2",
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1"));//3 CPUs available
+                List.of("task1"));//3 CPUs available
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);

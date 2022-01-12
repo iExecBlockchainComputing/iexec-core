@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
@@ -87,7 +88,7 @@ class TaskTests {
                 .status(CONSENSUS_REACHED)
                 .date(new Date(now() - 2 * maxExecutionTime))
                 .build();
-        task.setDateStatusList(Arrays.asList(taskStatusChange));
+        task.setDateStatusList(List.of(taskStatusChange));
 
         assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isTrue();
     }
@@ -101,7 +102,7 @@ class TaskTests {
                 .status(CONSENSUS_REACHED)
                 .date(new Date(now() - 10))
                 .build();
-        task.setDateStatusList(Arrays.asList(taskStatusChange));
+        task.setDateStatusList(List.of(taskStatusChange));
 
         assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isFalse();
     }
