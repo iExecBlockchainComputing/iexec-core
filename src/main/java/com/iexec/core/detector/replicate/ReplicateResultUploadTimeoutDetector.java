@@ -27,9 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;

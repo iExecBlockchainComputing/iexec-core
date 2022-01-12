@@ -36,7 +36,6 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class WorkerLostDetectorTests {

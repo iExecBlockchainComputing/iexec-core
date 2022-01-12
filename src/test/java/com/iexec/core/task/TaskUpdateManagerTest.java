@@ -53,7 +53,6 @@ import static com.iexec.common.utils.DateTimeUtils.sleep;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class TaskUpdateManagerTest {

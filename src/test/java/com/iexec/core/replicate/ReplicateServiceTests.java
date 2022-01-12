@@ -45,7 +45,6 @@ import static com.iexec.common.utils.TestUtils.WALLET_WORKER_2;
 import static com.iexec.common.utils.TestUtils.WALLET_WORKER_3;
 import static com.iexec.common.utils.TestUtils.WALLET_WORKER_4;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class ReplicateServiceTests {
