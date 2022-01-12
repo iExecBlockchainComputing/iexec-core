@@ -71,8 +71,6 @@ public class TaskUpdateRequestManager {
 
     /**
      * Publish TaskUpdateRequest async
-     * @param chainTaskId
-     * @return
      */
     public CompletableFuture<Boolean> publishRequest(String chainTaskId) {
         Supplier<Boolean> publishRequest = () -> {
@@ -104,8 +102,6 @@ public class TaskUpdateRequestManager {
 
     /**
      * Authorize one TaskUpdateRequest consumer subscription at a time.
-     * @param consumer
-     * @return
      */
     public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
         this.consumer = consumer;

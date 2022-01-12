@@ -87,8 +87,6 @@ public class DealWatcherService {
     /**
      * Update last seen block in the database
      * and run {@link DealEvent} handler.
-     * 
-     * @param dealEvent
      */
     private void onDealEvent(DealEvent dealEvent) {
         String dealId = dealEvent.getChainDealId();
@@ -110,8 +108,6 @@ public class DealWatcherService {
     /**
      * Handle new onchain deals and add its tasks
      * to db.
-     *
-     * @param dealEvent
      */
     private void handleDeal(DealEvent dealEvent) {
         String chainDealId = dealEvent.getChainDealId();
