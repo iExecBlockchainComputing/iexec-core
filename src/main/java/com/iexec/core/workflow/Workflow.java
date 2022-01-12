@@ -68,8 +68,7 @@ public class Workflow<T> {
     }
 
     void addTransitionFromStatusToAllStatuses(T status) {
-        List<T> to = new ArrayList<T>();
-        to.addAll(possibleTransitions.keySet());
+        List<T> to = new ArrayList<T>(possibleTransitions.keySet());
         addTransition(status, to);
     }
 
