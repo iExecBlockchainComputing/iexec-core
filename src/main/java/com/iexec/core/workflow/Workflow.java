@@ -36,7 +36,7 @@ public class Workflow<T> {
     private Map<T, List<T>> possibleTransitions;
 
     public Workflow() {
-        possibleTransitions = new LinkedHashMap<T, List<T>>();
+        possibleTransitions = new LinkedHashMap<>();
     }
 
     boolean addTransition(T from, T to) {
@@ -68,7 +68,7 @@ public class Workflow<T> {
     }
 
     void addTransitionFromStatusToAllStatuses(T status) {
-        List<T> to = new ArrayList<T>(possibleTransitions.keySet());
+        List<T> to = new ArrayList<>(possibleTransitions.keySet());
         addTransition(status, to);
     }
 
@@ -89,7 +89,7 @@ public class Workflow<T> {
     }
 
     List<T> toList(T... statuses) {
-        return new ArrayList<T>(Arrays.asList(statuses));
+        return new ArrayList<>(Arrays.asList(statuses));
     }
 
     Map<T, List<T>> getTransitions() {
