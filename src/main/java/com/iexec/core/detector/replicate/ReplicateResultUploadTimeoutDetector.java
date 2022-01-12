@@ -63,7 +63,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             String uploadingWallet = task.getUploadingWorkerWalletAddress();
 
             Optional<Replicate> oUploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet);
-            if (!oUploadingReplicate.isPresent()) {
+            if (oUploadingReplicate.isEmpty()) {
                 return;
             }
 

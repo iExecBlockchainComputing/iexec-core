@@ -83,7 +83,7 @@ public class WorkerService {
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
         Optional<Date> oDate = getLastReplicateDemand(walletAddress);
-        if (!oDate.isPresent()) {
+        if (oDate.isEmpty()) {
             return true;
         }
 
@@ -183,7 +183,7 @@ public class WorkerService {
 
     public boolean canAcceptMoreWorks(String walletAddress) {
         Optional<Worker> optionalWorker = getWorker(walletAddress);
-        if (!optionalWorker.isPresent()){
+        if (optionalWorker.isEmpty()){
             return false;
         }
 

@@ -221,7 +221,7 @@ public class IexecHubService extends IexecHubAbstractService {
 
     public boolean canFinalize(String chainTaskId) {
         Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return false;
         }
         ChainTask chainTask = optional.get();
@@ -311,7 +311,7 @@ public class IexecHubService extends IexecHubAbstractService {
 
     public boolean canReopen(String chainTaskId) {
         Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return false;
         }
         ChainTask chainTask = optional.get();

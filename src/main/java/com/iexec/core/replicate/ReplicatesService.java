@@ -77,7 +77,7 @@ public class ReplicatesService {
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
-        if (!getReplicate(chainTaskId, walletAddress).isPresent()) {
+        if (getReplicate(chainTaskId, walletAddress).isEmpty()) {
             Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
             if (optional.isPresent()) {
                 ReplicatesList replicatesList = optional.get();
@@ -104,7 +104,7 @@ public class ReplicatesService {
 
     public List<Replicate> getReplicates(String chainTaskId) {
         Optional<ReplicatesList> optionalList = getReplicatesList(chainTaskId);
-        if (!optionalList.isPresent()) {
+        if (optionalList.isEmpty()) {
             return Collections.emptyList();
         }
         return optionalList.get().getReplicates();
@@ -112,7 +112,7 @@ public class ReplicatesService {
 
     public Optional<Replicate> getReplicate(String chainTaskId, String walletAddress) {
         Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return Optional.empty();
         }
 
@@ -642,7 +642,7 @@ public class ReplicatesService {
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
         Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-        if (!oStatus.isPresent()) {
+        if (oStatus.isEmpty()) {
             return;
         }
         ReplicateStatus status = oStatus.get();

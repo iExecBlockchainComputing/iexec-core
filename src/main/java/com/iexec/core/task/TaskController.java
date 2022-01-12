@@ -52,7 +52,7 @@ public class TaskController {
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity<TaskModel> getTask(@PathVariable("chainTaskId") String chainTaskId) {
         Optional<Task> optionalTask = taskService.getTaskByChainTaskId(chainTaskId);
-        if (!optionalTask.isPresent()) {
+        if (optionalTask.isEmpty()) {
             return status(HttpStatus.NOT_FOUND).build();
         }
         Task task = optionalTask.get();
