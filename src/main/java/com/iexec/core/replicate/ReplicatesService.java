@@ -16,19 +16,6 @@
 
 package com.iexec.core.replicate;
 
-import static com.iexec.common.replicate.ReplicateStatus.COMPUTED;
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
-import static com.iexec.common.replicate.ReplicateStatus.FAILED;
-import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOADED;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALING;
-import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
-import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
-import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -36,20 +23,26 @@ import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskDescription;
+import com.iexec.common.utils.TargetedLock;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.stdout.StdoutService;
 import com.iexec.core.workflow.ReplicateWorkflow;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 
 @Slf4j
 @Service
@@ -61,6 +54,9 @@ public class ReplicatesService {
     private Web3jService web3jService;
     private ResultService resultService;
     private StdoutService stdoutService;
+
+    private final TargetedLock<String> replicatesUpdateLock =
+            new TargetedLock<>(10, TimeUnit.MINUTES);
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
@@ -423,6 +419,15 @@ public class ReplicatesService {
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate,
                                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+        // Synchronization is mandatory there to avoid race conditions.
+        // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
+        return replicatesUpdateLock.getWithLock(
+                chainTaskId + walletAddress,
+                () -> updateReplicateStatusWithoutSync(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
+        );
+    }
+
+    private Optional<TaskNotificationType> updateReplicateStatusWithoutSync(String chainTaskId, String walletAddress, ReplicateStatusUpdate statusUpdate, UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
@@ -464,7 +469,7 @@ public class ReplicatesService {
                         "nextAction:{}, chainTaskId:{}, walletAddress:{}]",
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
-        return Optional.ofNullable(nextAction); // should we return a default action when null?
+        return Optional.ofNullable(nextAction);
     }
 
     @Recover
