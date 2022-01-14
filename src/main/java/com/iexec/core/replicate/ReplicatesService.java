@@ -55,7 +55,7 @@ public class ReplicatesService {
     private ResultService resultService;
     private StdoutService stdoutService;
 
-    private final ContextualLockRunner<String> replicatesUpdateLock =
+    private final ContextualLockRunner<String> replicatesUpdateLockRunner =
             new ContextualLockRunner<>(10, TimeUnit.MINUTES);
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
@@ -421,7 +421,7 @@ public class ReplicatesService {
                                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         // Synchronization is mandatory there to avoid race conditions.
         // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
-        return replicatesUpdateLock.getWithLock(
+        return replicatesUpdateLockRunner.getWithLock(
                 chainTaskId + walletAddress,
                 () -> updateReplicateStatusWithoutSync(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
         );
