@@ -23,7 +23,7 @@ import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskDescription;
-import com.iexec.common.utils.TargetedLock;
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
@@ -55,8 +55,8 @@ public class ReplicatesService {
     private ResultService resultService;
     private StdoutService stdoutService;
 
-    private final TargetedLock<String> replicatesUpdateLock =
-            new TargetedLock<>(10, TimeUnit.MINUTES);
+    private final ContextualLockRunner<String> replicatesUpdateLock =
+            new ContextualLockRunner<>(10, TimeUnit.MINUTES);
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
