@@ -421,8 +421,9 @@ public class ReplicatesService {
                                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         // Synchronization is mandatory there to avoid race conditions.
         // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
+        final String lockKey = chainTaskId + walletAddress;
         return replicatesUpdateLockRunner.getWithLock(
-                chainTaskId + walletAddress,
+                lockKey,
                 () -> updateReplicateStatusWithoutSync(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
         );
     }
