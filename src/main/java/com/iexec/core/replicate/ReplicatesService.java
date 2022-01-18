@@ -168,6 +168,17 @@ public class ReplicatesService {
         return addressReplicates.size();
     }
 
+    /**
+     * Computes the number of replicates in the {@link ReplicateStatus#CONTRIBUTED} status
+     * that have the right contribution hash.
+     * <p>
+     * Note this method won't retrieve the replicates list, so it could be static.
+     * For test purposes - i.e. mocking -, it is not.
+     *
+     * @param replicates       List of replicates on which the calculation should be base.
+     * @param contributionHash Valid hash of the final result.
+     * @return Number of winners who had contributed with the right hash.
+     */
     public int getNbValidContributedWinners(List<Replicate> replicates, String contributionHash) {
         int nbValidWinners = 0;
         for (Replicate replicate : replicates) {
