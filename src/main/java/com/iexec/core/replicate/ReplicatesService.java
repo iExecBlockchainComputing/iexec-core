@@ -424,11 +424,11 @@ public class ReplicatesService {
         final String lockKey = chainTaskId + walletAddress;
         return replicatesUpdateLockRunner.getWithLock(
                 lockKey,
-                () -> updateReplicateStatusWithoutSync(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
+                () -> updateReplicateStatusWithoutThreadSafety(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
         );
     }
 
-    private Optional<TaskNotificationType> updateReplicateStatusWithoutSync(String chainTaskId, String walletAddress, ReplicateStatusUpdate statusUpdate, UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    private Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId, String walletAddress, ReplicateStatusUpdate statusUpdate, UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
