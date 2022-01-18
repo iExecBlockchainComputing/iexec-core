@@ -380,6 +380,15 @@ public class ReplicatesService {
     }
 
     @Recover
+    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+                                      String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusDetails details) {
+        logUpdateReplicateStatusRecover(exception);
+    }
+
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
@@ -399,8 +408,7 @@ public class ReplicatesService {
     public void updateReplicateStatus(OptimisticLockingFailureException exception,
                                       String chainTaskId,
                                       String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
+                                      ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
     }
 
@@ -414,7 +422,6 @@ public class ReplicatesService {
      *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
-
     /**
      * This method updates a replicate while caring about thread safety.
      * A single replicate can then NOT be updated twice at the same time.
@@ -439,6 +446,17 @@ public class ReplicatesService {
                 lockKey,
                 () -> updateReplicateStatusWithoutThreadSafety(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
         );
+    }
+
+    @Recover
+    public Optional<TaskNotificationType> updateReplicateStatus(
+            OptimisticLockingFailureException exception,
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+        logUpdateReplicateStatusRecover(exception);
+        return Optional.empty();
     }
 
     /**
@@ -500,15 +518,6 @@ public class ReplicatesService {
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
         return Optional.ofNullable(nextAction);
-    }
-
-    @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatusUpdate statusUpdate) {
-        logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
