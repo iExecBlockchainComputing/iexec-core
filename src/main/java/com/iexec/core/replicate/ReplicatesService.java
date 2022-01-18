@@ -512,8 +512,7 @@ public class ReplicatesService {
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
-        log.error("Could not update replicate status, maximum number of retries reached");
-        exception.printStackTrace();
+        log.error("Could not update replicate status, maximum number of retries reached", exception);
     }
 
     private boolean canUpdateToBlockchainSuccess(String chainTaskId,
