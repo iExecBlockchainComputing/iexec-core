@@ -105,6 +105,7 @@ public class TaskUpdateRequestManager {
     }
 
     private void updateTask(String chainTaskId) {
+        // TODO: use ContextualLockRunner
         synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
             taskUpdateManager.updateTask(chainTaskId); // synchronously update task
         }
