@@ -84,7 +84,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt:0.7.0"
 
     // expiring map
-    implementation "net.jodah:expiringmap:0.5.8"
+    implementation "net.jodah:expiringmap:0.5.10"
 
     // ipfs
     implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
@@ -101,9 +101,6 @@ dependencies {
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
-
-    // expiring map
-    implementation 'net.jodah:expiringmap:0.5.10'
 
     // awaitility
     testImplementation 'org.awaitility:awaitility:4.0.1'
