@@ -130,6 +130,7 @@ public class ReplicateSupplyService {
             String chainTaskId = task.getChainTaskId();
             final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
             // If there's no replicatesList, the task is probably not initialized.
+            // FYI: initialized but not-yet-running tasks will have a defined ReplicateList with size == 0.
             if (oReplicatesList.isEmpty()) {
                 continue;
             }
