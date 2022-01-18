@@ -414,6 +414,19 @@ public class ReplicatesService {
      *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
+
+    /**
+     * This method updates a replicate while caring about thread safety.
+     * A single replicate can then NOT be updated twice at the same time.
+     * This method should be preferred to
+     * {@link ReplicatesService#updateReplicateStatusWithoutThreadSafety(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}!
+     *
+     * @param chainTaskId Chain task id of the task whose replicate should be updated.
+     * @param walletAddress Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param updateReplicateStatusArgs Optional args used to update the status.
+     * @return An optional next action for the worker.
+     */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
@@ -428,7 +441,23 @@ public class ReplicatesService {
         );
     }
 
-    private Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId, String walletAddress, ReplicateStatusUpdate statusUpdate, UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    /**
+     * This method updates a replicate but does not care about thread safety.
+     * A single replicate can then be updated twice at the same time
+     * and completely break a task.
+     * This method has to be used with a synchronization mechanism, e.g.
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)}
+     *
+     * @param chainTaskId Chain task id of the task whose replicate should be updated.
+     * @param walletAddress Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param updateReplicateStatusArgs Optional args used to update the status.
+     * @return An optional next action for the worker.
+     */
+    private Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
+                                                                                    String walletAddress,
+                                                                                    ReplicateStatusUpdate statusUpdate,
+                                                                                    UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
 
