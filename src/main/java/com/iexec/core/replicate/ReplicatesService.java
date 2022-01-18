@@ -454,7 +454,7 @@ public class ReplicatesService {
      * @param updateReplicateStatusArgs Optional args used to update the status.
      * @return An optional next action for the worker.
      */
-    private Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
+    Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
                                                                                     String walletAddress,
                                                                                     ReplicateStatusUpdate statusUpdate,
                                                                                     UpdateReplicateStatusArgs updateReplicateStatusArgs) {

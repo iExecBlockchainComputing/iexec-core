@@ -682,8 +682,32 @@ public class ReplicateServiceTests {
                 .parallel()
                 .forEach(i -> replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate));
 
-        System.out.println(replicate.getStatusUpdateList());
         assertThat(replicate.getStatusUpdateList().stream().filter(update -> REVEALED.equals(update.getStatus())).count()).isOne();
+    }
+
+    @Test
+    void shouldEncounterRaceConditionOnReplicateUpdateWithoutThreadSafety() {
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
+        when(iexecHubService.repeatIsRevealedTrue(anyString(), anyString())).thenReturn(true);
+        when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
+
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(REVEALED)
+                .build();
+
+        // Without any synchronization mechanism,
+        // this would update 10 times to `REVEALED`.
+        IntStream.range(0, 10)
+                .parallel()
+                .forEach(i -> replicatesService.updateReplicateStatusWithoutThreadSafety(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS));
+
+        assertThat(replicate.getStatusUpdateList().stream().filter(update -> REVEALED.equals(update.getStatus())).count()).isGreaterThan(1);
     }
 
     @Test
