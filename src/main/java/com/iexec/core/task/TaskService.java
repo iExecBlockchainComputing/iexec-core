@@ -46,6 +46,16 @@ public class TaskService {
      * Save task in database if it does not
      * already exist.
      *
+     * @param chainDealId
+     * @param taskIndex
+     * @param dealBlockNumber
+     * @param imageName
+     * @param commandLine
+     * @param trust
+     * @param maxExecutionTime
+     * @param tag
+     * @param contributionDeadline
+     * @param finalDeadline
      * @return optional containing the saved
      * task, {@link Optional#empty()} otherwise.
      */
