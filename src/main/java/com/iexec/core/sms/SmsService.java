@@ -20,25 +20,40 @@ import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.feign.SmsClient;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 
 
 @Slf4j
 @Service
 public class SmsService {
+    /**
+     * Memoize enclave challenges as they are computed by the SMS.
+     * They are constant over time, so we don't need to compute them everytime.
+     */
+    private final Map<String, String> enclaveChallenges = ExpiringMap.builder()
+            .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+            .build();
 
-    private SmsClient smsClient;
+    private final SmsClient smsClient;
 
     public SmsService(SmsClient smsClient) {
         this.smsClient = smsClient;
     }
 
     public String getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
-        return isTeeEnabled
-                ? generateEnclaveChallenge(chainTaskId)
-                : BytesUtils.EMPTY_ADDRESS;
+        if (!isTeeEnabled) {
+            return BytesUtils.EMPTY_ADDRESS;
+        }
+
+        return enclaveChallenges.computeIfAbsent(chainTaskId, this::generateEnclaveChallenge);
     }
 
     @Retryable(value = FeignException.class)

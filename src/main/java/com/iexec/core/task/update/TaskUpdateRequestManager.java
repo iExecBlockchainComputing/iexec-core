@@ -26,6 +26,8 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
+import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
+
 /**
  * This class is used to perform updates on a task one by one.
  * It also ensures that no extra update is performed for no reason
@@ -36,17 +38,13 @@ import java.util.function.Supplier;
 @Component
 public class TaskUpdateRequestManager {
     /**
-     * An XL task timeout happens after 100 hours.
-     */
-    private static final long LONGEST_TASK_TIMEOUT = 100;
-    /**
      * Max number of threads to update task for each core.
      */
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
-            .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
+            .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
             .build();
 
     final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
