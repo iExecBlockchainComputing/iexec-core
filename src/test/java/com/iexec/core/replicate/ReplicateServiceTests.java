@@ -30,6 +30,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.stdout.StdoutService;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -48,6 +49,7 @@ import static com.iexec.common.utils.TestUtils.WALLET_WORKER_4;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+@Slf4j
 class ReplicateServiceTests {
 
     private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
@@ -701,12 +703,21 @@ class ReplicateServiceTests {
                 .build();
 
         // Without any synchronization mechanism,
-        // this would update 10 times to `REVEALED`.
+        // this would update between 1 and 10 times to `REVEALED`.
         IntStream.range(0, 10)
                 .parallel()
                 .forEach(i -> replicatesService.updateReplicateStatusWithoutThreadSafety(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS));
 
-        assertThat(replicate.getStatusUpdateList().stream().filter(update -> REVEALED.equals(update.getStatus())).count()).isGreaterThan(1);
+        final long revealedUpdateCount = replicate.getStatusUpdateList()
+                .stream()
+                .filter(update -> REVEALED.equals(update.getStatus()))
+                .count();
+        assertThat(revealedUpdateCount).isPositive();
+
+        if (revealedUpdateCount == 1) {
+            log.warn("Replicate has been updated only once" +
+                    " whereas race condition should have happened");
+        }
     }
 
     @Test

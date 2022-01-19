@@ -96,6 +96,7 @@ dependencies {
 
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"
+    testCompileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
 
     // mongock
