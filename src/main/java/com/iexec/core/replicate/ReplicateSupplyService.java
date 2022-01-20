@@ -104,8 +104,16 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
 
+        // TODO : Remove this, the optional can never be empty
+        // This is covered in workerService.canAcceptMoreWorks
+        Optional<Worker> optional = workerService.getWorker(walletAddress);
+        if (optional.isEmpty()) {
+            return Optional.empty();
+        }
+        Worker worker = optional.get();
+
         // return empty if there is no task to contribute
-        List<Task> runningTasks = taskService.getInitializedOrRunningTasks();
+        List<Task> runningTasks = taskService.getInitializedOrRunningTasks(worker.isTeeEnabled());
         if (runningTasks.isEmpty()) {
             return Optional.empty();
         }
@@ -117,14 +125,6 @@ public class ReplicateSupplyService {
         if (validTasks.size() != runningTasks.size()) {
             contributionTimeoutTaskDetector.detect();
         }
-
-        // TODO : Remove this, the optional can never be empty
-        // This is covered in workerService.canAcceptMoreWorks
-        Optional<Worker> optional = workerService.getWorker(walletAddress);
-        if (optional.isEmpty()) {
-            return Optional.empty();
-        }
-        Worker worker = optional.get();
 
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
@@ -141,13 +141,6 @@ public class ReplicateSupplyService {
             // the task should be updated since the consensus is reached but it is still in RUNNING status
             if (taskUpdateManager.isConsensusReached(replicatesList)) {
                 taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
-                continue;
-            }
-
-            // skip the task if it needs TEE and the worker doesn't support it
-            // TODO : access worker TEE status through workerService to avoid workerService.getWorker call
-            boolean isTeeTask = task.isTeeTask();
-            if (isTeeTask && !worker.isTeeEnabled()) {
                 continue;
             }
 
@@ -177,6 +170,7 @@ public class ReplicateSupplyService {
                     task.getMaxExecutionTime());
 
             if (taskNeedsMoreContributions) {
+                boolean isTeeTask = task.isTeeTask();
                 String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock

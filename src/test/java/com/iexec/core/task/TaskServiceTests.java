@@ -33,6 +33,7 @@ import static com.iexec.core.task.TaskStatus.RUNNING;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -151,12 +152,13 @@ public class TaskServiceTests {
     @Test
     public void shouldGetInitializedOrRunningTasks() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatus(
-                Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
+        when(taskRepository.findByCurrentStatusAndTag(
+                eq(Arrays.asList(INITIALIZED, RUNNING)),
+                any(),
+                eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
                 .thenReturn(tasks);
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
+        Assertions.assertThat(taskService.getInitializedOrRunningTasks(false))
                 .isEqualTo(tasks);
     }
 
@@ -172,13 +174,14 @@ public class TaskServiceTests {
 
         List<Task> tasks = Arrays.asList(task2, task1);
 
-        when(taskRepository.findByCurrentStatus(
-                Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
+        when(taskRepository.findByCurrentStatusAndTag(
+                eq(Arrays.asList(INITIALIZED, RUNNING)),
+                any(),
+                eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
                 .thenReturn(tasks);
 
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
+        Assertions.assertThat(taskService.getInitializedOrRunningTasks(false))
                 .isEqualTo(tasks);
     }
 

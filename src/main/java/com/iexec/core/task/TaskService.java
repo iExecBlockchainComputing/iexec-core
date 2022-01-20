@@ -16,6 +16,7 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.tee.TeeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -110,7 +111,16 @@ public class TaskService {
     }
 
     public List<Task> getInitializedOrRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
+        return getInitializedOrRunningTasks(false);
+    }
+
+    public List<Task> getInitializedOrRunningTasks(boolean onlyStandardTasks) {
+        final String teeTag = onlyStandardTasks
+                ? null
+                : TeeUtils.TEE_TAG;
+        return taskRepository.findByCurrentStatusAndTag(
+                Arrays.asList(INITIALIZED, RUNNING),
+                teeTag,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
