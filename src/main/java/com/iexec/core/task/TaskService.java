@@ -114,13 +114,24 @@ public class TaskService {
         return getInitializedOrRunningTasks(false);
     }
 
+    /**
+     * Retrieves {@link TaskStatus#INITIALIZED} or {@link TaskStatus#RUNNING} tasks from the DB.
+     * If {@code onlyStandardTasks} is {@literal true},
+     * then only standard tasks are retrieved.
+     * Otherwise, all tasks are retrieved.
+     *
+     * @param onlyStandardTasks Whether TEE tasks should be retrieved
+     *                          as well as standard tasks.
+     * @return A list of tasks which are {@link TaskStatus#INITIALIZED}
+     * or {@link TaskStatus#RUNNING}
+     */
     public List<Task> getInitializedOrRunningTasks(boolean onlyStandardTasks) {
-        final String teeTag = onlyStandardTasks
-                ? null
-                : TeeUtils.TEE_TAG;
-        return taskRepository.findByCurrentStatusAndTag(
+        final String noTeeTag = onlyStandardTasks
+                ? TeeUtils.TEE_TAG
+                : null;
+        return taskRepository.findByCurrentStatusInAndTagNot(
                 Arrays.asList(INITIALIZED, RUNNING),
-                teeTag,
+                noTeeTag,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }

@@ -113,7 +113,7 @@ public class ReplicateSupplyService {
         Worker worker = optional.get();
 
         // return empty if there is no task to contribute
-        List<Task> runningTasks = taskService.getInitializedOrRunningTasks(worker.isTeeEnabled());
+        List<Task> runningTasks = taskService.getInitializedOrRunningTasks(!worker.isTeeEnabled());
         if (runningTasks.isEmpty()) {
             return Optional.empty();
         }

@@ -152,7 +152,7 @@ public class TaskServiceTests {
     @Test
     public void shouldGetInitializedOrRunningTasks() {
         List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatusAndTag(
+        when(taskRepository.findByCurrentStatusInAndTagNot(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
                 eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
@@ -174,7 +174,7 @@ public class TaskServiceTests {
 
         List<Task> tasks = Arrays.asList(task2, task1);
 
-        when(taskRepository.findByCurrentStatusAndTag(
+        when(taskRepository.findByCurrentStatusInAndTagNot(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
                 eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
