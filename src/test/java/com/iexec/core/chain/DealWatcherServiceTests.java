@@ -34,10 +34,9 @@ import java.math.BigInteger;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-public class DealWatcherServiceTests {
+class DealWatcherServiceTests {
 
     @Mock
     private IexecHubService iexecHubService;
@@ -55,12 +54,12 @@ public class DealWatcherServiceTests {
     private DealWatcherService dealWatcherService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldRun() {
+    void shouldRun() {
         BigInteger blockNumber = BigInteger.TEN;
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
         when(iexecHubService.getDealEventObservableToLatest(blockNumber))
@@ -73,7 +72,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockWhenOneDeal() {
+    void shouldUpdateLastSeenBlockWhenOneDeal() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent = Optional.of(DealEvent
@@ -92,7 +91,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
+    void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
         ChainApp chainApp = new ChainApp();
         chainApp.setUri("0x00");
 
@@ -138,7 +137,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceDealIsExpired() {
+    void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceDealIsExpired() {
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
@@ -176,7 +175,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceBotSizeIsZero() {
+    void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceBotSizeIsZero() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent = Optional.of(DealEvent.builder()
@@ -202,7 +201,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockWhenOneDealButNotCreateTaskSinceExceptionThrown() {
+    void shouldUpdateLastSeenBlockWhenOneDealButNotCreateTaskSinceExceptionThrown() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent = Optional.of(DealEvent.builder()
@@ -229,7 +228,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldUpdateLastSeenBlockTwiceWhenTwoDeals() {
+    void shouldUpdateLastSeenBlockTwiceWhenTwoDeals() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
@@ -256,7 +255,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldNOtUpdateLastSeenBlockWhenReceivingOldMissedDeal() {
+    void shouldNOtUpdateLastSeenBlockWhenReceivingOldMissedDeal() {
         BigInteger from = BigInteger.valueOf(5);
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
@@ -275,7 +274,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldReplayAllEventInRange() {
+    void shouldReplayAllEventInRange() {
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()
@@ -294,7 +293,7 @@ public class DealWatcherServiceTests {
     }
 
     @Test
-    public void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
+    void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
         BigInteger blockOfDeal1 = BigInteger.valueOf(3);
         Optional<DealEvent> dealEvent1 = Optional.of(DealEvent
                 .builder()

@@ -164,13 +164,13 @@ public class Replicate {
 
     public boolean isRecoverable() {
         Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (!currentStatus.isPresent()) return false;
+        if (currentStatus.isEmpty()) return false;
         return ReplicateStatus.isRecoverable(currentStatus.get());
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {
         Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (!getLastRelevantStatus().isPresent()) return false;
+        if (currentStatus.isEmpty()) return false;
         return currentStatus.get().ordinal() < status.ordinal();
     }
 }

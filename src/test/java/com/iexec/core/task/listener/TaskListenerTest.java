@@ -34,11 +34,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class TaskListenerTest {
+class TaskListenerTest {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET1 = "wallet1";
@@ -59,12 +57,12 @@ public class TaskListenerTest {
     private TaskListeners taskListeners;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldUpdateTaskOnTasCreatedEvent() {
+    void shouldUpdateTaskOnTasCreatedEvent() {
         TaskCreatedEvent event = new TaskCreatedEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
@@ -72,7 +70,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void shouldProcessContributionTimeoutEvent() {
+    void shouldProcessContributionTimeoutEvent() {
         ContributionTimeoutEvent event = new ContributionTimeoutEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET1, CHAIN_TASK_ID);
@@ -94,7 +92,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void shouldNotifyWinnersAndLosersOnTaskConsensusReached() {
+    void shouldNotifyWinnersAndLosersOnTaskConsensusReached() {
         String winningHash = "hash";
         String badHash = "bad";
         ConsensusReachedEvent event = new ConsensusReachedEvent();
@@ -124,7 +122,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void shouldSendTaskNotificationOnPleaseUploadEvent() {
+    void shouldSendTaskNotificationOnPleaseUploadEvent() {
         PleaseUploadEvent event = new PleaseUploadEvent(CHAIN_TASK_ID, WALLET1);
         taskListeners.onPleaseUploadEvent(event);
         verify(notificationService).sendTaskNotification(any());
@@ -132,7 +130,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onResultUploadTimeoutEvent() {
+    void onResultUploadTimeoutEvent() {
         taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent());
     }
 
@@ -143,7 +141,7 @@ public class TaskListenerTest {
      * remove chainTaskId from worker
      */
     @Test
-    public void onTaskCompletedEvent() {
+    void onTaskCompletedEvent() {
         Replicate replicate = new Replicate(WALLET1, CHAIN_TASK_ID);
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         TaskCompletedEvent event = new TaskCompletedEvent(task);
@@ -157,7 +155,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onTaskFailedEvent() {
+    void onTaskFailedEvent() {
         when(replicatesService.getReplicates(CHAIN_TASK_ID))
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 
@@ -173,7 +171,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onTaskRunningFailedEvent() {
+    void onTaskRunningFailedEvent() {
         when(replicatesService.getReplicates(CHAIN_TASK_ID))
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 

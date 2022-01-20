@@ -28,10 +28,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReplicateTests {
+class ReplicateTests {
 
     @Test
-    public void shouldInitializeStatusProperly(){
+    void shouldInitializeStatusProperly(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
@@ -45,7 +45,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldUpdateReplicateStatus(){
+    void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
@@ -66,7 +66,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldGetProperLatestStatus(){
+    void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
@@ -78,7 +78,7 @@ public class ReplicateTests {
 
 
     @Test
-    public void shouldReturnTrueWhenContributed(){
+    void shouldReturnTrueWhenContributed(){
         Replicate replicate = new Replicate("0x1", "taskId");
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -90,7 +90,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldReturnFalseWhenContributedMissing(){
+    void shouldReturnFalseWhenContributedMissing(){
         Replicate replicate = new Replicate("0x1", "taskId");
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -101,7 +101,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldBeCreatedLongAgo(){
+    void shouldBeCreatedLongAgo(){
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
@@ -113,7 +113,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldNotBeCreatedLongAgo(){
+    void shouldNotBeCreatedLongAgo(){
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
@@ -125,7 +125,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldBeBusyComputing() {
+    void shouldBeBusyComputing() {
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.isBusyComputing()).isTrue();
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);

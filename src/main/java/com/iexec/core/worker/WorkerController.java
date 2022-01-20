@@ -82,7 +82,7 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
         }
         return workerService.updateLastAlive(workerWalletAddress)
-                .<ResponseEntity<String>>map(worker -> ok(SessionService.getSessionId()))
+                .map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NOT_FOUND).build());
     }
 

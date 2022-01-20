@@ -20,12 +20,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class WorkflowTests {
+class WorkflowTests {
 
 
 
     @Test
-    public void shouldAllBeValidTransitions(){
+    void shouldAllBeValidTransitions(){
         // test simple case
         assertThat(DummyWorkflow.getInstance().isValidTransition("STATUS_1", "STATUS_2")).isTrue();
 
@@ -39,7 +39,7 @@ public class WorkflowTests {
     }
 
     @Test
-    public void shouldAllBeUnvalidTransitions(){
+    void shouldAllBeUnvalidTransitions(){
         // test non existing transition
         assertThat(DummyWorkflow.getInstance().isValidTransition("STATUS_1", "STATUS_3")).isFalse();
         assertThat(DummyWorkflow.getInstance().isValidTransition("STATUS_1", "STATUS_5")).isFalse();
@@ -53,7 +53,7 @@ public class WorkflowTests {
     }
 
     @Test
-    public void shouldAllBorderCasesBeUnvalid(){
+    void shouldAllBorderCasesBeUnvalid(){
         assertThat(DummyWorkflow.getInstance().isValidTransition("STATUS_1", "")).isFalse();
         assertThat(DummyWorkflow.getInstance().isValidTransition("", "STATUS_2")).isFalse();
 

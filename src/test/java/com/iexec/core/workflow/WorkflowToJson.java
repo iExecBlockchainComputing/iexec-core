@@ -18,14 +18,14 @@ package com.iexec.core.workflow;
 
 import org.junit.jupiter.api.Test;
 
-public class WorkflowToJson {
+class WorkflowToJson {
 
     /*
      * This updates the json files when transitions
      * or actions are modified. 
      */
     @Test
-    public void workflowToJson() {
+    void workflowToJson() {
         String transitionsFilePath = "src/main/resources/workflow/replicate-transitions.json";
         String actionsFilePath = "src/main/resources/workflow/replicate-actions.json";
         ReplicateWorkflow rw = ReplicateWorkflow.getInstance();

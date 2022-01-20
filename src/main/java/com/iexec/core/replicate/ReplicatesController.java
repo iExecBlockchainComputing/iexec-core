@@ -67,7 +67,7 @@ public class ReplicatesController {
 
         return replicateSupplyService
                 .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress)
-                .<ResponseEntity<WorkerpoolAuthorization>>map(ResponseEntity::ok)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
 

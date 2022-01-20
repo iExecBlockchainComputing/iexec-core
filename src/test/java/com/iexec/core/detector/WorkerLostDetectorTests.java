@@ -36,10 +36,9 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class WorkerLostDetectorTests {
+class WorkerLostDetectorTests {
 
     private final static String WALLET_WORKER = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String CHAIN_TASK_ID = "chainTaskId";
@@ -57,12 +56,12 @@ public class WorkerLostDetectorTests {
     private WorkerLostDetector workerLostDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldNotDetectAnyWorkerLost(){
+    void shouldNotDetectAnyWorkerLost(){
         when(workerService.getLostWorkers()).thenReturn(Collections.emptyList());
         workerLostDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
@@ -71,7 +70,7 @@ public class WorkerLostDetectorTests {
     }
 
     @Test
-    public void shouldUpdateOneReplicateToWorkerLost(){
+    void shouldUpdateOneReplicateToWorkerLost(){
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
 
         Worker worker = Worker.builder()
@@ -96,7 +95,7 @@ public class WorkerLostDetectorTests {
 
     // similar test with previous except that the Replicate is already is WORKER_LOST status.
     @Test
-    public void shouldNotUpdateToWorkerLostSinceAlreadyUpdated(){
+    void shouldNotUpdateToWorkerLostSinceAlreadyUpdated(){
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -116,7 +115,7 @@ public class WorkerLostDetectorTests {
     }
 
     @Test
-    public void shouldNotUpdateToWorkerLostSinceFailed(){
+    void shouldNotUpdateToWorkerLostSinceFailed(){
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -136,7 +135,7 @@ public class WorkerLostDetectorTests {
     }
 
     @Test
-    public void shouldNotUpdateToWorkerLostSinceCompleted(){
+    void shouldNotUpdateToWorkerLostSinceCompleted(){
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -156,7 +155,7 @@ public class WorkerLostDetectorTests {
     }
 
     @Test
-    public void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired(){
+    void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired(){
         Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
 
         Worker worker = Worker.builder()

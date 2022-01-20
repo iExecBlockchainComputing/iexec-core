@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ConfigurationRepositoryMigrationTest {
+class ConfigurationRepositoryMigrationTest {
 
     @Mock
     private MongockTemplate mongockTemplate;
@@ -40,13 +40,13 @@ public class ConfigurationRepositoryMigrationTest {
     private ReplayConfigurationRepository replayConfigurationRepository;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
 
     @Test
-    public void shouldMoveFromReplayField() {
+    void shouldMoveFromReplayField() {
         when(replayConfigurationRepository.count()).thenReturn(0L);
         Document document = new Document("firstKey", "firstValue");
         document.put("fromReplay", "132");
@@ -68,7 +68,7 @@ public class ConfigurationRepositoryMigrationTest {
     }
 
     @Test
-    public void shouldNotMoveFromReplayFieldSinceUpToDate() {
+    void shouldNotMoveFromReplayFieldSinceUpToDate() {
         when(replayConfigurationRepository.count()).thenReturn(1L);
 
         boolean isUpdated = new ConfigurationRepositoryMigration()
@@ -77,7 +77,7 @@ public class ConfigurationRepositoryMigrationTest {
     }
 
     @Test
-    public void shouldNotMoveFromReplayFieldSinceMissingFieldInLegacy() {
+    void shouldNotMoveFromReplayFieldSinceMissingFieldInLegacy() {
         when(replayConfigurationRepository.count()).thenReturn(0L);
         Document document = new Document("firstKey", "firstValue");
         mockFindFirstConfiguration(document);

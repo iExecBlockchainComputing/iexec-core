@@ -32,8 +32,6 @@ import java.util.Date;
 import java.util.List;
 
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.task.TaskStatus.RESULT_UPLOADED;
-import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
 
 @Slf4j
 @Service

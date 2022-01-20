@@ -24,30 +24,30 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReplicateWorkflowTests {
+class ReplicateWorkflowTests {
 
     private ReplicateWorkflow replicateWorkflow;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         replicateWorkflow = ReplicateWorkflow.getInstance();
     }
 
     @Test
-    public void shouldNotGetNextActionWhenStatusSinceStatusIsNull(){
+    void shouldNotGetNextActionWhenStatusSinceStatusIsNull(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatus(null)).isNull();
     }
 
     @Test
-    public void shouldNotGetNextActionWhenStatusSinceStatusIsUnknown(){
+    void shouldNotGetNextActionWhenStatusSinceStatusIsUnknown(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatus(ReplicateStatus.ABORTED)) //unknown
                 .isNull();
     }
 
     @Test
-    public void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
+    void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(null,
                         ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) //any
@@ -55,7 +55,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
+    void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(ReplicateStatus.ABORTED, //unknown
                         ReplicateStatusCause.ABORTED_BY_WORKER)) //any
@@ -65,7 +65,7 @@ public class ReplicateWorkflowTests {
     // app
 
     @Test
-    public void shouldGetNextActionOnAppDownloadFailed(){
+    void shouldGetNextActionOnAppDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         null))
@@ -73,7 +73,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
+    void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         ReplicateStatusCause.POST_COMPUTE_FAILED))
@@ -81,7 +81,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed(){
+    void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED))
@@ -91,7 +91,7 @@ public class ReplicateWorkflowTests {
     // data
 
     @Test
-    public void shouldGetNextActionOnDataDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         null))
@@ -99,7 +99,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.POST_COMPUTE_FAILED))
@@ -107,7 +107,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED))
@@ -115,7 +115,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
+    void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM))
@@ -123,7 +123,7 @@ public class ReplicateWorkflowTests {
     }
 
     @Test
-    public void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED))
