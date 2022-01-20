@@ -192,9 +192,8 @@ public class ReplicateServiceTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
 
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).isTrue();
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_2)).isTrue();
+        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).isTrue();
+        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_2)).isTrue();
     }
 
     @Test
@@ -207,8 +206,7 @@ public class ReplicateServiceTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
 
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_3)).isFalse();
+        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_3)).isFalse();
     }
 
     @Test

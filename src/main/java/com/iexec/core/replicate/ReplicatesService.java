@@ -121,8 +121,8 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean hasWorkerAlreadyParticipated(String chainTaskId, String walletAddress) {
-        return getReplicate(chainTaskId, walletAddress).isPresent();
+    public boolean hasWorkerAlreadyParticipated(ReplicatesList replicatesList, String walletAddress) {
+        return replicatesList.getReplicateOfWorker(walletAddress).isPresent();
     }
 
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {

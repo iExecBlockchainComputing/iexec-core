@@ -151,7 +151,7 @@ public class ReplicateSupplyService {
             taskService.lockTaskAccessForNewReplicate(chainTaskId);
 
             boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
-                    chainTaskId, walletAddress);
+                    replicatesList, walletAddress);
 
             // Check if task is still in contribution phase with INITIALIZED or RUNNING status
             Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
