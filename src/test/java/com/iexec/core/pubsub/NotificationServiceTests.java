@@ -27,7 +27,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.iexec.common.notification.TaskNotification;
 
-public class NotificationServiceTests {
+class NotificationServiceTests {
 
     @Mock
     private SimpMessagingTemplate sender;
@@ -37,10 +37,10 @@ public class NotificationServiceTests {
     private NotificationService notificationService;
 
     @BeforeEach
-    public void init() { MockitoAnnotations.initMocks(this); }
+    void init() { MockitoAnnotations.openMocks(this); }
 
     @Test
-    public void shouldSendTaskNotification() {
+    void shouldSendTaskNotification() {
         String chainTaskId = "chainTaskId";
         TaskNotification taskNotification = TaskNotification.builder()
             .chainTaskId(chainTaskId)

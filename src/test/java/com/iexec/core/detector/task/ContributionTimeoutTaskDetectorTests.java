@@ -35,7 +35,7 @@ import java.util.Date;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class ContributionTimeoutTaskDetectorTests {
+class ContributionTimeoutTaskDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
@@ -56,12 +56,12 @@ public class ContributionTimeoutTaskDetectorTests {
     private ContributionTimeoutTaskDetector contributionDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldNotDetectAnyContributionTimeout() {
+    void shouldNotDetectAnyContributionTimeout() {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.emptyList());
         contributionDetector.detect();
 
@@ -76,7 +76,7 @@ public class ContributionTimeoutTaskDetectorTests {
     }
 
     @Test
-    public void shouldNotUpdateTaskIfBeforeTimeout() {
+    void shouldNotUpdateTaskIfBeforeTimeout() {
         Date now = new Date();
         Date oneMinuteAfterNow = DateTimeUtils.addMinutesToDate(now, 1);
 
@@ -99,7 +99,7 @@ public class ContributionTimeoutTaskDetectorTests {
 
 
     @Test
-    public void shouldUpdateIfIsTimeout() {
+    void shouldUpdateIfIsTimeout() {
         Date now = new Date();
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(now, -1);
 

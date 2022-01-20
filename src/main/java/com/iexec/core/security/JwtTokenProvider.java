@@ -58,7 +58,7 @@ public class JwtTokenProvider {
 
     public String resolveToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
-            return token.substring(7, token.length());
+            return token.substring(7);
         }
         return null;
     }

@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class WorkerServiceTests {
+class WorkerServiceTests {
 
     @Mock
     private WorkerRepository workerRepository;
@@ -43,14 +43,14 @@ public class WorkerServiceTests {
     private WorkerService workerService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     // getWorker
 
     @Test
-    public void shouldGetWorker() {
+    void shouldGetWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -72,7 +72,7 @@ public class WorkerServiceTests {
     // addWorker
 
     @Test
-    public void shouldNotAddNewWorker() {
+    void shouldNotAddNewWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -104,7 +104,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldAddNewWorker() {
+    void shouldAddNewWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker worker = Worker.builder()
@@ -128,20 +128,20 @@ public class WorkerServiceTests {
     // isAllowedToJoin
 
     @Test
-    public void shouldBeAllowed() {
+    void shouldBeAllowed() {
         List<String> whiteList = List.of("w1", "w2");
         when(workerConfiguration.getWhitelist()).thenReturn(whiteList);
         assertThat(workerService.isAllowedToJoin("w1")).isTrue();
     }
 
     @Test
-    public void shouldBeAllowedWhenNoWhiteList() {
+    void shouldBeAllowedWhenNoWhiteList() {
         when(workerConfiguration.getWhitelist()).thenReturn(List.of());
         assertThat(workerService.isAllowedToJoin("w1")).isTrue();
     }
 
     @Test
-    public void shouldNotBeAllowed() {
+    void shouldNotBeAllowed() {
         List<String> whiteList = List.of("w1", "w2");
         when(workerConfiguration.getWhitelist()).thenReturn(whiteList);
         assertThat(workerService.isAllowedToJoin("w3")).isFalse();
@@ -150,7 +150,7 @@ public class WorkerServiceTests {
     // updateLasAlive
 
     @Test
-    public void shouldUpdateLastAlive() throws ParseException {
+    void shouldUpdateLastAlive() throws ParseException {
         // init
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
@@ -187,7 +187,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotFindWorkerForUpdateLastAlive() {
+    void shouldNotFindWorkerForUpdateLastAlive() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
 
@@ -198,19 +198,19 @@ public class WorkerServiceTests {
     // isWorkerAllowedToAskReplicate
 
     @Test
-    public void shouldWorkerBeAllowedToAskReplicate() {
+    void shouldWorkerBeAllowedToAskReplicate() {
         String wallet = "wallet";
         Worker worker = Worker.builder()
                 .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(10)))
                 .build();
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
-        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }
 
     @Test
-    public void shouldWorkerBeAllowedToAskReplicateSinceFirstTime() {
+    void shouldWorkerBeAllowedToAskReplicateSinceFirstTime() {
         String wallet = "wallet";
         Worker worker = new Worker();
         worker.setLastReplicateDemandDate(null);
@@ -220,13 +220,13 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldWorkerNotBeAllowedToAskReplicateSinceTooSoon() {
+    void shouldWorkerNotBeAllowedToAskReplicateSinceTooSoon() {
         String wallet = "wallet";
         Worker worker = Worker.builder()
                 .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)))
                 .build();
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
-        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000l);
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isFalse();
     }
@@ -234,7 +234,7 @@ public class WorkerServiceTests {
     // updateLastReplicateDemandDate
 
     @Test
-    public void shouldUpdateLastReplicateDemand() {
+    void shouldUpdateLastReplicateDemand() {
         String wallet = "wallet";
         Date lastDate = Date.from(Instant.now().minusSeconds(1));
         Worker worker = Worker.builder()
@@ -251,7 +251,7 @@ public class WorkerServiceTests {
     // addChainTaskIdToWorker
 
     @Test
-    public void shouldAddTaskIdToWorker(){
+    void shouldAddTaskIdToWorker(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -279,7 +279,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotAddTaskIdToWorker(){
+    void shouldNotAddTaskIdToWorker(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
@@ -288,7 +288,7 @@ public class WorkerServiceTests {
     // getChainTaskIds
 
     @Test
-    public void shouldGetChainTaskIds() {
+    void shouldGetChainTaskIds() {
         String wallet = "wallet";
         List<String> list = List.of("t1", "t1");
         Worker worker = Worker.builder()
@@ -300,7 +300,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldGetEmptyChainTaskIdListSinceWorkerNotFound() {
+    void shouldGetEmptyChainTaskIdListSinceWorkerNotFound() {
         String wallet = "wallet";
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.empty());
         assertThat(workerService.getChainTaskIds(wallet)).isEmpty();
@@ -309,7 +309,7 @@ public class WorkerServiceTests {
     // Computing task IDs
 
     @Test
-    public void shouldGetComputingTaskIds() {
+    void shouldGetComputingTaskIds() {
         String wallet = "wallet";
         List<String> list = List.of("t1", "t1");
         Worker worker = Worker.builder()
@@ -321,7 +321,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotGetComputingTaskIdsSinceNoWorker() {
+    void shouldNotGetComputingTaskIdsSinceNoWorker() {
         String wallet = "wallet";
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.empty());
 
@@ -331,7 +331,7 @@ public class WorkerServiceTests {
     // removeChainTaskIdFromWorker
 
     @Test
-    public void shouldRemoveTaskIdFromWorker(){
+    void shouldRemoveTaskIdFromWorker(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -359,14 +359,14 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotRemoveTaskIdWorkerNotFound(){
+    void shouldNotRemoveTaskIdWorkerNotFound(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
     @Test
-    public void shouldNotRemoveAnythingSinceTaskIdNotFound(){
+    void shouldNotRemoveAnythingSinceTaskIdNotFound(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -397,7 +397,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldRemoveComputedChainTaskIdFromWorker(){
+    void shouldRemoveComputedChainTaskIdFromWorker(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -428,7 +428,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -453,7 +453,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -484,7 +484,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldGetLostWorkers() {
+    void shouldGetLostWorkers() {
 
         List<Worker> allWorkers = getDummyWorkers(3);
         List<Worker> lostWorkers = allWorkers.subList(1, 3);
@@ -505,7 +505,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotFindLostWorkers() {
+    void shouldNotFindLostWorkers() {
 
         when(workerRepository.findByLastAliveDateBefore(Mockito.any())).thenReturn(Collections.emptyList());
 
@@ -513,7 +513,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldGetAliveWorkers() {
+    void shouldGetAliveWorkers() {
 
         List<Worker> allWorkers = getDummyWorkers(3);
         List<Worker> aliveWorkers = allWorkers.subList(0, 1);
@@ -534,7 +534,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotFindAliveWorkers() {
+    void shouldNotFindAliveWorkers() {
 
         when(workerRepository.findByLastAliveDateAfter(Mockito.any())).thenReturn(Collections.emptyList());
 
@@ -542,7 +542,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldAcceptMoreWorks() {
+    void shouldAcceptMoreWorks() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
         Worker worker = getDummyWorker(walletAddress,
@@ -555,7 +555,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotAcceptMoreWorksSinceWorkerNotFound() {
+    void shouldNotAcceptMoreWorksSinceWorkerNotFound() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
         when(workerRepository.findByWalletAddress(Mockito.any())).thenReturn(Optional.empty());
@@ -565,7 +565,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
+    void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
         Worker worker = getDummyWorker(walletAddress,
@@ -600,7 +600,7 @@ public class WorkerServiceTests {
 
 
     @Test
-    public void shouldGetSomeAvailableCpu() {
+    void shouldGetSomeAvailableCpu() {
 
         Worker worker1 = getDummyWorker("0x1",
                 4,
@@ -610,7 +610,7 @@ public class WorkerServiceTests {
         Worker worker2 = getDummyWorker("0x2",
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1"));//3 CPUs available
+                List.of("task1"));//3 CPUs available
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);
@@ -618,7 +618,7 @@ public class WorkerServiceTests {
 
 
     @Test
-    public void shouldGetZeroAvailableCpuIfWorkerAlreadyFull() {
+    void shouldGetZeroAvailableCpuIfWorkerAlreadyFull() {
 
         Worker worker1 = getDummyWorker("0x1",
                 4,
@@ -635,7 +635,7 @@ public class WorkerServiceTests {
     }
 
     @Test
-    public void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
+    void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
     }
@@ -643,7 +643,7 @@ public class WorkerServiceTests {
     // getAliveTotalCpu
 
     @Test
-    public void shouldGetTotalAliveCpu() {
+    void shouldGetTotalAliveCpu() {
         Worker worker1 = Worker.builder()
                 .cpuNb(4)
                 .build();
@@ -660,7 +660,7 @@ public class WorkerServiceTests {
     // getAliveTotalGpu
 
     @Test
-    public void shouldGetTotalAliveGpu() {
+    void shouldGetTotalAliveGpu() {
         Worker worker1 = Worker.builder()
                 .gpuEnabled(true)
                 .build();
@@ -676,7 +676,7 @@ public class WorkerServiceTests {
     // getAliveAvailableGpu
 
     @Test
-    public void shouldGetAliveAvailableGpu() {
+    void shouldGetAliveAvailableGpu() {
         Worker worker1 = Worker.builder()
                 .gpuEnabled(true)
                 .computingChainTaskIds(List.of())

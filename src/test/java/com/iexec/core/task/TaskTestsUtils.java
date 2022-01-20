@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-public class TaskTestsUtils {
+class TaskTestsUtils {
     final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     final static String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
@@ -31,7 +31,7 @@ public class TaskTestsUtils {
 
     final static String DAPP_NAME = "dappName";
     final static String COMMAND_LINE = "commandLine";
-    final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
+    final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
     final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
     final static String RESULT_LINK = "/ipfs/the_result_string";
 

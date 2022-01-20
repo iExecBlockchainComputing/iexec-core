@@ -9,7 +9,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -117,10 +116,10 @@ class TaskRepositoryTest {
 
         List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
         Assertions.assertThat(foundTasks.size()).isEqualTo(4);
-        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task4);
-        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task1);
-        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task3);
-        Assertions.assertThat(foundTasks.remove(0)).isEqualToComparingFieldByField(task2);
+        Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task4);
+        Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task1);
+        Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task3);
+        Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task2);
     }
 
     @Test
@@ -142,7 +141,7 @@ class TaskRepositoryTest {
         List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
         Assertions.assertThat(foundTasks.size()).isEqualTo(taskRepository.count());
         for (Task task : tasks) {
-            Assertions.assertThat(task).isEqualToComparingFieldByField(foundTasks.remove(0));
+            Assertions.assertThat(task).usingRecursiveComparison().isEqualTo(foundTasks.remove(0));
         }
     }
 

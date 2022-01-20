@@ -33,7 +33,7 @@ import org.web3j.crypto.Credentials;
 import static org.mockito.Mockito.when;
 
 
-public class SignatureServiceTests {
+class SignatureServiceTests {
 
     @Mock private CredentialsService credentialsService;
     @Mock private SmsConfiguration smsConfiguration;
@@ -42,12 +42,12 @@ public class SignatureServiceTests {
     private SignatureService signatureService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldAuthorizationHashBeValid() {
+    void shouldAuthorizationHashBeValid() {
 
         String workerWallet = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
         String chainTaskid = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";
@@ -59,7 +59,7 @@ public class SignatureServiceTests {
     }
 
     @Test
-    public void shouldCreateCorrectAuthorization() {
+    void shouldCreateCorrectAuthorization() {
         // input
         String workerWallet = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
         String chainTaskid = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";

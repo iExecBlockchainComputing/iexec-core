@@ -39,7 +39,7 @@ public class ContributionHelper {
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (!lastRelevantStatus.isPresent()) {
+            if (lastRelevantStatus.isEmpty()) {
                 continue;
             }
 
@@ -65,7 +65,7 @@ public class ContributionHelper {
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (!lastRelevantStatus.isPresent()) {
+            if (lastRelevantStatus.isEmpty()) {
                 continue;
             }
 
@@ -93,7 +93,7 @@ public class ContributionHelper {
         for (Replicate replicate : replicates) {
 
             Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (!lastRelevantStatus.isPresent()) {
+            if (lastRelevantStatus.isEmpty()) {
                 continue;
             }
 
