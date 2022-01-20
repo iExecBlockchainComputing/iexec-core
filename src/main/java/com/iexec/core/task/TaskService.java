@@ -116,22 +116,22 @@ public class TaskService {
 
     /**
      * Retrieves {@link TaskStatus#INITIALIZED} or {@link TaskStatus#RUNNING} tasks from the DB.
-     * If {@code onlyStandardTasks} is {@literal true},
+     * If {@code shouldExcludeTeeTasks} is {@literal true},
      * then only standard tasks are retrieved.
      * Otherwise, all tasks are retrieved.
      *
-     * @param onlyStandardTasks Whether TEE tasks should be retrieved
-     *                          as well as standard tasks.
+     * @param shouldExcludeTeeTasks Whether TEE tasks should be retrieved
+     *                              as well as standard tasks.
      * @return A list of tasks which are {@link TaskStatus#INITIALIZED}
      * or {@link TaskStatus#RUNNING}
      */
-    public List<Task> getInitializedOrRunningTasks(boolean onlyStandardTasks) {
-        final String noTeeTag = onlyStandardTasks
+    public List<Task> getInitializedOrRunningTasks(boolean shouldExcludeTeeTasks) {
+        final String excludedTag = shouldExcludeTeeTasks
                 ? TeeUtils.TEE_TAG
                 : null;
         return taskRepository.findByCurrentStatusInAndTagNot(
                 Arrays.asList(INITIALIZED, RUNNING),
-                noTeeTag,
+                excludedTag,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
