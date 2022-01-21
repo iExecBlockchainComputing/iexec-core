@@ -24,25 +24,28 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskAbortCause;
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.contribution.ConsensusHelper;
-import com.iexec.core.sms.SmsService;
+import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 
 
 @Service
@@ -53,16 +56,21 @@ public class ReplicateSupplyService {
     private final TaskService taskService;
     private final TaskUpdateManager taskUpdateManager;
     private final WorkerService workerService;
-    private final SmsService smsService;
     private final Web3jService web3jService;
     private final ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+
+    private final ContextualLockRunner<String> newReplicateLockRunner =
+            new ContextualLockRunner<>(1, TimeUnit.MINUTES);
+    private final Map<String, Boolean> taskAccessForNewReplicateLock =
+            ExpiringMap.builder()
+                    .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+                    .build();
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
                                   TaskService taskService,
                                   TaskUpdateManager taskUpdateManager,
                                   WorkerService workerService,
-                                  SmsService smsService,
                                   Web3jService web3jService,
                                   ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
         this.replicatesService = replicatesService;
@@ -70,7 +78,6 @@ public class ReplicateSupplyService {
         this.taskService = taskService;
         this.taskUpdateManager = taskUpdateManager;
         this.workerService = workerService;
-        this.smsService = smsService;
         this.web3jService = web3jService;
         this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
     }
@@ -126,69 +133,76 @@ public class ReplicateSupplyService {
             contributionTimeoutTaskDetector.detect();
         }
 
-        for (Task task : validTasks) {
-            String chainTaskId = task.getChainTaskId();
-            final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
-            // Check is only here to prevent
-            // "`Optional.get()` without `isPresent()` warning".
-            // This case should not happen.
-            if (oReplicatesList.isEmpty()) {
-                continue;
-            }
+        return validTasks
+                .stream()
+                .map(task -> getAuthorizationForTask(task, walletAddress))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+    }
 
-            final ReplicatesList replicatesList = oReplicatesList.get();
-
-            // no need to go further if the consensus is already reached on-chain
-            // the task should be updated since the consensus is reached but it is still in RUNNING status
-            if (taskUpdateManager.isConsensusReached(replicatesList)) {
-                taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
-                continue;
-            }
-
-            taskService.initializeTaskAccessForNewReplicateLock(chainTaskId);
-            if (taskService.isTaskBeingAccessedForNewReplicate(chainTaskId)) {
-                continue;//skip task if being accessed
-            }
-            taskService.lockTaskAccessForNewReplicate(chainTaskId);
-
-            boolean hasWorkerAlreadyParticipated = replicatesService.hasWorkerAlreadyParticipated(
-                    replicatesList, walletAddress);
-
-            // Check if task is still in contribution phase with INITIALIZED or RUNNING status
-            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
-
-            if (upToDateTask.isEmpty()
-                    || ! TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
-                    || hasWorkerAlreadyParticipated) {
-                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
-                continue;
-            }
-
-            final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
-                    chainTaskId,
-                    replicatesList.getReplicates(),
-                    task.getTrust(),
-                    task.getMaxExecutionTime());
-
-            if (taskNeedsMoreContributions) {
-                final String enclaveChallenge = task.getEnclaveChallenge();
-                if (enclaveChallenge.isEmpty()) {
-                    taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
-                    continue;
-                }
-
-                replicatesService.addNewReplicate(chainTaskId, walletAddress);
-                taskService.unlockTaskAccessForNewReplicate(chainTaskId);
-                workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
-
-                // generate contribution authorization
-                return Optional.of(signatureService.createAuthorization(
-                        walletAddress, chainTaskId, enclaveChallenge));
-            }
-            taskService.unlockTaskAccessForNewReplicate(chainTaskId);
+    private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {
+        String chainTaskId = task.getChainTaskId();
+        if (!canWorkerAcceptTask(task, walletAddress)) {
+            return Optional.empty();
         }
 
-        return Optional.empty();
+        replicatesService.addNewReplicate(chainTaskId, walletAddress);
+        unlockTaskAccessForNewReplicate(chainTaskId);
+        workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
+
+        // generate contribution authorization
+        final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
+                walletAddress,
+                chainTaskId,
+                task.getEnclaveChallenge());
+        return Optional.of(authorization);
+    }
+
+    private boolean canWorkerAcceptTask(Task task, String walletAddress) {
+        if (task.getEnclaveChallenge().isEmpty()) {
+            return false;
+        }
+
+        final String chainTaskId = task.getChainTaskId();
+        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+        // Check is only here to prevent
+        // "`Optional.get()` without `isPresent()` warning".
+        // This case should not happen.
+        if (oReplicatesList.isEmpty()) {
+            return false;
+        }
+
+        final ReplicatesList replicatesList = oReplicatesList.get();
+
+        // no need to go further if the consensus is already reached on-chain
+        // the task should be updated since the consensus is reached but it is still in RUNNING status
+        if (taskUpdateManager.isConsensusReached(replicatesList)) {
+            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            return false;
+        }
+
+        if (!lockTaskAccessForNewReplicateIfPossible(chainTaskId)) {
+            return false;
+        }
+
+        // Check if task is still in contribution phase with INITIALIZED or RUNNING status
+        Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
+        final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
+                chainTaskId,
+                replicatesList.getReplicates(),
+                task.getTrust(),
+                task.getMaxExecutionTime());
+
+        if (upToDateTask.isEmpty()
+                || !TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
+                || !taskNeedsMoreContributions
+                || replicatesService.hasWorkerAlreadyParticipated(replicatesList, walletAddress)) {
+            unlockTaskAccessForNewReplicate(chainTaskId);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -494,4 +508,34 @@ public class ReplicateSupplyService {
                 return TaskAbortCause.UNKNOWN;
         }
     }
+
+    // region Locking access to task for new replicate
+    /**
+     * Locks a task access for a new replicate if no other worker
+     * is already trying to create a replicate on that task.
+     * This method is synchronized on {@code chainTaskId}.
+     *
+     * @param chainTaskId ID of the task to lock access on.
+     * @return {@literal true} if the lock has been acquired,
+     * {@literal false} otherwise.
+     */
+    boolean lockTaskAccessForNewReplicateIfPossible(String chainTaskId) {
+        // There could have been some race condition there without synchronization.
+        return newReplicateLockRunner.getWithLock(chainTaskId, () -> {
+            if (Boolean.TRUE.equals(taskAccessForNewReplicateLock.getOrDefault(chainTaskId, false))) {
+                return false;
+            }
+            setTaskAccessForNewReplicateLock(chainTaskId, true);
+            return true;
+        });
+    }
+
+    void unlockTaskAccessForNewReplicate(String chainTaskId) {
+        setTaskAccessForNewReplicateLock(chainTaskId, false);
+    }
+
+    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
+        taskAccessForNewReplicateLock.put(chainTaskId, isTaskBeingAccessedForNewReplicate);
+    }
+    // endregion
 }

@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -33,10 +32,6 @@ import static com.iexec.core.task.TaskStatus.*;
 @Slf4j
 @Service
 public class TaskService {
-
-    private final ConcurrentHashMap<String, Boolean>
-            taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
-
     private final TaskRepository taskRepository;
 
     public TaskService(TaskRepository taskRepository) {
@@ -174,25 +169,4 @@ public class TaskService {
                 .map(Task::getFinalDeadline)
                 .orElse(null);
     }
-
-    public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
-        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
-    }
-
-    public Boolean isTaskBeingAccessedForNewReplicate(String chainTaskId) {
-        return taskAccessForNewReplicateLock.get(chainTaskId);
-    }
-
-    public void lockTaskAccessForNewReplicate(String chainTaskId) {
-        setTaskAccessForNewReplicateLock(chainTaskId, true);
-    }
-
-    public void unlockTaskAccessForNewReplicate(String chainTaskId) {
-        setTaskAccessForNewReplicateLock(chainTaskId, false);
-    }
-
-    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
-        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
-    }
-
 }
