@@ -105,28 +105,34 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(statusList);
     }
 
-    public List<Task> getInitializedOrRunningTasks() {
-        return getInitializedOrRunningTasks(false);
-    }
-
     /**
-     * Retrieves {@link TaskStatus#INITIALIZED} or {@link TaskStatus#RUNNING} tasks from the DB.
+     * Retrieves the first {@link TaskStatus#INITIALIZED}
+     * or {@link TaskStatus#RUNNING} task from the DB,
+     * depending on current statuses and contribution deadlines.
+     * <p>
      * If {@code shouldExcludeTeeTasks} is {@literal true},
      * then only standard tasks are retrieved.
      * Otherwise, all tasks are retrieved.
+     * <p>
+     * Tasks can be excluded with {@code excludedChainTaskIds}.
      *
      * @param shouldExcludeTeeTasks Whether TEE tasks should be retrieved
      *                              as well as standard tasks.
-     * @return A list of tasks which are {@link TaskStatus#INITIALIZED}
-     * or {@link TaskStatus#RUNNING}
+     * @param excludedChainTaskIds Tasks to exclude from retrieval.
+     * @return The first task which is {@link TaskStatus#INITIALIZED}
+     * or {@link TaskStatus#RUNNING},
+     * or {@link Optional#empty()} if no task meets the requirements.
      */
-    public List<Task> getInitializedOrRunningTasks(boolean shouldExcludeTeeTasks) {
+    public Optional<Task> getFirstInitializedOrRunningTask(
+            boolean shouldExcludeTeeTasks,
+            List<String> excludedChainTaskIds) {
         final String excludedTag = shouldExcludeTeeTasks
                 ? TeeUtils.TEE_TAG
                 : null;
-        return taskRepository.findByCurrentStatusInAndTagNot(
+        return taskRepository.findFirstTask(
                 Arrays.asList(INITIALIZED, RUNNING),
                 excludedTag,
+                excludedChainTaskIds,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }

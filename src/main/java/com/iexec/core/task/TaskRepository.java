@@ -47,6 +47,18 @@ interface TaskRepository extends MongoRepository<Task, String> {
     @Query("{ 'currentStatus': {$in: ?0} , 'tag': {$ne: ?1} }")
     List<Task> findByCurrentStatusInAndTagNot(List<TaskStatus> statuses, String excludedTag, Sort sort);
 
+    // Shortcut for `findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn`
+    default Optional<Task> findFirstTask(List<TaskStatus> statuses, String excludedTag, List<String> excludedChainTaskIds, Sort sort) {
+        return findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
+                statuses,
+                excludedTag,
+                excludedChainTaskIds,
+                sort
+        );
+    }
+
+    Optional<Task> findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(List<TaskStatus> statuses, String excludedTag, List<String> excludedChainTaskIds, Sort sort);
+    
     @Query("{ 'currentStatus': {$nin: ?0} }")
     List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
 

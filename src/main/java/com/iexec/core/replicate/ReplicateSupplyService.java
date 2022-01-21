@@ -40,7 +40,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
@@ -113,26 +112,40 @@ public class ReplicateSupplyService {
         }
         Worker worker = optional.get();
 
-        // return empty if there is no task to contribute
-        List<Task> runningTasks = taskService.getInitializedOrRunningTasks(!worker.isTeeEnabled());
-        if (runningTasks.isEmpty()) {
-            return Optional.empty();
-        }
+        return getAuthorizationForAnyTask(
+                walletAddress,
+                worker.isTeeEnabled()
+        );
+    }
 
-        // filter the Tasks that have reached the contribution deadline
-        List<Task> validTasks = runningTasks.stream()
-                .filter(task -> ! task.isContributionDeadlineReached())
-                .collect(Collectors.toCollection(ArrayList::new));
-        if (validTasks.size() != runningTasks.size()) {
-            contributionTimeoutTaskDetector.detect();
-        }
+    /**
+     * Loops through available tasks
+     * and finds the first one that needs a new {@link Replicate}.
+     *
+     * @param walletAddress Wallet address of the worker asking for work.
+     * @param isTeeEnabled  Whether this worker supports TEE.
+     * @return An {@link Optional} containing a {@link WorkerpoolAuthorization}
+     * if any {@link Task} is available and can be handled by this worker,
+     * {@link Optional#empty()} otherwise.
+     */
+    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyTask(
+            String walletAddress,
+            boolean isTeeEnabled) {
+        final List<String> alreadyScannedTasks = new ArrayList<>();
 
-        return validTasks
-                .stream()
-                .map(task -> getAuthorizationForTask(task, walletAddress))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .findFirst();
+        Optional<WorkerpoolAuthorization> authorization = Optional.empty();
+        while (authorization.isEmpty()) {
+            final Optional<Task> oTask = taskService.getFirstInitializedOrRunningTask(!isTeeEnabled, alreadyScannedTasks);
+            if (oTask.isEmpty()) {
+                // No more tasks waiting for a new replicate.
+                return Optional.empty();
+            }
+
+            final Task task = oTask.get();
+            alreadyScannedTasks.add(task.getChainTaskId());
+            authorization = getAuthorizationForTask(task, walletAddress);
+        }
+        return authorization;
     }
 
     private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {

@@ -151,38 +151,17 @@ class TaskServiceTests {
 
     @Test
     void shouldGetInitializedOrRunningTasks() {
-        List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatusInAndTagNot(
+        Task task = mock(Task.class);
+        when(taskRepository.findFirstTask(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
+                eq(Collections.emptyList()),
                 eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
-                .thenReturn(tasks);
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks(false))
-                .isEqualTo(tasks);
-    }
-
-    @Test
-    void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
-        Task task1 = getStubTask(maxExecutionTime);
-        task1.setCurrentStatus(INITIALIZED);
-        task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
-
-        Task task2 = getStubTask(maxExecutionTime);
-        task2.setCurrentStatus(RUNNING);
-        task2.setContributionDeadline(Date.from(Instant.now().plus(3, ChronoUnit.MINUTES)));
-
-        List<Task> tasks = Arrays.asList(task2, task1);
-
-        when(taskRepository.findByCurrentStatusInAndTagNot(
-                eq(Arrays.asList(INITIALIZED, RUNNING)),
-                any(),
-                eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
-                .thenReturn(tasks);
-
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks(false))
-                .isEqualTo(tasks);
+                .thenReturn(Optional.of(task));
+        Assertions.assertThat(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+                .get()
+                .isEqualTo(task);
     }
 
     @Test

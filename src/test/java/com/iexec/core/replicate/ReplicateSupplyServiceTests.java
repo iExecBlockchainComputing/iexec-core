@@ -121,7 +121,7 @@ class ReplicateSupplyServiceTests {
     @Test
     void shouldNotGetReplicateSinceNoRunningTask() {
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(false)).thenReturn(new ArrayList<>());
+        when(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList())).thenReturn(Optional.empty());
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
         assertThat(oAuthorization).isEmpty();
@@ -147,8 +147,8 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
@@ -184,8 +184,8 @@ class ReplicateSupplyServiceTests {
         completedTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(completedTask));
@@ -212,10 +212,11 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         workerCanWorkAndHasGas(WALLET_WORKER_2);
-        when(taskService.getInitializedOrRunningTasks())
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
@@ -248,8 +249,8 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         workerCanWorkAndHasGas(WALLET_WORKER_2);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
@@ -305,8 +306,8 @@ class ReplicateSupplyServiceTests {
         );
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -348,8 +349,8 @@ class ReplicateSupplyServiceTests {
 
         // Try to see if a replicate of the task can be scheduled on worker2
         workerCanWorkAndHasGas(WALLET_WORKER_2);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -382,8 +383,8 @@ class ReplicateSupplyServiceTests {
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(false))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -422,6 +423,7 @@ class ReplicateSupplyServiceTests {
         taskDeadlineReached.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
         taskDeadlineReached.changeStatus(RUNNING);
         taskDeadlineReached.setTag(NO_TEE_TAG);
+        taskDeadlineReached.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
@@ -431,7 +433,10 @@ class ReplicateSupplyServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, List.of(replicate));
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true)).thenReturn(List.of(task1, taskDeadlineReached));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(task1));
+        when(taskService.getFirstInitializedOrRunningTask(true, List.of(CHAIN_TASK_ID)))
+                .thenReturn(Optional.of(taskDeadlineReached));
         doNothing().when(contributionTimeoutTaskDetector).detect();
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task1));
@@ -439,8 +444,6 @@ class ReplicateSupplyServiceTests {
 
         replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
-        // the call should only happen once over the two tasks
-        Mockito.verify(contributionTimeoutTaskDetector).detect();
         Mockito.verify(taskUpdateManager).isConsensusReached(replicatesList);
     }
 
@@ -462,8 +465,8 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -499,8 +502,8 @@ class ReplicateSupplyServiceTests {
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(true))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -539,8 +542,8 @@ class ReplicateSupplyServiceTests {
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(false))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
@@ -575,8 +578,8 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(false))
-                .thenReturn(Collections.emptyList());
+        when(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+                .thenReturn(Optional.empty());
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
 
@@ -609,8 +612,8 @@ class ReplicateSupplyServiceTests {
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getInitializedOrRunningTasks(false))
-                .thenReturn(Collections.singletonList(runningTask));
+        when(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
