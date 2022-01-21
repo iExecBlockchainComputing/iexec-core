@@ -34,6 +34,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.tools.ContextualLock;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,6 +78,7 @@ class ReplicateSupplyServiceTests {
     @Mock private WorkerService workerService;
     @Mock private Web3jService web3jService;
     @Mock private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
+    @Spy private ContextualLock<String> taskAccessForNewReplicateLock = new ContextualLock<>(LONGEST_TASK_TIMEOUT);
 
     @Spy
     @InjectMocks
@@ -84,6 +87,7 @@ class ReplicateSupplyServiceTests {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        replicateSupplyService.taskAccessForNewReplicateLock = taskAccessForNewReplicateLock;
     }
 
     void workerCanWorkAndHasGas(String workerAddress) {
@@ -463,16 +467,16 @@ class ReplicateSupplyServiceTests {
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
-        when(replicateSupplyService.lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID)).thenReturn(false);
+        when(taskAccessForNewReplicateLock.lockIfPossible(CHAIN_TASK_ID)).thenReturn(false);
 
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(replicateSupplyService).lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock).lockIfPossible(CHAIN_TASK_ID);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
-        Mockito.verify(replicateSupplyService, Mockito.times(1)).lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID);
-        Mockito.verify(replicateSupplyService, Mockito.times(0)).unlockTaskAccessForNewReplicate(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.times(1)).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.times(0)).unlock(CHAIN_TASK_ID);
     }
 
     @Test
@@ -580,7 +584,7 @@ class ReplicateSupplyServiceTests {
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(replicateSupplyService, Mockito.never()).lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).lockIfPossible(CHAIN_TASK_ID);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -625,13 +629,13 @@ class ReplicateSupplyServiceTests {
     }
 
     private void assertTaskAccessForNewReplicateNotDeadLocking() {
-        Mockito.verify(replicateSupplyService).lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID);
-        Mockito.verify(replicateSupplyService).unlockTaskAccessForNewReplicate(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock).unlock(CHAIN_TASK_ID);
     }
 
     private void assertTaskAccessForNewReplicateLockNeverUsed() {
-        Mockito.verify(replicateSupplyService, Mockito.never()).lockTaskAccessForNewReplicateIfPossible(CHAIN_TASK_ID);
-        Mockito.verify(replicateSupplyService, Mockito.never()).unlockTaskAccessForNewReplicate(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).unlock(CHAIN_TASK_ID);
     }
 
     // Tests on getMissedTaskNotifications()

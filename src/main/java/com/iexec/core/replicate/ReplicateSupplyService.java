@@ -24,7 +24,6 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskAbortCause;
-import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.contribution.ConsensusHelper;
@@ -33,15 +32,14 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.tools.ContextualLock;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -59,12 +57,8 @@ public class ReplicateSupplyService {
     private final Web3jService web3jService;
     private final ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
-    private final ContextualLockRunner<String> newReplicateLockRunner =
-            new ContextualLockRunner<>(1, TimeUnit.MINUTES);
-    private final Map<String, Boolean> taskAccessForNewReplicateLock =
-            ExpiringMap.builder()
-                    .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
-                    .build();
+    ContextualLock<String> taskAccessForNewReplicateLock
+            = new ContextualLock<>(LONGEST_TASK_TIMEOUT);
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -187,14 +181,14 @@ public class ReplicateSupplyService {
             return false;
         }
 
-        if (!lockTaskAccessForNewReplicateIfPossible(chainTaskId)) {
+        if (!taskAccessForNewReplicateLock.lockIfPossible(chainTaskId)) {
             return false;
         }
 
         // no need to go further if the consensus is already reached on-chain
         // the task should be updated since the consensus is reached but it is still in RUNNING status
         if (taskUpdateManager.isConsensusReached(replicatesList)) {
-            unlockTaskAccessForNewReplicate(chainTaskId);
+            taskAccessForNewReplicateLock.unlock(chainTaskId);
             taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
             return false;
         }
@@ -210,12 +204,12 @@ public class ReplicateSupplyService {
         if (upToDateTask.isEmpty()
                 || !TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
                 || !taskNeedsMoreContributions) {
-            unlockTaskAccessForNewReplicate(chainTaskId);
+            taskAccessForNewReplicateLock.unlock(chainTaskId);
             return false;
         }
 
         replicatesService.addNewReplicate(chainTaskId, walletAddress);
-        unlockTaskAccessForNewReplicate(chainTaskId);
+        taskAccessForNewReplicateLock.unlock(chainTaskId);
         workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
         return true;
@@ -524,34 +518,4 @@ public class ReplicateSupplyService {
                 return TaskAbortCause.UNKNOWN;
         }
     }
-
-    // region Locking access to task for new replicate
-    /**
-     * Locks a task access for a new replicate if no other worker
-     * is already trying to create a replicate on that task.
-     * This method is synchronized on {@code chainTaskId}.
-     *
-     * @param chainTaskId ID of the task to lock access on.
-     * @return {@literal true} if the lock has been acquired,
-     * {@literal false} otherwise.
-     */
-    boolean lockTaskAccessForNewReplicateIfPossible(String chainTaskId) {
-        // There could have been some race condition there without synchronization.
-        return newReplicateLockRunner.getWithLock(chainTaskId, () -> {
-            if (Boolean.TRUE.equals(taskAccessForNewReplicateLock.getOrDefault(chainTaskId, false))) {
-                return false;
-            }
-            setTaskAccessForNewReplicateLock(chainTaskId, true);
-            return true;
-        });
-    }
-
-    void unlockTaskAccessForNewReplicate(String chainTaskId) {
-        setTaskAccessForNewReplicateLock(chainTaskId, false);
-    }
-
-    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
-        taskAccessForNewReplicateLock.put(chainTaskId, isTaskBeingAccessedForNewReplicate);
-    }
-    // endregion
 }
