@@ -48,7 +48,7 @@ public class SmsService {
         String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
         if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
-            log.error("An error occured while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
+            log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
 
