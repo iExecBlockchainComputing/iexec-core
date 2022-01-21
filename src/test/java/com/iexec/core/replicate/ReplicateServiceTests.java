@@ -700,9 +700,17 @@ class ReplicateServiceTests {
 
         // Without any synchronization mechanism,
         // this would update between 1 and 10 times to `REVEALED`.
-        IntStream.range(0, 10)
-                .parallel()
-                .forEach(i -> replicatesService.updateReplicateStatusWithoutThreadSafety(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS));
+        // Or this could throw a `ConcurrentModificationException`
+        // on `Replicate#containsStatus` call.
+        try {
+            IntStream.range(0, 10)
+                    .parallel()
+                    .forEach(i -> replicatesService.updateReplicateStatusWithoutThreadSafety(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, UPDATE_ARGS));
+        } catch (ConcurrentModificationException e) {
+            System.out.println("Concurrent modification detected," +
+                    " thread safety is effectively not met.");
+            return;
+        }
 
         final long revealedUpdateCount = replicate.getStatusUpdateList()
                 .stream()
