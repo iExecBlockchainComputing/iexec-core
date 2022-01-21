@@ -216,8 +216,15 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    final String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
-                    task.setEnclaveChallenge(enclaveChallenge);
+                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+                    if (enclaveChallenge.isEmpty()) {
+                        log.error("Can't initialize task, enclave challenge is empty" +
+                                " [chainTaskId:{}]", chainTaskId);
+                        updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+                        updateTask(chainTaskId);
+                        return;
+                    }
+                    task.setEnclaveChallenge(enclaveChallenge.get());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
                     updateTask(task.getChainTaskId());

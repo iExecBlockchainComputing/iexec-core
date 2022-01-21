@@ -9,6 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Optional;
+
 import static org.mockito.Mockito.*;
 
 class SmsServiceTests {
@@ -31,16 +33,18 @@ class SmsServiceTests {
         String expected = "challenge";
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
         
-        String received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
         verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
-        Assertions.assertThat(received).isEqualTo(expected);
+        Assertions.assertThat(received)
+                .get()
+                .isEqualTo(expected);
     }
 
     @Test
     void shouldNotGetEnclaveChallengeForTeeTaskWhenNullSmsResponse() {
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(null);
-        
-        String received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
+
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
         verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
         Assertions.assertThat(received).isEmpty();
     }
@@ -48,6 +52,7 @@ class SmsServiceTests {
     @Test
     void shouldGetEmptyAddressForStandardTask() {
         Assertions.assertThat(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false))
+                .get()
                 .isEqualTo(BytesUtils.EMPTY_ADDRESS);
         verify(smsClient, never()).generateTeeChallenge(anyString());
     }

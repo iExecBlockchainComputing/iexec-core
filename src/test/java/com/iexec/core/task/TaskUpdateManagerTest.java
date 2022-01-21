@@ -331,6 +331,31 @@ class TaskUpdateManagerTest {
     }
 
     @Test
+    void shouldUpdateInitializing2InitializeFailedSinceEnclaveChallengeIsEmpty() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTask(task.getChainTaskId());
+
+        assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
     void shouldUpdateReceived2Initializing2Initialized() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
@@ -348,7 +373,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
