@@ -129,8 +129,9 @@ public class ReplicateSupplyService {
         for (Task task : validTasks) {
             String chainTaskId = task.getChainTaskId();
             final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
-            // If there's no replicatesList, the task is probably not initialized.
-            // FYI: initialized but not-yet-running tasks will have a defined ReplicateList with size == 0.
+            // Check is only here to prevent
+            // "`Optional.get()` without `isPresent()` warning".
+            // This case should not happen.
             if (oReplicatesList.isEmpty()) {
                 continue;
             }

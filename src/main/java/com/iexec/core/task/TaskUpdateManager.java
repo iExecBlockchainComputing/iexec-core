@@ -249,8 +249,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                                 task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
                         task.setInitializationBlockNumber(task.getDealBlockNumber());
-                        updateTaskStatusAndSave(task, INITIALIZED, null);
                         replicatesService.createEmptyReplicateList(task.getChainTaskId());
+                        updateTaskStatusAndSave(task, INITIALIZED, null);
                         return;
                     }
                     log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]",
