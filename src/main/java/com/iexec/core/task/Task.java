@@ -95,6 +95,7 @@ public class Task {
     private String resultLink;
     private String chainCallbackData;
     private List<TaskStatusChange> dateStatusList;
+    private String enclaveChallenge;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;

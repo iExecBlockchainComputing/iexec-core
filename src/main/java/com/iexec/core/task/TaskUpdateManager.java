@@ -25,6 +25,7 @@ import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.*;
 import com.iexec.core.task.update.TaskUpdateRequestConsumer;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
@@ -54,6 +55,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
+    private final SmsService smsService;
 
     public TaskUpdateManager(TaskService taskService,
                              TaskRepository taskRepository,
@@ -62,7 +64,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                              ReplicatesService replicatesService,
                              ApplicationEventPublisher applicationEventPublisher,
                              WorkerService workerService,
-                             BlockchainAdapterService blockchainAdapterService) {
+                             BlockchainAdapterService blockchainAdapterService,
+                             SmsService smsService) {
         this.taskService = taskService;
         this.taskRepository = taskRepository;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
@@ -71,6 +74,7 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
         this.applicationEventPublisher = applicationEventPublisher;
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
+        this.smsService = smsService;
         this.taskUpdateRequestManager.setRequestConsumer(this);
     }
 
@@ -212,6 +216,8 @@ public class TaskUpdateManager implements TaskUpdateRequestConsumer  {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
+                    final String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+                    task.setEnclaveChallenge(enclaveChallenge);
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
                     updateTask(task.getChainTaskId());

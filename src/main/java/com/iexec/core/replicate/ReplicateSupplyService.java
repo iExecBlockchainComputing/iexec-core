@@ -170,8 +170,7 @@ public class ReplicateSupplyService {
                     task.getMaxExecutionTime());
 
             if (taskNeedsMoreContributions) {
-                boolean isTeeTask = task.isTeeTask();
-                String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, isTeeTask);
+                final String enclaveChallenge = task.getEnclaveChallenge();
                 if (enclaveChallenge.isEmpty()) {
                     taskService.unlockTaskAccessForNewReplicate(chainTaskId);//avoid dead lock
                     continue;
@@ -214,7 +213,7 @@ public class ReplicateSupplyService {
             if (!isRecoverable) {
                 continue;
             }
-            String enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+            String enclaveChallenge = task.getEnclaveChallenge();
             if (task.isTeeTask() && enclaveChallenge.isEmpty()) {
                 continue;
             }

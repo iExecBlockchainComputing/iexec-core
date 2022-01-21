@@ -20,6 +20,7 @@ import com.iexec.common.chain.*;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -29,6 +30,7 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
@@ -90,6 +92,9 @@ class TaskUpdateManagerTest {
 
     @Mock
     private TaskUpdateRequestManager taskUpdateRequestManager;
+
+    @Mock
+    private SmsService smsService;
 
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
@@ -343,6 +348,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
@@ -350,6 +356,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
     }
 
     // Tests on initializing2Initialized transition

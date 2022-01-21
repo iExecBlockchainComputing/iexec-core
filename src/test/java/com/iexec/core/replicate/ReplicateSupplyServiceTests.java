@@ -375,6 +375,7 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge("");
 
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
@@ -386,7 +387,6 @@ class ReplicateSupplyServiceTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(false);
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
@@ -394,7 +394,6 @@ class ReplicateSupplyServiceTests {
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(replicatesService, Mockito.never()).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verify(workerService, Mockito.never()).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
-        Mockito.verify(smsService).getEnclaveChallenge(CHAIN_TASK_ID, true);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
         assertTaskAccessForNewReplicateNotDeadLocking();
     }
@@ -491,6 +490,7 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
@@ -502,7 +502,6 @@ class ReplicateSupplyServiceTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(false);
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(BytesUtils.EMPTY_ADDRESS);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(new WorkerpoolAuthorization());
 
@@ -532,6 +531,7 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
@@ -543,7 +543,6 @@ class ReplicateSupplyServiceTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(false);
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
 
@@ -603,6 +602,7 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
@@ -614,7 +614,6 @@ class ReplicateSupplyServiceTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
         when(taskService.isTaskBeingAccessedForNewReplicate(CHAIN_TASK_ID)).thenReturn(false);
         when(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(false);
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn(ENCLAVE_CHALLENGE);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
 
@@ -659,13 +658,13 @@ class ReplicateSupplyServiceTests {
 
         List<String> ids = List.of(CHAIN_TASK_ID);
         Task teeTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        teeTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
         Optional<Replicate> noTeeReplicate = getStubReplicate(ReplicateStatus.COMPUTING);
         teeTask.setTag(TEE_TAG);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(List.of(teeTask));
         when(replicatesService.getReplicate(any(), any())).thenReturn(noTeeReplicate);
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
         List<TaskNotification> taskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
