@@ -143,13 +143,9 @@ public class ReplicateSupplyService {
 
     private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {
         String chainTaskId = task.getChainTaskId();
-        if (!canWorkerAcceptTask(task, walletAddress)) {
+        if (!acceptOrRejectTask(task, walletAddress)) {
             return Optional.empty();
         }
-
-        replicatesService.addNewReplicate(chainTaskId, walletAddress);
-        unlockTaskAccessForNewReplicate(chainTaskId);
-        workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
         // generate contribution authorization
         final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
@@ -159,7 +155,17 @@ public class ReplicateSupplyService {
         return Optional.of(authorization);
     }
 
-    private boolean canWorkerAcceptTask(Task task, String walletAddress) {
+    /**
+     * Given a {@link Task} and a {@code walletAddress} of a worker,
+     * tries to accept the task - i.e. create a new {@link Replicate}
+     * for that task on that worker.
+     *
+     * @param task  {@link Task} needing at least one new {@link Replicate}.
+     * @param walletAddress Wallet address of a worker looking for new {@link Task}.
+     * @return {@literal true} if the task has been accepted,
+     * {@literal false} otherwise.
+     */
+    private boolean acceptOrRejectTask(Task task, String walletAddress) {
         if (task.getEnclaveChallenge().isEmpty()) {
             return false;
         }
@@ -175,14 +181,21 @@ public class ReplicateSupplyService {
 
         final ReplicatesList replicatesList = oReplicatesList.get();
 
-        // no need to go further if the consensus is already reached on-chain
-        // the task should be updated since the consensus is reached but it is still in RUNNING status
-        if (taskUpdateManager.isConsensusReached(replicatesList)) {
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+        final boolean hasWorkerAlreadyParticipated =
+                replicatesService.hasWorkerAlreadyParticipated(replicatesList, walletAddress);
+        if (hasWorkerAlreadyParticipated) {
             return false;
         }
 
         if (!lockTaskAccessForNewReplicateIfPossible(chainTaskId)) {
+            return false;
+        }
+
+        // no need to go further if the consensus is already reached on-chain
+        // the task should be updated since the consensus is reached but it is still in RUNNING status
+        if (taskUpdateManager.isConsensusReached(replicatesList)) {
+            unlockTaskAccessForNewReplicate(chainTaskId);
+            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
             return false;
         }
 
@@ -196,11 +209,14 @@ public class ReplicateSupplyService {
 
         if (upToDateTask.isEmpty()
                 || !TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
-                || !taskNeedsMoreContributions
-                || replicatesService.hasWorkerAlreadyParticipated(replicatesList, walletAddress)) {
+                || !taskNeedsMoreContributions) {
             unlockTaskAccessForNewReplicate(chainTaskId);
             return false;
         }
+
+        replicatesService.addNewReplicate(chainTaskId, walletAddress);
+        unlockTaskAccessForNewReplicate(chainTaskId);
+        workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
         return true;
     }

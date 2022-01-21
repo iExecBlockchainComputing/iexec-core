@@ -256,7 +256,7 @@ class ReplicateSupplyServiceTests {
         assertThat(oAuthorization).isEmpty();
         Mockito.verify(taskUpdateManager).isConsensusReached(replicatesList);
         Mockito.verifyNoInteractions(signatureService);
-        assertTaskAccessForNewReplicateLockNeverUsed();
+        assertTaskAccessForNewReplicateNotDeadLocking();
     }
 
     @Test
@@ -312,7 +312,7 @@ class ReplicateSupplyServiceTests {
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
-        assertTaskAccessForNewReplicateNotDeadLocking();
+        assertTaskAccessForNewReplicateLockNeverUsed();
         Mockito.verify(replicatesService).hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
     }
