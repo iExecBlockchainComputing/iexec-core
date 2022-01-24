@@ -152,14 +152,14 @@ class TaskServiceTests {
     @Test
     void shouldGetInitializedOrRunningTasks() {
         Task task = mock(Task.class);
-        when(taskRepository.findFirstTask(
+        when(taskRepository.findPrioritizedTask(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
                 eq(Collections.emptyList()),
                 eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
                 .thenReturn(Optional.of(task));
-        Assertions.assertThat(taskService.getFirstInitializedOrRunningTask(false, Collections.emptyList()))
+        Assertions.assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .get()
                 .isEqualTo(task);
     }

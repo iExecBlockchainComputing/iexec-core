@@ -135,7 +135,10 @@ public class ReplicateSupplyService {
 
         Optional<WorkerpoolAuthorization> authorization = Optional.empty();
         while (authorization.isEmpty()) {
-            final Optional<Task> oTask = taskService.getFirstInitializedOrRunningTask(!isTeeEnabled, alreadyScannedTasks);
+            final Optional<Task> oTask = taskService.getPrioritizedInitializedOrRunningTask(
+                    !isTeeEnabled,
+                    alreadyScannedTasks
+            );
             if (oTask.isEmpty()) {
                 // No more tasks waiting for a new replicate.
                 return Optional.empty();

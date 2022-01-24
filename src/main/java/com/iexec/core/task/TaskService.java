@@ -123,13 +123,13 @@ public class TaskService {
      * or {@link TaskStatus#RUNNING},
      * or {@link Optional#empty()} if no task meets the requirements.
      */
-    public Optional<Task> getFirstInitializedOrRunningTask(
+    public Optional<Task> getPrioritizedInitializedOrRunningTask(
             boolean shouldExcludeTeeTasks,
             List<String> excludedChainTaskIds) {
         final String excludedTag = shouldExcludeTeeTasks
                 ? TeeUtils.TEE_TAG
                 : null;
-        return taskRepository.findFirstTask(
+        return taskRepository.findPrioritizedTask(
                 Arrays.asList(INITIALIZED, RUNNING),
                 excludedTag,
                 excludedChainTaskIds,
