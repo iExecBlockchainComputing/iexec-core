@@ -112,7 +112,7 @@ public class ReplicateSupplyService {
         }
         Worker worker = optional.get();
 
-        return getAuthorizationForAnyTask(
+        return getAuthorizationForAnyAvailableTask(
                 walletAddress,
                 worker.isTeeEnabled()
         );
@@ -128,7 +128,7 @@ public class ReplicateSupplyService {
      * if any {@link Task} is available and can be handled by this worker,
      * {@link Optional#empty()} otherwise.
      */
-    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyTask(
+    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyAvailableTask(
             String walletAddress,
             boolean isTeeEnabled) {
         final List<String> alreadyScannedTasks = new ArrayList<>();
@@ -198,32 +198,28 @@ public class ReplicateSupplyService {
             return false;
         }
 
-        // no need to go further if the consensus is already reached on-chain
-        // the task should be updated since the consensus is reached but it is still in RUNNING status
-        if (taskUpdateManager.isConsensusReached(replicatesList)) {
+        try {
+            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
+            final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
+                    chainTaskId,
+                    replicatesList.getReplicates(),
+                    task.getTrust(),
+                    task.getMaxExecutionTime());
+
+            if (upToDateTask.isEmpty()
+                    || !taskNeedsMoreContributions
+                    || taskUpdateManager.isConsensusReached(replicatesList)) {
+                return false;
+            }
+
+            replicatesService.addNewReplicate(chainTaskId, walletAddress);
+            workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
+        } finally {
+            // We should always unlock the task
+            // so that it could be taken by another replicate
+            // if there's any issue.
             taskAccessForNewReplicateLock.unlock(chainTaskId);
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
-            return false;
         }
-
-        // Check if task is still in contribution phase with INITIALIZED or RUNNING status
-        Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
-        final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
-                chainTaskId,
-                replicatesList.getReplicates(),
-                task.getTrust(),
-                task.getMaxExecutionTime());
-
-        if (upToDateTask.isEmpty()
-                || !TaskStatus.isInContributionPhase(upToDateTask.get().getCurrentStatus())
-                || !taskNeedsMoreContributions) {
-            taskAccessForNewReplicateLock.unlock(chainTaskId);
-            return false;
-        }
-
-        replicatesService.addNewReplicate(chainTaskId, walletAddress);
-        taskAccessForNewReplicateLock.unlock(chainTaskId);
-        workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
 
         return true;
     }

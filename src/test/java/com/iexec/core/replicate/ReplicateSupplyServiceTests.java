@@ -161,43 +161,6 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    void shouldNotGetReplicateWhenTaskNoMoreInitializedOrRunning() {
-        Worker existingWorker = Worker.builder()
-                .id("1")
-                .walletAddress(WALLET_WORKER_1)
-                .cpuNb(4)
-                .teeEnabled(false)
-                .lastAliveDate(new Date())
-                .build();
-
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
-        runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
-        runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
-
-        Task completedTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
-        completedTask.setMaxExecutionTime(maxExecutionTime);
-        completedTask.changeStatus(CONSENSUS_REACHED);
-        completedTask.setTag(NO_TEE_TAG);
-        completedTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
-
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getFirstInitializedOrRunningTask(true, Collections.emptyList()))
-                .thenReturn(Optional.of(runningTask));
-        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
-        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
-        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(completedTask));
-
-        Optional<WorkerpoolAuthorization> oAuthorization =
-                replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
-        assertThat(oAuthorization).isEmpty();
-        Mockito.verify(taskService).getTaskByChainTaskId(CHAIN_TASK_ID);
-        Mockito.verifyNoInteractions(signatureService);
-    }
-
-    @Test
     void shouldNotGetReplicateSinceNoReplicatesList() {
         Worker worker = Worker.builder()
                 .id("1")
@@ -238,7 +201,9 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .lastAliveDate(new Date())
                 .build();
-        List<Replicate> replicates = List.of(new Replicate());
+        final Replicate replicate = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
+        List<Replicate> replicates = List.of(replicate);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, replicates);
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -443,8 +408,6 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
-
-        Mockito.verify(taskUpdateManager).isConsensusReached(replicatesList);
     }
 
     @Test
