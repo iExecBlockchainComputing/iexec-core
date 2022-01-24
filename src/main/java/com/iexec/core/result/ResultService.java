@@ -69,7 +69,7 @@ public class ResultService {
     // TODO Move this to common since widely used by all iexec services
     private String getResultProxyToken() {
         Optional<Eip712Challenge> oEip712Challenge = getChallenge();
-        if (!oEip712Challenge.isPresent()) {
+        if (oEip712Challenge.isEmpty()) {
             return "";
         }
 

@@ -43,7 +43,7 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-/**
+/*
  * We need this index to make sure that we don't
  * add two tasks with the same combination:
  * (chainDealId + taskIndex).
@@ -136,7 +136,7 @@ public class Task {
 
     public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
         Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
-        if (!consensusReachedDate.isPresent()){
+        if (consensusReachedDate.isEmpty()){
             return false;
         }
         Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.maxExecutionTime);

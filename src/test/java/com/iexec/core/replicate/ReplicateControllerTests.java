@@ -22,7 +22,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class ReplicateControllerTests {
+class ReplicateControllerTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET_ADDRESS = "walletAddress";
@@ -52,14 +52,14 @@ public class ReplicateControllerTests {
     private ReplicatesController replicatesController;
 
     @BeforeEach
-    public void setup() {
-        MockitoAnnotations.initMocks(this);
+    void setup() {
+        MockitoAnnotations.openMocks(this);
     }
 
     // available replicate
 
     @Test
-    public void shouldGetAvailableReplicate() {
+    void shouldGetAvailableReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
@@ -77,7 +77,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotGetAvailableReplicateSinceNotAuthorizedToken() {
+    void shouldNotGetAvailableReplicateSinceNotAuthorizedToken() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
 
@@ -88,7 +88,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotGetAvailableReplicateSinceNotAllowed() {
+    void shouldNotGetAvailableReplicateSinceNotAllowed() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
@@ -101,7 +101,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotGetAvailableReplicateSinceNoReplicateAvailable() {
+    void shouldNotGetAvailableReplicateSinceNoReplicateAvailable() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
@@ -119,7 +119,7 @@ public class ReplicateControllerTests {
     // interrupted replicate
 
     @Test
-    public void shouldGetMissedNotifications() {
+    void shouldGetMissedNotifications() {
         TaskNotification notification = TaskNotification.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .build();
@@ -138,7 +138,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotGetMissedNotificationsSinceUnauthorized() {
+    void shouldNotGetMissedNotificationsSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
 
@@ -149,7 +149,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldGetEmptyMissedNotifications() {
+    void shouldGetEmptyMissedNotifications() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicateSupplyService
@@ -167,7 +167,7 @@ public class ReplicateControllerTests {
     // update replicate
 
     @Test
-    public void shouldUpdateReplicate() {
+    void shouldUpdateReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
@@ -187,7 +187,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateSinceUnauthorized() {
+    void shouldNotUpdateReplicateSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
         
@@ -198,7 +198,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldNotUpdateReplicateSinceForbidden() {
+    void shouldNotUpdateReplicateSinceForbidden() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
@@ -213,7 +213,7 @@ public class ReplicateControllerTests {
     }
 
     @Test
-    public void shouldReply208AlreadyReported() {
+    void shouldReply208AlreadyReported() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))

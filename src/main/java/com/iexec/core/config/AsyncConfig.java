@@ -51,7 +51,7 @@ public class AsyncConfig implements AsyncConfigurer {
         return new Handler();
     }
 
-    private class Handler implements AsyncUncaughtExceptionHandler {
+    private static class Handler implements AsyncUncaughtExceptionHandler {
 
         @Override
         public void handleUncaughtException(

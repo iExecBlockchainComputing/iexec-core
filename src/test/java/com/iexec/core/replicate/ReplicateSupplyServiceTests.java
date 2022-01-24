@@ -86,8 +86,8 @@ class ReplicateSupplyServiceTests {
     private ReplicateSupplyService replicateSupplyService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     void workerCanWorkAndHasGas(String workerAddress) {
@@ -601,18 +601,18 @@ class ReplicateSupplyServiceTests {
     @Test
     void shouldNotGetInterruptedReplicateSinceEnclaveChallengeNeededButNotGenerated() {
 
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         Task teeTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
         Optional<Replicate> noTeeReplicate = getStubReplicate(ReplicateStatus.COMPUTING);
         teeTask.setTag(TEE_TAG);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
-        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(Arrays.asList(teeTask));
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(List.of(teeTask));
         when(replicatesService.getReplicate(any(), any())).thenReturn(noTeeReplicate);
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, true)).thenReturn("");
 
         List<TaskNotification> taskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(taskNotifications).isEmpty();
 
@@ -624,7 +624,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
     void shouldTellReplicateToContributeWhenComputing() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.COMPUTING);
 
@@ -635,7 +635,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -648,7 +648,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
     void shouldTellReplicateToContributeSinceNotDoneOnchain() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.CONTRIBUTING);
 
@@ -662,7 +662,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -678,7 +678,7 @@ class ReplicateSupplyServiceTests {
     void shouldTellReplicateToWaitSinceContributedOnchain() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
@@ -714,7 +714,7 @@ class ReplicateSupplyServiceTests {
     void shouldTellReplicateToRevealSinceConsensusReached() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.CONTRIBUTED);
@@ -748,7 +748,7 @@ class ReplicateSupplyServiceTests {
     // any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
     void shouldTellReplicateToAbortSinceContributionTimeout() {
         long blockNumber = 3;
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.CONTRIBUTION_TIMEOUT);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
 
@@ -775,7 +775,7 @@ class ReplicateSupplyServiceTests {
     // !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
     void shouldTellReplicateToWaitSinceConsensusReachedAndItDidNotContribute() {
         long blockNumber = 3;
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.CONSENSUS_REACHED);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.STARTING);
 
@@ -802,7 +802,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceContributed() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.CONTRIBUTED);
 
@@ -813,7 +813,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -826,7 +826,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // REVEALING + !onChain => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceNotDoneOnchain() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALING);
 
@@ -840,7 +840,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -856,7 +856,7 @@ class ReplicateSupplyServiceTests {
     void shouldTellReplicateToWaitSinceRevealed() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.REVEALED);
@@ -895,7 +895,7 @@ class ReplicateSupplyServiceTests {
     void shouldTellReplicateToUploadResultSinceRequestedAfterRevealing() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
         Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.REVEALING);
         Optional<Replicate> replicate2 = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
@@ -930,7 +930,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceRequested() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
 
@@ -941,7 +941,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -954,7 +954,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceNotDoneYet() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADING);
 
@@ -967,7 +967,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -981,7 +981,7 @@ class ReplicateSupplyServiceTests {
     // RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
     //                            RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceDetectedResultUpload() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADING);
 
@@ -994,7 +994,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1010,7 +1010,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // RESULT_UPLOADED => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceItUploadedResult() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.RESULT_UPLOADED);
 
@@ -1023,7 +1023,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1039,7 +1039,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // REVEALED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealed() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
 
@@ -1052,7 +1052,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1065,7 +1065,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealedAndUploaded() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
         replicate.get().updateStatus(ReplicateStatus.RESULT_UPLOADED, ReplicateStatusModifier.POOL_MANAGER);
@@ -1080,7 +1080,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1092,7 +1092,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldTellReplicateToCompleteSinceItRevealed() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALED);
         Task completedTask = Task.builder()
@@ -1110,7 +1110,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isNotEmpty();
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
@@ -1123,7 +1123,7 @@ class ReplicateSupplyServiceTests {
     @Test
     // !REVEALED + Task in completion phase => null / nothing
     void shouldNotTellReplicateToWaitForCompletionSinceItDidNotReveal() {
-        List<String> ids = Arrays.asList(CHAIN_TASK_ID);
+        List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
         Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.REVEALING);
 
@@ -1134,7 +1134,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(getStubAuth());
 
         List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3l, WALLET_WORKER_1);
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
 
         assertThat(missedTaskNotifications).isEmpty();
 
@@ -1148,14 +1148,14 @@ class ReplicateSupplyServiceTests {
                 .currentStatus(status)
                 .build();
 
-        return Arrays.asList(task);
+        return List.of(task);
     }
 
     Optional<Replicate> getStubReplicate(ReplicateStatus status) {
         Replicate replicate = new Replicate();
         replicate.setWalletAddress(WALLET_WORKER_1);
         replicate.setChainTaskId(CHAIN_TASK_ID);
-        replicate.setStatusUpdateList(new ArrayList<ReplicateStatusUpdate>());
+        replicate.setStatusUpdateList(new ArrayList<>());
         replicate.updateStatus(status, ReplicateStatusModifier.WORKER);
         return Optional.of(replicate);
     }

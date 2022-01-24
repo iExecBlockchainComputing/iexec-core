@@ -7,6 +7,7 @@ spring:
       database: iexec
       host: ${MONGO_HOST:localhost}
       port: ${MONGO_PORT:13002}
+      auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
 mongock:
   runner-type: InitializingBean
   change-logs-scan-package:
@@ -94,3 +95,7 @@ graylog:
 stdout:
   purge-rate-in-days: ${IEXEC_STDOUT_PURGE_RATE_IN_DAYS:1}
   availability-period-in-days: ${IEXEC_STDOUT_AVAILABILITY_PERIOD_IN_DAYS:3}
+
+springdoc:
+  packagesToScan: com.iexec.core
+  pathsToMatch: /**

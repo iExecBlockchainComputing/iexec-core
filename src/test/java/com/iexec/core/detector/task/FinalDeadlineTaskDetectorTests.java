@@ -50,8 +50,8 @@ class FinalDeadlineTaskDetectorTests {
     private FinalDeadlineTaskDetector finalDeadlineTaskDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     private Task getTask() {
@@ -61,7 +61,7 @@ class FinalDeadlineTaskDetectorTests {
     }
 
     @Test
-    public void shouldDetectTaskAfterFinalDeadline() {
+    void shouldDetectTaskAfterFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
 
@@ -74,7 +74,7 @@ class FinalDeadlineTaskDetectorTests {
     }
 
     @Test
-    public void shouldDetectTaskBeforeFinalDeadline() {
+    void shouldDetectTaskBeforeFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
 

@@ -38,7 +38,7 @@ import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
-public class RevealUnnotifiedDetectorTests {
+class RevealUnnotifiedDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
     private final static String WALLET_ADDRESS = "0x1";
@@ -64,13 +64,13 @@ public class RevealUnnotifiedDetectorTests {
     private RevealUnnotifiedDetector revealDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     // Detector aggregator
     @Test
-    public void shouldDetectBothChangesOnChain() {
+    void shouldDetectBothChangesOnChain() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -98,7 +98,7 @@ public class RevealUnnotifiedDetectorTests {
     //Detector#1 after contributing
 
     @Test
-    public void shouldDetectUnNotifiedRevealedAfterRevealing() {
+    void shouldDetectUnNotifiedRevealedAfterRevealing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -122,7 +122,7 @@ public class RevealUnnotifiedDetectorTests {
     }
 
     @Test
-    public void shouldDetectUnNotifiedRevealedAfterRevealingSinceBeforeRevealing() {
+    void shouldDetectUnNotifiedRevealedAfterRevealingSinceBeforeRevealing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -140,7 +140,7 @@ public class RevealUnnotifiedDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectUnNotifiedRevealedAfterRevealingSinceNotRevealedOnChain() {
+    void shouldNotDetectUnNotifiedRevealedAfterRevealingSinceNotRevealedOnChain() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -160,7 +160,7 @@ public class RevealUnnotifiedDetectorTests {
     //Detector#2
 
     @Test
-    public void shouldDetectUnNotifiedRevealed1() {
+    void shouldDetectUnNotifiedRevealed1() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -184,7 +184,7 @@ public class RevealUnnotifiedDetectorTests {
     }
 
     @Test
-    public void shouldDetectUnNotifiedRevealed2() {
+    void shouldDetectUnNotifiedRevealed2() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -213,7 +213,7 @@ public class RevealUnnotifiedDetectorTests {
     }
 
     @Test
-    public void shouldNotDetectUnNotifiedRevealedSinceRevealed() {
+    void shouldNotDetectUnNotifiedRevealedSinceRevealed() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingRevealStatuses())).thenReturn(Collections.singletonList(task));
 

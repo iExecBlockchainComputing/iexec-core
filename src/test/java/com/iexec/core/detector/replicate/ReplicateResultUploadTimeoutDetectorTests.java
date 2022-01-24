@@ -58,8 +58,8 @@ class ReplicateResultUploadTimeoutDetectorTests {
     private ReplicateResultUploadTimeoutDetector timeoutDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test

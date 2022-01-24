@@ -31,7 +31,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class MetricServiceTests {
+class MetricServiceTests {
 
     @Mock
     private WorkerService workerService;
@@ -42,12 +42,12 @@ public class MetricServiceTests {
     private MetricService metricService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldGetPlatformMetrics() {
+    void shouldGetPlatformMetrics() {
         List<Worker> aliveWorkers = List.of(new Worker());
         when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
         when(workerService.getAliveTotalCpu()).thenReturn(1);

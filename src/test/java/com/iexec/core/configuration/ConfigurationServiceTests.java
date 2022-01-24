@@ -31,7 +31,7 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 
-public class ConfigurationServiceTests {
+class ConfigurationServiceTests {
 
     @Mock
     private ConfigurationRepository configurationRepository;
@@ -45,10 +45,10 @@ public class ConfigurationServiceTests {
     private ConfigurationService configurationService;
 
     @BeforeEach
-    public void init() { MockitoAnnotations.initMocks(this); }
+    void init() { MockitoAnnotations.openMocks(this); }
 
     @Test
-    public void shouldGetLastSeenBlockWithDealFromDatabase() {
+    void shouldGetLastSeenBlockWithDealFromDatabase() {
         Configuration configuration = Configuration.builder()
             .lastSeenBlockWithDeal(BigInteger.TEN)
             .build();
@@ -63,7 +63,7 @@ public class ConfigurationServiceTests {
     }
 
     @Test
-    public void shouldGetZeroAsLastSeenBlockWithDeal() {
+    void shouldGetZeroAsLastSeenBlockWithDeal() {
         Configuration configuration = Configuration.builder()
             .lastSeenBlockWithDeal(BigInteger.ZERO)
             .build();
@@ -78,7 +78,7 @@ public class ConfigurationServiceTests {
     }
 
     @Test
-    public void shouldSetLastSeenBlockWithDeal() {
+    void shouldSetLastSeenBlockWithDeal() {
         Configuration configuration = Configuration.builder()
             .lastSeenBlockWithDeal(BigInteger.ONE)
             .build();
@@ -88,13 +88,13 @@ public class ConfigurationServiceTests {
         when(configurationRepository.findAll()).thenReturn(configurationList);
         when(configurationRepository.save(any())).thenReturn(configuration);
 
-        configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);;
+        configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);
 
         assertThat(configuration.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
     }
 
     @Test
-    public void shouldGetFromReplayFromDatabase() {
+    void shouldGetFromReplayFromDatabase() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
             .fromBlockNumber(BigInteger.TEN)
             .build();
@@ -109,7 +109,7 @@ public class ConfigurationServiceTests {
     }
 
     @Test
-    public void shouldGetZeroAsFromReplay() {
+    void shouldGetZeroAsFromReplay() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
             .fromBlockNumber(BigInteger.ZERO)
             .build();
@@ -124,7 +124,7 @@ public class ConfigurationServiceTests {
     }
 
     @Test
-    public void shouldSetFromReplay() {
+    void shouldSetFromReplay() {
         ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
             .fromBlockNumber(BigInteger.ONE)
             .build();
@@ -134,7 +134,7 @@ public class ConfigurationServiceTests {
         when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
         when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
 
-        configurationService.setFromReplay(BigInteger.TEN);;
+        configurationService.setFromReplay(BigInteger.TEN);
 
         assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.TEN);
     }

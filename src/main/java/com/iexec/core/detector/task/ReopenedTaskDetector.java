@@ -55,7 +55,7 @@ public class ReopenedTaskDetector implements Detector {
         log.debug("Trying to detect reopened tasks");
         for (Task task : taskService.findByCurrentStatus(TaskStatus.REOPENING)) {
             Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
-            if (!oChainTask.isPresent()) {
+            if (oChainTask.isEmpty()) {
                 continue;
             }
 
