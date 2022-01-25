@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,13 +27,15 @@ class TaskUpdateRequestManagerTests {
     @Mock
     private TaskService taskService;
 
+    @Mock
+    private TaskUpdateManager taskUpdateManager;
+
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        taskUpdateRequestManager.setRequestConsumer(taskUpdate -> {});
     }
 
     // region publishRequest()
@@ -60,7 +63,7 @@ class TaskUpdateRequestManagerTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
         taskUpdateRequestManager.queue.add(
-                buildTaskUpdate(CHAIN_TASK_ID, null, null, null, null)
+                buildTaskUpdate(CHAIN_TASK_ID, null, null, null)
         );
 
         CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
@@ -91,22 +94,26 @@ class TaskUpdateRequestManagerTests {
         final Random random = new Random();
         // Consuming a task update should only log the call a few times, while sleeping between each log
         // so that another task could be updated at the same time if authorized by lock.
-        final TaskUpdateRequestConsumer consumer = chainTaskId -> {
-            final int updateId = (int)System.nanoTime() % Integer.MAX_VALUE;
-            taskForUpdateId.put(updateId, chainTaskId);
-            for (int i = 0; i < callsPerUpdate; i++) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(random.nextInt(10));
-                } catch (InterruptedException ignored) {}
-                callsOrder.add(updateId);
-            }
-        };
         final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
                 .expiration(100, TimeUnit.HOURS)
                 .build();
+        final Consumer<String> taskUpdater = chainTaskId -> {
+            synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) {
+                final int updateId = (int) System.nanoTime() % Integer.MAX_VALUE;
+                taskForUpdateId.put(updateId, chainTaskId);
+                for (int i = 0; i < callsPerUpdate; i++) {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(random.nextInt(10));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    callsOrder.add(updateId);
+                }
+            }
+        };
 
         final List<TaskUpdate> updates = Stream.of("1", "1", "2", "2", "1")
-                .map(id -> buildTaskUpdate(id, TaskStatus.RUNNING, new Date(), locks, consumer))
+                .map(id -> buildTaskUpdate(id, TaskStatus.RUNNING, new Date(), taskUpdater))
                 .collect(Collectors.toList());
 
         updates.forEach(taskUpdateRequestManager.taskUpdateExecutor::execute);
@@ -142,11 +149,11 @@ class TaskUpdateRequestManagerTests {
     void shouldGetInOrderForStatus() throws InterruptedException {
         final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
 
-        TaskUpdate initializingTask = buildTaskUpdate(null, TaskStatus.INITIALIZING, null, null, null);
-        TaskUpdate completedTask = buildTaskUpdate(null, TaskStatus.COMPLETED, null, null, null);
-        TaskUpdate runningTask = buildTaskUpdate(null, TaskStatus.RUNNING, null, null, null);
-        TaskUpdate initializedTask = buildTaskUpdate(null, TaskStatus.INITIALIZED, null, null, null);
-        TaskUpdate consensusReachedTask = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, null, null, null);
+        TaskUpdate initializingTask = buildTaskUpdate(null, TaskStatus.INITIALIZING, null, null);
+        TaskUpdate completedTask = buildTaskUpdate(null, TaskStatus.COMPLETED, null, null);
+        TaskUpdate runningTask = buildTaskUpdate(null, TaskStatus.RUNNING, null, null);
+        TaskUpdate initializedTask = buildTaskUpdate(null, TaskStatus.INITIALIZED, null, null);
+        TaskUpdate consensusReachedTask = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, null, null);
 
         List<TaskUpdate> tasks = new ArrayList<>(
                 List.of(
@@ -181,11 +188,11 @@ class TaskUpdateRequestManagerTests {
         final Date d4 = new GregorianCalendar(2021, Calendar.JANUARY, 4).getTime();
         final Date d5 = new GregorianCalendar(2021, Calendar.JANUARY, 5).getTime();
 
-        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null, null);
-        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null, null);
-        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.RUNNING, d3, null, null);
-        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.RUNNING, d4, null, null);
-        TaskUpdate t5 = buildTaskUpdate(null, TaskStatus.RUNNING, d5, null, null);
+        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null);
+        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null);
+        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.RUNNING, d3, null);
+        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.RUNNING, d4, null);
+        TaskUpdate t5 = buildTaskUpdate(null, TaskStatus.RUNNING, d5, null);
 
         List<TaskUpdate> tasks = new ArrayList<>(List.of(t1, t2, t3, t4, t5));
         Collections.shuffle(tasks);
@@ -209,10 +216,10 @@ class TaskUpdateRequestManagerTests {
         final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
         final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
 
-        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null, null);
-        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null, null);
-        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d1, null, null);
-        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d2, null, null);
+        TaskUpdate t1 = buildTaskUpdate(null, TaskStatus.RUNNING, d1, null);
+        TaskUpdate t2 = buildTaskUpdate(null, TaskStatus.RUNNING, d2, null);
+        TaskUpdate t3 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d1, null);
+        TaskUpdate t4 = buildTaskUpdate(null, TaskStatus.CONSENSUS_REACHED, d2, null);
 
         List<TaskUpdate> tasks = new ArrayList<>(List.of(t1, t2, t3, t4));
         Collections.shuffle(tasks);
@@ -232,8 +239,7 @@ class TaskUpdateRequestManagerTests {
     private TaskUpdate buildTaskUpdate(String chainTaskId,
                                        TaskStatus status,
                                        Date contributionDeadline,
-                                       ConcurrentMap<String, Object> locks,
-                                       TaskUpdateRequestConsumer consumer) {
+                                       Consumer<String> taskUpdater) {
         return new TaskUpdate(
                 Task
                         .builder()
@@ -241,8 +247,7 @@ class TaskUpdateRequestManagerTests {
                         .currentStatus(status).
                         contributionDeadline(contributionDeadline).
                         build(),
-                locks,
-                consumer
+                taskUpdater
         );
     }
 }

@@ -22,7 +22,7 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,8 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.Optional;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
@@ -38,16 +39,16 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 public class ReplicateResultUploadTimeoutDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final ReplicatesService replicatesService;
 
     public ReplicateResultUploadTimeoutDetector(
             TaskService taskService,
-            TaskUpdateManager taskUpdateManager,
+            TaskUpdateRequestManager taskUpdateRequestManager,
             ReplicatesService replicatesService
     ) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.replicatesService = replicatesService;
     }
 
@@ -78,7 +79,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             }
 
             if (hasReplicateAlreadyFailedToUpload) {
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
                 return;
             }
 
@@ -87,7 +88,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
 
             replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
                     RESULT_UPLOAD_FAILED);
-            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+            taskUpdateRequestManager.publishRequest(task.getChainTaskId());
         }
     }
 }

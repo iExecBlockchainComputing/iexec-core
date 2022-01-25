@@ -22,7 +22,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class ContributionTimeoutTaskDetectorTests {
     private WorkerService workerService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @Spy
     @InjectMocks
@@ -71,8 +71,8 @@ class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(any());
     }
 
     @Test
@@ -93,8 +93,8 @@ class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(any());
     }
 
 
@@ -111,7 +111,7 @@ class ContributionTimeoutTaskDetectorTests {
 
         contributionDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(any());
     }
 }

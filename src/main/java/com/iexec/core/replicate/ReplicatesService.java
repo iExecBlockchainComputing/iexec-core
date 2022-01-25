@@ -577,13 +577,13 @@ public class ReplicatesService {
         }
 
         if (updateReplicateStatusArgs.getTaskDescription().containsCallback()) {
-            if (StringUtils.isEmpty(updateReplicateStatusArgs.getChainCallbackData())) {
+            if (!StringUtils.hasLength(updateReplicateStatusArgs.getChainCallbackData())) {
                 log.error("Cannot update replicate, missing chainCallbackData {}",
                         getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                 return false;
             }
         } else {
-            if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
+            if (!StringUtils.hasLength(updateReplicateStatusArgs.getResultLink())) {
                 log.error("Cannot update replicate, missing resultLink {}",
                         getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                 return false;
@@ -633,7 +633,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (StringUtils.isEmpty(chainContribution.getResultHash())) {
+        if (!StringUtils.hasLength(chainContribution.getResultHash())) {
             String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get chain contribution result hash [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);

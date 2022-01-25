@@ -19,7 +19,7 @@ package com.iexec.core.detector.task;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -44,7 +44,7 @@ class FinalDeadlineTaskDetectorTests {
     private TaskService taskService;
 
     @Mock private
-    TaskUpdateManager taskUpdateManager;
+    TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private FinalDeadlineTaskDetector finalDeadlineTaskDetector;
@@ -69,8 +69,8 @@ class FinalDeadlineTaskDetectorTests {
 
         finalDeadlineTaskDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(any());
     }
 
     @Test
@@ -82,7 +82,7 @@ class FinalDeadlineTaskDetectorTests {
 
         finalDeadlineTaskDetector.detect();
 
-        Mockito.verify(taskUpdateManager, never())
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, never())
+                .publishRequest(any());
     }
 }

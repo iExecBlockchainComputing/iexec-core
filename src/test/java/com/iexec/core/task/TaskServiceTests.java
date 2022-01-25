@@ -33,8 +33,7 @@ import static com.iexec.core.task.TaskStatus.RUNNING;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
@@ -223,4 +222,30 @@ class TaskServiceTests {
 
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
     }
+
+    // region updateTask()
+    @Test
+    void shouldUpdateTask() {
+        Task task = getStubTask(maxExecutionTime);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+
+        Optional<Task> optional = taskService.updateTask(task);
+
+        assertThat(optional)
+                .isPresent()
+                .isEqualTo(Optional.of(task));
+    }
+
+    @Test
+    void shouldNotUpdateTaskSinceUnknownTask() {
+        Task task = getStubTask(maxExecutionTime);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        Optional<Task> optional = taskService.updateTask(task);
+
+        assertThat(optional)
+                .isEmpty();
+    }
+    // endregion
 }
