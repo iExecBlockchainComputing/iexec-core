@@ -48,8 +48,10 @@ class ContextualLockTests {
      */
     @Test
     void shouldAcquireLockOnceUnlocked() {
+        // Will be set to true once locking thread has obtained the contextual lock.
         BooleanWrapper gotFirstLock = new BooleanWrapper(false);
-        BooleanWrapper isTryingToLockThreadRunning = new BooleanWrapper(false);
+        // Will be set to true once the second thread has started trying to obtain the lock.
+        BooleanWrapper hasTriedToLock = new BooleanWrapper(false);
 
         Runnable tryingToLockRunnable = () -> {
             // Just wait for other thread to be started
@@ -58,16 +60,17 @@ class ContextualLockTests {
                     .await()
                     .until(gotFirstLock::isTrue);
             while (!contextualLock.lockIfPossible(1)) {
-                isTryingToLockThreadRunning.value = true;
+                hasTriedToLock.value = true;
             }
             Assertions.assertThat(contextualLock.lockIfPossible(1)).isTrue();
         };
         Runnable lockingRunnable = () -> {
             contextualLock.lockIfPossible(1);
             gotFirstLock.value = true;
+            // Wait to be sure the other thread has started requiring the lock.
             Awaitility
                     .await()
-                    .until(isTryingToLockThreadRunning::isTrue);
+                    .until(hasTriedToLock::isTrue);
             contextualLock.unlock(1);
         };
 
