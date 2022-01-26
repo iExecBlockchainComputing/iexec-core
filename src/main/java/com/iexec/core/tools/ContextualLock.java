@@ -16,20 +16,23 @@
 
 package com.iexec.core.tools;
 
-import com.iexec.common.utils.ContextualLockRunner;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Represents a map of locks associated to keys.
+ *
+ * @param <K> Type of the key.
+ */
 @Slf4j
 public class ContextualLock<K> {
-    private final ContextualLockRunner<K> contextualLockRunner =
-            new ContextualLockRunner<>(1, TimeUnit.MINUTES);
-
-    private final Map<K, Boolean> locks;
+    private final Map<K, Lock> locks;
 
     public ContextualLock(Duration lockDuration) {
         locks = ExpiringMap.builder()
@@ -38,55 +41,27 @@ public class ContextualLock<K> {
     }
 
     /**
-     * Gets a lock on a particular key if no lock currently exists on that key.
-     * <p>
-     * This method is synchronized on the key,
-     * so we're sure there shouldn't be any race condition.
+     * Gets a lock on a particular key
+     * if no lock from another thread currently exists on that key.
      *
      * @param key Key to lock on.
      * @return {@literal true} if the lock has been acquired,
      * {@literal false} otherwise.
      */
-    public boolean lockIfPossible(K key) {
-        // Reading and writing should be synchronized,
-        // otherwise 2 different threads could get a `no lock` reply
-        // and then try to lock on the same key.
-        //
-        // This may be solved with a simple `synchronized`
-        // but that would mean all threads would wait
-        // if a single one is trying to lock.
-        return contextualLockRunner.getWithLock(key, () -> {
-            if (Boolean.TRUE.equals(locks.getOrDefault(key, false))) {
-                return false;
-            }
-
-            // If `setLock` returns `true`,
-            // that means another thread had already locked on that key
-            // which shouldn't be possible.
-            if (setLock(key, true)) {
-                log.warn("Can't set lock when it is already set. " +
-                                "This should not happen. " +
-                                "Please check there's no race condition.",
-                        new Exception());
-                return false;
-            }
-            return true;
-        });
-    }
-
-    public void unlock(K key) {
-        setLock(key, false);
+    public boolean tryLock(K key) {
+        final Lock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
+        return lock.tryLock();
     }
 
     /**
-     * Sets the lock value for a given key.
+     * Unlocks the lock on the given key.
      *
-     * @param key        Key to set/unset the lock on.
-     * @param shouldLock Whether to set or unset the lock.
-     * @return {@literal true} if the lock was previously set,
-     * {@literal false} otherwise.
+     * @param key Key whose lock is associated to.
      */
-    private boolean setLock(K key, boolean shouldLock) {
-        return Boolean.TRUE.equals(locks.put(key, shouldLock));
+    public void unlock(K key) {
+        final Lock lock = locks.get(key);
+        if (lock != null) {
+            lock.unlock();
+        }
     }
 }

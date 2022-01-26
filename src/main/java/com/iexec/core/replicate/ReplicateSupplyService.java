@@ -27,7 +27,6 @@ import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.contribution.ConsensusHelper;
-import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -197,7 +196,7 @@ public class ReplicateSupplyService {
             return false;
         }
 
-        if (!taskAccessForNewReplicateLock.lockIfPossible(chainTaskId)) {
+        if (!taskAccessForNewReplicateLock.tryLock(chainTaskId)) {
             return false;
         }
 

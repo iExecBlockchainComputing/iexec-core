@@ -432,15 +432,15 @@ class ReplicateSupplyServiceTests {
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(runningTask));
-        when(taskAccessForNewReplicateLock.lockIfPossible(CHAIN_TASK_ID)).thenReturn(false);
+        when(taskAccessForNewReplicateLock.tryLock(CHAIN_TASK_ID)).thenReturn(false);
 
         Optional<WorkerpoolAuthorization> oAuthorization =
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(taskAccessForNewReplicateLock).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock).tryLock(CHAIN_TASK_ID);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
-        Mockito.verify(taskAccessForNewReplicateLock, Mockito.times(1)).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.times(1)).tryLock(CHAIN_TASK_ID);
         Mockito.verify(taskAccessForNewReplicateLock, Mockito.times(0)).unlock(CHAIN_TASK_ID);
     }
 
@@ -549,7 +549,7 @@ class ReplicateSupplyServiceTests {
                 replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(oAuthorization).isEmpty();
-        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).tryLock(CHAIN_TASK_ID);
         Mockito.verifyNoInteractions(contributionTimeoutTaskDetector, signatureService);
         assertTaskAccessForNewReplicateLockNeverUsed();
     }
@@ -594,12 +594,12 @@ class ReplicateSupplyServiceTests {
     }
 
     private void assertTaskAccessForNewReplicateNotDeadLocking() {
-        Mockito.verify(taskAccessForNewReplicateLock).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock).tryLock(CHAIN_TASK_ID);
         Mockito.verify(taskAccessForNewReplicateLock).unlock(CHAIN_TASK_ID);
     }
 
     private void assertTaskAccessForNewReplicateLockNeverUsed() {
-        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).lockIfPossible(CHAIN_TASK_ID);
+        Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).tryLock(CHAIN_TASK_ID);
         Mockito.verify(taskAccessForNewReplicateLock, Mockito.never()).unlock(CHAIN_TASK_ID);
     }
 

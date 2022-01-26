@@ -20,20 +20,26 @@ class ContextualLockTests {
 
     @Test
     void shouldAcquireLockIfNoOtherLock() {
-        Assertions.assertThat(contextualLock.lockIfPossible(1)).isTrue();
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
     }
 
     @Test
     void shouldNotAcquireLockIfAlreadyLocked() {
-        contextualLock.lockIfPossible(1);
-        Assertions.assertThat(contextualLock.lockIfPossible(1)).isFalse();
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
+        CompletableFuture.runAsync(() -> Assertions.assertThat(contextualLock.tryLock(1)).isFalse()).join();
+    }
+
+    @Test
+    void shouldAcquireLockIfAlreadyLockedFromSameThread() {
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
     }
 
     @Test
     void shouldAcquireAndReleaseLock() {
-        Assertions.assertThat(contextualLock.lockIfPossible(1)).isTrue();
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
         contextualLock.unlock(1);
-        Assertions.assertThat(contextualLock.lockIfPossible(1)).isTrue();
+        Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
     }
 
     /**
@@ -59,13 +65,13 @@ class ContextualLockTests {
             Awaitility
                     .await()
                     .until(gotFirstLock::isTrue);
-            while (!contextualLock.lockIfPossible(1)) {
+            while (!contextualLock.tryLock(1)) {
                 hasTriedToLock.value = true;
             }
-            Assertions.assertThat(contextualLock.lockIfPossible(1)).isTrue();
+            Assertions.assertThat(contextualLock.tryLock(1)).isTrue();
         };
         Runnable lockingRunnable = () -> {
-            contextualLock.lockIfPossible(1);
+            contextualLock.tryLock(1);
             gotFirstLock.value = true;
             // Wait to be sure the other thread has started requiring the lock.
             Awaitility
