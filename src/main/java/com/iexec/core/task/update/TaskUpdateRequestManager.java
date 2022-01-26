@@ -16,10 +16,10 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -43,9 +43,8 @@ public class TaskUpdateRequestManager {
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
-            .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
-            .build();
+    private final ContextualLockRunner<String> taskExecutionLockRunner =
+            new ContextualLockRunner<>(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
 
     final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
     // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
@@ -59,12 +58,14 @@ public class TaskUpdateRequestManager {
             TimeUnit.MILLISECONDS,
             queue
     );
-    private TaskUpdateRequestConsumer consumer;
 
     private final TaskService taskService;
+    private final TaskUpdateManager taskUpdateManager;
 
-    public TaskUpdateRequestManager(TaskService taskService) {
+    public TaskUpdateRequestManager(TaskService taskService,
+                                    TaskUpdateManager taskUpdateManager) {
         this.taskService = taskService;
+        this.taskUpdateManager = taskUpdateManager;
     }
 
     /**
@@ -88,7 +89,7 @@ public class TaskUpdateRequestManager {
             }
 
             final Task task = oTask.get();
-            taskUpdateExecutor.execute(new TaskUpdate(task, locks, consumer));
+            taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
             log.debug("Published task update request" +
                     " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
                     chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
@@ -100,12 +101,10 @@ public class TaskUpdateRequestManager {
         return CompletableFuture.supplyAsync(publishRequest, executorService);
     }
 
-    /**
-     * Authorize one TaskUpdateRequest consumer subscription at a time.
-     * @param consumer
-     * @return
-     */
-    public void setRequestConsumer(final TaskUpdateRequestConsumer consumer) {
-        this.consumer = consumer;
+    private void updateTask(String chainTaskId) {
+        taskExecutionLockRunner.acceptWithLock(
+                chainTaskId,
+                taskUpdateManager::updateTask
+        );
     }
 }

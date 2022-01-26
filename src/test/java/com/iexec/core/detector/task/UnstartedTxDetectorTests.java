@@ -18,7 +18,7 @@ package com.iexec.core.detector.task;
 
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -37,7 +37,7 @@ class UnstartedTxDetectorTests {
     private TaskService taskService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private UnstartedTxDetector unstartedTxDetector;
@@ -57,8 +57,8 @@ class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
@@ -71,8 +71,8 @@ class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
@@ -85,8 +85,8 @@ class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(task.getChainTaskId());
     }
 
     @Test
@@ -99,8 +99,8 @@ class UnstartedTxDetectorTests {
 
         unstartedTxDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(task.getChainTaskId());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(task.getChainTaskId());
     }
 
 

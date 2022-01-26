@@ -24,8 +24,8 @@ import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -39,16 +39,16 @@ import java.util.List;
 @Slf4j
 public class TaskListeners {
 
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final NotificationService notificationService;
     private final ReplicatesService replicatesService;
     private final WorkerService workerService;
 
-    public TaskListeners(TaskUpdateManager taskUpdateManager,
+    public TaskListeners(TaskUpdateRequestManager taskUpdateRequestManager,
                          NotificationService notificationService,
                          ReplicatesService replicatesService,
                          WorkerService workerService) {
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
         this.workerService = workerService;
@@ -58,7 +58,7 @@ public class TaskListeners {
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
         log.info("Received TaskCreatedEvent [chainTaskId:{}]", event.getChainTaskId());
-        taskUpdateManager.publishUpdateTaskRequest(event.getChainTaskId());
+        taskUpdateRequestManager.publishRequest(event.getChainTaskId());
     }
 
     @EventListener

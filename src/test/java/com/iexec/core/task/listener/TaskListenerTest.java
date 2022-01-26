@@ -23,8 +23,8 @@ import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class TaskListenerTest {
     @Captor
     private ArgumentCaptor<TaskNotification> notificationCaptor;
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -66,7 +66,7 @@ class TaskListenerTest {
         TaskCreatedEvent event = new TaskCreatedEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskUpdateManager).publishUpdateTaskRequest(anyString());
+        verify(taskUpdateRequestManager).publishRequest(anyString());
     }
 
     @Test

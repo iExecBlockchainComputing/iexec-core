@@ -20,8 +20,8 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.listener.ReplicateListeners;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,7 @@ class ReplicateListenersTests {
     @Mock
     private ReplicatesService replicatesService;
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private ReplicateListeners replicateListeners;
@@ -71,7 +71,7 @@ class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(taskUpdateManager, Mockito.times(someStatuses.size())).publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(someStatuses.size())).publishRequest(any());
     }
 
     @Test

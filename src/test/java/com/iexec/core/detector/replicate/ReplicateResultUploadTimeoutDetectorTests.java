@@ -21,6 +21,8 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.*;
+import com.iexec.core.task.TaskStatusChange;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -50,7 +52,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
     private ReplicatesService replicatesService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private ReplicateResultUploadTimeoutDetector timeoutDetector;
@@ -118,7 +120,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(1))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1)).publishUpdateTaskRequest(CHAIN_TASK_ID);
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1)).publishRequest(CHAIN_TASK_ID);
     }
 
     @Test

@@ -20,7 +20,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,11 +33,12 @@ import java.util.Date;
 public class ContributionTimeoutTaskDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
 
-    public ContributionTimeoutTaskDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
+    public ContributionTimeoutTaskDetector(TaskService taskService,
+                                           TaskUpdateRequestManager taskUpdateRequestManager) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
@@ -48,7 +49,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
             Date now = new Date();
             if (now.after(task.getContributionDeadline())) {
                 log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
             }
         }
     }

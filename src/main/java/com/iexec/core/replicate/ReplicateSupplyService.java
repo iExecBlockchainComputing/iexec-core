@@ -31,7 +31,7 @@ import com.iexec.core.detector.task.ContributionTimeoutTaskDetector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.tools.ContextualLock;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -39,7 +39,10 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
@@ -51,10 +54,9 @@ public class ReplicateSupplyService {
     private final ReplicatesService replicatesService;
     private final SignatureService signatureService;
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final Web3jService web3jService;
-    private final ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
     ContextualLock<String> taskAccessForNewReplicateLock
             = new ContextualLock<>(LONGEST_TASK_TIMEOUT);
@@ -62,17 +64,15 @@ public class ReplicateSupplyService {
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
                                   TaskService taskService,
-                                  TaskUpdateManager taskUpdateManager,
+                                  TaskUpdateRequestManager taskUpdateRequestManager,
                                   WorkerService workerService,
-                                  Web3jService web3jService,
-                                  ContributionTimeoutTaskDetector contributionTimeoutTaskDetector) {
+                                  Web3jService web3jService) {
         this.replicatesService = replicatesService;
         this.signatureService = signatureService;
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.workerService = workerService;
         this.web3jService = web3jService;
-        this.contributionTimeoutTaskDetector = contributionTimeoutTaskDetector;
     }
 
     /*
@@ -211,7 +211,7 @@ public class ReplicateSupplyService {
 
             if (upToDateTask.isEmpty()
                     || !taskNeedsMoreContributions
-                    || taskUpdateManager.isConsensusReached(replicatesList)) {
+                    || taskService.isConsensusReached(replicatesList)) {
                 return false;
             }
 
@@ -380,11 +380,11 @@ public class ReplicateSupplyService {
             if (oReplicatesList.isEmpty()) {
                 return Optional.empty();
             }
-            if (!taskUpdateManager.isConsensusReached(oReplicatesList.get())) {
+            if (!taskService.isConsensusReached(oReplicatesList.get())) {
                 return Optional.of(TaskNotificationType.PLEASE_WAIT);
             }
 
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
@@ -422,7 +422,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId).join();
+            taskUpdateRequestManager.publishRequest(chainTaskId).join();
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -485,7 +485,7 @@ public class ReplicateSupplyService {
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
 
-            taskUpdateManager.publishUpdateTaskRequest(chainTaskId);
+            taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);
         }
 

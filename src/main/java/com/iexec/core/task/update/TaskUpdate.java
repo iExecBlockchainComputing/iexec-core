@@ -23,20 +23,17 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 
 @Slf4j
 class TaskUpdate implements Runnable, Comparable<TaskUpdate> {
     private final Task task;
-    private final ConcurrentMap<String, Object> locks;
-    private final TaskUpdateRequestConsumer consumer;
+    private final Consumer<String> taskUpdater;
 
     TaskUpdate(Task task,
-               ConcurrentMap<String, Object> locks,
-               TaskUpdateRequestConsumer consumer) {
+               Consumer<String> taskUpdater) {
         this.task = task;
-        this.locks = locks;
-        this.consumer = consumer;
+        this.taskUpdater = taskUpdater;
     }
 
     public Task getTask() {
@@ -69,9 +66,7 @@ class TaskUpdate implements Runnable, Comparable<TaskUpdate> {
 
         String chainTaskId = task.getChainTaskId();
         log.debug("Selected task [chainTaskId: {}, status: {}]", chainTaskId, task.getCurrentStatus());
-        synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
-            consumer.onTaskUpdateRequest(chainTaskId); // synchronously update task
-        }
+        taskUpdater.accept(chainTaskId);
     }
 
     @Override

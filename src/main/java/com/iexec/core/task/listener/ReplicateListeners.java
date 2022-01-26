@@ -22,7 +22,7 @@ import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -34,17 +34,17 @@ import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 @Component
 public class ReplicateListeners {
 
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final ContributionUnnotifiedDetector contributionUnnotifiedDetector;
     private final ReplicatesService replicatesService;
 
     public ReplicateListeners(WorkerService workerService,
-                              TaskUpdateManager taskUpdateManager,
+                              TaskUpdateRequestManager taskUpdateRequestManager,
                               ContributionUnnotifiedDetector contributionUnnotifiedDetector,
                               ReplicatesService replicatesService) {
         this.workerService = workerService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.contributionUnnotifiedDetector = contributionUnnotifiedDetector;
         this.replicatesService = replicatesService;
     }
@@ -56,7 +56,7 @@ public class ReplicateListeners {
         ReplicateStatus newStatus = statusUpdate.getStatus();
         ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
 
-        taskUpdateManager.publishUpdateTaskRequest(event.getChainTaskId());
+        taskUpdateRequestManager.publishRequest(event.getChainTaskId());
 
         /*
          * Should release 1 CPU of given worker for this replicate if status is

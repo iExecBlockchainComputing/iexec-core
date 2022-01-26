@@ -16,11 +16,17 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.replicate.ReplicatesService;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Sort;
 
@@ -44,6 +50,12 @@ class TaskServiceTests {
 
     @Mock
     private TaskRepository taskRepository;
+
+    @Mock
+    private ReplicatesService replicatesService;
+
+    @Mock
+    private IexecHubService iexecHubService;
 
     @InjectMocks
     private TaskService taskService;
@@ -205,4 +217,107 @@ class TaskServiceTests {
 
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
     }
+
+    // region updateTask()
+    @Test
+    void shouldUpdateTask() {
+        Task task = getStubTask(maxExecutionTime);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+
+        Optional<Task> optional = taskService.updateTask(task);
+
+        assertThat(optional)
+                .isPresent()
+                .isEqualTo(Optional.of(task));
+    }
+
+    @Test
+    void shouldNotUpdateTaskSinceUnknownTask() {
+        Task task = getStubTask(maxExecutionTime);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        Optional<Task> optional = taskService.updateTask(task);
+
+        assertThat(optional)
+                .isEmpty();
+    }
+    // endregion
+
+    // region isConsensusReached()
+    @Test
+    void shouldConsensusNotBeReachedAsUnknownTask() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        assertThat(taskService.isConsensusReached(new ReplicatesList(CHAIN_TASK_ID)))
+                .isFalse();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verifyNoInteractions(replicatesService);
+    }
+
+    @Test
+    void shouldConsensusNotBeReachedAsNotRevealing() {
+        Task task = getStubTask(maxExecutionTime);
+
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.COMPLETED)
+                .build();
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        assertThat(taskService.isConsensusReached(new ReplicatesList(task.getChainTaskId())))
+                .isFalse();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verifyNoInteractions(replicatesService);
+    }
+
+    @Test
+    void shouldConsensusNotBeReachedAsOnChainWinnersHigherThanOffchainWinners() {
+        final Task task = getStubTask(maxExecutionTime);
+        final ReplicatesList replicatesList = new ReplicatesList(task.getChainTaskId());
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.REVEALING)
+                .winnerCounter(10)
+                .consensusValue("dummyValue")
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue()))
+                .thenReturn(0);
+
+        assertThat(taskService.isConsensusReached(replicatesList))
+                .isFalse();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verify(replicatesService).getNbValidContributedWinners(any(), any());
+    }
+
+    @Test
+    void shouldConsensusBeReached() {
+        final Task task = getStubTask(maxExecutionTime);
+        final ReplicatesList replicatesList = new ReplicatesList(task.getChainTaskId());
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.REVEALING)
+                .winnerCounter(1)
+                .consensusValue("dummyValue")
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+        when(replicatesService.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue()))
+                .thenReturn(1);
+
+        assertThat(taskService.isConsensusReached(replicatesList))
+                .isTrue();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verify(replicatesService).getNbValidContributedWinners(any(), any());
+    }
+    // endregion
 }
