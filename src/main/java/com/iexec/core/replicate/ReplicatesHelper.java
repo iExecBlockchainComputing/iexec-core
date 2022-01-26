@@ -138,4 +138,8 @@ public class ReplicatesHelper {
 
         return Optional.empty();
     }
+
+    public static boolean hasWorkerAlreadyParticipated(ReplicatesList replicatesList, String walletAddress) {
+        return replicatesList.getReplicateOfWorker(walletAddress).isPresent();
+    }
 }

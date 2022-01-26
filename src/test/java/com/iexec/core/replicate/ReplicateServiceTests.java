@@ -182,33 +182,6 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldHaveWorkerAlreadyContributed() {
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).isTrue();
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_2)).isTrue();
-    }
-
-    @Test
-    void shouldNotHaveWorkerAlreadyContributed() {
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_3)).isFalse();
-    }
-
-    @Test
     void shouldGetCorrectNbReplicatesWithOneStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);

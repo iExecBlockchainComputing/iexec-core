@@ -120,10 +120,6 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean hasWorkerAlreadyParticipated(ReplicatesList replicatesList, String walletAddress) {
-        return replicatesList.getReplicateOfWorker(walletAddress).isPresent();
-    }
-
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
         final List<Replicate> replicates = getReplicates(chainTaskId);
         return ReplicatesHelper.getNbReplicatesWithCurrentStatus(replicates, listStatus);
