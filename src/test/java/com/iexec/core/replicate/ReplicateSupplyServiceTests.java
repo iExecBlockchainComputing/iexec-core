@@ -244,7 +244,7 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         try (MockedStatic<ReplicatesHelper> replicatesHelper = Mockito.mockStatic(ReplicatesHelper.class)) {
-            replicatesHelper.when(() -> ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(false);
+            replicatesHelper.when(() -> ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).thenReturn(true);
             Optional<WorkerpoolAuthorization> oAuthorization =
                     replicateSupplyService.getAuthOfAvailableReplicate(workerLastBlock, WALLET_WORKER_1);
 
