@@ -21,13 +21,11 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.ReplicatesHelper;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
@@ -287,14 +285,13 @@ class TaskServiceTests {
                 .build();
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
-        when(replicatesService.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue()))
-                .thenReturn(0);
-
-        assertThat(taskService.isConsensusReached(replicatesList))
-                .isFalse();
+        try (MockedStatic<ReplicatesHelper> replicatesHelper = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesHelper.when(() -> ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue())).thenReturn(0);
+            assertThat(taskService.isConsensusReached(replicatesList))
+                    .isFalse();
+        }
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verify(replicatesService).getNbValidContributedWinners(any(), any());
     }
 
     @Test
@@ -310,14 +307,13 @@ class TaskServiceTests {
                 .build();
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
-        when(replicatesService.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue()))
-                .thenReturn(1);
-
-        assertThat(taskService.isConsensusReached(replicatesList))
-                .isTrue();
+        try (MockedStatic<ReplicatesHelper> replicatesHelper = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesHelper.when(() -> ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue())).thenReturn(1);
+            assertThat(taskService.isConsensusReached(replicatesList))
+                    .isTrue();
+        }
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verify(replicatesService).getNbValidContributedWinners(any(), any());
     }
     // endregion
 }

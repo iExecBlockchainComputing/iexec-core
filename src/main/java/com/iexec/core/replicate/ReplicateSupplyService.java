@@ -201,15 +201,13 @@ public class ReplicateSupplyService {
         }
 
         try {
-            Optional<Task> upToDateTask = taskService.getTaskByChainTaskId(chainTaskId);
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
                     replicatesList.getReplicates(),
                     task.getTrust(),
                     task.getMaxExecutionTime());
 
-            if (upToDateTask.isEmpty()
-                    || !taskNeedsMoreContributions
+            if (!taskNeedsMoreContributions
                     || taskService.isConsensusReached(replicatesList)) {
                 return false;
             }

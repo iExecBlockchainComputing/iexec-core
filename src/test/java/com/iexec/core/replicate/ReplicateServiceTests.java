@@ -360,30 +360,6 @@ class ReplicateServiceTests {
         assertThat(shouldBe0).isEqualTo(0);
     }
 
-    // getNbValidContributedWinners
-
-    @Test
-    void shouldGetOneContributionWinnerAmongTwoContributors() {
-        String contributionHash = "hash";
-        String badContributionHash = "badHash";
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        replicate1.setContributionHash(contributionHash);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        replicate2.setContributionHash(badContributionHash);
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID,
-                Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(replicatesList));
-
-        assertThat(replicatesService.getNbValidContributedWinners(
-                replicatesList.getReplicates(),
-                contributionHash
-        )).isOne();        
-    }
-
     @Test
     void shouldGetReplicateWithRevealStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);

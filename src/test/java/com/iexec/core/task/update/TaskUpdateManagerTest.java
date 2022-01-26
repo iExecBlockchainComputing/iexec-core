@@ -32,6 +32,7 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.ReplicatesHelper;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -41,10 +42,7 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -595,14 +593,16 @@ class TaskUpdateManagerTest {
                 .winnerCounter(2)
                 .build()));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
         when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        taskUpdateManager.updateTask(task.getChainTaskId());
+        try (MockedStatic<ReplicatesHelper> replicatesUtilsStatic = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesUtilsStatic.when(() -> ReplicatesHelper.getNbValidContributedWinners(any(), any())).thenReturn(2);
+            taskUpdateManager.updateTask(task.getChainTaskId());
+        }
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
