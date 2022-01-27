@@ -509,7 +509,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
         workerCanWorkAndHasGas(WALLET_WORKER_1);
-        when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.empty());
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
 
