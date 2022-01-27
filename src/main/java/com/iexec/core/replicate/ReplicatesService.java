@@ -135,13 +135,6 @@ public class ReplicatesService {
         return ReplicatesHelper.getNbReplicatesContainingStatus(replicates, listStatus);
     }
 
-    public int getNbOffChainReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
-        final List<Replicate> replicates = getReplicates(chainTaskId);
-
-        return ReplicatesHelper.getNbReplicatesWithCurrentStatus(replicates, status) +
-               ReplicatesHelper.getNbReplicatesWithGivenStatusJustBeforeWorkerLost(replicates, status);
-    }
-
     public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
         List<Replicate> revealReplicates = getReplicates(chainTaskId);
         return ReplicatesHelper.getRandomReplicateWithRevealStatus(revealReplicates);

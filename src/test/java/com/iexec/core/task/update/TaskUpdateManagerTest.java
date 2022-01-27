@@ -615,7 +615,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -642,7 +641,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.UNSET)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -658,7 +656,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());

@@ -91,20 +91,6 @@ public class ReplicatesHelper {
         return addressReplicates.size();
     }
 
-    /**
-     * For status = CONTRIBUTED, a replicate will be counted when statuses = { CREATED, ..., CONTRIBUTED, WORKER_LOST }
-     * For status = REVEALED, a replicate will be counted when statuses = { CREATED, ..., REVEALED, WORKER_LOST }
-     */
-    public static int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(List<Replicate> replicates, ReplicateStatus status) {
-        int nbReplicates = 0;
-        for (Replicate replicate : replicates) {
-            if (isStatusBeforeWorkerLostEqualsTo(replicate, status)) {
-                nbReplicates++;
-            }
-        }
-        return nbReplicates;
-    }
-
     static boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
         int size = replicate.getStatusUpdateList().size();
         return size >= 2
