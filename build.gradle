@@ -97,6 +97,8 @@ dependencies {
     // lombok
     compileOnly "org.projectlombok:lombok:1.18.2"
     annotationProcessor "org.projectlombok:lombok:1.18.2"
+    testCompileOnly "org.projectlombok:lombok:1.18.2"
+    testAnnotationProcessor "org.projectlombok:lombok:1.18.2"
 
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"

@@ -31,17 +31,17 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
-import com.iexec.core.tools.ContextualLock;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
@@ -56,9 +56,10 @@ public class ReplicateSupplyService {
     private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final Web3jService web3jService;
-
-    ContextualLock<String> taskAccessForNewReplicateLock
-            = new ContextualLock<>(LONGEST_TASK_TIMEOUT);
+    final Map<String, Lock> taskAccessForNewReplicateLocks =
+            ExpiringMap.builder()
+                    .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+                    .build();
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -196,7 +197,11 @@ public class ReplicateSupplyService {
             return false;
         }
 
-        if (!taskAccessForNewReplicateLock.tryLock(chainTaskId)) {
+        final Lock lock = taskAccessForNewReplicateLocks
+                .computeIfAbsent(chainTaskId, k -> new ReentrantLock());
+        if (!lock.tryLock()) {
+            // Can't get lock on task
+            // => another replicate is already having a look at this task.
             return false;
         }
 
@@ -218,7 +223,7 @@ public class ReplicateSupplyService {
             // We should always unlock the task
             // so that it could be taken by another replicate
             // if there's any issue.
-            taskAccessForNewReplicateLock.unlock(chainTaskId);
+            lock.unlock();
         }
 
         return true;
