@@ -1,26 +1,12 @@
-buildscript {
-    ext {
-        springBootVersion = '2.6.2'
-    }
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-    }
-}
-
 plugins {
     id 'java'
     id 'eclipse'
     id 'jacoco'
     id 'org.sonarqube' version '3.3'
     id 'maven-publish'
+    id "org.springframework.boot" version "2.6.2"
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
 }
-
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
 
 group = 'com.iexec.core'
 sourceCompatibility = 11
