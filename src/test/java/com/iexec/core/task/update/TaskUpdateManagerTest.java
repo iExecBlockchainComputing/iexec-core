@@ -22,6 +22,7 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -31,18 +32,17 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.ReplicatesHelper;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -90,6 +90,9 @@ class TaskUpdateManagerTest {
 
     @Mock
     private TaskUpdateRequestManager taskUpdateRequestManager;
+
+    @Mock
+    private SmsService smsService;
 
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
@@ -326,6 +329,30 @@ class TaskUpdateManagerTest {
     }
 
     @Test
+    void shouldUpdateInitializing2InitializeFailedSinceEnclaveChallengeIsEmpty() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTask(task.getChainTaskId());
+
+        assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
     void shouldUpdateReceived2Initializing2Initialized() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
@@ -343,6 +370,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
@@ -350,6 +378,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
     }
 
     // Tests on initializing2Initialized transition
@@ -558,19 +587,22 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID)));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
-        when(taskService.isConsensusReached(CHAIN_TASK_ID)).thenReturn(true);
+        when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        taskUpdateManager.updateTask(task.getChainTaskId());
+        try (MockedStatic<ReplicatesHelper> replicatesUtilsStatic = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesUtilsStatic.when(() -> ReplicatesHelper.getNbValidContributedWinners(any(), any())).thenReturn(2);
+            taskUpdateManager.updateTask(task.getChainTaskId());
+        }
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
@@ -583,7 +615,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -610,7 +641,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.UNSET)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -626,7 +656,6 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -1677,6 +1706,6 @@ class TaskUpdateManagerTest {
     @Test
     void shouldTriggerUpdateTaskAsynchronously() {
         taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
-        verify(taskUpdateRequestManager).publishRequest(eq(CHAIN_TASK_ID));
+        verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
 }

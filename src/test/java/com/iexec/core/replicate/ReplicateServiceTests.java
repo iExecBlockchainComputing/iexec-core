@@ -182,35 +182,6 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldHaveWorkerAlreadyContributed() {
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_1)).isTrue();
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_2)).isTrue();
-    }
-
-    @Test
-    void shouldNotHaveWorkerAlreadyContributed() {
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        assertThat(replicatesService.hasWorkerAlreadyParticipated(CHAIN_TASK_ID, WALLET_WORKER_3)).isFalse();
-    }
-
-    @Test
     void shouldGetCorrectNbReplicatesWithOneStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
@@ -360,30 +331,6 @@ class ReplicateServiceTests {
         int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPLETED, FAILED,
                 RESULT_UPLOADING);
         assertThat(shouldBe0).isEqualTo(0);
-    }
-
-    // getNbValidContributedWinners
-
-    @Test
-    void shouldGetOneContributionWinnerAmongTwoContributors() {
-        String contributionHash = "hash";
-        String badContributionHash = "badHash";
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        replicate1.setContributionHash(contributionHash);
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        replicate2.setContributionHash(badContributionHash);
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID,
-                Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(replicatesList));
-
-        assertThat(replicatesService.getNbValidContributedWinners(
-                CHAIN_TASK_ID,
-                contributionHash
-        )).isOne();        
     }
 
     @Test
@@ -793,57 +740,6 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(RESULT_UPLOADED);
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
-    }
-
-    @Test
-    void shouldGet2OffChainReplicatesWithStatusContributed(){
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
-
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        replicate2.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(2);
-    }
-
-    @Test
-    void shouldGet1OffChainReplicatesWithStatusContributed(){
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
-
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        replicate2.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(1);
-    }
-
-    @Test
-    void shouldGet0OffChainReplicatesWithStatusContributed(){
-        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate1.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        replicate1.updateStatus(WORKER_LOST, ReplicateStatusModifier.WORKER);
-
-        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        replicate2.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
-
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
-
-        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-        assertThat(replicatesService.getNbOffChainReplicatesWithStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
     }
 
     // getReplicateWithResultUploadedStatus

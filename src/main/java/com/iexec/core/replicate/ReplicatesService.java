@@ -39,7 +39,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
@@ -121,112 +120,29 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean hasWorkerAlreadyParticipated(String chainTaskId, String walletAddress) {
-        return getReplicate(chainTaskId, walletAddress).isPresent();
-    }
-
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            for (ReplicateStatus status : listStatus) {
-                if (replicate.getCurrentStatus().equals(status)) {
-                    nbReplicates++;
-                }
-            }
-        }
-        return nbReplicates;
+        final List<Replicate> replicates = getReplicates(chainTaskId);
+        return ReplicatesHelper.getNbReplicatesWithCurrentStatus(replicates, listStatus);
     }
 
     public int getNbReplicatesWithLastRelevantStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            for (ReplicateStatus status : listStatus) {
-                if (Objects.equals(replicate.getLastRelevantStatus().orElse(null), status)) {
-                    nbReplicates++;
-                }
-            }
-        }
-        return nbReplicates;
+        final List<Replicate> replicates = getReplicates(chainTaskId);
+        return ReplicatesHelper.getNbReplicatesWithLastRelevantStatus(replicates, listStatus);
     }
 
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        Set<String> addressReplicates = new HashSet<>();
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            List<ReplicateStatus> listReplicateStatus = replicate.getStatusUpdateList().stream()
-                    .map(ReplicateStatusUpdate::getStatus)
-                    .collect(Collectors.toList());
-            for (ReplicateStatus status : listStatus) {
-                if (listReplicateStatus.contains(status)) {
-                    addressReplicates.add(replicate.getWalletAddress());
-                }
-            }
-        }
-        return addressReplicates.size();
-    }
-
-    public int getNbValidContributedWinners(String chainTaskId, String contributionHash) {
-        int nbValidWinners = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-            if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
-                    && contributionHash.equals(replicate.getContributionHash())) {
-                nbValidWinners++;
-            }
-        }
-        return nbValidWinners;
-    }
-
-    public int getNbOffChainReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
-        return getNbReplicatesWithCurrentStatus(chainTaskId, status) +
-                getNbReplicatesWithGivenStatusJustBeforeWorkerLost(chainTaskId, status);
-    }
-
-    /*
-     * For status = CONTRIBUTED, a replicate will be counted when statuses = { CREATED, ..., CONTRIBUTED, WORKER_LOST }
-     * For status = REVEALED, a replicate will be counted when statuses = { CREATED, ..., REVEALED, WORKER_LOST }
-     */
-    private int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(String chainTaskId, ReplicateStatus status) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (isStatusBeforeWorkerLostEqualsTo(replicate, status)) {
-                nbReplicates++;
-            }
-        }
-        return nbReplicates;
+        final List<Replicate> replicates = getReplicates(chainTaskId);
+        return ReplicatesHelper.getNbReplicatesContainingStatus(replicates, listStatus);
     }
 
     public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
         List<Replicate> revealReplicates = getReplicates(chainTaskId);
-        Collections.shuffle(revealReplicates);
-
-        for (Replicate replicate : revealReplicates) {
-            if (replicate.getCurrentStatus().equals(REVEALED)) {
-                return Optional.of(replicate);
-            }
-        }
-
-        return Optional.empty();
+        return ReplicatesHelper.getRandomReplicateWithRevealStatus(revealReplicates);
     }
 
     public Optional<Replicate> getReplicateWithResultUploadedStatus(String chainTaskId) {
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-
-            boolean isStatusResultUploaded = replicate.getCurrentStatus().equals(RESULT_UPLOADED);
-            boolean isStatusResultUploadedBeforeWorkerLost = isStatusBeforeWorkerLostEqualsTo(replicate, RESULT_UPLOADED);
-
-            if (isStatusResultUploaded || isStatusResultUploadedBeforeWorkerLost) {
-                return Optional.of(replicate);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    private boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
-        int size = replicate.getStatusUpdateList().size();
-        return size >= 2
-                && replicate.getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
-                && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
+        final List<Replicate> replicates = getReplicates(chainTaskId);
+        return ReplicatesHelper.getReplicateWithResultUploadedStatus(replicates);
     }
 
     /**

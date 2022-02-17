@@ -27,9 +27,6 @@ class TaskUpdateRequestManagerTests {
     @Mock
     private TaskService taskService;
 
-    @Mock
-    private TaskUpdateManager taskUpdateManager;
-
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
 

@@ -43,12 +43,12 @@ public class ReplicatesList {
 
     private List<Replicate> replicates;
 
-    ReplicatesList(String chainTaskId) {
+    public ReplicatesList(String chainTaskId) {
         this.chainTaskId = chainTaskId;
         this.replicates = new ArrayList<>();
     }
 
-    ReplicatesList(String chainTaskId, List<Replicate> replicates) {
+    public ReplicatesList(String chainTaskId, List<Replicate> replicates) {
         this.chainTaskId = chainTaskId;
         this.replicates = replicates;
     }

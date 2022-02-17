@@ -25,6 +25,7 @@ import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -52,19 +53,22 @@ class TaskUpdateManager  {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
+    private final SmsService smsService;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
                              ReplicatesService replicatesService,
                              ApplicationEventPublisher applicationEventPublisher,
                              WorkerService workerService,
-                             BlockchainAdapterService blockchainAdapterService) {
+                             BlockchainAdapterService blockchainAdapterService,
+                             SmsService smsService) {
         this.taskService = taskService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
+        this.smsService = smsService;
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -204,6 +208,15 @@ class TaskUpdateManager  {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
+                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+                    if (enclaveChallenge.isEmpty()) {
+                        log.error("Can't initialize task, enclave challenge is empty" +
+                                " [chainTaskId:{}]", chainTaskId);
+                        updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+                        updateTask(chainTaskId);
+                        return;
+                    }
+                    task.setEnclaveChallenge(enclaveChallenge.get());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
                     updateTask(task.getChainTaskId());
@@ -228,8 +241,8 @@ class TaskUpdateManager  {
                                 task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
                         task.setInitializationBlockNumber(task.getDealBlockNumber());
-                        updateTaskStatusAndSave(task, INITIALIZED, null);
                         replicatesService.createEmptyReplicateList(task.getChainTaskId());
+                        updateTaskStatusAndSave(task, INITIALIZED, null);
                         return;
                     }
                     log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]",
@@ -272,22 +285,29 @@ class TaskUpdateManager  {
 
     void running2ConsensusReached(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
-        boolean isConsensusReached = taskService.isConsensusReached(task.getChainTaskId());
+        final String chainTaskId = task.getChainTaskId();
+        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+        if (oReplicatesList.isEmpty()) {
+            log.error("Can't transition task to `ConsensusReached` when no replicatesList exists" +
+                    " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+        boolean isConsensusReached = taskService.isConsensusReached(oReplicatesList.get());
 
         if (isTaskInRunningStatus && isConsensusReached) {
-            Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
+            Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
             if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
 
             // change the the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
-            long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
+            long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
             task.setConsensusReachedBlockNumber(consensusBlockNumber);
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
+                    .chainTaskId(chainTaskId)
                     .consensus(task.getConsensus())
                     .blockNumber(task.getConsensusReachedBlockNumber())
                     .build());

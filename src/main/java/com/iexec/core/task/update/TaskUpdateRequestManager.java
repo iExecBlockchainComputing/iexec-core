@@ -16,15 +16,17 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
+
+import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 
 /**
  * This class is used to perform updates on a task one by one.
@@ -36,18 +38,13 @@ import java.util.function.Supplier;
 @Component
 public class TaskUpdateRequestManager {
     /**
-     * An XL task timeout happens after 100 hours.
-     */
-    private static final long LONGEST_TASK_TIMEOUT = 100;
-    /**
      * Max number of threads to update task for each core.
      */
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private final ConcurrentMap<String, Object> locks = ExpiringMap.builder()
-            .expiration(LONGEST_TASK_TIMEOUT, TimeUnit.HOURS)
-            .build();
+    private final ContextualLockRunner<String> taskExecutionLockRunner =
+            new ContextualLockRunner<>(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
 
     final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
     // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
@@ -105,9 +102,9 @@ public class TaskUpdateRequestManager {
     }
 
     private void updateTask(String chainTaskId) {
-        // TODO: use ContextualLockRunner
-        synchronized (locks.computeIfAbsent(chainTaskId, key -> new Object())) { // require one update on a same task at a time
-            taskUpdateManager.updateTask(chainTaskId); // synchronously update task
-        }
+        taskExecutionLockRunner.acceptWithLock(
+                chainTaskId,
+                taskUpdateManager::updateTask
+        );
     }
 }

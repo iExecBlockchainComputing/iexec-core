@@ -16,12 +16,16 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.ReplicatesHelper;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
@@ -33,7 +37,9 @@ import static com.iexec.core.task.TaskStatus.RUNNING;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
@@ -42,6 +48,12 @@ class TaskServiceTests {
 
     @Mock
     private TaskRepository taskRepository;
+
+    @Mock
+    private ReplicatesService replicatesService;
+
+    @Mock
+    private IexecHubService iexecHubService;
 
     @InjectMocks
     private TaskService taskService;
@@ -149,36 +161,17 @@ class TaskServiceTests {
 
     @Test
     void shouldGetInitializedOrRunningTasks() {
-        List<Task> tasks = Collections.singletonList(mock(Task.class));
-        when(taskRepository.findByCurrentStatus(
-                Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
-                .thenReturn(tasks);
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
-                .isEqualTo(tasks);
-    }
-
-    @Test
-    void shouldGetInitializedOrRunningTasksSortedByContributionDeadline() {
-        Task task1 = getStubTask(maxExecutionTime);
-        task1.setCurrentStatus(INITIALIZED);
-        task1.setContributionDeadline(Date.from(Instant.now().plus(5, ChronoUnit.MINUTES)));
-
-        Task task2 = getStubTask(maxExecutionTime);
-        task2.setCurrentStatus(RUNNING);
-        task2.setContributionDeadline(Date.from(Instant.now().plus(3, ChronoUnit.MINUTES)));
-
-        List<Task> tasks = Arrays.asList(task2, task1);
-
-        when(taskRepository.findByCurrentStatus(
-                Arrays.asList(INITIALIZED, RUNNING),
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME))))
-                .thenReturn(tasks);
-
-        Assertions.assertThat(taskService.getInitializedOrRunningTasks())
-                .isEqualTo(tasks);
+        Task task = mock(Task.class);
+        when(taskRepository.findPrioritizedTask(
+                eq(Arrays.asList(INITIALIZED, RUNNING)),
+                any(),
+                eq(Collections.emptyList()),
+                eq(Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)))))
+                .thenReturn(Optional.of(task));
+        Assertions.assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+                .get()
+                .isEqualTo(task);
     }
 
     @Test
@@ -246,6 +239,81 @@ class TaskServiceTests {
 
         assertThat(optional)
                 .isEmpty();
+    }
+    // endregion
+
+    // region isConsensusReached()
+    @Test
+    void shouldConsensusNotBeReachedAsUnknownTask() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        assertThat(taskService.isConsensusReached(new ReplicatesList(CHAIN_TASK_ID)))
+                .isFalse();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verifyNoInteractions(replicatesService);
+    }
+
+    @Test
+    void shouldConsensusNotBeReachedAsNotRevealing() {
+        Task task = getStubTask(maxExecutionTime);
+
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.COMPLETED)
+                .build();
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        assertThat(taskService.isConsensusReached(new ReplicatesList(task.getChainTaskId())))
+                .isFalse();
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+        Mockito.verifyNoInteractions(replicatesService);
+    }
+
+    @Test
+    void shouldConsensusNotBeReachedAsOnChainWinnersHigherThanOffchainWinners() {
+        final Task task = getStubTask(maxExecutionTime);
+        final ReplicatesList replicatesList = new ReplicatesList(task.getChainTaskId());
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.REVEALING)
+                .winnerCounter(10)
+                .consensusValue("dummyValue")
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+        try (MockedStatic<ReplicatesHelper> replicatesHelper = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesHelper.when(() -> ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue())).thenReturn(0);
+            assertThat(taskService.isConsensusReached(replicatesList))
+                    .isFalse();
+        }
+
+        Mockito.verify(iexecHubService).getChainTask(any());
+    }
+
+    @Test
+    void shouldConsensusBeReached() {
+        final Task task = getStubTask(maxExecutionTime);
+        final ReplicatesList replicatesList = new ReplicatesList(task.getChainTaskId());
+        final ChainTask chainTask = ChainTask
+                .builder()
+                .chainTaskId(task.getChainTaskId())
+                .status(ChainTaskStatus.REVEALING)
+                .winnerCounter(1)
+                .consensusValue("dummyValue")
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+        try (MockedStatic<ReplicatesHelper> replicatesHelper = Mockito.mockStatic(ReplicatesHelper.class)) {
+            replicatesHelper.when(() -> ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue())).thenReturn(1);
+            assertThat(taskService.isConsensusReached(replicatesList))
+                    .isTrue();
+        }
+
+        Mockito.verify(iexecHubService).getChainTask(any());
     }
     // endregion
 }

@@ -24,40 +24,40 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 
 @Slf4j
 @Service
 public class SmsService {
-
-    private SmsClient smsClient;
+    private final SmsClient smsClient;
 
     public SmsService(SmsClient smsClient) {
         this.smsClient = smsClient;
     }
 
-    public String getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
+    public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
         return isTeeEnabled
                 ? generateEnclaveChallenge(chainTaskId)
-                : BytesUtils.EMPTY_ADDRESS;
+                : Optional.of(BytesUtils.EMPTY_ADDRESS);
     }
 
     @Retryable(value = FeignException.class)
-    String generateEnclaveChallenge(String chainTaskId) {
+    Optional<String> generateEnclaveChallenge(String chainTaskId) {
 
         String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
         if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
-            log.error("An error occured while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
-            return "";
+            log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
         }
 
-        return teeChallengePublicKey;
+        return Optional.of(teeChallengePublicKey);
     }
 
     @Recover
-    String generateEnclaveChallenge(FeignException e, String chainTaskId) {
-        log.error("Failed to get enclaveChallenge from SMS even after retrying [chainTaskId:{}, attempts:3]", chainTaskId);
-        e.printStackTrace();
-        return "";
+    Optional<String> generateEnclaveChallenge(FeignException e, String chainTaskId) {
+        log.error("Failed to get enclaveChallenge from SMS even after retrying [chainTaskId:{}, attempts:3]", chainTaskId, e);
+        return Optional.empty();
     }
 }

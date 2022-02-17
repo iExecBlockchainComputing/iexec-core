@@ -18,8 +18,11 @@ package com.iexec.core.task;
 
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.ReplicatesHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -36,10 +38,6 @@ import static com.iexec.core.task.TaskStatus.*;
 @Slf4j
 @Service
 public class TaskService {
-
-    private final ConcurrentHashMap<String, Boolean>
-            taskAccessForNewReplicateLock = new ConcurrentHashMap<>();
-
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
@@ -131,8 +129,34 @@ public class TaskService {
         return taskRepository.findByCurrentStatus(statusList);
     }
 
-    public List<Task> getInitializedOrRunningTasks() {
-        return taskRepository.findByCurrentStatus(Arrays.asList(INITIALIZED, RUNNING),
+    /**
+     * Retrieves the first {@link TaskStatus#INITIALIZED}
+     * or {@link TaskStatus#RUNNING} task from the DB,
+     * depending on current statuses and contribution deadlines.
+     * <p>
+     * If {@code shouldExcludeTeeTasks} is {@literal true},
+     * then only standard tasks are retrieved.
+     * Otherwise, all tasks are retrieved.
+     * <p>
+     * Tasks can be excluded with {@code excludedChainTaskIds}.
+     *
+     * @param shouldExcludeTeeTasks Whether TEE tasks should be retrieved
+     *                              as well as standard tasks.
+     * @param excludedChainTaskIds Tasks to exclude from retrieval.
+     * @return The first task which is {@link TaskStatus#INITIALIZED}
+     * or {@link TaskStatus#RUNNING},
+     * or {@link Optional#empty()} if no task meets the requirements.
+     */
+    public Optional<Task> getPrioritizedInitializedOrRunningTask(
+            boolean shouldExcludeTeeTasks,
+            List<String> excludedChainTaskIds) {
+        final String excludedTag = shouldExcludeTeeTasks
+                ? TeeUtils.TEE_TAG
+                : null;
+        return taskRepository.findPrioritizedTask(
+                Arrays.asList(INITIALIZED, RUNNING),
+                excludedTag,
+                excludedChainTaskIds,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
@@ -176,38 +200,20 @@ public class TaskService {
                 .orElse(null);
     }
 
-    public void initializeTaskAccessForNewReplicateLock(String chainTaskId) {
-        taskAccessForNewReplicateLock.putIfAbsent(chainTaskId, false);
-    }
+    public boolean isConsensusReached(ReplicatesList replicatesList) {
+        Optional<ChainTask> optional = iexecHubService.getChainTask(replicatesList.getChainTaskId());
+        if (optional.isEmpty()) {
+            return false;
+        }
 
-    public Boolean isTaskBeingAccessedForNewReplicate(String chainTaskId) {
-        return taskAccessForNewReplicateLock.get(chainTaskId);
-    }
-
-    public void lockTaskAccessForNewReplicate(String chainTaskId) {
-        setTaskAccessForNewReplicateLock(chainTaskId, true);
-    }
-
-    public void unlockTaskAccessForNewReplicate(String chainTaskId) {
-        setTaskAccessForNewReplicateLock(chainTaskId, false);
-    }
-
-    private void setTaskAccessForNewReplicateLock(String chainTaskId, boolean isTaskBeingAccessedForNewReplicate) {
-        taskAccessForNewReplicateLock.replace(chainTaskId, isTaskBeingAccessedForNewReplicate);
-    }
-
-    public boolean isConsensusReached(String chainTaskId) {
-        Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
-        if (optional.isEmpty()) return false;
-
-        ChainTask chainTask = optional.get();
-
+        final ChainTask chainTask = optional.get();
         boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        if (!isChainTaskRevealing) {
+            return false;
+        }
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = isChainTaskRevealing ? replicatesService.getNbValidContributedWinners(chainTaskId, chainTask.getConsensusValue()) : 0;
-        boolean offChainWinnersGreaterOrEqualsOnChainWinners = offChainWinners >= onChainWinners;
-
-        return isChainTaskRevealing && offChainWinnersGreaterOrEqualsOnChainWinners;
+        int offChainWinners = ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue());
+        return offChainWinners >= onChainWinners;
     }
 }
