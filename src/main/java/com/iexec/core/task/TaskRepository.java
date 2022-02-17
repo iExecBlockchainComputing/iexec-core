@@ -44,9 +44,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
     @Query("{ 'currentStatus': {$in: ?0} }")
     List<Task> findByCurrentStatus(List<TaskStatus> statuses, Sort sort);
 
-    @Query("{ 'currentStatus': {$in: ?0} , 'tag': {$ne: ?1} }")
-    List<Task> findByCurrentStatusInAndTagNot(List<TaskStatus> statuses, String excludedTag, Sort sort);
-
     /**
      * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn}.
      * Retrieves the prioritized task matching with given criteria:
