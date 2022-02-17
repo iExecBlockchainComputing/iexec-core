@@ -192,7 +192,7 @@ public class ReplicateSupplyService {
         final ReplicatesList replicatesList = oReplicatesList.get();
 
         final boolean hasWorkerAlreadyParticipated =
-                ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, walletAddress);
+                replicatesList.hasWorkerAlreadyParticipated(walletAddress);
         if (hasWorkerAlreadyParticipated) {
             return false;
         }

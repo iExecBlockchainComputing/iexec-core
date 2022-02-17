@@ -10,7 +10,7 @@ import static com.iexec.common.replicate.ReplicateStatus.STARTING;
 import static com.iexec.common.utils.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ReplicatesHelperTests {
+class ReplicatesListTests {
     // FIXME: add tests
 
     // region getNbValidContributedWinners
@@ -27,8 +27,7 @@ class ReplicatesHelperTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID,
                 Arrays.asList(replicate1, replicate2));
 
-        assertThat(ReplicatesHelper.getNbValidContributedWinners(
-                replicatesList.getReplicates(),
+        assertThat(replicatesList.getNbValidContributedWinners(
                 contributionHash
         )).isOne();
     }
@@ -45,8 +44,8 @@ class ReplicatesHelperTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
 
-        assertThat(ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_1)).isTrue();
-        assertThat(ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_2)).isTrue();
+        assertThat(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).isTrue();
+        assertThat(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).isTrue();
     }
 
     @Test
@@ -59,7 +58,7 @@ class ReplicatesHelperTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
 
-        assertThat(ReplicatesHelper.hasWorkerAlreadyParticipated(replicatesList, WALLET_WORKER_3)).isFalse();
+        assertThat(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_3)).isFalse();
     }
     // endregion
 }

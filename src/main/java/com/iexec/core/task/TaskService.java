@@ -22,7 +22,6 @@ import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.replicate.ReplicatesHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -213,7 +212,7 @@ public class TaskService {
         }
 
         int onChainWinners = chainTask.getWinnerCounter();
-        int offChainWinners = ReplicatesHelper.getNbValidContributedWinners(replicatesList.getReplicates(), chainTask.getConsensusValue());
+        int offChainWinners = replicatesList.getNbValidContributedWinners(chainTask.getConsensusValue());
         return offChainWinners >= onChainWinners;
     }
 }

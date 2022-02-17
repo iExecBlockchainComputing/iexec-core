@@ -173,4 +173,11 @@ public class Replicate {
         if (currentStatus.isEmpty()) return false;
         return currentStatus.get().ordinal() < status.ordinal();
     }
+
+    boolean isStatusBeforeWorkerLostEqualsTo(ReplicateStatus status) {
+        int size = getStatusUpdateList().size();
+        return size >= 2
+                && getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
+                && getStatusUpdateList().get(size - 2).getStatus().equals(status);
+    }
 }

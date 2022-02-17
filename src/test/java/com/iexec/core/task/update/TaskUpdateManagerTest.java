@@ -32,7 +32,6 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.replicate.ReplicatesHelper;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -587,7 +586,9 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
-        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(new ReplicatesList(CHAIN_TASK_ID)));
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
@@ -598,11 +599,9 @@ class TaskUpdateManagerTest {
         when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        when(replicatesList.getNbValidContributedWinners(any())).thenReturn(2);
 
-        try (MockedStatic<ReplicatesHelper> replicatesUtilsStatic = Mockito.mockStatic(ReplicatesHelper.class)) {
-            replicatesUtilsStatic.when(() -> ReplicatesHelper.getNbValidContributedWinners(any(), any())).thenReturn(2);
-            taskUpdateManager.updateTask(task.getChainTaskId());
-        }
+        taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
