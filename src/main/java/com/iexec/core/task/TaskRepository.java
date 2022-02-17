@@ -45,7 +45,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findByCurrentStatus(List<TaskStatus> statuses, Sort sort);
 
     /**
-     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn}.
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
      *     <li>Task is in one of given {@code statuses};</li>
@@ -63,18 +62,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
      * @param sort                 How to prioritize tasks.
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
-    default Optional<Task> findPrioritizedTask(List<TaskStatus> statuses,
-                                               String excludedTag,
-                                               List<String> excludedChainTaskIds,
-                                               Sort sort) {
-        return findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
-                statuses,
-                excludedTag,
-                excludedChainTaskIds,
-                sort
-        );
-    }
-
     Optional<Task> findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(List<TaskStatus> statuses, String excludedTag, List<String> excludedChainTaskIds, Sort sort);
     
     @Query("{ 'currentStatus': {$nin: ?0} }")
