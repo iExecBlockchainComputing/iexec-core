@@ -25,7 +25,6 @@ if (gitBranch != 'main' && gitBranch != 'master' && ! (gitBranch ==~ '(release|h
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
     maven {
         url "https://nexus.iex.ec/repository/maven-public/"
     }
