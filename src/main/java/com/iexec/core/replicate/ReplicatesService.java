@@ -121,28 +121,31 @@ public class ReplicatesService {
     }
 
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        final List<Replicate> replicates = getReplicates(chainTaskId);
-        return ReplicatesHelper.getNbReplicatesWithCurrentStatus(replicates, listStatus);
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesWithCurrentStatus(listStatus))
+                .orElse(0);
     }
 
     public int getNbReplicatesWithLastRelevantStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        final List<Replicate> replicates = getReplicates(chainTaskId);
-        return ReplicatesHelper.getNbReplicatesWithLastRelevantStatus(replicates, listStatus);
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesWithLastRelevantStatus(listStatus))
+                .orElse(0);
     }
 
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        final List<Replicate> replicates = getReplicates(chainTaskId);
-        return ReplicatesHelper.getNbReplicatesContainingStatus(replicates, listStatus);
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesContainingStatus(listStatus))
+                .orElse(0);
     }
 
     public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
-        List<Replicate> revealReplicates = getReplicates(chainTaskId);
-        return ReplicatesHelper.getRandomReplicateWithRevealStatus(revealReplicates);
+        return getReplicatesList(chainTaskId)
+                .flatMap(ReplicatesList::getRandomReplicateWithRevealStatus);
     }
 
     public Optional<Replicate> getReplicateWithResultUploadedStatus(String chainTaskId) {
-        final List<Replicate> replicates = getReplicates(chainTaskId);
-        return ReplicatesHelper.getReplicateWithResultUploadedStatus(replicates);
+        return getReplicatesList(chainTaskId)
+                .flatMap(ReplicatesList::getReplicateWithResultUploadedStatus);
     }
 
     /**
