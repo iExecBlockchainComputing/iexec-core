@@ -103,6 +103,10 @@ jar {
     archiveClassifier.set('library')
 }
 
+springBoot {
+    buildInfo()
+}
+
 test {
     useJUnitPlatform()
 }
@@ -141,25 +145,6 @@ publishing {
         }
     }
 }
-
-import org.apache.tools.ant.filters.ReplaceTokens
-
-// create the version controller for the core
-task createVersion(type: Copy) {
-    // delete old one
-    delete 'src/main/java/com/iexec/core/utils/version/Version.java'
-    // use and copy template to the new location
-    from 'src/main/resources/Version.java.template'
-    into 'src/main/java/com/iexec/core/utils/version/'
-
-    rename { String fileName ->
-        fileName.replace('.template', '')
-    }
-    // replace tokens in the template file
-    filter(ReplaceTokens, tokens: [projectversion: "${version}".toString()])
-}
-// the createVersion task should be called before compileJava or the version service will not work
-compileJava.dependsOn createVersion
 
 ext.bootJarPath    = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()

@@ -1,5 +1,5 @@
 .gradle
-/build/
+build
 !gradle/wrapper/gradle-wrapper.jar
 
 ### STS ###
@@ -24,8 +24,6 @@
 /dist/
 /nbdist/
 /.nb-gradle/
-
-src/main/java/com/iexec/core/utils/version/Version.java
 
 /bin/
 .vscode/
