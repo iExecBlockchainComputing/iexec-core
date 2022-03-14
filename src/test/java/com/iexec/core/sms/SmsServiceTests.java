@@ -1,13 +1,14 @@
 package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.feign.SmsClient;
+import com.iexec.core.configuration.SmsConfiguration;
+import com.iexec.sms.api.SmsClient;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -20,12 +21,17 @@ class SmsServiceTests {
     @Mock
     private SmsClient smsClient;
 
-    @InjectMocks
+    @Mock
+    private SmsConfiguration configuration;
+
     private SmsService smsService;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        when(configuration.getSmsURL()).thenReturn("http://localhost");
+        smsService = new SmsService(configuration);
+        ReflectionTestUtils.setField(smsService, "smsClient", smsClient);
     }
 
     @Test
