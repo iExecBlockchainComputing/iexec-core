@@ -17,8 +17,11 @@
 package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.feign.SmsClient;
+import com.iexec.core.configuration.SmsConfiguration;
+import com.iexec.sms.api.SmsClient;
+import com.iexec.sms.api.SmsClientBuilder;
 import feign.FeignException;
+import feign.Logger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -32,8 +35,11 @@ import java.util.Optional;
 public class SmsService {
     private final SmsClient smsClient;
 
-    public SmsService(SmsClient smsClient) {
-        this.smsClient = smsClient;
+    public SmsService(SmsConfiguration configuration) {
+        this.smsClient = SmsClientBuilder.getInstance(
+                Logger.Level.NONE,
+                configuration.getSmsURL()
+        );
     }
 
     public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
