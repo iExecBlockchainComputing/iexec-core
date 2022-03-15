@@ -3,6 +3,8 @@ package com.iexec.core.sms;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.sms.api.SmsClient;
+import feign.FeignException;
+import feign.Request;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.mockito.Mockito.*;
@@ -61,5 +64,16 @@ class SmsServiceTests {
                 .get()
                 .isEqualTo(BytesUtils.EMPTY_ADDRESS);
         verify(smsClient, never()).generateTeeChallenge(anyString());
+    }
+
+    @Test
+    void shouldGetEmptyAddressOnFeignException() {
+        Request request = Request.create(Request.HttpMethod.HEAD, "http://localhost",
+                Collections.emptyMap(), Request.Body.empty(), null);
+        Assertions.assertThat(smsService.generateEnclaveChallenge(
+                new FeignException.Unauthorized("", request, new byte[0], null),
+                CHAIN_TASK_ID
+                )
+        ).isEmpty();
     }
 }
