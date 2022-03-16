@@ -17,13 +17,10 @@
 package com.iexec.core.feign;
 
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.configuration.SmsConfiguration;
-
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 
-import lombok.Getter;
-
-/* 
+/*
  * This bean is a work around to let feign clients get URLs only after
  * spring context is initialized
  */
@@ -31,12 +28,9 @@ import lombok.Getter;
 @Getter
 public class FeignURLs {
 
-    private String smsURL;
-    private String resultRepositoryURL;
+    private final String resultRepositoryURL;
 
-    public FeignURLs(ResultRepositoryConfiguration resultRepoConfig,
-                     SmsConfiguration smsConfiguration) {
+    public FeignURLs(ResultRepositoryConfiguration resultRepoConfig) {
         this.resultRepositoryURL = resultRepoConfig.getResultRepositoryURL();
-        this.smsURL = smsConfiguration.getSmsURL();
     }
 }
