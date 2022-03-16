@@ -16,10 +16,14 @@
 
 package com.iexec.core.configuration;
 
+import com.iexec.sms.api.SmsClient;
+import com.iexec.sms.api.SmsClientBuilder;
+import feign.Logger;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -39,5 +43,10 @@ public class SmsConfiguration {
 
     public String getSmsURL() {
         return protocol + "://" + host + ":" + port;
+    }
+
+    @Bean
+    public SmsClient smsClient() {
+        return SmsClientBuilder.getInstance(Logger.Level.NONE, getSmsURL());
     }
 }
