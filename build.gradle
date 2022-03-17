@@ -154,6 +154,6 @@ task buildImage(type: Exec) {
     group 'Build'
     description 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar
-    commandLine("sh", "-c", "docker build --build-arg spring_boot_jar=$jarPathForOCI -t $ociImageName:$gitShortCommit . &&" +
+    commandLine("sh", "-c", "docker build --build-arg jar=$jarPathForOCI -t $ociImageName:$gitShortCommit . &&" +
             "docker tag $ociImageName:$gitShortCommit $ociImageName:dev")
 }
