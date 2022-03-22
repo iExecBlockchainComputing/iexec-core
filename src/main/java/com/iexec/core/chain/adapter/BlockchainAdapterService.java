@@ -16,13 +16,13 @@
 
 package com.iexec.core.chain.adapter;
 
+import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
 import com.iexec.common.config.PublicChainConfig;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -37,10 +37,10 @@ public class BlockchainAdapterService {
     public static final int WATCH_PERIOD_SECONDS = 1;//To tune
     public static final int MAX_ATTEMPTS = 50;
 
-    private final BlockchainAdapterClient blockchainAdapterClient;
+    private final BlockchainAdapterApiClient blockchainAdapterClient;
     private PublicChainConfig publicChainConfig;
 
-    public BlockchainAdapterService(BlockchainAdapterClient blockchainAdapterClient) {
+    public BlockchainAdapterService(BlockchainAdapterApiClient blockchainAdapterClient) {
         this.blockchainAdapterClient = blockchainAdapterClient;
     }
 
@@ -53,15 +53,13 @@ public class BlockchainAdapterService {
      */
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
         try {
-            ResponseEntity<String> initializeResponseEntity =
-                    blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
-            if (initializeResponseEntity.getStatusCode().is2xxSuccessful()
-                    && !StringUtils.isEmpty(initializeResponseEntity.getBody())) {
-                String chainTaskId = initializeResponseEntity.getBody();
-                log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
-                        "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
-                return Optional.of(chainTaskId);
+            String chainTaskId = blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
+            if (StringUtils.isEmpty(chainTaskId)) {
+                return Optional.empty();
             }
+            log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
+                    "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
+            return Optional.of(chainTaskId);
         } catch (Throwable e) {
             log.error("Failed to requestInitialize [chainDealId:{}, " +
                     "taskIndex:{}]", chainDealId, taskIndex, e);
@@ -78,7 +76,7 @@ public class BlockchainAdapterService {
      */
     public Optional<Boolean> isInitialized(String chainTaskId) {
         return isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
-                chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
+                chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS);
     }
 
     /**
@@ -93,18 +91,16 @@ public class BlockchainAdapterService {
                                             String resultLink,
                                             String callbackData) {
         try {
-            ResponseEntity<String> finalizeResponseEntity =
-                    blockchainAdapterClient.requestFinalizeTask(chainTaskId,
-                            new TaskFinalizeArgs(resultLink, callbackData));
-            if (finalizeResponseEntity.getStatusCode().is2xxSuccessful()
-                    && !StringUtils.isEmpty(finalizeResponseEntity.getBody())) {
-                log.info("Requested finalize [chainTaskId:{}, resultLink:{}, " +
-                        "callbackData:{}]", chainTaskId, resultLink, callbackData);
+            String finalizeResponse = blockchainAdapterClient.requestFinalizeTask(chainTaskId,
+                    new TaskFinalizeArgs(resultLink, callbackData));
+            if (!StringUtils.isEmpty(finalizeResponse)) {
+                log.info("Requested finalize [chainTaskId:{}, resultLink:{}, callbackData:{}]",
+                        chainTaskId, resultLink, callbackData);
                 return Optional.of(chainTaskId);
             }
         } catch (Throwable e) {
-            log.error("Failed to requestFinalize [chainTaskId:{}, resultLink:{}, " +
-                    "callbackData:{}]", chainTaskId, resultLink, callbackData, e);
+            log.error("Failed to requestFinalize [chainTaskId:{}, resultLink:{}, callbackData:{}]",
+                    chainTaskId, resultLink, callbackData, e);
         }
         return Optional.empty();
     }
@@ -118,7 +114,7 @@ public class BlockchainAdapterService {
      */
     public Optional<Boolean> isFinalized(String chainTaskId) {
         return isCommandCompleted(blockchainAdapterClient::getStatusForFinalizeTaskRequest,
-                chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS, 0);
+                chainTaskId, SECONDS.toMillis(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS);
     }
 
     /**
@@ -128,44 +124,33 @@ public class BlockchainAdapterService {
      * @param chainTaskId              ID of the task
      * @param period                   period in ms between checks
      * @param maxAttempts              maximum number of attempts for checking
-     * @param attempt                  current attempt number
      * @return true if the tx is mined, false if reverted or empty for other
      * cases (too long since still RECEIVED or PROCESSING, adapter error)
      */
     Optional<Boolean> isCommandCompleted(
-            Function<String, ResponseEntity<CommandStatus>> getCommandStatusFunction,
+            Function<String, CommandStatus> getCommandStatusFunction,
             String chainTaskId,
-            long period, int maxAttempts, int attempt) {
-        if (attempt >= maxAttempts) {
-            log.error("Reached max retry while waiting command completion " +
-                            "[chainTaskId:{}, maxAttempts:{}]",
-                    chainTaskId, maxAttempts);
-            return Optional.empty();
-        }
-        ResponseEntity<CommandStatus> commandStatusEntity;
-        try {
-            commandStatusEntity = getCommandStatusFunction.apply(chainTaskId);
-            if (!commandStatusEntity.getStatusCode().is2xxSuccessful()
-                    || commandStatusEntity.getBody() == null) {
+            long period, int maxAttempts) {
+        int attempt = 0;
+        while(attempt < maxAttempts) {
+            try {
+                CommandStatus status = getCommandStatusFunction.apply(chainTaskId);
+                if (CommandStatus.SUCCESS.equals(status) || CommandStatus.FAILURE.equals(status)) {
+                    return Optional.of(status.equals(CommandStatus.SUCCESS));
+                }
+                // RECEIVED, PROCESSING
+                log.warn("Waiting command completion [chainTaskId:{}, status:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
+                        chainTaskId, status, period, attempt, maxAttempts);
+                Thread.sleep(period);
+            } catch (Throwable e) {
+                log.error("Unexpected error while waiting command completion [chainTaskId:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
+                        chainTaskId, period, attempt, maxAttempts, e);
                 return Optional.empty();
             }
-            CommandStatus status = commandStatusEntity.getBody();
-            if (CommandStatus.SUCCESS.equals(status)
-                    || CommandStatus.FAILURE.equals(status)) {
-                return Optional.of(status.equals(CommandStatus.SUCCESS));
-            }
-            // RECEIVED, PROCESSING
-            log.warn("Waiting command completion [chainTaskId:{}, " +
-                            "status:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
-                    chainTaskId, status, period, attempt, maxAttempts);
-            Thread.sleep(period);
-            return isCommandCompleted(getCommandStatusFunction, chainTaskId,
-                    period, maxAttempts, attempt + 1);
-        } catch (Throwable e) {
-            log.error("Unexpected error while waiting command completion " +
-                            "[chainTaskId:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
-                    chainTaskId, period, attempt, maxAttempts, e);
+            attempt++;
         }
+        log.error("Reached max retry while waiting command completion [chainTaskId:{}, maxAttempts:{}]",
+                chainTaskId, maxAttempts);
         return Optional.empty();
     }
 
@@ -176,16 +161,10 @@ public class BlockchainAdapterService {
         if (publicChainConfig != null) {
             return publicChainConfig;
         }
-
         try {
-            final ResponseEntity<PublicChainConfig> response =
-                    blockchainAdapterClient.getPublicChainConfig();
-            if (response.getStatusCode().is2xxSuccessful() && response.hasBody()) {
-                publicChainConfig = response.getBody();
-                log.info("Received public chain config [publicChainConfig:{}]",
-                        publicChainConfig);
-                return publicChainConfig;
-            }
+            publicChainConfig = blockchainAdapterClient.getPublicChainConfig();
+            log.info("Received public chain config [publicChainConfig:{}]", publicChainConfig);
+            return publicChainConfig;
         } catch (FeignException e) {
             log.error("Failed to get public chain config:", e);
         }
