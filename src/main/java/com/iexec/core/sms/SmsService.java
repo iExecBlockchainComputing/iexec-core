@@ -17,7 +17,7 @@
 package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.feign.SmsClient;
+import com.iexec.sms.api.SmsClient;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
