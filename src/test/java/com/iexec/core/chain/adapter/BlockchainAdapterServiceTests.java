@@ -16,16 +16,17 @@
 
 package com.iexec.core.chain.adapter;
 
+import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.common.chain.adapter.CommandStatus;
 import com.iexec.common.chain.adapter.args.TaskFinalizeArgs;
 import com.iexec.common.config.PublicChainConfig;
+import feign.FeignException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
@@ -40,10 +41,9 @@ class BlockchainAdapterServiceTests {
     public static final String CALLBACK = "callback";
     public static final int PERIOD = 10;
     public static final int MAX_ATTEMPTS = 3;
-    public static final int ATTEMPT = 0;
 
     @Mock
-    private BlockchainAdapterClient blockchainAdapterClient;
+    private BlockchainAdapterApiClient blockchainAdapterClient;
 
     @InjectMocks
     private BlockchainAdapterService blockchainAdapterService;
@@ -58,7 +58,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestInitialize() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
-                .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
+                .thenReturn(CHAIN_TASK_ID);
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
                 .isPresent();
@@ -67,7 +67,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestInitializeFailedSinceNot200() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
-                .thenReturn(ResponseEntity.badRequest().build());
+                .thenThrow(FeignException.BadRequest.class);
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
                 .isEmpty();
@@ -76,7 +76,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestInitializeFailedSinceNoBody() {
         when(blockchainAdapterClient.requestInitializeTask(CHAIN_DEAL_ID, TASK_INDEX))
-                .thenReturn(ResponseEntity.ok().build());
+                .thenReturn("");
 
         Assertions.assertThat(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, TASK_INDEX))
                 .isEmpty();
@@ -85,7 +85,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void isInitialized() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
-                .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
+                .thenReturn(CommandStatus.SUCCESS);
         Assertions.assertThat(blockchainAdapterService.isInitialized(CHAIN_TASK_ID))
                 .isEqualTo(Optional.of(true));
     }
@@ -95,7 +95,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestFinalize() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
-                .thenReturn(ResponseEntity.ok(CHAIN_TASK_ID));
+                .thenReturn(CHAIN_TASK_ID);
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
                 .isPresent();
@@ -104,7 +104,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestFinalizeFailedSinceNot200() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
-                .thenReturn(ResponseEntity.ok().build());
+                .thenThrow(FeignException.BadRequest.class);
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
                 .isEmpty();
@@ -113,7 +113,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void requestFinalizeFailedSinceNoBody() {
         when(blockchainAdapterClient.requestFinalizeTask(CHAIN_TASK_ID, new TaskFinalizeArgs(LINK, CALLBACK)))
-                .thenReturn(ResponseEntity.badRequest().build());
+                .thenReturn("");
 
         Assertions.assertThat(blockchainAdapterService.requestFinalize(CHAIN_TASK_ID, LINK, CALLBACK))
                 .isEmpty();
@@ -122,7 +122,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void isFinalized() {
         when(blockchainAdapterClient.getStatusForFinalizeTaskRequest(CHAIN_TASK_ID))
-                .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
+                .thenReturn(CommandStatus.SUCCESS);
         Assertions.assertThat(blockchainAdapterService.isFinalized(CHAIN_TASK_ID))
                 .isEqualTo(Optional.of(true));
     }
@@ -132,13 +132,13 @@ class BlockchainAdapterServiceTests {
     @Test
     void isCommandCompletedWithSuccess() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
-                .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
-                .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
-                .thenReturn(ResponseEntity.ok(CommandStatus.SUCCESS));
+                .thenReturn(CommandStatus.RECEIVED)
+                .thenReturn(CommandStatus.PROCESSING)
+                .thenReturn(CommandStatus.SUCCESS);
 
         Optional<Boolean> commandCompleted = blockchainAdapterService
                 .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
-                CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS, ATTEMPT);
+                CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS);
         Assertions.assertThat(commandCompleted.isPresent()).isTrue();
         Assertions.assertThat(commandCompleted.get()).isTrue();
     }
@@ -146,15 +146,25 @@ class BlockchainAdapterServiceTests {
     @Test
     void isCommandCompletedWithFailure() {
         when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
-                .thenReturn(ResponseEntity.ok(CommandStatus.RECEIVED))
-                .thenReturn(ResponseEntity.ok(CommandStatus.PROCESSING))
-                .thenReturn(ResponseEntity.ok(CommandStatus.FAILURE));
+                .thenReturn(CommandStatus.RECEIVED)
+                .thenReturn(CommandStatus.PROCESSING)
+                .thenReturn(CommandStatus.FAILURE);
 
         Optional<Boolean> commandCompleted = blockchainAdapterService
                 .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
-                CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS, ATTEMPT);
+                CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS);
         Assertions.assertThat(commandCompleted.isPresent()).isTrue();
         Assertions.assertThat(commandCompleted.get()).isFalse();
+    }
+
+    @Test
+    void isCommandCompletedWithMaxAttempts() {
+        when(blockchainAdapterClient.getStatusForInitializeTaskRequest(CHAIN_TASK_ID))
+                .thenReturn(CommandStatus.PROCESSING);
+        Optional<Boolean> commandCompleted = blockchainAdapterService
+                .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
+                        CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS);
+        Assertions.assertThat(commandCompleted).isEmpty();
     }
 
     // region getPublicChainConfig
@@ -162,7 +172,7 @@ class BlockchainAdapterServiceTests {
     void shouldGetPublicChainConfigOnlyOnce() {
         final PublicChainConfig expectedChainConfig = new PublicChainConfig();
         when(blockchainAdapterClient.getPublicChainConfig())
-                .thenReturn(ResponseEntity.ok(expectedChainConfig));
+                .thenReturn(expectedChainConfig);
 
         final PublicChainConfig actualChainConfig =
                 blockchainAdapterService.getPublicChainConfig();
@@ -180,7 +190,7 @@ class BlockchainAdapterServiceTests {
     @Test
     void shouldNotGetPublicChainConfigSinceNotFound() {
         when(blockchainAdapterClient.getPublicChainConfig())
-                .thenReturn(ResponseEntity.notFound().build());
+                .thenThrow(FeignException.NotFound.class);
 
         final PublicChainConfig actualChainConfig =
                 blockchainAdapterService.getPublicChainConfig();
