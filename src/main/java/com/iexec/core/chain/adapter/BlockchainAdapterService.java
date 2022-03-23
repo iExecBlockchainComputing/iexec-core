@@ -54,13 +54,12 @@ public class BlockchainAdapterService {
     public Optional<String> requestInitialize(String chainDealId, int taskIndex) {
         try {
             String chainTaskId = blockchainAdapterClient.requestInitializeTask(chainDealId, taskIndex);
-            if (StringUtils.isEmpty(chainTaskId)) {
-                return Optional.empty();
+            if (!StringUtils.isEmpty(chainTaskId)) {
+                log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
+                        "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
+                return Optional.of(chainTaskId);
             }
-            log.info("Requested initialize [chainTaskId:{}, chainDealId:{}, " +
-                    "taskIndex:{}]", chainTaskId, chainDealId, taskIndex);
-            return Optional.of(chainTaskId);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Failed to requestInitialize [chainDealId:{}, " +
                     "taskIndex:{}]", chainDealId, taskIndex, e);
         }
@@ -98,7 +97,7 @@ public class BlockchainAdapterService {
                         chainTaskId, resultLink, callbackData);
                 return Optional.of(chainTaskId);
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Failed to requestFinalize [chainTaskId:{}, resultLink:{}, callbackData:{}]",
                     chainTaskId, resultLink, callbackData, e);
         }
@@ -141,7 +140,7 @@ public class BlockchainAdapterService {
                 log.warn("Waiting command completion [chainTaskId:{}, status:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
                         chainTaskId, status, period, attempt, maxAttempts);
                 Thread.sleep(period);
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 log.error("Unexpected error while waiting command completion [chainTaskId:{}, period:{}ms, attempt:{}, maxAttempts:{}]",
                         chainTaskId, period, attempt, maxAttempts, e);
                 return Optional.empty();
