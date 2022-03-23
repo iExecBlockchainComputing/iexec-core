@@ -131,8 +131,7 @@ public class BlockchainAdapterService {
             Function<String, CommandStatus> getCommandStatusFunction,
             String chainTaskId,
             long period, int maxAttempts) {
-        int attempt = 0;
-        while(attempt < maxAttempts) {
+        for(int attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 CommandStatus status = getCommandStatusFunction.apply(chainTaskId);
                 if (CommandStatus.SUCCESS.equals(status) || CommandStatus.FAILURE.equals(status)) {
@@ -147,7 +146,6 @@ public class BlockchainAdapterService {
                         chainTaskId, period, attempt, maxAttempts, e);
                 return Optional.empty();
             }
-            attempt++;
         }
         log.error("Reached max retry while waiting command completion [chainTaskId:{}, maxAttempts:{}]",
                 chainTaskId, maxAttempts);
