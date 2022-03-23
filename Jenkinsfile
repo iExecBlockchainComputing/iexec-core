@@ -1,4 +1,4 @@
-@Library('global-jenkins-library@feature/external-iexec-oci') _
+@Library('global-jenkins-library@1.8.0') _
 buildJavaProject(
         buildInfo: getBuildInfo(),
         integrationTestsEnvVars: [],
