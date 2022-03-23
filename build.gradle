@@ -146,7 +146,7 @@ publishing {
     }
 }
 
-ext.jarPathForOCI    = relativePath(tasks.bootJar.outputs.files.singleFile)
+ext.jarPathForOCI  = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
 ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
