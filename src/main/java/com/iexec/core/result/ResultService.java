@@ -95,11 +95,9 @@ public class ResultService {
     private Optional<Eip712Challenge> getChallenge() {
         try {
             Eip712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
-            if (challenge == null) {
-                return Optional.empty();
-            }
             return Optional.of(challenge);
         } catch (RuntimeException e) {
+            log.error("Failed to get challenge", e);
             return Optional.empty();
         }
     }
