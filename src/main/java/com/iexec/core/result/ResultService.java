@@ -95,18 +95,21 @@ public class ResultService {
     private Optional<Eip712Challenge> getChallenge() {
         try {
             Eip712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
-            return Optional.of(challenge);
+            if (challenge != null) {
+                return Optional.of(challenge);
+            }
         } catch (RuntimeException e) {
             log.error("Failed to get challenge", e);
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
     private String login(String token) {
         try {
             return resultProxyClient.login(chainConfig.getChainId(), token);
         } catch (RuntimeException e) {
-            return "";
+            log.error("Login failed", e);
         }
+        return "";
     }
 }
