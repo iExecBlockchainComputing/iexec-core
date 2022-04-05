@@ -16,10 +16,14 @@
 
 package com.iexec.core.configuration;
 
+import com.iexec.resultproxy.api.ResultProxyClient;
+import com.iexec.resultproxy.api.ResultProxyClientBuilder;
+import feign.Logger;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -39,5 +43,10 @@ public class ResultRepositoryConfiguration {
 
     public String getResultRepositoryURL() {
         return protocol + "://" + host + ":" + port;
+    }
+
+    @Bean
+    public ResultProxyClient resultProxyClient() {
+        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, getResultRepositoryURL());
     }
 }

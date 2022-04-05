@@ -42,6 +42,7 @@ dependencies {
     // iexec
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
     implementation "com.iexec.blockchain:iexec-blockchain-adapter-api-library:$iexecBlockchainAdapterVersion"
+    implementation "com.iexec.result-proxy:iexec-result-proxy-library:$iexecResultVersion"
     implementation "com.iexec.sms:iexec-sms-library:$iexecSmsVersion"
 
     // spring
