@@ -16,10 +16,11 @@
 
 package com.iexec.core.replicate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -29,6 +30,16 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReplicateTests {
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Test
+    void shouldSerializeAndDeserializeReplicate() throws JsonProcessingException {
+        Replicate replicate = new Replicate("walletAddress", "chainTaskId");
+        String jsonString = mapper.writeValueAsString(replicate);
+        Replicate deserializedReplicate = mapper.readValue(jsonString, Replicate.class);
+        assertThat(deserializedReplicate).usingRecursiveComparison().isEqualTo(replicate);
+    }
 
     @Test
     void shouldInitializeStatusProperly(){
