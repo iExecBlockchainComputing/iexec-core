@@ -17,6 +17,7 @@
 package com.iexec.core.replicate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
@@ -36,6 +37,7 @@ import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicate {
 
     private List<ReplicateStatusUpdate> statusUpdateList;
