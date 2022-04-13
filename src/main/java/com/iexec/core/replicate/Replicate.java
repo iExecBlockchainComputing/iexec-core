@@ -46,7 +46,6 @@ public class Replicate {
     private String chainCallbackData;
     private String chainTaskId;
     private String contributionHash;
-    private int credibility;
     private int workerWeight;
 
     public Replicate(String walletAddress, String chainTaskId) {
@@ -112,22 +111,6 @@ public class Replicate {
 
     public boolean updateStatus(ReplicateStatusUpdate statusUpdate) {
         return statusUpdateList.add(statusUpdate);
-    }
-
-    public String getContributionHash() {
-        return contributionHash;
-    }
-
-    public void setContributionHash(String contributionHash) {
-        this.contributionHash = contributionHash;
-    }
-
-    public int getCredibility() {
-        return credibility;
-    }
-
-    public void setCredibility(int credibility) {
-        this.credibility = credibility + 1;
     }
 
     public boolean containsStatus(ReplicateStatus replicateStatus) {
