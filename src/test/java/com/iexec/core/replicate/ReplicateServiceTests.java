@@ -1265,13 +1265,10 @@ class ReplicateServiceTests {
         final String unexpectedResultLink = "resultLink";
         final String unexpectedChainCallbackData = "chainCallbackData";
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                unexpectedResultLink,
-                unexpectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(unexpectedResultLink)
+                .chainCallbackData(unexpectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(CONTRIBUTED)
@@ -1297,13 +1294,10 @@ class ReplicateServiceTests {
         final String expectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                expectedResultLink,
-                expectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(expectedResultLink)
+                .chainCallbackData(expectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOADED)
@@ -1334,13 +1328,10 @@ class ReplicateServiceTests {
         final String unexpectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                unexpectedResultLink,
-                unexpectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(unexpectedResultLink)
+                .chainCallbackData(unexpectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOAD_FAILED)
