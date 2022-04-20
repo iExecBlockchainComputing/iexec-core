@@ -76,7 +76,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED))
+                        ReplicateStatusCause.POST_COMPUTE_UNKNOWN_ISSUE))
                 .isEqualTo(TaskNotificationType.PLEASE_ABORT);
     }
 
@@ -102,7 +102,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED))
+                        ReplicateStatusCause.POST_COMPUTE_UNKNOWN_ISSUE))
                 .isEqualTo(TaskNotificationType.PLEASE_ABORT);
     }
 

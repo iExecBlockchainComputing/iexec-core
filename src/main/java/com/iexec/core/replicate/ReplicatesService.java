@@ -418,11 +418,13 @@ public class ReplicatesService {
             replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
-        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
-            if (statusUpdate.getStatus().equals(COMPUTED)) {
-                String stdout = statusUpdate.getDetails().tailStdout().getStdout();
-                stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            }
+        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null &&
+                (COMPUTED.equals(statusUpdate.getStatus())
+                || (COMPUTE_FAILED.equals(statusUpdate.getStatus())
+                        && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))){
+            String stdout = statusUpdate.getDetails().tailStdout().getStdout();
+            stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
+            //TODO: Add /stdout endpoint ref
             statusUpdate.getDetails().setStdout(null);
         }
 
