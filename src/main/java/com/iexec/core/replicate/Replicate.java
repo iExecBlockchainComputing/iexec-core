@@ -17,6 +17,7 @@
 package com.iexec.core.replicate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
@@ -36,6 +37,7 @@ import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicate {
 
     private List<ReplicateStatusUpdate> statusUpdateList;
@@ -44,7 +46,6 @@ public class Replicate {
     private String chainCallbackData;
     private String chainTaskId;
     private String contributionHash;
-    private int credibility;
     private int workerWeight;
 
     public Replicate(String walletAddress, String chainTaskId) {
@@ -110,22 +111,6 @@ public class Replicate {
 
     public boolean updateStatus(ReplicateStatusUpdate statusUpdate) {
         return statusUpdateList.add(statusUpdate);
-    }
-
-    public String getContributionHash() {
-        return contributionHash;
-    }
-
-    public void setContributionHash(String contributionHash) {
-        this.contributionHash = contributionHash;
-    }
-
-    public int getCredibility() {
-        return credibility;
-    }
-
-    public void setCredibility(int credibility) {
-        this.credibility = credibility + 1;
     }
 
     public boolean containsStatus(ReplicateStatus replicateStatus) {

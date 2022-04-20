@@ -101,7 +101,6 @@ public class ReplicatesController {
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
-        statusUpdate.setSuccess(ReplicateStatus.isSuccess(statusUpdate.getStatus()));
 
         final UpdateReplicateStatusArgs updateReplicateStatusArgs = replicatesService.computeUpdateReplicateStatusArgs(
                 chainTaskId,
