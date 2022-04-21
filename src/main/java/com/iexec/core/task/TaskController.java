@@ -16,16 +16,20 @@
 
 package com.iexec.core.task;
 
-import static org.springframework.http.ResponseEntity.status;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.http.ResponseEntity.*;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.replicate.*;
 import com.iexec.core.stdout.ReplicateStdout;
 import com.iexec.core.stdout.StdoutService;
 import com.iexec.core.stdout.TaskStdout;
 
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,13 +60,36 @@ public class TaskController {
             return status(HttpStatus.NOT_FOUND).build();
         }
         Task task = optionalTask.get();
+        return replicatesService.getReplicatesList(chainTaskId)
+                .map(replicatesList -> {
+                    TaskModel taskModel = TaskModel.fromEntity(task);
+                    List<Link> replicates = replicatesList.getReplicates().stream()
+                            .map(replicate -> linkTo(methodOn(TaskController.class)
+                                    .getTaskReplicate(chainTaskId, replicate.getWalletAddress()))
+                                    .withSelfRel())
+                            .collect(Collectors.toList());
+                    taskModel.setReplicates(replicates);
+                    return ok(taskModel);
+                })
+                .orElse(notFound().build());
+    }
 
-        ReplicatesList replicates = replicatesService.getReplicatesList(chainTaskId)
-                .orElseGet(ReplicatesList::new);
-
-        TaskModel taskModel = new TaskModel(task, replicates.getReplicates());
-
-        return ResponseEntity.ok(taskModel);
+    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}")
+    public ResponseEntity<ReplicateModel> getTaskReplicate(@PathVariable("chainTaskId") String chainTaskId,
+                                                           @PathVariable("walletAddress") String walletAddress) {
+        return replicatesService.getReplicate(chainTaskId, walletAddress)
+                .map(replicate -> {
+                    ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
+                    if (replicate.isAppComputeStdoutPresent()) {
+                        Link stdout = linkTo(methodOn(TaskController.class)
+                                .getReplicateStdout(replicate.getChainTaskId(),
+                                        replicate.getWalletAddress()))
+                                .withSelfRel();
+                        replicateModel.setAppComputeStdout(stdout);
+                    }
+                    return ok(replicateModel);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/tasks/{chainTaskId}/stdout")

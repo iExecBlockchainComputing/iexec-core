@@ -424,8 +424,8 @@ public class ReplicatesService {
                         && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))){
             String stdout = statusUpdate.getDetails().tailStdout().getStdout();
             stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            //TODO: Add /stdout endpoint ref
-            statusUpdate.getDetails().setStdout(null);
+            statusUpdate.getDetails().setStdout(null);//using null here to keep light replicate
+            replicate.setAppComputeStdoutPresent(true);
         }
 
         replicate.updateStatus(statusUpdate);
