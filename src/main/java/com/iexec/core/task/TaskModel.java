@@ -17,11 +17,10 @@
 package com.iexec.core.task;
 
 import com.iexec.common.dapp.DappType;
+import com.iexec.core.replicate.ReplicateModel;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.RepresentationModel;
 
 import java.util.Date;
 import java.util.List;
@@ -31,7 +30,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TaskModel extends RepresentationModel<TaskModel> {
+public class TaskModel {
 
     @Id
     private String id;
@@ -40,7 +39,7 @@ public class TaskModel extends RepresentationModel<TaskModel> {
     private Long version;
 
     private String chainTaskId;
-    private List<Link> replicates;
+    private List<ReplicateModel> replicates;
     private long maxExecutionTime;
     private String tag;
     private DappType dappType;

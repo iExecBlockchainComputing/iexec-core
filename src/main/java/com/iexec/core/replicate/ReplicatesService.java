@@ -93,6 +93,10 @@ public class ReplicatesService {
         replicatesRepository.save(new ReplicatesList(chainTaskId));
     }
 
+    public boolean hasReplicatesList(String chainTaskId) {
+        return replicatesRepository.countByChainTaskId(chainTaskId) > 0;
+    }
+
     public Optional<ReplicatesList> getReplicatesList(String chainTaskId) {
         return replicatesRepository.findByChainTaskId(chainTaskId);
     }

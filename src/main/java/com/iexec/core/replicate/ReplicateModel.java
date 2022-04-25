@@ -16,10 +16,9 @@
 
 package com.iexec.core.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import lombok.*;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.RepresentationModel;
 
 import java.util.List;
 
@@ -28,8 +27,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReplicateModel extends RepresentationModel<ReplicateModel> {
+public class ReplicateModel {
 
+    private String self;
+    private ReplicateStatus currentStatus;
+    //TODO: Move/extract details here instead of encapsulating them within status updates
     private List<ReplicateStatusUpdate> statusUpdateList;
     private String walletAddress;
     private String resultLink;
@@ -37,10 +39,11 @@ public class ReplicateModel extends RepresentationModel<ReplicateModel> {
     private String chainTaskId;
     private String contributionHash;
     private int workerWeight;
-    private Link appComputeStdout;
+    private String appStdout;
 
     public static ReplicateModel fromEntity(Replicate entity) {
         return ReplicateModel.builder()
+                .currentStatus(entity.getCurrentStatus())
                 .statusUpdateList(entity.getStatusUpdateList())
                 .walletAddress(entity.getWalletAddress())
                 .resultLink(entity.getResultLink())
