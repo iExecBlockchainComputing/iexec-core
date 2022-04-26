@@ -37,7 +37,9 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -423,9 +425,9 @@ public class ReplicatesService {
         }
 
         if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null &&
-                (COMPUTED.equals(statusUpdate.getStatus())
-                || (COMPUTE_FAILED.equals(statusUpdate.getStatus())
-                        && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))){
+                (newStatus.equals(COMPUTED)
+                        || (newStatus.equals(COMPUTE_FAILED)
+                        && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
             String stdout = statusUpdate.getDetails().tailStdout().getStdout();
             stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
             statusUpdate.getDetails().setStdout(null);//using null here to keep light replicate
