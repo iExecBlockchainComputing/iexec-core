@@ -37,9 +37,9 @@ import static org.springframework.http.ResponseEntity.ok;
 @RestController
 public class TaskController {
 
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
-    private StdoutService stdoutService;
+    private final TaskService taskService;
+    private final ReplicatesService replicatesService;
+    private final StdoutService stdoutService;
 
     public TaskController(TaskService taskService,
                           ReplicatesService replicatesService,
@@ -82,7 +82,7 @@ public class TaskController {
      * @param replicate replicate entity
      * @return replicate model
      */
-    private ReplicateModel buildReplicateModel(Replicate replicate) {
+    ReplicateModel buildReplicateModel(Replicate replicate) {
         ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
         if (replicate.isAppComputeStdoutPresent()) {
             String stdout = linkTo(methodOn(TaskController.class)

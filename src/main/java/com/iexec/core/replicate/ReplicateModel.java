@@ -30,27 +30,25 @@ import java.util.List;
 public class ReplicateModel {
 
     private String self;
+    private String chainTaskId;
+    private String walletAddress;
     private ReplicateStatus currentStatus;
     //TODO: Move/extract details here instead of encapsulating them within status updates
     private List<ReplicateStatusUpdate> statusUpdateList;
-    private String walletAddress;
     private String resultLink;
     private String chainCallbackData;
-    private String chainTaskId;
     private String contributionHash;
-    private int workerWeight;
     private String appStdout;
 
     public static ReplicateModel fromEntity(Replicate entity) {
         return ReplicateModel.builder()
+                .chainTaskId(entity.getChainTaskId())
+                .walletAddress(entity.getWalletAddress())
                 .currentStatus(entity.getCurrentStatus())
                 .statusUpdateList(entity.getStatusUpdateList())
-                .walletAddress(entity.getWalletAddress())
                 .resultLink(entity.getResultLink())
                 .chainCallbackData(entity.getChainCallbackData())
-                .chainTaskId(entity.getChainTaskId())
                 .contributionHash(entity.getContributionHash())
-                .workerWeight(entity.getWorkerWeight())
                 .build();
     }
 }

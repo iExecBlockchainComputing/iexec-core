@@ -31,6 +31,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.stdout.StdoutService;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -126,6 +127,18 @@ class ReplicateServiceTests {
         replicatesService.createEmptyReplicateList(CHAIN_TASK_ID);
 
         Mockito.verify(replicatesRepository, Mockito.times(1)).save(new ReplicatesList(CHAIN_TASK_ID));
+    }
+
+    @Test
+    void shouldHaveReplicates() {
+        when(replicatesRepository.countByChainTaskId(CHAIN_TASK_ID)).thenReturn(Long.valueOf(1));
+        Assertions.assertTrue(replicatesService.hasReplicatesList(CHAIN_TASK_ID));
+    }
+
+    @Test
+    void shouldNotHaveReplicates() {
+        when(replicatesRepository.countByChainTaskId(CHAIN_TASK_ID)).thenReturn(Long.valueOf(0));
+        Assertions.assertFalse(replicatesService.hasReplicatesList(CHAIN_TASK_ID));
     }
 
     @Test
