@@ -100,7 +100,10 @@ public class TaskController {
         return replicateModel;
     }
 
-    @GetMapping("/tasks/{chainTaskId}/stdout")
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/stdout",  // @Deprecated
+            "/tasks/{chainTaskId}/logs"
+    })
     public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
         return stdoutService.getTaskStdout(chainTaskId)
                 .map(ResponseEntity::ok)
