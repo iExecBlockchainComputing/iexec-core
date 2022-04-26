@@ -424,9 +424,8 @@ public class ReplicatesService {
             replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
-        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null &&
-                (newStatus.equals(COMPUTED)
-                        || (newStatus.equals(COMPUTE_FAILED)
+        if (statusUpdate.getDetails() != null &&
+                (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
                         && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
             String stdout = statusUpdate.getDetails().tailStdout().getStdout();
             stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
