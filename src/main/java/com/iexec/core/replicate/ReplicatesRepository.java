@@ -23,4 +23,7 @@ import java.util.Optional;
 interface ReplicatesRepository extends MongoRepository<ReplicatesList, String> {
 
     Optional<ReplicatesList> findByChainTaskId(String chainTaskId);
+
+    long countByChainTaskId(String chainTaskId);
+
 }

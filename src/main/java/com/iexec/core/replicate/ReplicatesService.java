@@ -37,7 +37,9 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
@@ -91,6 +93,10 @@ public class ReplicatesService {
 
     public synchronized void createEmptyReplicateList(String chainTaskId) {
         replicatesRepository.save(new ReplicatesList(chainTaskId));
+    }
+
+    public boolean hasReplicatesList(String chainTaskId) {
+        return replicatesRepository.countByChainTaskId(chainTaskId) > 0;
     }
 
     public Optional<ReplicatesList> getReplicatesList(String chainTaskId) {
@@ -418,12 +424,13 @@ public class ReplicatesService {
             replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
-        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
-            if (statusUpdate.getStatus().equals(COMPUTED)) {
-                String stdout = statusUpdate.getDetails().tailStdout().getStdout();
-                stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            }
-            statusUpdate.getDetails().setStdout(null);
+        if (statusUpdate.getDetails() != null &&
+                (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
+                        && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
+            String stdout = statusUpdate.getDetails().tailStdout().getStdout();
+            stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
+            statusUpdate.getDetails().setStdout(null);//using null here to keep light replicate
+            replicate.setAppComputeStdoutPresent(true);
         }
 
         replicate.updateStatus(statusUpdate);

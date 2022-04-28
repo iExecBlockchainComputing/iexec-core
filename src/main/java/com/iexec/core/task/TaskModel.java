@@ -17,7 +17,7 @@
 package com.iexec.core.task;
 
 import com.iexec.common.dapp.DappType;
-import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicateModel;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -39,7 +39,7 @@ public class TaskModel {
     private Long version;
 
     private String chainTaskId;
-    private List<Replicate> replicates;
+    private List<ReplicateModel> replicates;
     private long maxExecutionTime;
     private String tag;
     private DappType dappType;
@@ -57,26 +57,25 @@ public class TaskModel {
     private String chainCallbackData;
     private List<TaskStatusChange> dateStatusList;
 
-    public TaskModel(Task task, List<Replicate> replicates) {
-        this.id = task.getId();
-        this.replicates = replicates;
-        this.version = task.getVersion();
-        this.chainTaskId = task.getChainTaskId();
-        this.maxExecutionTime = task.getMaxExecutionTime();
-        this.tag = task.getTag();
-        this.dappType = task.getDappType();
-        this.dappName = task.getDappName();
-        this.commandLine = task.getCommandLine();
-        this.initializationBlockNumber = task.getInitializationBlockNumber();
-        this.currentStatus = task.getCurrentStatus();
-        this.trust = task.getTrust();
-        this.uploadingWorkerWalletAddress = task.getUploadingWorkerWalletAddress();
-        this.consensus = task.getConsensus();
-        this.contributionDeadline = task.getContributionDeadline();
-        this.revealDeadline = task.getRevealDeadline();
-        this.finalDeadline = task.getFinalDeadline();
-        this.resultLink = task.getResultLink();
-        this.chainCallbackData = task.getChainCallbackData();
-        this.dateStatusList = task.getDateStatusList();
+    public static TaskModel fromEntity(Task entity) {
+        return TaskModel.builder()
+                .chainTaskId(entity.getChainTaskId())
+                .maxExecutionTime(entity.getMaxExecutionTime())
+                .tag(entity.getTag())
+                .dappType(entity.getDappType())
+                .dappName(entity.getDappName())
+                .commandLine(entity.getCommandLine())
+                .initializationBlockNumber(entity.getInitializationBlockNumber())
+                .currentStatus(entity.getCurrentStatus())
+                .trust(entity.getTrust())
+                .uploadingWorkerWalletAddress(entity.getUploadingWorkerWalletAddress())
+                .consensus(entity.getConsensus())
+                .contributionDeadline(entity.getContributionDeadline())
+                .revealDeadline(entity.getRevealDeadline())
+                .finalDeadline(entity.getFinalDeadline())
+                .resultLink(entity.getResultLink())
+                .chainCallbackData(entity.getChainCallbackData())
+                .dateStatusList(entity.getDateStatusList())
+                .build();
     }
 }

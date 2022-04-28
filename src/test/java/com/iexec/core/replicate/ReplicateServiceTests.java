@@ -19,6 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.chain.ChainContributionStatus;
 import com.iexec.common.notification.TaskNotificationType;
+import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -30,6 +31,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.stdout.StdoutService;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -125,6 +127,18 @@ class ReplicateServiceTests {
         replicatesService.createEmptyReplicateList(CHAIN_TASK_ID);
 
         Mockito.verify(replicatesRepository, Mockito.times(1)).save(new ReplicatesList(CHAIN_TASK_ID));
+    }
+
+    @Test
+    void shouldHaveReplicates() {
+        when(replicatesRepository.countByChainTaskId(CHAIN_TASK_ID)).thenReturn(Long.valueOf(1));
+        Assertions.assertTrue(replicatesService.hasReplicatesList(CHAIN_TASK_ID));
+    }
+
+    @Test
+    void shouldNotHaveReplicates() {
+        when(replicatesRepository.countByChainTaskId(CHAIN_TASK_ID)).thenReturn(Long.valueOf(0));
+        Assertions.assertFalse(replicatesService.hasReplicatesList(CHAIN_TASK_ID));
     }
 
     @Test
@@ -423,7 +437,7 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldUpdateReplicateStatusWithStdout(){
+    void shouldUpdateReplicateStatusWithStdoutIfComputed(){
         String stdout = "This is an stdout message !";
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
@@ -445,6 +459,38 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(COMPUTED);
+        Mockito.verify(stdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
+    }
+
+    @Test
+    void shouldUpdateReplicateStatusWithStdoutIfAppComputeFailed(){
+        String stdout = "This is an stdout message !";
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
+        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .cause(ReplicateStatusCause.APP_COMPUTE_FAILED)
+                .stdout(stdout)
+                .build();
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(COMPUTE_FAILED)
+                .details(details)
+                .build();
+        ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
+
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        Mockito.verify(applicationEventPublisher, Mockito.times(1))
+                .publishEvent(argumentCaptor.capture());
+        ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
+        assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(COMPUTE_FAILED);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getCause())
+                .isEqualTo(ReplicateStatusCause.APP_COMPUTE_FAILED);
         Mockito.verify(stdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
     }
@@ -712,15 +758,12 @@ class ReplicateServiceTests {
 
     @Test
     void shouldUpdateToResultUploaded() {
-        String stdout = "This is an stdout message !";
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
-        ReplicateStatusDetails details = ReplicateStatusDetails.builder().stdout(stdout).build();
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOADED)
-                .details(details)
                 .build();
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
@@ -739,7 +782,6 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(RESULT_UPLOADED);
-        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getStdout()).isNull();
     }
 
     // getReplicateWithResultUploadedStatus
@@ -1265,13 +1307,10 @@ class ReplicateServiceTests {
         final String unexpectedResultLink = "resultLink";
         final String unexpectedChainCallbackData = "chainCallbackData";
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                unexpectedResultLink,
-                unexpectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(unexpectedResultLink)
+                .chainCallbackData(unexpectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(CONTRIBUTED)
@@ -1297,13 +1336,10 @@ class ReplicateServiceTests {
         final String expectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                expectedResultLink,
-                expectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(expectedResultLink)
+                .chainCallbackData(expectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOADED)
@@ -1334,13 +1370,10 @@ class ReplicateServiceTests {
         final String unexpectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
 
-        final ReplicateStatusDetails details = new ReplicateStatusDetails(
-                null,
-                unexpectedResultLink,
-                unexpectedChainCallbackData,
-                null,
-                null,
-                null);
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(unexpectedResultLink)
+                .chainCallbackData(unexpectedChainCallbackData)
+                .build();
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOAD_FAILED)
