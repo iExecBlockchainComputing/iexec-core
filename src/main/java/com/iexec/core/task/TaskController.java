@@ -110,7 +110,10 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
+    })
     public ResponseEntity<ReplicateStdout> getReplicateStdout(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress) {
