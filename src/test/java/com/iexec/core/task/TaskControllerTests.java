@@ -53,6 +53,7 @@ class TaskControllerTests {
         MockitoAnnotations.openMocks(this);
     }
 
+    //region getTask
     @Test
     void shouldGetTaskModel() {
         Task taskEntity = mock(Task.class);
@@ -90,7 +91,9 @@ class TaskControllerTests {
         Assertions.assertEquals(WORKER_ADDRESS,
                 task.getReplicates().get(0).getWalletAddress());
     }
+    //endregion
 
+    //region getTaskReplicate
     @Test
     void shouldGetReplicate() {
         Replicate replicateEntity = new Replicate(WORKER_ADDRESS, TASK_ID);
@@ -115,7 +118,9 @@ class TaskControllerTests {
                 taskController.getTaskReplicate(TASK_ID, WORKER_ADDRESS);
         Assertions.assertTrue(replicateResponse.getStatusCode().is4xxClientError());
     }
+    //endregion
 
+    //region buildReplicateModel
     @Test
     void shouldBuildReplicateModel() {
         Replicate entity = mock(Replicate.class);
@@ -141,5 +146,6 @@ class TaskControllerTests {
         Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
         Assertions.assertTrue(dto.getAppStdout().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
     }
+    //endregion
 
 }
