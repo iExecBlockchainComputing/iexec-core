@@ -427,9 +427,9 @@ public class ReplicatesService {
         if (statusUpdate.getDetails() != null &&
                 (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
                         && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
-            String stdout = statusUpdate.getDetails().tailStdout().getStdout();
+            String stdout = statusUpdate.getDetails().tailStdout().getReplicateLogs().getStdout();
             stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            statusUpdate.getDetails().setStdout(null);//using null here to keep light replicate
+            statusUpdate.getDetails().getReplicateLogs().setStdout(null);//using null here to keep light replicate
             replicate.setAppComputeStdoutPresent(true);
         }
 
