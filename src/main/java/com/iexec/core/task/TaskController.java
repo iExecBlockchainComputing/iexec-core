@@ -16,12 +16,12 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.ReplicateLogs;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.stdout.ReplicateStdout;
-import com.iexec.core.stdout.StdoutService;
-import com.iexec.core.stdout.TaskStdout;
+import com.iexec.core.logs.ReplicateLogsService;
+import com.iexec.core.logs.TaskLogs;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,14 +39,14 @@ public class TaskController {
 
     private final TaskService taskService;
     private final ReplicatesService replicatesService;
-    private final StdoutService stdoutService;
+    private final ReplicateLogsService replicateLogsService;
 
     public TaskController(TaskService taskService,
                           ReplicatesService replicatesService,
-                          StdoutService stdoutService) {
+                          ReplicateLogsService replicateLogsService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.stdoutService = stdoutService;
+        this.replicateLogsService = replicateLogsService;
     }
 
     // TODO: add auth
@@ -84,13 +84,13 @@ public class TaskController {
      */
     ReplicateModel buildReplicateModel(Replicate replicate) {
         ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
-        if (replicate.isAppComputeStdoutPresent()) {
-            String stdout = linkTo(methodOn(TaskController.class)
-                    .getReplicateStdout(replicate.getChainTaskId(),
+        if (replicate.isAppComputeLogsPresent()) {
+            String logs = linkTo(methodOn(TaskController.class)
+                    .getReplicateLogs(replicate.getChainTaskId(),
                             replicate.getWalletAddress()))
-                    .withRel("stdout")//useless, but helps understandability
+                    .withRel("logs")//useless, but helps understandability
                     .getHref();
-            replicateModel.setAppStdout(stdout);
+            replicateModel.setAppLogs(logs);
         }
         String self = linkTo(methodOn(TaskController.class)
                 .getTaskReplicate(replicate.getChainTaskId(),
@@ -104,8 +104,8 @@ public class TaskController {
             "/tasks/{chainTaskId}/stdout",  // @Deprecated
             "/tasks/{chainTaskId}/logs"
     })
-    public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
-        return stdoutService.getTaskStdout(chainTaskId)
+    public ResponseEntity<TaskLogs> getTaskLogs(@PathVariable("chainTaskId") String chainTaskId) {
+        return replicateLogsService.getTaskLogs(chainTaskId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -114,10 +114,10 @@ public class TaskController {
             "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
             "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
     })
-    public ResponseEntity<ReplicateStdout> getReplicateStdout(
+    public ResponseEntity<ReplicateLogs> getReplicateLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress) {
-        return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
+        return replicateLogsService.getReplicateLogs(chainTaskId, walletAddress)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

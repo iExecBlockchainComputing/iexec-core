@@ -19,7 +19,7 @@ package com.iexec.core.task;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.logs.ReplicateLogsService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class TaskControllerTests {
     @Mock
     private ReplicatesService replicatesService;
     @Mock
-    private StdoutService stdoutService;
+    private ReplicateLogsService replicateLogsService;
     @InjectMocks
     private TaskController taskController;
 
@@ -121,12 +121,12 @@ class TaskControllerTests {
         Replicate entity = mock(Replicate.class);
         when(entity.getChainTaskId()).thenReturn(TASK_ID);
         when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeStdoutPresent()).thenReturn(false);
+        when(entity.isAppComputeLogsPresent()).thenReturn(false);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         Assertions.assertEquals(TASK_ID, dto.getChainTaskId());
         Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertNull(dto.getAppStdout());
+        Assertions.assertNull(dto.getAppLogs());
     }
 
     @Test
@@ -134,12 +134,12 @@ class TaskControllerTests {
         Replicate entity = mock(Replicate.class);
         when(entity.getChainTaskId()).thenReturn(TASK_ID);
         when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeStdoutPresent()).thenReturn(true);
+        when(entity.isAppComputeLogsPresent()).thenReturn(true);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         Assertions.assertEquals(TASK_ID, dto.getChainTaskId());
         Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertTrue(dto.getAppStdout().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
+        Assertions.assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
     }
 
 }

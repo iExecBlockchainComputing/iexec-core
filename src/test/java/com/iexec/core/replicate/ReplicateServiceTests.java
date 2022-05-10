@@ -26,7 +26,7 @@ import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.logs.ReplicateLogsService;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +66,7 @@ class ReplicateServiceTests {
     @Mock
     private ResultService resultService;
     @Mock
-    private StdoutService stdoutService;
+    private ReplicateLogsService replicateLogsService;
 
     @InjectMocks
     private ReplicatesService replicatesService;
@@ -429,7 +429,7 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getChainReceipt().getBlockNumber())
                 .isEqualTo(10);
         assertThat(replicatesList.getReplicates().get(0).getContributionHash()).isEqualTo(resultHash);
-        Mockito.verify(stdoutService, never()).addReplicateStdout(anyString(), anyString(), anyString());
+        Mockito.verify(replicateLogsService, never()).addReplicateLogs(anyString(), any());
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getReplicateLogs()).isNull();
     }
 
@@ -439,7 +439,8 @@ class ReplicateServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
-        ReplicateStatusDetails details = ReplicateStatusDetails.builder().replicateLogs(ReplicateLogs.builder().stdout(stdout).build()).build();
+        final ReplicateLogs replicateLogs = ReplicateLogs.builder().walletAddress(WALLET_WORKER_1).stdout(stdout).build();
+        ReplicateStatusDetails details = ReplicateStatusDetails.builder().replicateLogs(replicateLogs).build();
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(COMPUTED)
@@ -456,8 +457,8 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(COMPUTED);
-        Mockito.verify(stdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
-        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getReplicateLogs().getStdout()).isNull();
+        Mockito.verify(replicateLogsService, times(1)).addReplicateLogs(CHAIN_TASK_ID, replicateLogs);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getReplicateLogs()).isNull();
     }
 
     @Test
@@ -466,9 +467,10 @@ class ReplicateServiceTests {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        ReplicateLogs replicateLogs = ReplicateLogs.builder().walletAddress(WALLET_WORKER_1).stdout(stdout).build();
         ReplicateStatusDetails details = ReplicateStatusDetails.builder()
                 .cause(ReplicateStatusCause.APP_COMPUTE_FAILED)
-                .replicateLogs(ReplicateLogs.builder().stdout(stdout).build())
+                .replicateLogs(replicateLogs)
                 .build();
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
@@ -488,8 +490,8 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(COMPUTE_FAILED);
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getCause())
                 .isEqualTo(ReplicateStatusCause.APP_COMPUTE_FAILED);
-        Mockito.verify(stdoutService, times(1)).addReplicateStdout(CHAIN_TASK_ID, WALLET_WORKER_1, stdout);
-        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getReplicateLogs().getStdout()).isNull();
+        Mockito.verify(replicateLogsService, times(1)).addReplicateLogs(CHAIN_TASK_ID, replicateLogs);
+        assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getReplicateLogs()).isNull();
     }
 
     @Test

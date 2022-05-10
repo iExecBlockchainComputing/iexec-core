@@ -92,9 +92,9 @@ graylog:
   host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}
   port: ${IEXEC_CORE_GRAYLOG_PORT:12201}
 
-stdout:
-  purge-rate-in-days: ${IEXEC_STDOUT_PURGE_RATE_IN_DAYS:1}
-  availability-period-in-days: ${IEXEC_STDOUT_AVAILABILITY_PERIOD_IN_DAYS:3}
+logs:
+  purge-rate-in-days: ${IEXEC_LOGS_PURGE_RATE_IN_DAYS:1}
+  availability-period-in-days: ${IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS:3}
 
 springdoc:
   packagesToScan: com.iexec.core

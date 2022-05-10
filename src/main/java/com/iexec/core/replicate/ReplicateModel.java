@@ -38,7 +38,7 @@ public class ReplicateModel {
     private String resultLink;
     private String chainCallbackData;
     private String contributionHash;
-    private String appStdout;
+    private String appLogs;
 
     public static ReplicateModel fromEntity(Replicate entity) {
         return ReplicateModel.builder()

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iexec.core.stdout;
+package com.iexec.core.logs;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,12 +22,12 @@ import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface StdoutRepository extends MongoRepository<TaskStdout, String> {
+public interface ReplicateLogsRepository extends MongoRepository<TaskLogs, String> {
 
-    Optional<TaskStdout> findOneByChainTaskId(String chainTaskId);
+    Optional<TaskLogs> findOneByChainTaskId(String chainTaskId);
 
-    @Query(value = "{ chainTaskId: ?0 }", fields = "{ replicateStdoutList: { $elemMatch: { walletAddress: ?1 } } }")
-    Optional<TaskStdout> findByChainTaskIdAndWalletAddress(String chainTaskId, String walletAddress);
+    @Query(value = "{ chainTaskId: ?0 }", fields = "{ replicateLogsList: { $elemMatch: { walletAddress: ?1 } } }")
+    Optional<TaskLogs> findByChainTaskIdAndWalletAddress(String chainTaskId, String walletAddress);
 
     void deleteByChainTaskIdIn(List<String> chainTaskIds);
 }
