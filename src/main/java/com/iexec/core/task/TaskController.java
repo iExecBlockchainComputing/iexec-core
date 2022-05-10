@@ -16,11 +16,11 @@
 
 package com.iexec.core.task;
 
-import com.iexec.common.replicate.ReplicateLogs;
+import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.logs.ReplicateLogsService;
+import com.iexec.core.logs.ComputeLogsService;
 import com.iexec.core.logs.TaskLogs;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,14 +39,14 @@ public class TaskController {
 
     private final TaskService taskService;
     private final ReplicatesService replicatesService;
-    private final ReplicateLogsService replicateLogsService;
+    private final ComputeLogsService computeLogsService;
 
     public TaskController(TaskService taskService,
                           ReplicatesService replicatesService,
-                          ReplicateLogsService replicateLogsService) {
+                          ComputeLogsService computeLogsService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.replicateLogsService = replicateLogsService;
+        this.computeLogsService = computeLogsService;
     }
 
     // TODO: add auth
@@ -86,7 +86,7 @@ public class TaskController {
         ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
         if (replicate.isAppComputeLogsPresent()) {
             String logs = linkTo(methodOn(TaskController.class)
-                    .getReplicateLogs(replicate.getChainTaskId(),
+                    .getComputeLogs(replicate.getChainTaskId(),
                             replicate.getWalletAddress()))
                     .withRel("logs")//useless, but helps understandability
                     .getHref();
@@ -105,7 +105,7 @@ public class TaskController {
             "/tasks/{chainTaskId}/logs"
     })
     public ResponseEntity<TaskLogs> getTaskLogs(@PathVariable("chainTaskId") String chainTaskId) {
-        return replicateLogsService.getTaskLogs(chainTaskId)
+        return computeLogsService.getTaskLogs(chainTaskId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -114,10 +114,10 @@ public class TaskController {
             "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
             "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
     })
-    public ResponseEntity<ReplicateLogs> getReplicateLogs(
+    public ResponseEntity<ComputeLogs> getComputeLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress) {
-        return replicateLogsService.getReplicateLogs(chainTaskId, walletAddress)
+        return computeLogsService.getComputeLogs(chainTaskId, walletAddress)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

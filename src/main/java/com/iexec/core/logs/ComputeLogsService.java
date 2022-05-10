@@ -19,37 +19,37 @@ package com.iexec.core.logs;
 import java.util.List;
 import java.util.Optional;
 
-import com.iexec.common.replicate.ReplicateLogs;
+import com.iexec.common.replicate.ComputeLogs;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ReplicateLogsService {
+public class ComputeLogsService {
 
-    private final ReplicateLogsRepository replicateLogsRepository;
+    private final ComputeLogsRepository computeLogsRepository;
 
-    public ReplicateLogsService(ReplicateLogsRepository replicateLogsRepository) {
-        this.replicateLogsRepository = replicateLogsRepository;
+    public ComputeLogsService(ComputeLogsRepository computeLogsRepository) {
+        this.computeLogsRepository = computeLogsRepository;
     }
 
-    public void addReplicateLogs(String chainTaskId, ReplicateLogs replicateLogs) {
+    public void addComputeLogs(String chainTaskId, ComputeLogs computeLogs) {
         TaskLogs taskLogs = getTaskLogs(chainTaskId).orElse(new TaskLogs(chainTaskId));
-        if (taskLogs.containsWalletAddress(replicateLogs.getWalletAddress())) {
+        if (taskLogs.containsWalletAddress(computeLogs.getWalletAddress())) {
             return;
         }
-        taskLogs.getReplicateLogsList().add(replicateLogs);
-        replicateLogsRepository.save(taskLogs);
+        taskLogs.getComputeLogsList().add(computeLogs);
+        computeLogsRepository.save(taskLogs);
     }
 
     public Optional<TaskLogs> getTaskLogs(String chainTaskId) {
-        return replicateLogsRepository.findOneByChainTaskId(chainTaskId);
+        return computeLogsRepository.findOneByChainTaskId(chainTaskId);
     }
 
-    public Optional<ReplicateLogs> getReplicateLogs(String chainTaskId, String walletAddress) {
-        return replicateLogsRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress)
-                .map(taskLogs -> taskLogs.getReplicateLogsList().get(0));
+    public Optional<ComputeLogs> getComputeLogs(String chainTaskId, String walletAddress) {
+        return computeLogsRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress)
+                .map(taskLogs -> taskLogs.getComputeLogsList().get(0));
     }
 
     public void delete(List<String> chainTaskIds) {
-        replicateLogsRepository.deleteByChainTaskIdIn(chainTaskIds);
+        computeLogsRepository.deleteByChainTaskIdIn(chainTaskIds);
     }
 }

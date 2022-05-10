@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
-import com.iexec.common.replicate.ReplicateLogs;
+import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.core.task.TaskService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -36,17 +36,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-class TaskReplicateLogsServiceTests {
+class TaskComputeLogsServiceTests {
 
     private static final String STDOUT = "This is an stdout string";
     private static final String STDERR = "This is an stderr string";
 
     @Mock
-    private ReplicateLogsRepository replicateLogsRepository;
+    private ComputeLogsRepository computeLogsRepository;
     @Mock
     private TaskService taskService;
     @InjectMocks
-    private ReplicateLogsService replicateLogsService;
+    private ComputeLogsService computeLogsService;
 
     @BeforeEach
     void init() {
@@ -55,29 +55,29 @@ class TaskReplicateLogsServiceTests {
 
     @Test
     void shouldAddReplicateStdout() {
-        final ReplicateLogs replicateLogs = new ReplicateLogs(WORKER_ADDRESS, STDOUT, STDERR);
+        final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
 
         ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
-        replicateLogsService.addReplicateLogs(CHAIN_TASK_ID, replicateLogs);
-        verify(replicateLogsRepository, times(1)).save(argumentCaptor.capture());
+        computeLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
+        verify(computeLogsRepository, times(1)).save(argumentCaptor.capture());
         TaskLogs capturedEvent = argumentCaptor.getAllValues().get(0);
-        assertThat(capturedEvent.getReplicateLogsList().get(0).getStdout()).isEqualTo(STDOUT);
-        assertThat(capturedEvent.getReplicateLogsList().get(0).getStderr()).isEqualTo(STDERR);
-        assertThat(capturedEvent.getReplicateLogsList().get(0).getWalletAddress()).isEqualTo(WORKER_ADDRESS);
+        assertThat(capturedEvent.getComputeLogsList().get(0).getStdout()).isEqualTo(STDOUT);
+        assertThat(capturedEvent.getComputeLogsList().get(0).getStderr()).isEqualTo(STDERR);
+        assertThat(capturedEvent.getComputeLogsList().get(0).getWalletAddress()).isEqualTo(WORKER_ADDRESS);
     }
 
     @Test
     void shouldGetReplicateStdout() {
-        ReplicateLogs replicateLogs = new ReplicateLogs(WORKER_ADDRESS, STDOUT, STDERR);
+        ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
         TaskLogs taskLogs = TaskLogs.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .replicateLogsList(List.of(replicateLogs))
+                .computeLogsList(List.of(computeLogs))
                 .build();
-        when(replicateLogsRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
+        when(computeLogsRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
                 .thenReturn(Optional.of(taskLogs));
-        Optional<ReplicateLogs> optional = replicateLogsService.getReplicateLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
+        Optional<ComputeLogs> optional = computeLogsService.getComputeLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
         assertThat(optional).isPresent();
-        final ReplicateLogs actualLogs = optional.get();
+        final ComputeLogs actualLogs = optional.get();
         assertThat(actualLogs.getStdout()).isEqualTo(STDOUT);
         assertThat(actualLogs.getStderr()).isEqualTo(STDERR);
     }

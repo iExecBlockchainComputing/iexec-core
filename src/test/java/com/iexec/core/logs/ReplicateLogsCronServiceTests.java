@@ -14,16 +14,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-class ReplicateLogsCronServiceTests {
+class ComputeLogsCronServiceTests {
 
     @Mock
-    private ReplicateLogsService replicateLogsService;
+    private ComputeLogsService computeLogsService;
 
     @Mock
     private TaskService taskService;
 
     @InjectMocks
-    private ReplicateLogsCronService replicateLogsCronService;
+    private ComputeLogsCronService computeLogsCronService;
 
     @BeforeEach
     void init() {
@@ -35,7 +35,7 @@ class ReplicateLogsCronServiceTests {
         List<String> ids = List.of("id1", "id2");
         when(taskService.getChainTaskIdsOfTasksExpiredBefore(any()))
                 .thenReturn(ids);
-        replicateLogsCronService.purgeLogs();
-        verify(replicateLogsService).delete(ids);
+        computeLogsCronService.purgeLogs();
+        verify(computeLogsService).delete(ids);
     }
 }

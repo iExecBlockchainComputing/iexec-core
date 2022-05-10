@@ -19,7 +19,7 @@ package com.iexec.core.task;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.logs.ReplicateLogsService;
+import com.iexec.core.logs.ComputeLogsService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class TaskControllerTests {
     @Mock
     private ReplicatesService replicatesService;
     @Mock
-    private ReplicateLogsService replicateLogsService;
+    private ComputeLogsService computeLogsService;
     @InjectMocks
     private TaskController taskController;
 

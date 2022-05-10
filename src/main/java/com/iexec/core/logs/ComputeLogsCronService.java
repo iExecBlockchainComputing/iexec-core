@@ -28,19 +28,19 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ReplicateLogsCronService {
+public class ComputeLogsCronService {
 
     @Value("${logs.availability-period-in-days}")
     private int availabilityDays;
 
-    private final ReplicateLogsService replicateLogsService;
+    private final ComputeLogsService computeLogsService;
     private final TaskService taskService;
 
-    public ReplicateLogsCronService(
-        ReplicateLogsService replicateLogsService,
+    public ComputeLogsCronService(
+        ComputeLogsService computeLogsService,
         TaskService taskService
     ) {
-        this.replicateLogsService = replicateLogsService;
+        this.computeLogsService = computeLogsService;
         this.taskService = taskService;
     }
 
@@ -51,7 +51,7 @@ public class ReplicateLogsCronService {
         Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
         List<String> chainTaskIds = taskService
                 .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
-        replicateLogsService.delete(chainTaskIds);
+        computeLogsService.delete(chainTaskIds);
     }
 
 }

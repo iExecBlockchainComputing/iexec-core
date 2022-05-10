@@ -22,11 +22,11 @@ import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface ReplicateLogsRepository extends MongoRepository<TaskLogs, String> {
+public interface ComputeLogsRepository extends MongoRepository<TaskLogs, String> {
 
     Optional<TaskLogs> findOneByChainTaskId(String chainTaskId);
 
-    @Query(value = "{ chainTaskId: ?0 }", fields = "{ replicateLogsList: { $elemMatch: { walletAddress: ?1 } } }")
+    @Query(value = "{ chainTaskId: ?0 }", fields = "{ computeLogsList: { $elemMatch: { walletAddress: ?1 } } }")
     Optional<TaskLogs> findByChainTaskIdAndWalletAddress(String chainTaskId, String walletAddress);
 
     void deleteByChainTaskIdIn(List<String> chainTaskIds);

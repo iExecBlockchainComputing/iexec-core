@@ -21,7 +21,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import com.iexec.common.replicate.ReplicateLogs;
+import com.iexec.common.replicate.ComputeLogs;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -50,20 +50,20 @@ public class TaskLogs {
     @Indexed(unique = true)
     private String chainTaskId;
 
-    private List<ReplicateLogs> replicateLogsList;
+    private List<ComputeLogs> computeLogsList;
 
     public TaskLogs(String chainTaskId) {
         this.chainTaskId = chainTaskId;
-        this.replicateLogsList = new ArrayList<>();
+        this.computeLogsList = new ArrayList<>();
     }
 
-    public TaskLogs(String chainTaskId, List<ReplicateLogs> replicateLogsList) {
+    public TaskLogs(String chainTaskId, List<ComputeLogs> computeLogsList) {
         this.chainTaskId = chainTaskId;
-        this.replicateLogsList = replicateLogsList;
+        this.computeLogsList = computeLogsList;
     }
 
     public boolean containsWalletAddress(String walletAddress) {
-        return replicateLogsList.stream().anyMatch(
+        return computeLogsList.stream().anyMatch(
             replicateLog -> replicateLog.getWalletAddress().equals(walletAddress)
         );
     }
