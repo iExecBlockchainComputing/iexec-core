@@ -54,7 +54,7 @@ class TaskComputeLogsServiceTests {
     }
 
     @Test
-    void shouldAddReplicateStdout() {
+    void shouldAddComputeLogs() {
         final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
 
         ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
@@ -67,7 +67,7 @@ class TaskComputeLogsServiceTests {
     }
 
     @Test
-    void shouldGetReplicateStdout() {
+    void shouldGetComputeLogs() {
         ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
         TaskLogs taskLogs = TaskLogs.builder()
                 .chainTaskId(CHAIN_TASK_ID)
