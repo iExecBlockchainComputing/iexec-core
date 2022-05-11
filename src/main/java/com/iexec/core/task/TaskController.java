@@ -16,17 +16,25 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.security.Signature;
+import com.iexec.common.task.TaskDescription;
+import com.iexec.common.utils.BytesUtils;
+import com.iexec.common.utils.SignatureUtils;
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.security.ChallengeService;
+import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.stdout.ReplicateStdout;
 import com.iexec.core.stdout.StdoutService;
 import com.iexec.core.stdout.TaskStdout;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.web3j.crypto.Hash;
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -37,19 +45,44 @@ import static org.springframework.http.ResponseEntity.ok;
 @RestController
 public class TaskController {
 
-    private final TaskService taskService;
+    private final ChallengeService challengeService;
+    private final IexecHubService iexecHubService;
+    private final JwtTokenProvider jwtTokenProvider;
     private final ReplicatesService replicatesService;
     private final StdoutService stdoutService;
+    private final TaskService taskService;
 
-    public TaskController(TaskService taskService,
+    public TaskController(ChallengeService challengeService,
+                          IexecHubService iexecHubService,
+                          JwtTokenProvider jwtTokenProvider,
                           ReplicatesService replicatesService,
-                          StdoutService stdoutService) {
+                          StdoutService stdoutService,
+                          TaskService taskService) {
+        this.challengeService = challengeService;
+        this.iexecHubService = iexecHubService;
+        this.jwtTokenProvider = jwtTokenProvider;
         this.taskService = taskService;
         this.replicatesService = replicatesService;
         this.stdoutService = stdoutService;
     }
 
-    // TODO: add auth
+    @GetMapping("/tasks/challenge")
+    public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
+        return ok(challengeService.getChallenge(walletAddress));
+    }
+
+    @PostMapping("/tasks/login")
+    public ResponseEntity<String> login(@RequestParam(name = "walletAddress") String walletAddress,
+                                        @RequestBody Signature signature) {
+        String challenge = challengeService.getChallenge(walletAddress);
+        String challengeHash = Hash.sha3String(challenge);
+        boolean isValid = SignatureUtils.isSignatureValid(BytesUtils.stringToBytes(challengeHash), signature, walletAddress);
+        if (!isValid) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String token = jwtTokenProvider.createToken(walletAddress);
+        return ok(token);
+    }
 
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity<TaskModel> getTask(@PathVariable("chainTaskId") String chainTaskId) {
@@ -86,14 +119,17 @@ public class TaskController {
         ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
         if (replicate.isAppComputeStdoutPresent()) {
             String stdout = linkTo(methodOn(TaskController.class)
-                    .getReplicateStdout(replicate.getChainTaskId(),
-                            replicate.getWalletAddress()))
+                    .getReplicateStdout(
+                            replicate.getChainTaskId(),
+                            replicate.getWalletAddress(),
+                            ""))
                     .withRel("stdout")//useless, but helps understandability
                     .getHref();
             replicateModel.setAppStdout(stdout);
         }
         String self = linkTo(methodOn(TaskController.class)
-                .getTaskReplicate(replicate.getChainTaskId(),
+                .getTaskReplicate(
+                        replicate.getChainTaskId(),
                         replicate.getWalletAddress()))
                 .withSelfRel().getHref();
         replicateModel.setSelf(self);
@@ -101,7 +137,16 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
+    public ResponseEntity<TaskStdout> getTaskStdout(
+            @PathVariable("chainTaskId") String chainTaskId,
+            @RequestHeader("Authorization") String bearerToken) {
+        String requesterAddress = jwtTokenProvider.getWalletAddress(bearerToken);
+        if (requesterAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!isStdoutRequesterSameAsTaskRequester(requesterAddress, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return stdoutService.getTaskStdout(chainTaskId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -110,9 +155,30 @@ public class TaskController {
     @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
     public ResponseEntity<ReplicateStdout> getReplicateStdout(
             @PathVariable("chainTaskId") String chainTaskId,
-            @PathVariable("walletAddress") String walletAddress) {
+            @PathVariable("walletAddress") String walletAddress,
+            @RequestHeader("Authorization") String bearerToken) {
+        String requesterAddress = jwtTokenProvider.getWalletAddress(bearerToken);
+        if (requesterAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!isStdoutRequesterSameAsTaskRequester(requesterAddress, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Checks if requester address from bearer token is the same as the address used to buy the task execution.
+     * @param stdoutRequester Wallet address of requester asking computation outputs
+     * @param chainTaskId Task for which outputs are requested
+     * @return true if the user requesting computation outputs was the one to buy the task, false otherwise
+     */
+    private boolean isStdoutRequesterSameAsTaskRequester(String stdoutRequester, String chainTaskId) {
+        TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
+        String taskRequester = taskDescription.getRequester();
+        return Objects.equals(stdoutRequester, taskRequester);
+    }
+
 }
