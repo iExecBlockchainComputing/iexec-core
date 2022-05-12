@@ -17,10 +17,10 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
 import lombok.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -33,19 +33,24 @@ public class ReplicateModel {
     private String chainTaskId;
     private String walletAddress;
     private ReplicateStatus currentStatus;
-    //TODO: Move/extract details here instead of encapsulating them within status updates
-    private List<ReplicateStatusUpdate> statusUpdateList;
+    private List<ReplicateStatusUpdateModel> statusUpdateList;
     private String resultLink;
     private String chainCallbackData;
     private String contributionHash;
     private String appLogs;
 
     public static ReplicateModel fromEntity(Replicate entity) {
+        final List<ReplicateStatusUpdateModel> statusUpdateList =
+                entity.getStatusUpdateList()
+                        .stream()
+                        .map(ReplicateStatusUpdateModel::fromEntity)
+                        .collect(Collectors.toList());
+
         return ReplicateModel.builder()
                 .chainTaskId(entity.getChainTaskId())
                 .walletAddress(entity.getWalletAddress())
                 .currentStatus(entity.getCurrentStatus())
-                .statusUpdateList(entity.getStatusUpdateList())
+                .statusUpdateList(statusUpdateList)
                 .resultLink(entity.getResultLink())
                 .chainCallbackData(entity.getChainCallbackData())
                 .contributionHash(entity.getContributionHash())
