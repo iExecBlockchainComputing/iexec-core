@@ -221,7 +221,7 @@ class TaskControllerTests {
         TaskStdout taskStdout = TaskStdout.builder().build();
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(stdoutService.getTaskStdout(TASK_ID)).thenReturn(Optional.of(taskStdout));
         ResponseEntity<TaskStdout> response = taskController.getTaskStdout(TASK_ID, signedChallenge);
@@ -238,7 +238,7 @@ class TaskControllerTests {
                 .build();
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         ResponseEntity<TaskStdout> response = taskController.getTaskStdout(TASK_ID, signedChallenge);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -246,7 +246,7 @@ class TaskControllerTests {
 
     @Test
     void shouldFailToGetTaskStdoutWhenAddressMissingInToken() {
-        when(jwtTokenProvider.getWalletAddress("")).thenReturn("");
+        when(jwtTokenProvider.getWalletAddressFromBearerToken("")).thenReturn("");
         ResponseEntity<TaskStdout> response = taskController.getTaskStdout(TASK_ID, "");
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -261,7 +261,7 @@ class TaskControllerTests {
                 .build();
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, requesterAddress).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         ResponseEntity<TaskStdout> response = taskController.getTaskStdout(TASK_ID, signedChallenge);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
@@ -280,7 +280,7 @@ class TaskControllerTests {
         ReplicateStdout replicateStdout = ReplicateStdout.builder().build();
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(stdoutService.getReplicateStdout(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.of(replicateStdout));
         ResponseEntity<ReplicateStdout> response = taskController.getReplicateStdout(TASK_ID, WORKER_ADDRESS, signedChallenge);
@@ -297,7 +297,7 @@ class TaskControllerTests {
                 .build();
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         ResponseEntity<ReplicateStdout> response = taskController.getReplicateStdout(TASK_ID, WORKER_ADDRESS, signedChallenge);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -305,7 +305,7 @@ class TaskControllerTests {
 
     @Test
     void shouldFailToGetReplicateStdoutWhenAddressMissingInToken() {
-        when(jwtTokenProvider.getWalletAddress("")).thenReturn("");
+        when(jwtTokenProvider.getWalletAddressFromBearerToken("")).thenReturn("");
         ResponseEntity<ReplicateStdout> response = taskController.getReplicateStdout(TASK_ID, WORKER_ADDRESS, "");
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -320,7 +320,7 @@ class TaskControllerTests {
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
         String challenge = RandomStringUtils.randomAlphabetic(10);
         String signedChallenge = signMessageHashAndGetSignature(challenge, requesterAddress).getValue();
-        when(jwtTokenProvider.getWalletAddress(signedChallenge)).thenReturn(requesterAddress);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         ResponseEntity<ReplicateStdout> response = taskController.getReplicateStdout(TASK_ID, WORKER_ADDRESS, signedChallenge);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());

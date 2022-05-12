@@ -139,7 +139,7 @@ public class TaskController {
     public ResponseEntity<TaskStdout> getTaskStdout(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String bearerToken) {
-        String requesterAddress = jwtTokenProvider.getWalletAddress(bearerToken);
+        String requesterAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (requesterAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -156,7 +156,7 @@ public class TaskController {
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,
             @RequestHeader("Authorization") String bearerToken) {
-        String requesterAddress = jwtTokenProvider.getWalletAddress(bearerToken);
+        String requesterAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (requesterAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
