@@ -18,7 +18,6 @@ package com.iexec.core.task;
 
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
-import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
@@ -34,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -74,9 +74,8 @@ public class TaskController {
     public ResponseEntity<String> login(@RequestParam(name = "walletAddress") String walletAddress,
                                         @RequestBody Signature signature) {
         String challenge = challengeService.getChallenge(walletAddress);
-        String challengeHash = Hash.sha3String(challenge);
-        boolean isValid = SignatureUtils.isSignatureValid(BytesUtils.stringToBytes(challengeHash), signature, walletAddress);
-        if (!isValid) {
+        byte[] challengeHash = Hash.sha3(challenge.getBytes(StandardCharsets.UTF_8));
+        if (!SignatureUtils.isSignatureValid(challengeHash, signature, walletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         String token = jwtTokenProvider.createToken(walletAddress);
