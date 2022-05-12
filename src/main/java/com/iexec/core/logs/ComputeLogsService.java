@@ -32,6 +32,10 @@ public class ComputeLogsService {
     }
 
     public void addComputeLogs(String chainTaskId, ComputeLogs computeLogs) {
+        if (computeLogs == null) {
+            return;
+        }
+
         TaskLogs taskLogs = getTaskLogs(chainTaskId).orElse(new TaskLogs(chainTaskId));
         if (taskLogs.containsWalletAddress(computeLogs.getWalletAddress())) {
             return;
