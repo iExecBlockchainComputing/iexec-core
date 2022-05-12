@@ -66,12 +66,12 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/challenge")
-    public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
+    public ResponseEntity<String> getChallenge(@RequestParam("walletAddress") String walletAddress) {
         return ok(challengeService.getChallenge(walletAddress));
     }
 
     @PostMapping("/tasks/login")
-    public ResponseEntity<String> login(@RequestParam(name = "walletAddress") String walletAddress,
+    public ResponseEntity<String> login(@RequestParam("walletAddress") String walletAddress,
                                         @RequestBody Signature signature) {
         String challenge = challengeService.getChallenge(walletAddress);
         byte[] challengeHash = Hash.sha3(challenge.getBytes(StandardCharsets.UTF_8));
