@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.core.exception.MultipleOccurrencesOfFieldNotAllowed;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -54,12 +55,22 @@ public class ReplicateModel {
             statusUpdateList.add(ReplicateStatusUpdateModel.fromEntity(replicateStatusUpdate));
             ReplicateStatusDetails details = replicateStatusUpdate.getDetails();
             if (details != null) {
-                if (appExitCode == null) {
-                    appExitCode = details.getExitCode();
+                final Integer detailsExitCode = details.getExitCode();
+                if (detailsExitCode != null) {
+                    if (appExitCode != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("exitCode");
+                    }
+                    appExitCode = detailsExitCode;
                 }
-                if (teeSessionGenerationError == null) {
-                    teeSessionGenerationError = details.getTeeSessionGenerationError();
+
+                final String detailsTeeSessionGenerationError = details.getTeeSessionGenerationError();
+                if (detailsTeeSessionGenerationError != null) {
+                    if (teeSessionGenerationError != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("teeSessionGenerationError");
+                    }
+                    teeSessionGenerationError = detailsTeeSessionGenerationError;
                 }
+
                 if (appExitCode != null && teeSessionGenerationError != null) {
                     break;
                 }
