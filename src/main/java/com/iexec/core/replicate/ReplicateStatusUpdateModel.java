@@ -37,31 +37,17 @@ public class ReplicateStatusUpdateModel {
     private ReplicateStatus status;
     private Date date;
     private ReplicateStatusCause cause;
-    private Integer exitCode; //null means unset
-    private String teeSessionGenerationError; // null means unset
 
     public static ReplicateStatusUpdateModel fromEntity(ReplicateStatusUpdate update) {
         if (update == null) {
             return new ReplicateStatusUpdateModel();
         }
 
-        ReplicateStatusCause cause = null;
-        Integer exitCode = null;
-        String teeSessionGenerationError = null;
         final ReplicateStatusDetails details = update.getDetails();
-
-        if (details != null) {
-            cause = details.getCause();
-            exitCode = details.getExitCode();
-            teeSessionGenerationError = details.getTeeSessionGenerationError();
-        }
-
         return ReplicateStatusUpdateModel.builder()
                 .status(update.getStatus())
                 .date(update.getDate())
-                .cause(cause)
-                .exitCode(exitCode)
-                .teeSessionGenerationError(teeSessionGenerationError)
+                .cause(details == null ? null : details.getCause())
                 .build();
     }
 }

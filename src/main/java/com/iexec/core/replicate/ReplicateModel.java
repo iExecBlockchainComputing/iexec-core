@@ -17,6 +17,8 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import lombok.*;
 
 import java.util.List;
@@ -38,6 +40,8 @@ public class ReplicateModel {
     private String chainCallbackData;
     private String contributionHash;
     private String appLogs;
+    private Integer appExitCode; //null means unset
+    private String teeSessionGenerationError; // null means unset
 
     public static ReplicateModel fromEntity(Replicate entity) {
         final List<ReplicateStatusUpdateModel> statusUpdateList =
@@ -45,6 +49,23 @@ public class ReplicateModel {
                         .stream()
                         .map(ReplicateStatusUpdateModel::fromEntity)
                         .collect(Collectors.toList());
+
+        Integer appExitCode = null;
+        String teeSessionGenerationError = null;
+        for (ReplicateStatusUpdate replicateStatusUpdate : entity.getStatusUpdateList()) {
+            ReplicateStatusDetails details = replicateStatusUpdate.getDetails();
+            if (details != null) {
+                if (appExitCode == null) {
+                    appExitCode = details.getExitCode();
+                }
+                if (teeSessionGenerationError == null) {
+                    teeSessionGenerationError = details.getTeeSessionGenerationError();
+                }
+                if (appExitCode != null && teeSessionGenerationError != null) {
+                    break;
+                }
+            }
+        }
 
         return ReplicateModel.builder()
                 .chainTaskId(entity.getChainTaskId())
@@ -54,6 +75,8 @@ public class ReplicateModel {
                 .resultLink(entity.getResultLink())
                 .chainCallbackData(entity.getChainCallbackData())
                 .contributionHash(entity.getContributionHash())
+                .appExitCode(appExitCode)
+                .teeSessionGenerationError(teeSessionGenerationError)
                 .build();
     }
 }
