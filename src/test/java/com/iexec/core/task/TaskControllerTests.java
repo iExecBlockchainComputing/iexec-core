@@ -19,7 +19,6 @@ package com.iexec.core.task;
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.CredentialsUtils;
-import com.iexec.common.utils.HashUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
@@ -89,7 +88,6 @@ class TaskControllerTests {
         when(jwtTokenProvider.createToken(requesterAddress)).thenReturn("token");
         ResponseEntity<String> response = taskController.getChallenge(requesterAddress);
         assertEquals(challenge, response.getBody());
-        assertNotNull(challenge);
         String challengeHash = Hash.sha3String(challenge);
         Signature signature = signMessageHashAndGetSignature(challengeHash, privateKey);
         ResponseEntity<String> loginResponse = taskController.login(requesterAddress, signature);
