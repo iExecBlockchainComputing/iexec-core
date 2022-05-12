@@ -138,11 +138,9 @@ public class TaskController {
     public ResponseEntity<TaskStdout> getTaskStdout(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String bearerToken) {
-        String requesterAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (requesterAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (!isStdoutRequesterSameAsTaskRequester(requesterAddress, chainTaskId)) {
+        String outputRequester = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (outputRequester.isEmpty()
+                || !isTaskRequester(outputRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return stdoutService.getTaskStdout(chainTaskId)
@@ -155,11 +153,9 @@ public class TaskController {
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,
             @RequestHeader("Authorization") String bearerToken) {
-        String requesterAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (requesterAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (!isStdoutRequesterSameAsTaskRequester(requesterAddress, chainTaskId)) {
+        String outputRequester = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+        if (outputRequester.isEmpty()
+                || !isTaskRequester(outputRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
@@ -169,14 +165,14 @@ public class TaskController {
 
     /**
      * Checks if requester address from bearer token is the same as the address used to buy the task execution.
-     * @param stdoutRequester Wallet address of requester asking computation outputs
+     * @param outputRequester Wallet address of requester asking computation outputs
      * @param chainTaskId Task for which outputs are requested
      * @return true if the user requesting computation outputs was the one to buy the task, false otherwise
      */
-    private boolean isStdoutRequesterSameAsTaskRequester(String stdoutRequester, String chainTaskId) {
+    private boolean isTaskRequester(String outputRequester, String chainTaskId) {
         TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
         String taskRequester = taskDescription.getRequester();
-        return stdoutRequester.equalsIgnoreCase(taskRequester);
+        return outputRequester.equalsIgnoreCase(taskRequester);
     }
 
 }
