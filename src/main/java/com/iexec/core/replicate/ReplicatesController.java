@@ -19,9 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.*;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import org.springframework.http.HttpStatus;
@@ -101,6 +99,16 @@ public class ReplicatesController {
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
+
+        // Assuming wallet address sent by the worker is correct
+        // would be a security issue. Let's replace it.
+        final ReplicateStatusDetails details = statusUpdate.getDetails();
+        if (details != null) {
+            final ComputeLogs computeLogs = details.getComputeLogs();
+            if (computeLogs != null) {
+                computeLogs.setWalletAddress(walletAddress);
+            }
+        }
 
         final UpdateReplicateStatusArgs updateReplicateStatusArgs = replicatesService.computeUpdateReplicateStatusArgs(
                 chainTaskId,
