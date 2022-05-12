@@ -17,7 +17,7 @@ import org.mockito.MockitoAnnotations;
 class ComputeLogsCronServiceTests {
 
     @Mock
-    private ComputeLogsService computeLogsService;
+    private TaskLogsService taskLogsService;
 
     @Mock
     private TaskService taskService;
@@ -36,6 +36,6 @@ class ComputeLogsCronServiceTests {
         when(taskService.getChainTaskIdsOfTasksExpiredBefore(any()))
                 .thenReturn(ids);
         computeLogsCronService.purgeLogs();
-        verify(computeLogsService).delete(ids);
+        verify(taskLogsService).delete(ids);
     }
 }

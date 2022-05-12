@@ -23,12 +23,12 @@ import com.iexec.common.replicate.ComputeLogs;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ComputeLogsService {
+public class TaskLogsService {
 
-    private final ComputeLogsRepository computeLogsRepository;
+    private final TaskLogsRepository taskLogsRepository;
 
-    public ComputeLogsService(ComputeLogsRepository computeLogsRepository) {
-        this.computeLogsRepository = computeLogsRepository;
+    public TaskLogsService(TaskLogsRepository taskLogsRepository) {
+        this.taskLogsRepository = taskLogsRepository;
     }
 
     public void addComputeLogs(String chainTaskId, ComputeLogs computeLogs) {
@@ -41,19 +41,19 @@ public class ComputeLogsService {
             return;
         }
         taskLogs.getComputeLogsList().add(computeLogs);
-        computeLogsRepository.save(taskLogs);
+        taskLogsRepository.save(taskLogs);
     }
 
     public Optional<TaskLogs> getTaskLogs(String chainTaskId) {
-        return computeLogsRepository.findOneByChainTaskId(chainTaskId);
+        return taskLogsRepository.findOneByChainTaskId(chainTaskId);
     }
 
     public Optional<ComputeLogs> getComputeLogs(String chainTaskId, String walletAddress) {
-        return computeLogsRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress)
+        return taskLogsRepository.findByChainTaskIdAndWalletAddress(chainTaskId, walletAddress)
                 .map(taskLogs -> taskLogs.getComputeLogsList().get(0));
     }
 
     public void delete(List<String> chainTaskIds) {
-        computeLogsRepository.deleteByChainTaskIdIn(chainTaskIds);
+        taskLogsRepository.deleteByChainTaskIdIn(chainTaskIds);
     }
 }

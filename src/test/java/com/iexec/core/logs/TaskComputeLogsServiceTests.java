@@ -42,11 +42,11 @@ class TaskComputeLogsServiceTests {
     private static final String STDERR = "This is an stderr string";
 
     @Mock
-    private ComputeLogsRepository computeLogsRepository;
+    private TaskLogsRepository taskLogsRepository;
     @Mock
     private TaskService taskService;
     @InjectMocks
-    private ComputeLogsService computeLogsService;
+    private TaskLogsService taskLogsService;
 
     @BeforeEach
     void init() {
@@ -58,8 +58,8 @@ class TaskComputeLogsServiceTests {
         final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
 
         ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
-        computeLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
-        verify(computeLogsRepository, times(1)).save(argumentCaptor.capture());
+        taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
+        verify(taskLogsRepository, times(1)).save(argumentCaptor.capture());
         TaskLogs capturedEvent = argumentCaptor.getAllValues().get(0);
         assertThat(capturedEvent.getComputeLogsList().get(0).getStdout()).isEqualTo(STDOUT);
         assertThat(capturedEvent.getComputeLogsList().get(0).getStderr()).isEqualTo(STDERR);
@@ -73,9 +73,9 @@ class TaskComputeLogsServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .computeLogsList(List.of(computeLogs))
                 .build();
-        when(computeLogsRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
+        when(taskLogsRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
                 .thenReturn(Optional.of(taskLogs));
-        Optional<ComputeLogs> optional = computeLogsService.getComputeLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
+        Optional<ComputeLogs> optional = taskLogsService.getComputeLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
         assertThat(optional).isPresent();
         final ComputeLogs actualLogs = optional.get();
         assertThat(actualLogs.getStdout()).isEqualTo(STDOUT);

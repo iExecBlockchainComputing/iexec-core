@@ -22,7 +22,7 @@ import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface ComputeLogsRepository extends MongoRepository<TaskLogs, String> {
+public interface TaskLogsRepository extends MongoRepository<TaskLogs, String> {
 
     Optional<TaskLogs> findOneByChainTaskId(String chainTaskId);
 

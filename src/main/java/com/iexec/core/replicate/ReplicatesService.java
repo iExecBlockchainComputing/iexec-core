@@ -24,7 +24,7 @@ import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.logs.ComputeLogsService;
+import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -51,7 +51,7 @@ public class ReplicatesService {
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
     private ResultService resultService;
-    private ComputeLogsService computeLogsService;
+    private TaskLogsService taskLogsService;
 
     private final ContextualLockRunner<String> replicatesUpdateLockRunner =
             new ContextualLockRunner<>(10, TimeUnit.MINUTES);
@@ -61,13 +61,13 @@ public class ReplicatesService {
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              ResultService resultService,
-                             ComputeLogsService computeLogsService) {
+                             TaskLogsService taskLogsService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.resultService = resultService;
-        this.computeLogsService = computeLogsService;
+        this.taskLogsService = taskLogsService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -425,7 +425,7 @@ public class ReplicatesService {
                 (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
                         && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
             final ComputeLogs computeLogs = statusUpdate.getDetails().tailLogs().getComputeLogs();
-            computeLogsService.addComputeLogs(chainTaskId, computeLogs);
+            taskLogsService.addComputeLogs(chainTaskId, computeLogs);
             statusUpdate.getDetails().setComputeLogs(null);//using null here to keep light replicate
             replicate.setAppComputeLogsPresent(true);
         }

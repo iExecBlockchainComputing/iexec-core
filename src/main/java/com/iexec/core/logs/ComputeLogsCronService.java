@@ -33,14 +33,14 @@ public class ComputeLogsCronService {
     @Value("${logs.availability-period-in-days}")
     private int availabilityDays;
 
-    private final ComputeLogsService computeLogsService;
+    private final TaskLogsService taskLogsService;
     private final TaskService taskService;
 
     public ComputeLogsCronService(
-        ComputeLogsService computeLogsService,
+        TaskLogsService taskLogsService,
         TaskService taskService
     ) {
-        this.computeLogsService = computeLogsService;
+        this.taskLogsService = taskLogsService;
         this.taskService = taskService;
     }
 
@@ -51,7 +51,7 @@ public class ComputeLogsCronService {
         Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
         List<String> chainTaskIds = taskService
                 .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
-        computeLogsService.delete(chainTaskIds);
+        taskLogsService.delete(chainTaskIds);
     }
 
 }
