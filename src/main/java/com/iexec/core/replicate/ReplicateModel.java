@@ -21,6 +21,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,15 +45,12 @@ public class ReplicateModel {
     private String teeSessionGenerationError; // null means unset
 
     public static ReplicateModel fromEntity(Replicate entity) {
-        final List<ReplicateStatusUpdateModel> statusUpdateList =
-                entity.getStatusUpdateList()
-                        .stream()
-                        .map(ReplicateStatusUpdateModel::fromEntity)
-                        .collect(Collectors.toList());
+        final List<ReplicateStatusUpdateModel> statusUpdateList = new ArrayList<>();
 
         Integer appExitCode = null;
         String teeSessionGenerationError = null;
         for (ReplicateStatusUpdate replicateStatusUpdate : entity.getStatusUpdateList()) {
+            statusUpdateList.add(ReplicateStatusUpdateModel.fromEntity(replicateStatusUpdate));
             ReplicateStatusDetails details = replicateStatusUpdate.getDetails();
             if (details != null) {
                 if (appExitCode == null) {
