@@ -64,7 +64,7 @@ public class TaskLogs {
 
     public boolean containsWalletAddress(String walletAddress) {
         return computeLogsList.stream().anyMatch(
-            replicateLog -> replicateLog.getWalletAddress().equals(walletAddress)
+            computeLog -> computeLog.getWalletAddress().equals(walletAddress)
         );
     }
 }
