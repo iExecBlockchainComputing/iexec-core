@@ -34,7 +34,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -178,7 +177,7 @@ public class TaskController {
     private boolean isStdoutRequesterSameAsTaskRequester(String stdoutRequester, String chainTaskId) {
         TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
         String taskRequester = taskDescription.getRequester();
-        return Objects.equals(stdoutRequester, taskRequester);
+        return stdoutRequester.equalsIgnoreCase(taskRequester);
     }
 
 }
