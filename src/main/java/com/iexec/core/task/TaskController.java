@@ -65,12 +65,12 @@ public class TaskController {
         this.stdoutService = stdoutService;
     }
 
-    @GetMapping("/tasks/challenge")
+    @GetMapping("/tasks/logs/challenge")
     public ResponseEntity<String> getChallenge(@RequestParam("walletAddress") String walletAddress) {
         return ok(challengeService.getChallenge(walletAddress));
     }
 
-    @PostMapping("/tasks/login")
+    @PostMapping("/tasks/logs/login")
     public ResponseEntity<String> login(@RequestParam("walletAddress") String walletAddress,
                                         @RequestBody Signature signature) {
         String challenge = challengeService.getChallenge(walletAddress);
