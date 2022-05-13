@@ -16,10 +16,14 @@
 
 package com.iexec.core.replicate;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.core.exception.MultipleOccurrencesOfFieldNotAllowed;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -27,28 +31,62 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ReplicateModel {
 
     private String self;
     private String chainTaskId;
     private String walletAddress;
     private ReplicateStatus currentStatus;
-    //TODO: Move/extract details here instead of encapsulating them within status updates
-    private List<ReplicateStatusUpdate> statusUpdateList;
+    private List<ReplicateStatusUpdateModel> statusUpdateList;
     private String resultLink;
     private String chainCallbackData;
     private String contributionHash;
-    private String appStdout;
+    private String appLogs;
+    private Integer appExitCode; //null means unset
+    private String teeSessionGenerationError; // null means unset
 
     public static ReplicateModel fromEntity(Replicate entity) {
+        final List<ReplicateStatusUpdateModel> statusUpdateList = new ArrayList<>();
+
+        Integer appExitCode = null;
+        String teeSessionGenerationError = null;
+        for (ReplicateStatusUpdate replicateStatusUpdate : entity.getStatusUpdateList()) {
+            statusUpdateList.add(ReplicateStatusUpdateModel.fromEntity(replicateStatusUpdate));
+            ReplicateStatusDetails details = replicateStatusUpdate.getDetails();
+            if (details != null) {
+                final Integer detailsExitCode = details.getExitCode();
+                if (detailsExitCode != null) {
+                    if (appExitCode != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("exitCode");
+                    }
+                    appExitCode = detailsExitCode;
+                }
+
+                final String detailsTeeSessionGenerationError = details.getTeeSessionGenerationError();
+                if (detailsTeeSessionGenerationError != null) {
+                    if (teeSessionGenerationError != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("teeSessionGenerationError");
+                    }
+                    teeSessionGenerationError = detailsTeeSessionGenerationError;
+                }
+
+                if (appExitCode != null && teeSessionGenerationError != null) {
+                    break;
+                }
+            }
+        }
+
         return ReplicateModel.builder()
                 .chainTaskId(entity.getChainTaskId())
                 .walletAddress(entity.getWalletAddress())
                 .currentStatus(entity.getCurrentStatus())
-                .statusUpdateList(entity.getStatusUpdateList())
+                .statusUpdateList(statusUpdateList)
                 .resultLink(entity.getResultLink())
                 .chainCallbackData(entity.getChainCallbackData())
                 .contributionHash(entity.getContributionHash())
+                .appExitCode(appExitCode)
+                .teeSessionGenerationError(teeSessionGenerationError)
                 .build();
     }
 }

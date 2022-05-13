@@ -47,7 +47,7 @@ public class Replicate {
     private String chainTaskId;
     private String contributionHash;
     private int workerWeight;
-    private boolean appComputeStdoutPresent;
+    private boolean appComputeLogsPresent;
 
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;
