@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package com.iexec.core.stdout;
+package com.iexec.core.exception;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+public class MultipleOccurrencesOfFieldNotAllowed extends RuntimeException {
+    private final String fieldName;
+    public MultipleOccurrencesOfFieldNotAllowed(String fieldName) {
+        this.fieldName = fieldName;
+    }
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ReplicateStdout {
-    
-    private String walletAddress;
-    private String stdout;
+    public String getFieldName() {
+        return fieldName;
+    }
 }

@@ -20,14 +20,12 @@ import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.CredentialsUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
-import com.iexec.core.stdout.ReplicateStdout;
-import com.iexec.core.stdout.StdoutService;
-import com.iexec.core.stdout.TaskStdout;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
@@ -62,8 +60,8 @@ class TaskControllerTests {
     @Mock private IexecHubService iexecHubService;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private ReplicatesService replicatesService;
-    @Mock private StdoutService stdoutService;
     @Mock private TaskService taskService;
+    @Mock private TaskLogsService taskLogsService;
     @InjectMocks private TaskController taskController;
 
     @BeforeEach
@@ -185,12 +183,12 @@ class TaskControllerTests {
         Replicate entity = mock(Replicate.class);
         when(entity.getChainTaskId()).thenReturn(TASK_ID);
         when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeStdoutPresent()).thenReturn(false);
+        when(entity.isAppComputeLogsPresent()).thenReturn(false);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
         Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertNull(dto.getAppStdout());
+        Assertions.assertNull(dto.getAppLogs());
     }
 
     @Test
@@ -198,12 +196,12 @@ class TaskControllerTests {
         Replicate entity = mock(Replicate.class);
         when(entity.getChainTaskId()).thenReturn(TASK_ID);
         when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeStdoutPresent()).thenReturn(true);
+        when(entity.isAppComputeLogsPresent()).thenReturn(true);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
         Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertTrue(dto.getAppStdout().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
+        Assertions.assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
     }
     //endregion
 

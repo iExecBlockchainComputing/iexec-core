@@ -18,16 +18,13 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.common.replicate.ReplicateStatusDetails;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.*;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.workflow.ReplicateWorkflow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -54,7 +51,7 @@ public class ReplicatesService {
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
     private ResultService resultService;
-    private StdoutService stdoutService;
+    private TaskLogsService taskLogsService;
 
     private final ContextualLockRunner<String> replicatesUpdateLockRunner =
             new ContextualLockRunner<>(10, TimeUnit.MINUTES);
@@ -64,13 +61,13 @@ public class ReplicatesService {
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              ResultService resultService,
-                             StdoutService stdoutService) {
+                             TaskLogsService taskLogsService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.resultService = resultService;
-        this.stdoutService = stdoutService;
+        this.taskLogsService = taskLogsService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
@@ -403,7 +400,7 @@ public class ReplicatesService {
                                                                                     ReplicateStatusUpdate statusUpdate,
                                                                                     UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
         if (ReplicateStatusUpdateError.NO_ERROR
                 != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
@@ -427,10 +424,10 @@ public class ReplicatesService {
         if (statusUpdate.getDetails() != null &&
                 (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
                         && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
-            String stdout = statusUpdate.getDetails().tailStdout().getStdout();
-            stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            statusUpdate.getDetails().setStdout(null);//using null here to keep light replicate
-            replicate.setAppComputeStdoutPresent(true);
+            final ComputeLogs computeLogs = statusUpdate.getDetails().tailLogs().getComputeLogs();
+            taskLogsService.addComputeLogs(chainTaskId, computeLogs);
+            statusUpdate.getDetails().setComputeLogs(null);//using null here to keep light replicate
+            replicate.setAppComputeLogsPresent(true);
         }
 
         replicate.updateStatus(statusUpdate);
@@ -572,7 +569,7 @@ public class ReplicatesService {
     private String getStatusUpdateLogs(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
         return String.format("[currentStatus:%s, newStatus:%s chainTaskId:%s, walletAddress:%s, details:%s]",
                 replicate.getCurrentStatus(), statusUpdate.getStatus(), chainTaskId, replicate.getWalletAddress(),
-                statusUpdate.getDetailsWithoutStdout());
+                statusUpdate.getDetailsWithoutLogs());
     }
 
     public boolean isResultUploaded(String chainTaskId) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iexec.core.stdout;
+package com.iexec.core.logs;
 
 import java.util.Date;
 import java.util.List;
@@ -28,30 +28,30 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class StdoutCronService {
+public class ComputeLogsCronService {
 
-    @Value("${stdout.availability-period-in-days}")
+    @Value("${logs.availability-period-in-days}")
     private int availabilityDays;
 
-    private final StdoutService stdoutService;
+    private final TaskLogsService taskLogsService;
     private final TaskService taskService;
 
-    public StdoutCronService(
-        StdoutService stdoutService,
+    public ComputeLogsCronService(
+        TaskLogsService taskLogsService,
         TaskService taskService
     ) {
-        this.stdoutService = stdoutService;
+        this.taskLogsService = taskLogsService;
         this.taskService = taskService;
     }
 
     @Scheduled(
-            fixedRateString = "${stdout.purge-rate-in-days}",
+            fixedRateString = "${logs.purge-rate-in-days}",
             timeUnit = TimeUnit.DAYS)
-    void purgeStdout() {
+    void purgeLogs() {
         Date someDaysAgo = DateUtils.addDays(new Date(), -availabilityDays);
         List<String> chainTaskIds = taskService
                 .getChainTaskIdsOfTasksExpiredBefore(someDaysAgo);
-        stdoutService.delete(chainTaskIds);
+        taskLogsService.delete(chainTaskIds);
     }
 
 }

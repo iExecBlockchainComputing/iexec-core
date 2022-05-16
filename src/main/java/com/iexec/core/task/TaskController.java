@@ -16,18 +16,18 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.logs.TaskLogs;
+import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
-import com.iexec.core.stdout.ReplicateStdout;
-import com.iexec.core.stdout.StdoutService;
-import com.iexec.core.stdout.TaskStdout;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -48,21 +48,21 @@ public class TaskController {
     private final IexecHubService iexecHubService;
     private final JwtTokenProvider jwtTokenProvider;
     private final ReplicatesService replicatesService;
-    private final StdoutService stdoutService;
+    private final TaskLogsService taskLogsService;
     private final TaskService taskService;
 
     public TaskController(ChallengeService challengeService,
                           IexecHubService iexecHubService,
                           JwtTokenProvider jwtTokenProvider,
                           ReplicatesService replicatesService,
-                          StdoutService stdoutService,
+                          TaskLogsService taskLogsService,
                           TaskService taskService) {
         this.challengeService = challengeService;
         this.iexecHubService = iexecHubService;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.taskService = taskService;
         this.replicatesService = replicatesService;
-        this.stdoutService = stdoutService;
+        this.taskLogsService = taskLogsService;
+        this.taskService = taskService;
     }
 
     @GetMapping("/tasks/logs/challenge")
@@ -115,15 +115,15 @@ public class TaskController {
      */
     ReplicateModel buildReplicateModel(Replicate replicate) {
         ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
-        if (replicate.isAppComputeStdoutPresent()) {
-            String stdout = linkTo(methodOn(TaskController.class)
-                    .getReplicateStdout(
+        if (replicate.isAppComputeLogsPresent()) {
+            String logs = linkTo(methodOn(TaskController.class)
+                    .getComputeLogs(
                             replicate.getChainTaskId(),
                             replicate.getWalletAddress(),
                             ""))
-                    .withRel("stdout")//useless, but helps understandability
+                    .withRel("logs")//useless, but helps understandability
                     .getHref();
-            replicateModel.setAppStdout(stdout);
+            replicateModel.setAppLogs(logs);
         }
         String self = linkTo(methodOn(TaskController.class)
                 .getTaskReplicate(
@@ -134,8 +134,11 @@ public class TaskController {
         return replicateModel;
     }
 
-    @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskStdout> getTaskStdout(
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/stdout",  // @Deprecated
+            "/tasks/{chainTaskId}/logs"
+    })
+    public ResponseEntity<TaskLogs> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String bearerToken) {
         String outputRequester = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
@@ -143,13 +146,16 @@ public class TaskController {
                 || !isTaskRequester(outputRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return stdoutService.getTaskStdout(chainTaskId)
+        return taskLogsService.getTaskLogs(chainTaskId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
-    public ResponseEntity<ReplicateStdout> getReplicateStdout(
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
+    })
+    public ResponseEntity<ComputeLogs> getComputeLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,
             @RequestHeader("Authorization") String bearerToken) {
@@ -158,7 +164,7 @@ public class TaskController {
                 || !isTaskRequester(outputRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
+        return taskLogsService.getComputeLogs(chainTaskId, walletAddress)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

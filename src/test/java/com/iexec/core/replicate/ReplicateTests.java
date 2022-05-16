@@ -48,7 +48,7 @@ class ReplicateTests {
                 + "\"chainTaskId\":\"chainTaskId\","
                 + "\"contributionHash\":\"\","
                 + "\"workerWeight\":0,"
-                + "\"appComputeStdoutPresent\":false,"
+                + "\"appComputeLogsPresent\":false,"
                 + "\"busyComputing\":true,"
                 + "\"recoverable\":true"
                 + "}";
