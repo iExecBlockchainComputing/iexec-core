@@ -16,6 +16,7 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
@@ -26,14 +27,12 @@ import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.security.ChallengeService;
-import com.iexec.core.security.JwtTokenProvider;
+import com.iexec.core.security.EIP712ChallengeService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.web3j.crypto.Hash;
 
-import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -41,44 +40,42 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import static org.springframework.http.ResponseEntity.notFound;
 import static org.springframework.http.ResponseEntity.ok;
 
+@Slf4j
 @RestController
 public class TaskController {
 
-    private final ChallengeService challengeService;
+    private final EIP712ChallengeService challengeService;
     private final IexecHubService iexecHubService;
-    private final JwtTokenProvider jwtTokenProvider;
     private final ReplicatesService replicatesService;
     private final TaskLogsService taskLogsService;
     private final TaskService taskService;
 
-    public TaskController(ChallengeService challengeService,
+    public TaskController(EIP712ChallengeService challengeService,
                           IexecHubService iexecHubService,
-                          JwtTokenProvider jwtTokenProvider,
                           ReplicatesService replicatesService,
                           TaskLogsService taskLogsService,
                           TaskService taskService) {
         this.challengeService = challengeService;
         this.iexecHubService = iexecHubService;
-        this.jwtTokenProvider = jwtTokenProvider;
         this.replicatesService = replicatesService;
         this.taskLogsService = taskLogsService;
         this.taskService = taskService;
     }
 
     @GetMapping("/tasks/logs/challenge")
-    public ResponseEntity<String> getChallenge(@RequestParam("walletAddress") String walletAddress) {
+    public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("walletAddress") String walletAddress) {
         return ok(challengeService.getChallenge(walletAddress));
     }
 
     @PostMapping("/tasks/logs/login")
     public ResponseEntity<String> login(@RequestParam("walletAddress") String walletAddress,
                                         @RequestBody Signature signature) {
-        String challenge = challengeService.getChallenge(walletAddress);
-        byte[] challengeHash = Hash.sha3(challenge.getBytes(StandardCharsets.UTF_8));
-        if (!SignatureUtils.isSignatureValid(challengeHash, signature, walletAddress)) {
+        EIP712Challenge eip712Challenge = challengeService.getChallenge(walletAddress);
+        if (!SignatureUtils.doesSignatureMatchesAddress(
+                signature.getR(), signature.getS(), eip712Challenge.hash(), walletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String token = jwtTokenProvider.createToken(walletAddress);
+        String token = challengeService.createToken(walletAddress);
         return ok(token);
     }
 
@@ -141,9 +138,9 @@ public class TaskController {
     public ResponseEntity<TaskLogs> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String bearerToken) {
-        String outputRequester = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (outputRequester.isEmpty()
-                || !isTaskRequester(outputRequester, chainTaskId)) {
+        String taskLogsRequester = challengeService.getWalletAddressFromBearerToken(bearerToken);
+        if(!challengeService.isValidToken(bearerToken)
+            || !isTaskRequester(taskLogsRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return taskLogsService.getTaskLogs(chainTaskId)
@@ -159,9 +156,9 @@ public class TaskController {
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,
             @RequestHeader("Authorization") String bearerToken) {
-        String outputRequester = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (outputRequester.isEmpty()
-                || !isTaskRequester(outputRequester, chainTaskId)) {
+        String computeLogsRequester = challengeService.getWalletAddressFromBearerToken(bearerToken);
+        if (!challengeService.isValidToken(bearerToken)
+            || !isTaskRequester(computeLogsRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return taskLogsService.getComputeLogs(chainTaskId, walletAddress)
@@ -171,14 +168,13 @@ public class TaskController {
 
     /**
      * Checks if requester address from bearer token is the same as the address used to buy the task execution.
-     * @param outputRequester Wallet address of requester asking computation outputs
+     * @param logsRequester Wallet address of requester asking task or compute logs
      * @param chainTaskId Task for which outputs are requested
      * @return true if the user requesting computation outputs was the one to buy the task, false otherwise
      */
-    private boolean isTaskRequester(String outputRequester, String chainTaskId) {
+    private boolean isTaskRequester(String logsRequester, String chainTaskId) {
         TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
-        String taskRequester = taskDescription.getRequester();
-        return outputRequester.equalsIgnoreCase(taskRequester);
+        return taskDescription != null && taskDescription.getRequester().equalsIgnoreCase(logsRequester);
     }
 
 }

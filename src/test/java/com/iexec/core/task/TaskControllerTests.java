@@ -16,6 +16,9 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.eip712.entity.Challenge;
+import com.iexec.common.chain.eip712.entity.EIP712Challenge;
+import com.iexec.common.chain.eip712.EIP712Domain;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
@@ -26,10 +29,8 @@ import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.security.ChallengeService;
-import com.iexec.core.security.JwtTokenProvider;
+import com.iexec.core.security.EIP712ChallengeService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,8 +39,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.web3j.crypto.Hash;
+import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Keys;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -48,19 +50,22 @@ import java.security.NoSuchProviderException;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.common.utils.SignatureUtils.signMessageHashAndGetSignature;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @Slf4j
 class TaskControllerTests {
 
-    public static final String TASK_ID = "0xtask";
-    public static final String WORKER_ADDRESS = "0xworker";
+    private static final String LOGS_REQUESTER_TOKEN = "Bearer logsRequesterToken";
+    private static final String TASK_REQUESTER_TOKEN = "Bearer taskRequesterToken";
+    private static final String TASK_ID = "0xtask";
+    private static final String WORKER_ADDRESS = "0xworker";
 
-    @Mock private ChallengeService challengeService;
+    private EIP712Challenge challenge;
+    private EIP712Challenge badChallenge;
+
+    @Mock private EIP712ChallengeService challengeService;
     @Mock private IexecHubService iexecHubService;
-    @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private ReplicatesService replicatesService;
     @Mock private TaskService taskService;
     @Mock private TaskLogsService taskLogsService;
@@ -69,6 +74,9 @@ class TaskControllerTests {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        EIP712Domain domain = new EIP712Domain();
+        challenge = new EIP712Challenge(domain, Challenge.builder().challenge("challenge").build());
+        badChallenge = new EIP712Challenge(domain, Challenge.builder().challenge("bad-challenge").build());
     }
 
     //region utilities
@@ -81,34 +89,33 @@ class TaskControllerTests {
     //region login
     @Test
     void shouldLogin() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        String privateKey = generateKey();
+        ECKeyPair ecKeyPair = Keys.createEcKeyPair();
+        String privateKey = String.format("0x%032x", ecKeyPair.getPrivateKey());
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
-        String challenge =  RandomStringUtils.randomAlphabetic(10);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        when(jwtTokenProvider.createToken(requesterAddress)).thenReturn("token");
-        ResponseEntity<String> response = taskController.getChallenge(requesterAddress);
+        when(challengeService.createToken(requesterAddress)).thenReturn("token");
+        ResponseEntity<EIP712Challenge> response = taskController.getChallenge(requesterAddress);
         assertEquals(challenge, response.getBody());
-        String challengeHash = Hash.sha3String(challenge);
-        Signature signature = signMessageHashAndGetSignature(challengeHash, privateKey);
+        String signatureString = challenge.signMessage(ecKeyPair);
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signatureString));
         ResponseEntity<String> loginResponse = taskController.login(requesterAddress, signature);
         assertTrue(loginResponse.getStatusCode().is2xxSuccessful());
         verify(challengeService, times(2)).getChallenge(requesterAddress);
-        verify(jwtTokenProvider).createToken(anyString());
+        verify(challengeService).createToken(anyString());
     }
 
     @Test
     void shouldNotLogWithInvalidChallenge() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        String privateKey = generateKey();
+        ECKeyPair ecKeyPair = Keys.createEcKeyPair();
+        String privateKey = String.format("0x%032x", ecKeyPair.getPrivateKey());
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
-        String challenge =  RandomStringUtils.randomAlphabetic(10);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        String challengeHash = Hash.sha3String("bad-challenge");
-        Signature signature = signMessageHashAndGetSignature(challengeHash, privateKey);
+        String signatureString = badChallenge.signMessage(ecKeyPair);
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signatureString));
         ResponseEntity<String> loginResponse = taskController.login(requesterAddress, signature);
         assertEquals(HttpStatus.UNAUTHORIZED, loginResponse.getStatusCode());
         assertNull(loginResponse.getBody());
         verify(challengeService).getChallenge(requesterAddress);
-        verifyNoInteractions(jwtTokenProvider);
     }
     //endregion
 
@@ -194,7 +201,7 @@ class TaskControllerTests {
     }
 
     @Test
-    void shouldBuildReplicateModelWithStdout() {
+    void shouldBuildReplicateModelWithComputeLogs() {
         Replicate entity = mock(Replicate.class);
         when(entity.getChainTaskId()).thenReturn(TASK_ID);
         when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
@@ -209,7 +216,7 @@ class TaskControllerTests {
 
     //region getTaskLogs
     @Test
-    void shouldGetTaskStdoutWhenAuthenticated()
+    void shouldGetTaskLogsWhenAuthenticated()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         String privateKey = generateKey();
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
@@ -217,58 +224,68 @@ class TaskControllerTests {
                 .requester(requesterAddress)
                 .build();
         TaskLogs taskStdout = TaskLogs.builder().build();
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(TASK_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(taskLogsService.getTaskLogs(TASK_ID)).thenReturn(Optional.of(taskStdout));
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, signedChallenge);
+        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, TASK_REQUESTER_TOKEN);
         Assertions.assertTrue(response.getStatusCode().is2xxSuccessful());
+        verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
     @Test
-    void shouldFailToGetTaskStdoutWithNotFoundStatus()
+    void shouldFailToGetTaskLogsWithNotFoundStatus()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         String privateKey = generateKey();
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
         TaskDescription description = TaskDescription.builder()
                 .requester(requesterAddress)
                 .build();
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(TASK_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, signedChallenge);
+        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, TASK_REQUESTER_TOKEN);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
     @Test
-    void shouldFailToGetTaskStdoutWhenAddressMissingInToken() {
-        when(jwtTokenProvider.getWalletAddressFromBearerToken("")).thenReturn("");
+    void shouldFailToGetTaskLogsWhenAddressMissingInToken() {
+        when(challengeService.getWalletAddressFromBearerToken("")).thenReturn("");
+        when(challengeService.isValidToken("")).thenReturn(false);
         ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, "");
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken("");
+        verify(challengeService).isValidToken("");
+        verifyNoInteractions(iexecHubService);
     }
 
     @Test
-    void shouldFailToGetTaskStdoutWhenNotTaskRequester()
+    void shouldFailToGetTaskLogsWhenNotTaskRequester()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         String privateKey = generateKey();
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
         TaskDescription description = TaskDescription.builder()
                 .requester(CredentialsUtils.getAddress(generateKey()))
                 .build();
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, requesterAddress).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(LOGS_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(LOGS_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, signedChallenge);
+        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, LOGS_REQUESTER_TOKEN);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken(LOGS_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(LOGS_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
     //endregion
 
     //region getComputeLogs
     @Test
-    void shouldGetReplicateStdoutWhenAuthenticated()
+    void shouldGetComputeLogsWhenAuthenticated()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         String privateKey = generateKey();
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
@@ -276,52 +293,62 @@ class TaskControllerTests {
                 .requester(requesterAddress)
                 .build();
         ComputeLogs computeLogs = ComputeLogs.builder().build();
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(TASK_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.of(computeLogs));
-        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, signedChallenge);
+        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, TASK_REQUESTER_TOKEN);
         Assertions.assertTrue(response.getStatusCode().is2xxSuccessful());
+        verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
     @Test
-    void shouldFailToGetReplicateStdoutWithNotFoundStatus()
+    void shouldFailToGetComputeLogsWithNotFoundStatus()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         String privateKey = generateKey();
         String requesterAddress = CredentialsUtils.getAddress(privateKey);
         TaskDescription description = TaskDescription.builder()
                 .requester(requesterAddress)
                 .build();
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, privateKey).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(TASK_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, signedChallenge);
+        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, TASK_REQUESTER_TOKEN);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
     @Test
-    void shouldFailToGetReplicateStdoutWhenAddressMissingInToken() {
-        when(jwtTokenProvider.getWalletAddressFromBearerToken("")).thenReturn("");
+    void shouldFailToGetComputeLogsWhenAddressMissingInToken() {
+        when(challengeService.getWalletAddressFromBearerToken("")).thenReturn("");
+        when(challengeService.isValidToken("")).thenReturn(false);
         ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, "");
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken("");
+        verify(challengeService).isValidToken("");
+        verifyNoInteractions(iexecHubService);
     }
 
     @Test
-    void shouldFailToGetReplicateStdoutWhenNotTaskRequester()
+    void shouldFailToGetComputeLogsWhenNotTaskRequester()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+        String privateKey = generateKey();
+        String requesterAddress = CredentialsUtils.getAddress(privateKey);
         TaskDescription description = TaskDescription.builder()
                 .requester(CredentialsUtils.getAddress(generateKey()))
                 .build();
-        String privateKey = generateKey();
-        String requesterAddress = CredentialsUtils.getAddress(privateKey);
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        String signedChallenge = signMessageHashAndGetSignature(challenge, requesterAddress).getValue();
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(signedChallenge)).thenReturn(requesterAddress);
+        when(challengeService.getWalletAddressFromBearerToken(LOGS_REQUESTER_TOKEN)).thenReturn(requesterAddress);
+        when(challengeService.isValidToken(LOGS_REQUESTER_TOKEN)).thenReturn(true);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, signedChallenge);
+        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, LOGS_REQUESTER_TOKEN);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        verify(challengeService).getWalletAddressFromBearerToken(LOGS_REQUESTER_TOKEN);
+        verify(challengeService).isValidToken(LOGS_REQUESTER_TOKEN);
+        verify(iexecHubService).getTaskDescription(TASK_ID);
     }
     //endregion
 
