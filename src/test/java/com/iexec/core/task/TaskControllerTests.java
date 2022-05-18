@@ -16,9 +16,9 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.eip712.EIP712Domain;
 import com.iexec.common.chain.eip712.entity.Challenge;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
-import com.iexec.common.chain.eip712.EIP712Domain;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.Signature;
 import com.iexec.common.task.TaskDescription;
@@ -31,7 +31,6 @@ import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.security.EIP712ChallengeService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -128,11 +127,11 @@ class TaskControllerTests {
                 .thenReturn(Optional.of(taskEntity));
 
         ResponseEntity<TaskModel> taskResponse = taskController.getTask(TASK_ID);
-        Assertions.assertTrue(taskResponse.getStatusCode().is2xxSuccessful());
+        assertTrue(taskResponse.getStatusCode().is2xxSuccessful());
         TaskModel task = taskResponse.getBody();
-        Assertions.assertNotNull(task);
+        assertNotNull(task);
         assertEquals(TASK_ID, task.getChainTaskId());
-        Assertions.assertNull(task.getReplicates());
+        assertNull(task.getReplicates());
     }
 
     @Test
@@ -148,9 +147,9 @@ class TaskControllerTests {
                 .thenReturn(List.of(replicateEntity));
 
         ResponseEntity<TaskModel> taskResponse = taskController.getTask(TASK_ID);
-        Assertions.assertTrue(taskResponse.getStatusCode().is2xxSuccessful());
+        assertTrue(taskResponse.getStatusCode().is2xxSuccessful());
         TaskModel task = taskResponse.getBody();
-        Assertions.assertNotNull(task);
+        assertNotNull(task);
         assertEquals(TASK_ID, task.getChainTaskId());
         assertEquals(TASK_ID,
                 task.getReplicates().get(0).getChainTaskId());
@@ -168,9 +167,9 @@ class TaskControllerTests {
 
         ResponseEntity<ReplicateModel> replicateResponse =
                 taskController.getTaskReplicate(TASK_ID, WORKER_ADDRESS);
-        Assertions.assertTrue(replicateResponse.getStatusCode().is2xxSuccessful());
+        assertTrue(replicateResponse.getStatusCode().is2xxSuccessful());
         ReplicateModel replicate = replicateResponse.getBody();
-        Assertions.assertNotNull(replicate);
+        assertNotNull(replicate);
         assertEquals(TASK_ID, replicate.getChainTaskId());
         assertEquals(WORKER_ADDRESS, replicate.getWalletAddress());
     }
@@ -182,7 +181,7 @@ class TaskControllerTests {
 
         ResponseEntity<ReplicateModel> replicateResponse =
                 taskController.getTaskReplicate(TASK_ID, WORKER_ADDRESS);
-        Assertions.assertTrue(replicateResponse.getStatusCode().is4xxClientError());
+        assertTrue(replicateResponse.getStatusCode().is4xxClientError());
     }
     //endregion
 
@@ -196,8 +195,8 @@ class TaskControllerTests {
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
-        Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertNull(dto.getAppLogs());
+        assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
+        assertNull(dto.getAppLogs());
     }
 
     @Test
@@ -209,8 +208,8 @@ class TaskControllerTests {
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
-        Assertions.assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        Assertions.assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
+        assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
+        assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
     }
     //endregion
 
@@ -229,7 +228,7 @@ class TaskControllerTests {
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(taskLogsService.getTaskLogs(TASK_ID)).thenReturn(Optional.of(taskStdout));
         ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, TASK_REQUESTER_TOKEN);
-        Assertions.assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertTrue(response.getStatusCode().is2xxSuccessful());
         verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
         verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
         verify(iexecHubService).getTaskDescription(TASK_ID);
@@ -298,7 +297,7 @@ class TaskControllerTests {
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.of(computeLogs));
         ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, TASK_REQUESTER_TOKEN);
-        Assertions.assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertTrue(response.getStatusCode().is2xxSuccessful());
         verify(challengeService).getWalletAddressFromBearerToken(TASK_REQUESTER_TOKEN);
         verify(challengeService).isValidToken(TASK_REQUESTER_TOKEN);
         verify(iexecHubService).getTaskDescription(TASK_ID);
