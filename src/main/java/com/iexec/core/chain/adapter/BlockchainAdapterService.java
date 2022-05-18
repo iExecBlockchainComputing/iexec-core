@@ -23,6 +23,7 @@ import com.iexec.common.config.PublicChainConfig;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -167,4 +168,10 @@ public class BlockchainAdapterService {
         }
         return null;
     }
+
+    @Bean
+    public int getChainId() {
+        return getPublicChainConfig().getChainId();
+    }
+
 }
