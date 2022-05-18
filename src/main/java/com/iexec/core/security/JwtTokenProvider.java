@@ -21,37 +21,30 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 
-@Component
 @Slf4j
+@Component
 public class JwtTokenProvider {
 
-    private ChallengeService challengeService;
-    private String secretKey;
+    private final String secretKey;
 
-    public JwtTokenProvider(ChallengeService challengeService) {
-        this.challengeService = challengeService;
-        this.secretKey = RandomStringUtils.randomAlphanumeric(10);
+    public JwtTokenProvider() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] seed = new byte[32];
+        secureRandom.nextBytes(seed);
+        this.secretKey = Base64.getEncoder().encodeToString(seed);
     }
 
-    @PostConstruct
-    protected void init() {
-        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
-    }
-
-    public String createToken(String walletAddress) {
-        Date now = new Date();
-
+    public String createToken(String walletAddress, String challenge) {
         return Jwts.builder()
                 .setAudience(walletAddress)
-                .setIssuedAt(now)
-                .setSubject(challengeService.getChallenge(walletAddress))
+                .setIssuedAt(new Date())
+                .setSubject(challenge)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -77,8 +70,7 @@ public class JwtTokenProvider {
      *  3) old challenge expires
      *  4) worker tries logging with old challenge
      */
-    public boolean isValidToken(String token) {
-
+    public boolean isValidToken(String token, String challenge) {
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
@@ -90,8 +82,7 @@ public class JwtTokenProvider {
             Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
 
             // check the content of the challenge
-            String walletAddress = claims.getAudience();
-            boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
+            boolean isChallengeCorrect = claims.getSubject().equals(challenge);
 
             return tokenExpiryDate.after(now) && isChallengeCorrect;
         } catch (JwtException | IllegalArgumentException e) {
@@ -108,7 +99,7 @@ public class JwtTokenProvider {
 
     public String getWalletAddressFromBearerToken(String bearerToken) {
         String token = resolveToken(bearerToken);
-        if (token != null && isValidToken(token)) {
+        if (token != null) {
             return getWalletAddress(token);
         }
         return "";
