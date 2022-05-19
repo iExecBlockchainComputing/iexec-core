@@ -34,16 +34,14 @@ public class EIP712ChallengeService {
 
     private final EIP712Domain domain;
     private final ExpiringMap<String, EIP712Challenge> challenges;
-    private final JwtTokenProvider jwtTokenProvider;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    EIP712ChallengeService(int chainId, JwtTokenProvider jwtTokenProvider) {
+    EIP712ChallengeService(int chainId) {
         this.domain = new EIP712Domain("iExec Core", "1", chainId, null);
         this.challenges = ExpiringMap.builder()
                 .expiration(60, TimeUnit.MINUTES)
                 .expirationPolicy(ExpirationPolicy.CREATED)
                 .build();
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     public EIP712Challenge generateChallenge() {
@@ -56,25 +54,6 @@ public class EIP712ChallengeService {
     public EIP712Challenge getChallenge(String walletAddress) {
         challenges.computeIfAbsent(walletAddress, s -> this.generateChallenge());
         return challenges.get(walletAddress);
-    }
-
-    public String createToken(String walletAddress) {
-        EIP712Challenge challenge = challenges.get(walletAddress);
-        return jwtTokenProvider.createToken(walletAddress, challenge.getMessage().getChallenge());
-    }
-
-    public String getWalletAddressFromBearerToken(String bearerToken) {
-        return jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-    }
-
-    public boolean isValidToken(String bearerToken) {
-        String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (walletAddress.isEmpty()) {
-            return false;
-        }
-        EIP712Challenge challenge = challenges.get(walletAddress);
-        return challenge != null
-                && jwtTokenProvider.isValidToken(jwtTokenProvider.resolveToken(bearerToken), challenge.getMessage().getChallenge());
     }
 
 }

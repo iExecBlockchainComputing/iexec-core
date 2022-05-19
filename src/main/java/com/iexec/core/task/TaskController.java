@@ -19,6 +19,7 @@ package com.iexec.core.task;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.Signature;
+import com.iexec.common.security.SignedChallenge;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.web3j.utils.Numeric;
 
 import java.util.stream.Collectors;
 
@@ -65,18 +67,6 @@ public class TaskController {
     @GetMapping("/tasks/logs/challenge")
     public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("walletAddress") String walletAddress) {
         return ok(challengeService.getChallenge(walletAddress));
-    }
-
-    @PostMapping("/tasks/logs/login")
-    public ResponseEntity<String> login(@RequestParam("walletAddress") String walletAddress,
-                                        @RequestBody Signature signature) {
-        EIP712Challenge eip712Challenge = challengeService.getChallenge(walletAddress);
-        if (!SignatureUtils.doesSignatureMatchesAddress(
-                signature.getR(), signature.getS(), eip712Challenge.hash(), walletAddress)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String token = challengeService.createToken(walletAddress);
-        return ok(token);
     }
 
     @GetMapping("/tasks/{chainTaskId}")
@@ -137,10 +127,19 @@ public class TaskController {
     })
     public ResponseEntity<TaskLogs> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
-            @RequestHeader("Authorization") String bearerToken) {
-        String taskLogsRequester = challengeService.getWalletAddressFromBearerToken(bearerToken);
-        if(!challengeService.isValidToken(bearerToken)
-            || !isTaskRequester(taskLogsRequester, chainTaskId)) {
+            @RequestHeader("Authorization") String authorization) {
+        SignedChallenge signedChallenge = SignedChallenge.createFromString(authorization);
+        if (signedChallenge == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String taskLogsRequester = signedChallenge.getWalletAddress();
+        if(!isTaskRequester(taskLogsRequester, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
+        EIP712Challenge eip712Challenge = challengeService.getChallenge(taskLogsRequester);
+        if (!SignatureUtils.doesSignatureMatchesAddress(
+                signature.getR(), signature.getS(), eip712Challenge.getHash(), taskLogsRequester)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return taskLogsService.getTaskLogs(chainTaskId)
@@ -155,10 +154,19 @@ public class TaskController {
     public ResponseEntity<ComputeLogs> getComputeLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,
-            @RequestHeader("Authorization") String bearerToken) {
-        String computeLogsRequester = challengeService.getWalletAddressFromBearerToken(bearerToken);
-        if (!challengeService.isValidToken(bearerToken)
-            || !isTaskRequester(computeLogsRequester, chainTaskId)) {
+            @RequestHeader("Authorization") String authorization) {
+        SignedChallenge signedChallenge = SignedChallenge.createFromString(authorization);
+        if (signedChallenge == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String computeLogsRequester = signedChallenge.getWalletAddress();
+        if (!isTaskRequester(computeLogsRequester, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
+        EIP712Challenge eip712Challenge = challengeService.getChallenge(computeLogsRequester);
+        if (!SignatureUtils.doesSignatureMatchesAddress(
+                signature.getR(), signature.getS(), eip712Challenge.getHash(), computeLogsRequester)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return taskLogsService.getComputeLogs(chainTaskId, walletAddress)
@@ -174,7 +182,7 @@ public class TaskController {
      */
     private boolean isTaskRequester(String logsRequester, String chainTaskId) {
         TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
-        return taskDescription != null && taskDescription.getRequester().equalsIgnoreCase(logsRequester);
+        return taskDescription != null && logsRequester.equalsIgnoreCase(taskDescription.getRequester());
     }
 
 }

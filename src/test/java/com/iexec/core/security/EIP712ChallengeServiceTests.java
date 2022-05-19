@@ -33,7 +33,7 @@ public class EIP712ChallengeServiceTests {
 
     @BeforeEach
     public void preflight() {
-        challengeService = new EIP712ChallengeService(1, new JwtTokenProvider());
+        challengeService = new EIP712ChallengeService(1);
     }
 
     @Test
@@ -48,20 +48,6 @@ public class EIP712ChallengeServiceTests {
         EIP712Challenge challenge1 = challengeService.getChallenge(WALLET_ADDRESS_1);
         EIP712Challenge challenge2 = challengeService.getChallenge(WALLET_ADDRESS_2);
         assertThat(challenge1).usingRecursiveComparison().isNotEqualTo(challenge2);
-    }
-
-    @Test
-    void shouldTokenBeValidWhenBearerAndCreatedForWallet() {
-        challengeService.getChallenge(WALLET_ADDRESS_1);
-        String token = challengeService.createToken(WALLET_ADDRESS_1);
-        assertThat(challengeService.getWalletAddressFromBearerToken("Bearer " + token))
-                .isEqualTo(WALLET_ADDRESS_1);
-        assertThat(challengeService.isValidToken("Bearer " + token)).isTrue();
-    }
-
-    @Test
-    void shouldEmptyTokenBeInvalid() {
-        assertThat(challengeService.isValidToken("")).isFalse();
     }
 
 }
