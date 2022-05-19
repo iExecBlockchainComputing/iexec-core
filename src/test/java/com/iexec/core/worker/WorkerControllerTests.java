@@ -9,6 +9,7 @@ import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
+import com.iexec.core.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -50,6 +51,8 @@ class WorkerControllerTests {
     @Mock
     private CredentialsService credentialsService;
     @Mock
+    private JwtTokenProvider jwtTokenProvider;
+    @Mock
     private ChallengeService challengeService;
     @Mock
     private WorkerConfiguration workerConfiguration;
@@ -71,7 +74,7 @@ class WorkerControllerTests {
     //region ping
     @Test
     void shouldAcceptPing() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
@@ -82,7 +85,7 @@ class WorkerControllerTests {
 
     @Test
     void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
         ResponseEntity<String> response1 = workerController.ping(TOKEN);
@@ -95,7 +98,7 @@ class WorkerControllerTests {
 
     @Test
     void shouldNotAcceptPingSinceUnauthorizedJwt() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -104,7 +107,7 @@ class WorkerControllerTests {
 
     @Test
     void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.empty());
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
@@ -175,7 +178,7 @@ class WorkerControllerTests {
     void shouldGetToken() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
-        when(challengeService.createToken(WALLET)).thenReturn(TOKEN);
+        when(jwtTokenProvider.createToken(WALLET)).thenReturn(TOKEN);
         ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -200,7 +203,7 @@ class WorkerControllerTests {
     //region registerWorker
     @Test
     void shouldRegisterWorker() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN))
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
         when(workerService.addWorker(any())).thenReturn(WORKER);
 
@@ -215,7 +218,7 @@ class WorkerControllerTests {
     void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
         WORKER_MODEL.setGpuEnabled(true);
         WORKER.setMaxNbTasks(1);
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN))
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
         when(workerService.addWorker(any())).thenReturn(WORKER);
 
@@ -229,7 +232,7 @@ class WorkerControllerTests {
 
     @Test
     void shouldNotRegisterWorkerSinceUnauthorized() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<Worker> response =
                 workerController.registerWorker(TOKEN, WORKER_MODEL);
@@ -251,7 +254,7 @@ class WorkerControllerTests {
     @Test
     void shouldGetTasksInProgress() {
         List<String> list = List.of("t1", "t2");
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN))
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
         when(workerService.getComputingTaskIds(WALLET)).thenReturn(list);
         ResponseEntity<List<String>> response =
@@ -262,7 +265,7 @@ class WorkerControllerTests {
 
     @Test
     void shouldNotGetTasksInProgressSinceUnauthorized() {
-        when(challengeService.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
         ResponseEntity<List<String>> response =
                 workerController.getComputingTasks(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

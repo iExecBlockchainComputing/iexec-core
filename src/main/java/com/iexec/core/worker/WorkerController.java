@@ -29,6 +29,7 @@ import com.iexec.core.configuration.SessionService;
 import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
+import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,7 @@ public class WorkerController {
     private final WorkerService workerService;
     private final ChainConfig chainConfig;
     private final CredentialsService credentialsService;
+    private final JwtTokenProvider jwtTokenProvider;
     private final ChallengeService challengeService;
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
@@ -58,6 +60,7 @@ public class WorkerController {
     public WorkerController(WorkerService workerService,
                             ChainConfig chainConfig,
                             CredentialsService credentialsService,
+                            JwtTokenProvider jwtTokenProvider,
                             ChallengeService challengeService,
                             WorkerConfiguration workerConfiguration,
                             ResultRepositoryConfiguration resultRepoConfig,
@@ -66,6 +69,7 @@ public class WorkerController {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
+        this.jwtTokenProvider = jwtTokenProvider;
         this.challengeService = challengeService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
@@ -75,7 +79,7 @@ public class WorkerController {
 
     @PostMapping(path = "/workers/ping")
     public ResponseEntity<String> ping(@RequestHeader("Authorization") String bearerToken) {
-        String workerWalletAddress = challengeService.getWalletAddressFromBearerToken(bearerToken);
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -104,7 +108,7 @@ public class WorkerController {
 
         if (SignatureUtils.doesSignatureMatchesAddress(signature.getR(), signature.getS(),
                 BytesUtils.bytesToString(hashToCheck), walletAddress)) {
-            String token = challengeService.createToken(walletAddress);
+            String token = jwtTokenProvider.createToken(walletAddress);
             return ok(token);
         }
 
@@ -114,7 +118,7 @@ public class WorkerController {
     @PostMapping(path = "/workers/register")
     public ResponseEntity<Worker> registerWorker(@RequestHeader("Authorization") String bearerToken,
                                                  @RequestBody WorkerModel model) {
-        String workerWalletAddress = challengeService.getWalletAddressFromBearerToken(bearerToken);
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -160,7 +164,7 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/computing")
     public ResponseEntity<List<String>> getComputingTasks(@RequestHeader("Authorization") String bearerToken) {
-        String workerWalletAddress = challengeService.getWalletAddressFromBearerToken(bearerToken);
+        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
