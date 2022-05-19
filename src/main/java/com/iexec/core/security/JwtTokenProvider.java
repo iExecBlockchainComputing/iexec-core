@@ -31,20 +31,22 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
+    private final ChallengeService challengeService;
     private final String secretKey;
 
-    public JwtTokenProvider() {
+    public JwtTokenProvider(ChallengeService challengeService) {
+        this.challengeService = challengeService;
         SecureRandom secureRandom = new SecureRandom();
         byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
         this.secretKey = Base64.getEncoder().encodeToString(seed);
     }
 
-    public String createToken(String walletAddress, String challenge) {
+    public String createToken(String walletAddress) {
         return Jwts.builder()
                 .setAudience(walletAddress)
                 .setIssuedAt(new Date())
-                .setSubject(challenge)
+                .setSubject(challengeService.getChallenge(walletAddress))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -70,7 +72,7 @@ public class JwtTokenProvider {
      *  3) old challenge expires
      *  4) worker tries logging with old challenge
      */
-    public boolean isValidToken(String token, String challenge) {
+    public boolean isValidToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
@@ -82,7 +84,8 @@ public class JwtTokenProvider {
             Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
 
             // check the content of the challenge
-            boolean isChallengeCorrect = claims.getSubject().equals(challenge);
+            String walletAddress = claims.getAudience();
+            boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
 
             return tokenExpiryDate.after(now) && isChallengeCorrect;
         } catch (JwtException | IllegalArgumentException e) {
@@ -99,7 +102,7 @@ public class JwtTokenProvider {
 
     public String getWalletAddressFromBearerToken(String bearerToken) {
         String token = resolveToken(bearerToken);
-        if (token != null) {
+        if (token != null && isValidToken(token)) {
             return getWalletAddress(token);
         }
         return "";

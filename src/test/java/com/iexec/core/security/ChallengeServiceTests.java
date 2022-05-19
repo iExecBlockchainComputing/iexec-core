@@ -25,7 +25,7 @@ class ChallengeServiceTests {
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
-    private final ChallengeService challengeService = new ChallengeService(new JwtTokenProvider());
+    private final ChallengeService challengeService = new ChallengeService();
 
     @Test
     void shouldGetSameChallengeForSameWallet() {
@@ -39,20 +39,6 @@ class ChallengeServiceTests {
         String challenge1 = challengeService.getChallenge(WALLET_WORKER_1);
         String challenge2 = challengeService.getChallenge(WALLET_WORKER_2);
         assertThat(challenge1).isNotEqualTo(challenge2);
-    }
-
-    @Test
-    void shouldTokenBeValidWhenBearerAndCreatedForWallet() {
-        challengeService.getChallenge(WALLET_WORKER_1);
-        String token = challengeService.createToken(WALLET_WORKER_1);
-        assertThat(challengeService.getWalletAddressFromBearerToken("Bearer " + token))
-                .isEqualTo(WALLET_WORKER_1);
-        assertThat(challengeService.isValidToken("Bearer " + token)).isTrue();
-    }
-
-    @Test
-    void shouldEmptyTokenBeInvalid() {
-        assertThat(challengeService.isValidToken("")).isFalse();
     }
 
 }

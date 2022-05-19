@@ -29,37 +29,17 @@ public class ChallengeService {
     // Map <WorkerWalletAdress, Challenge>
     // this map will automatically delete entries older than one hour, ExpiringMap is thread-safe
     private final ExpiringMap<String, String> challengeMap;
-    private final JwtTokenProvider jwtTokenProvider;
 
-    ChallengeService(JwtTokenProvider jwtTokenProvider) {
+    ChallengeService() {
         this.challengeMap = ExpiringMap.builder()
                 .expiration(60, TimeUnit.MINUTES)
                 .expirationPolicy(ExpirationPolicy.CREATED)
                 .build();
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     public String getChallenge(String workerWallet) {
         String challenge = RandomStringUtils.randomAlphabetic(10);
         challengeMap.putIfAbsent(workerWallet, challenge);
         return challengeMap.get(workerWallet);
-    }
-
-    public String createToken(String walletAddress) {
-        String challenge = challengeMap.get(walletAddress);
-        return jwtTokenProvider.createToken(walletAddress, challenge);
-    }
-
-    public String getWalletAddressFromBearerToken(String bearerToken) {
-        return jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-    }
-
-    public boolean isValidToken(String bearerToken) {
-        String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-        if (walletAddress.isEmpty()) {
-            return false;
-        }
-        String challenge = challengeMap.get(walletAddress);
-        return challenge != null && jwtTokenProvider.isValidToken(jwtTokenProvider.resolveToken(bearerToken), challenge);
     }
 }

@@ -18,15 +18,29 @@ package com.iexec.core.security;
 
 import io.jsonwebtoken.MalformedJwtException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class JwtTokenProviderTests {
 
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
-    private final JwtTokenProvider jwtTokenProvider = new JwtTokenProvider();
+    @Mock
+    private ChallengeService challengeService;
+
+    @InjectMocks
+    private JwtTokenProvider jwtTokenProvider;
+
+    @BeforeEach
+    void init() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     //region resolveToken
     @Test
@@ -53,22 +67,25 @@ class JwtTokenProviderTests {
     //region isValidToken
     @Test
     void isValidTokenTrue() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge");
-        boolean isValidToken = jwtTokenProvider.isValidToken(token, "challenge");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(isValidToken).isTrue();
     }
 
     @Test
     void isValidTokenFalseSinceNotSameChallenge() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge1");
-        boolean isValidToken = jwtTokenProvider.isValidToken(token, "challenge2");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge1", "challenge2");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(isValidToken).isFalse();
     }
 
     @Test
     void isValidTokenFalseSinceNotValidOne() {
-        jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge");
-        boolean isValidToken = jwtTokenProvider.isValidToken("non.valid.token", "challenge");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge");
+        jwtTokenProvider.createToken(WALLET_ADDRESS);
+        boolean isValidToken = jwtTokenProvider.isValidToken("non.valid.token");
         assertThat(isValidToken).isFalse();
     }
     //endregion
@@ -76,7 +93,8 @@ class JwtTokenProviderTests {
     //region getWalletAddress
     @Test
     void shouldGetCorrectWalletAddress() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String walletAddress = jwtTokenProvider.getWalletAddress(token);
         assertThat(walletAddress).isEqualTo(WALLET_ADDRESS);
     }
@@ -90,7 +108,8 @@ class JwtTokenProviderTests {
     //region getWalletAddressFromBearerToken
     @Test
     void shouldGetCorrectWalletAddressFromBearerToken() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String bearerToken = "Bearer " + token;
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         assertThat(walletAddress).isEqualTo(WALLET_ADDRESS);
@@ -98,7 +117,8 @@ class JwtTokenProviderTests {
 
     @Test
     void shouldNotGetWalletAddressSinceNotValidBearerToken() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS, "challenge");
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn("challenge");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String notBearerToken = "Not Bearer " + token;
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(notBearerToken);
         assertThat(walletAddress).isEmpty();
