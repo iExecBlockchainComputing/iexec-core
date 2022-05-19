@@ -134,7 +134,7 @@ public class TaskController {
         }
         String taskLogsRequester = signedChallenge.getWalletAddress();
         if(!isTaskRequester(taskLogsRequester, chainTaskId)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
         EIP712Challenge eip712Challenge = challengeService.getChallenge(taskLogsRequester);
@@ -161,7 +161,7 @@ public class TaskController {
         }
         String computeLogsRequester = signedChallenge.getWalletAddress();
         if (!isTaskRequester(computeLogsRequester, chainTaskId)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
         EIP712Challenge eip712Challenge = challengeService.getChallenge(computeLogsRequester);

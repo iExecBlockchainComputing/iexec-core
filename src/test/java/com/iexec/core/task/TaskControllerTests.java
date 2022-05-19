@@ -55,8 +55,6 @@ import static org.mockito.Mockito.*;
 @Slf4j
 class TaskControllerTests {
 
-    private static final String LOGS_REQUESTER_TOKEN = "hash_signature_logsRequesterAddress";
-    private static final String TASK_REQUESTER_TOKEN = "hash_signature_taskRequesterAddress";
     private static final String TASK_ID = "0xtask";
     private static final String WORKER_ADDRESS = "0xworker";
 
@@ -259,8 +257,8 @@ class TaskControllerTests {
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, LOGS_REQUESTER_TOKEN);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
     //endregion
@@ -326,8 +324,8 @@ class TaskControllerTests {
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, LOGS_REQUESTER_TOKEN);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
     //endregion
