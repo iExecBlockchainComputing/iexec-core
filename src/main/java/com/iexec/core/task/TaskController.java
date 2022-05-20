@@ -46,18 +46,18 @@ import static org.springframework.http.ResponseEntity.ok;
 @RestController
 public class TaskController {
 
-    private final EIP712ChallengeService challengeService;
+    private final EIP712ChallengeService eip712ChallengeService;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
     private final TaskLogsService taskLogsService;
     private final TaskService taskService;
 
-    public TaskController(EIP712ChallengeService challengeService,
+    public TaskController(EIP712ChallengeService eip712ChallengeService,
                           IexecHubService iexecHubService,
                           ReplicatesService replicatesService,
                           TaskLogsService taskLogsService,
                           TaskService taskService) {
-        this.challengeService = challengeService;
+        this.eip712ChallengeService = eip712ChallengeService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.taskLogsService = taskLogsService;
@@ -66,7 +66,7 @@ public class TaskController {
 
     @GetMapping("/tasks/logs/challenge")
     public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("walletAddress") String walletAddress) {
-        return ok(challengeService.getChallenge(walletAddress));
+        return ok(eip712ChallengeService.getChallenge(walletAddress));
     }
 
     @GetMapping("/tasks/{chainTaskId}")
@@ -137,7 +137,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
-        EIP712Challenge eip712Challenge = challengeService.getChallenge(taskLogsRequester);
+        EIP712Challenge eip712Challenge = eip712ChallengeService.getChallenge(taskLogsRequester);
         if (!SignatureUtils.doesSignatureMatchesAddress(
                 signature.getR(), signature.getS(), eip712Challenge.getHash(), taskLogsRequester)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -164,7 +164,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
-        EIP712Challenge eip712Challenge = challengeService.getChallenge(computeLogsRequester);
+        EIP712Challenge eip712Challenge = eip712ChallengeService.getChallenge(computeLogsRequester);
         if (!SignatureUtils.doesSignatureMatchesAddress(
                 signature.getR(), signature.getS(), eip712Challenge.getHash(), computeLogsRequester)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
