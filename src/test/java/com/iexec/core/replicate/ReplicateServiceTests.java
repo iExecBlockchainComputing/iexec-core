@@ -68,6 +68,7 @@ class ReplicateServiceTests {
     @Mock
     private TaskLogsService taskLogsService;
 
+    @Spy
     @InjectMocks
     private ReplicatesService replicatesService;
 
@@ -802,30 +803,6 @@ class ReplicateServiceTests {
                 .get()
                 .getWalletAddress())
         .isEqualTo(WALLET_WORKER_2);
-    }
-
-    @Test
-    void shouldFindReplicateContributedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
-    }
-
-    @Test
-    void shouldNotFindReplicateContributedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(false);
-    }
-
-    @Test
-    void shouldFindReplicateRevealedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
-    }
-
-    @Test
-    void shouldNotFindReplicateRevealedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
     }
 
     // isResultUploaded
