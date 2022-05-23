@@ -21,36 +21,31 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 
-@Component
 @Slf4j
+@Component
 public class JwtTokenProvider {
 
-    private ChallengeService challengeService;
-    private String secretKey;
+    private final ChallengeService challengeService;
+    private final String secretKey;
 
     public JwtTokenProvider(ChallengeService challengeService) {
         this.challengeService = challengeService;
-        this.secretKey = RandomStringUtils.randomAlphanumeric(10);
-    }
-
-    @PostConstruct
-    protected void init() {
-        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] seed = new byte[32];
+        secureRandom.nextBytes(seed);
+        this.secretKey = Base64.getEncoder().encodeToString(seed);
     }
 
     public String createToken(String walletAddress) {
-        Date now = new Date();
-
         return Jwts.builder()
                 .setAudience(walletAddress)
-                .setIssuedAt(now)
+                .setIssuedAt(new Date())
                 .setSubject(challengeService.getChallenge(walletAddress))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
@@ -78,7 +73,6 @@ public class JwtTokenProvider {
      *  4) worker tries logging with old challenge
      */
     public boolean isValidToken(String token) {
-
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
