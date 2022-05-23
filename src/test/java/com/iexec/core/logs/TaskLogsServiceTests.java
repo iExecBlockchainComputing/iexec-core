@@ -16,19 +16,7 @@
 
 package com.iexec.core.logs;
 
-import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
-import static com.iexec.common.utils.TestUtils.WORKER_ADDRESS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-
 import com.iexec.common.replicate.ComputeLogs;
-import com.iexec.core.task.TaskService;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,15 +24,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-class TaskComputeLogsServiceTests {
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.common.utils.TestUtils.WORKER_ADDRESS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+class TaskLogsServiceTests {
 
     private static final String STDOUT = "This is an stdout string";
     private static final String STDERR = "This is an stderr string";
 
     @Mock
     private TaskLogsRepository taskLogsRepository;
-    @Mock
-    private TaskService taskService;
     @InjectMocks
     private TaskLogsService taskLogsService;
 
@@ -53,6 +48,7 @@ class TaskComputeLogsServiceTests {
         MockitoAnnotations.openMocks(this);
     }
 
+    //region addComputeLogs
     @Test
     void shouldAddComputeLogs() {
         final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
@@ -66,6 +62,32 @@ class TaskComputeLogsServiceTests {
         assertThat(capturedEvent.getComputeLogsList().get(0).getWalletAddress()).isEqualTo(WORKER_ADDRESS);
     }
 
+    @Test
+    void shouldNotAddComputeLogsSinceNull() {
+        taskLogsService.addComputeLogs(CHAIN_TASK_ID, null);
+        verifyNoInteractions(taskLogsRepository);
+    }
+
+    @Test
+    void shouldNotAddComputeLogsSinceLogsAlreadyKnown() {
+        final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
+        final TaskLogs taskLogs = TaskLogs.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .computeLogsList(Collections.singletonList(computeLogs))
+                .build();
+
+        when(taskLogsService.getTaskLogs(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(taskLogs));
+
+        ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
+        taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
+
+        verify(taskLogsRepository).findOneByChainTaskId(CHAIN_TASK_ID);
+        verify(taskLogsRepository, times(0)).save(any());
+    }
+    //endregion
+
+    //region getComputeLogs
     @Test
     void shouldGetComputeLogs() {
         ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
@@ -81,4 +103,5 @@ class TaskComputeLogsServiceTests {
         assertThat(actualLogs.getStdout()).isEqualTo(STDOUT);
         assertThat(actualLogs.getStderr()).isEqualTo(STDERR);
     }
+    //endregion
 }

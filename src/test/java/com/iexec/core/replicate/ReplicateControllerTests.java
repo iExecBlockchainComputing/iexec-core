@@ -3,9 +3,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.*;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +54,7 @@ class ReplicateControllerTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    // available replicate
+    //region available replicate
 
     @Test
     void shouldGetAvailableReplicate() {
@@ -115,9 +113,9 @@ class ReplicateControllerTests {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
+    //endregion
 
-    // interrupted replicate
-
+    //region interrupted replicate
     @Test
     void shouldGetMissedNotifications() {
         TaskNotification notification = TaskNotification.builder()
@@ -163,8 +161,9 @@ class ReplicateControllerTests {
         List<TaskNotification> notifications = response.getBody();
         assertThat(notifications).isEmpty();
     }
+    //endregion
 
-    // update replicate
+    //region update replicate
 
     @Test
     void shouldUpdateReplicate() {
@@ -184,6 +183,32 @@ class ReplicateControllerTests {
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_DOWNLOAD_APP);
         assertThat(UPDATE.getModifier()).isEqualTo(ReplicateStatusModifier.WORKER);
+    }
+
+    @Test
+    void shouldUpdateReplicateAndSetWalletAddress() {
+        final ReplicateStatusUpdate updateWithLogs = ReplicateStatusUpdate.builder()
+                .status(ReplicateStatus.STARTED)
+                .details(ReplicateStatusDetails.builder().computeLogs(ComputeLogs.builder().walletAddress("wrongWalletAddress").build()).build())
+                .build();
+
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs))
+                .thenReturn(UPDATE_ARGS);
+        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
+                .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
+                .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
+
+        ResponseEntity<TaskNotificationType> response =
+                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, updateWithLogs);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody())
+                .isEqualTo(TaskNotificationType.PLEASE_DOWNLOAD_APP);
+        assertThat(updateWithLogs.getModifier()).isEqualTo(ReplicateStatusModifier.WORKER);
+        assertThat(updateWithLogs.getDetails().getComputeLogs().getWalletAddress()).isEqualTo(WALLET_ADDRESS);
     }
 
     @Test
@@ -228,4 +253,5 @@ class ReplicateControllerTests {
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_WAIT);
     }
+    //endregion
 }
