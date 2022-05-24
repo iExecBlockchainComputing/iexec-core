@@ -29,6 +29,9 @@ import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import uk.org.lidalia.slf4jtest.LoggingEvent;
+import uk.org.lidalia.slf4jtest.TestLogger;
+import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -131,7 +134,13 @@ class TaskListenerTest {
 
     @Test
     void onResultUploadTimeoutEvent() {
-        taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent());
+        TestLogger logger = TestLoggerFactory.getTestLogger(TaskListeners.class);
+        logger.clear();
+
+        taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent(CHAIN_TASK_ID));
+
+        assertThat(logger.getLoggingEvents())
+                .isEqualTo(Collections.singletonList(LoggingEvent.info("Received ResultUploadTimeoutEvent [chainTaskId:{}] ", CHAIN_TASK_ID)));
     }
 
     /**

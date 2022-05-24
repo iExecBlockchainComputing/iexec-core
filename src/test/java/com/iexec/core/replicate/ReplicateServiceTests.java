@@ -22,12 +22,10 @@ import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
 import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.BytesUtils;
-import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.ResultService;
 import com.iexec.core.logs.TaskLogsService;
-
+import com.iexec.core.result.ResultService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,12 +36,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusModifier.*;
-import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
-import static com.iexec.common.utils.TestUtils.WALLET_WORKER_1;
-import static com.iexec.common.utils.TestUtils.WALLET_WORKER_2;
-import static com.iexec.common.utils.TestUtils.WALLET_WORKER_3;
-import static com.iexec.common.utils.TestUtils.WALLET_WORKER_4;
+import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
+import static com.iexec.common.utils.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -61,8 +55,6 @@ class ReplicateServiceTests {
     private ApplicationEventPublisher applicationEventPublisher;
     @Mock
     private Web3jService web3jService;
-    @Mock
-    private CredentialsService credentialsService;
     @Mock
     private ResultService resultService;
     @Mock
@@ -624,16 +616,6 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultIsNotUploaded() {
-        //TODO After having moved isResultUploaded() method to another class
-    }
-
-    @Test
-    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultLinkMissing() {
-        //TODO After having moved isResultUploaded() method to another class
-    }
-
-    @Test
     void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
@@ -802,30 +784,6 @@ class ReplicateServiceTests {
                 .get()
                 .getWalletAddress())
         .isEqualTo(WALLET_WORKER_2);
-    }
-
-    @Test
-    void shouldFindReplicateContributedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
-    }
-
-    @Test
-    void shouldNotFindReplicateContributedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(false);
-    }
-
-    @Test
-    void shouldFindReplicateRevealedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
-    }
-
-    @Test
-    void shouldNotFindReplicateRevealedOnchain() {
-        when(iexecHubService.repeatIsContributedTrue(any(), any()))
-                .thenReturn(true);
     }
 
     // isResultUploaded
