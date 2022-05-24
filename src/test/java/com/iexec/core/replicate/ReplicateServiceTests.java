@@ -68,7 +68,6 @@ class ReplicateServiceTests {
     @Mock
     private TaskLogsService taskLogsService;
 
-    @Spy
     @InjectMocks
     private ReplicatesService replicatesService;
 

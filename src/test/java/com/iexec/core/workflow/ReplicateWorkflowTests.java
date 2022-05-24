@@ -19,7 +19,6 @@ package com.iexec.core.workflow;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.common.web.ApiResponseBody;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +30,6 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.type.TypeFactory
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

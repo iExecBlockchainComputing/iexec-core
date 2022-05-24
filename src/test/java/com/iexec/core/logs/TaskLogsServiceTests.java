@@ -79,7 +79,6 @@ class TaskLogsServiceTests {
         when(taskLogsService.getTaskLogs(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(taskLogs));
 
-        ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
         taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
 
         verify(taskLogsRepository).findOneByChainTaskId(CHAIN_TASK_ID);
