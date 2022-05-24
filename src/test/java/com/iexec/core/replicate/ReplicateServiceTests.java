@@ -625,16 +625,6 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultIsNotUploaded() {
-        //TODO After having moved isResultUploaded() method to another class
-    }
-
-    @Test
-    void shouldNotUpdateReplicateStatusToResultUploadingSinceResultLinkMissing() {
-        //TODO After having moved isResultUploaded() method to another class
-    }
-
-    @Test
     void shouldNotUpdateReplicateStatusSinceAlreadyReported() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
