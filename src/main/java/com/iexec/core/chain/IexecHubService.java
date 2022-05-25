@@ -176,7 +176,7 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            log.error("initialize asynchronous execution did not complete", e);
         }
         return Optional.empty();
     }
@@ -192,9 +192,7 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             initializeReceipt = initializeCall.send();
         } catch (Exception e) {
-            log.error("Failed to send initialize [chainDealId:{}, taskIndex:{}, exception:{}]",
-                    chainDealId, taskIndex, e.getMessage());
-            e.printStackTrace();
+            log.error("Failed to send initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex, e);
             return Optional.empty();
         }
 
@@ -208,8 +206,7 @@ public class IexecHubService extends IexecHubAbstractService {
         if (isSuccessTx(computedChainTaskId, initializeEvent, ACTIVE)) {
             String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
             ChainReceipt chainReceipt = buildChainReceipt(initializeReceipt);
-            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, " +
-                            "gasUsed:{}, block:{}]",
+            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}, block:{}]",
                     computedChainTaskId, chainDealId, taskIndex,
                     initializeReceipt.getGasUsed(), chainReceipt.getBlockNumber());
             return Optional.of(Pair.of(chainTaskId, chainReceipt));
@@ -247,7 +244,7 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultLink, callbackData), executor).get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            log.error("finalizeTask asynchronous execution did not complete", e);
         }
         return Optional.empty();
     }
@@ -272,8 +269,8 @@ public class IexecHubService extends IexecHubAbstractService {
         try {
             finalizeReceipt = finalizeCall.send();
         } catch (Exception e) {
-            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}, error:{}]]",
-                    chainTaskId, resultLink, callbackData, shouldSendCallback, e.getMessage());
+            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}]",
+                    chainTaskId, resultLink, callbackData, shouldSendCallback, e);
             return Optional.empty();
         }
 
@@ -335,11 +332,11 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     public Optional<ChainReceipt> reOpen(String chainTaskId) {
-        log.info("Requested  reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
+        log.info("Requested reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendReopenTransaction(chainTaskId), executor).get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            log.error("reOpen asynchronous execution did not complete", e);
         }
         return Optional.empty();
     }

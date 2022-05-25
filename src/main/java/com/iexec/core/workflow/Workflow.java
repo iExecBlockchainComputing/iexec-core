@@ -104,8 +104,7 @@ public class Workflow<T> {
             out.println(transitionsJson);
         } catch (Exception e) {
             log.error("Could not save object as json files [filePath:{}, object:{}]",
-                    filePath, workflowObject);
-            e.printStackTrace();
+                    filePath, workflowObject, e);
         }
     }
 }
