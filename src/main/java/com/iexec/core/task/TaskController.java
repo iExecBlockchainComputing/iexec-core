@@ -65,8 +65,8 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/logs/challenge")
-    public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("walletAddress") String walletAddress) {
-        return ok(eip712ChallengeService.getChallenge(walletAddress));
+    public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("address") String address) {
+        return ok(eip712ChallengeService.getChallenge(address));
     }
 
     @GetMapping("/tasks/{chainTaskId}")
