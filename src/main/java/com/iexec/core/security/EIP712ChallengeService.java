@@ -52,6 +52,7 @@ public class EIP712ChallengeService {
     }
 
     public EIP712Challenge getChallenge(String walletAddress) {
+        walletAddress = walletAddress.toLowerCase();
         challenges.computeIfAbsent(walletAddress, s -> this.generateChallenge());
         return challenges.get(walletAddress);
     }
