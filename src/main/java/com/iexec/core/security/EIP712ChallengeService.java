@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Service;
+import org.web3j.crypto.Keys;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -52,6 +53,7 @@ public class EIP712ChallengeService {
     }
 
     public EIP712Challenge getChallenge(String walletAddress) {
+        walletAddress = Keys.toChecksumAddress(walletAddress);
         challenges.computeIfAbsent(walletAddress, s -> this.generateChallenge());
         return challenges.get(walletAddress);
     }
