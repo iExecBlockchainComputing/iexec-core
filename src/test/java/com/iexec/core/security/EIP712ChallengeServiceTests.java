@@ -20,6 +20,7 @@ import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.web3j.crypto.Keys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,6 +42,24 @@ public class EIP712ChallengeServiceTests {
         EIP712Challenge challenge1 = challengeService.getChallenge(WALLET_ADDRESS_1);
         EIP712Challenge challenge2 = challengeService.getChallenge(WALLET_ADDRESS_1);
         assertThat(challenge1).usingRecursiveComparison().isEqualTo(challenge2);
+    }
+
+    @Test
+    void shouldGetSameChallengeWithChecksumWallet() {
+        String checksumWallet = Keys.toChecksumAddress(WALLET_ADDRESS_1);
+        assertThat(checksumWallet).isNotEqualTo(WALLET_ADDRESS_1);
+        assertThat(challengeService.getChallenge(checksumWallet))
+                .usingRecursiveComparison()
+                .isEqualTo(challengeService.getChallenge(WALLET_ADDRESS_1));
+    }
+
+    @Test
+    void shouldNotGetSameChallengeWithUppercaseWallet() {
+        String upperCaseWalletAddress = WALLET_ADDRESS_1.toUpperCase();
+        assertThat(upperCaseWalletAddress).isNotEqualTo(WALLET_ADDRESS_1);
+        assertThat(challengeService.getChallenge(upperCaseWalletAddress))
+                .usingRecursiveComparison()
+                .isNotEqualTo(challengeService.getChallenge(WALLET_ADDRESS_1));
     }
 
     @Test
