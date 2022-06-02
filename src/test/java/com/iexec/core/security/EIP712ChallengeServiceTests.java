@@ -17,18 +17,16 @@
 package com.iexec.core.security;
 
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.web3j.crypto.Keys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Slf4j
 public class EIP712ChallengeServiceTests {
 
-    private static final String WALLET_ADDRESS_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    private static final String WALLET_ADDRESS_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final String WALLET_ADDRESS_1 = "1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final String WALLET_ADDRESS_2 = "2a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
     private EIP712ChallengeService challengeService;
 
@@ -54,12 +52,12 @@ public class EIP712ChallengeServiceTests {
     }
 
     @Test
-    void shouldNotGetSameChallengeWithUppercaseWallet() {
+    void shouldGetSameChallengeWithUppercaseWallet() {
         String upperCaseWalletAddress = WALLET_ADDRESS_1.toUpperCase();
         assertThat(upperCaseWalletAddress).isNotEqualTo(WALLET_ADDRESS_1);
         assertThat(challengeService.getChallenge(upperCaseWalletAddress))
                 .usingRecursiveComparison()
-                .isNotEqualTo(challengeService.getChallenge(WALLET_ADDRESS_1));
+                .isEqualTo(challengeService.getChallenge(WALLET_ADDRESS_1));
     }
 
     @Test
