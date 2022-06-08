@@ -16,7 +16,6 @@
 
 package com.iexec.core.result;
 
-import com.iexec.common.chain.eip712.EIP712Utils;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
@@ -26,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.ECKeyPair;
 
 import java.util.Optional;
 
@@ -72,13 +70,7 @@ public class ResultService {
         }
 
         EIP712Challenge eip712Challenge = oEip712Challenge.get();
-        ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
-        String walletAddress = credentialsService.getCredentials().getAddress();
-
-        String signedEip712Challenge = EIP712Utils.buildAuthorizationToken(
-                eip712Challenge,
-                walletAddress,
-                ecKeyPair);
+        String signedEip712Challenge = eip712Challenge.buildAuthorizationTokenFromCredentials(credentialsService.getCredentials());
 
         if (signedEip712Challenge.isEmpty()) {
             return "";
