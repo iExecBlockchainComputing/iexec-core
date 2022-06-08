@@ -16,8 +16,8 @@
 
 package com.iexec.core.result;
 
-import com.iexec.common.result.eip712.Eip712Challenge;
-import com.iexec.common.result.eip712.Eip712ChallengeUtils;
+import com.iexec.common.chain.eip712.EIP712Utils;
+import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.resultproxy.api.ResultProxyClient;
@@ -66,16 +66,16 @@ public class ResultService {
 
     // TODO Move this to iexec-result-proxy-library since widely used by all iexec services
     private String getResultProxyToken() {
-        Optional<Eip712Challenge> oEip712Challenge = getChallenge();
+        Optional<EIP712Challenge> oEip712Challenge = getChallenge();
         if (oEip712Challenge.isEmpty()) {
             return "";
         }
 
-        Eip712Challenge eip712Challenge = oEip712Challenge.get();
+        EIP712Challenge eip712Challenge = oEip712Challenge.get();
         ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
         String walletAddress = credentialsService.getCredentials().getAddress();
 
-        String signedEip712Challenge = Eip712ChallengeUtils.buildAuthorizationToken(
+        String signedEip712Challenge = EIP712Utils.buildAuthorizationToken(
                 eip712Challenge,
                 walletAddress,
                 ecKeyPair);
@@ -92,9 +92,9 @@ public class ResultService {
         return token;
     }
 
-    private Optional<Eip712Challenge> getChallenge() {
+    private Optional<EIP712Challenge> getChallenge() {
         try {
-            Eip712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
+            EIP712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
             if (challenge != null) {
                 return Optional.of(challenge);
             }
