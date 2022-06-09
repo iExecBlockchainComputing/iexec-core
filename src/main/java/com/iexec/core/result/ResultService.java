@@ -70,7 +70,7 @@ public class ResultService {
         }
 
         EIP712Challenge eip712Challenge = oEip712Challenge.get();
-        String signedEip712Challenge = eip712Challenge.buildAuthorizationTokenFromCredentials(credentialsService.getCredentials());
+        String signedEip712Challenge = credentialsService.signEIP712EntityAndBuildToken(eip712Challenge);
 
         if (signedEip712Challenge.isEmpty()) {
             return "";
