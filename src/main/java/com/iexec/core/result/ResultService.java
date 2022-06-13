@@ -16,6 +16,7 @@
 
 package com.iexec.core.result;
 
+import com.iexec.common.chain.eip712.EIP712Domain;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
@@ -26,6 +27,7 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -70,6 +72,32 @@ public class ResultService {
         }
 
         EIP712Challenge eip712Challenge = oEip712Challenge.get();
+
+        final EIP712Domain domain = eip712Challenge.getDomain();
+        if (domain == null) {
+            log.error("Couldn't get a correct domain from EIP712Challenge " +
+                            "retrieved from Result Proxy [eip712Challenge:{}]",
+                    eip712Challenge);
+            return "";
+        }
+
+        final String expectedDomainName = "iExec Core";
+        final String actualDomainName = domain.getName();
+        if (!Objects.equals(actualDomainName, expectedDomainName)) {
+            log.error("Domain name does not match expected name" +
+                            " [expected:{}, actual:{}]",
+                    expectedDomainName, actualDomainName);
+            return "";
+        }
+
+        final Integer chainId = chainConfig.getChainId();
+        final long domainChainId = domain.getChainId();
+        if (!Objects.equals(domainChainId, chainId.longValue())) {
+            log.error("Domain chain id does not match expected chain id" +
+                            " [expected:{}, actual:{}]",
+                    chainId, domainChainId);
+            return "";
+        }
         String signedEip712Challenge = credentialsService.signEIP712EntityAndBuildToken(eip712Challenge);
 
         if (signedEip712Challenge.isEmpty()) {
