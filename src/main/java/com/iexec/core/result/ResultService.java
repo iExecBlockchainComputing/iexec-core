@@ -81,7 +81,7 @@ public class ResultService {
             return "";
         }
 
-        final String expectedDomainName = "iExec Core";
+        final String expectedDomainName = "iExec Result Proxy";
         final String actualDomainName = domain.getName();
         if (!Objects.equals(actualDomainName, expectedDomainName)) {
             log.error("Domain name does not match expected name" +
