@@ -16,8 +16,8 @@
 
 package com.iexec.core.result;
 
-import com.iexec.common.result.eip712.Eip712Challenge;
-import com.iexec.common.result.eip712.Eip712ChallengeUtils;
+import com.iexec.common.chain.eip712.EIP712Domain;
+import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.resultproxy.api.ResultProxyClient;
@@ -26,8 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.ECKeyPair;
 
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -66,19 +66,39 @@ public class ResultService {
 
     // TODO Move this to iexec-result-proxy-library since widely used by all iexec services
     private String getResultProxyToken() {
-        Optional<Eip712Challenge> oEip712Challenge = getChallenge();
+        Optional<EIP712Challenge> oEip712Challenge = getChallenge();
         if (oEip712Challenge.isEmpty()) {
             return "";
         }
 
-        Eip712Challenge eip712Challenge = oEip712Challenge.get();
-        ECKeyPair ecKeyPair = credentialsService.getCredentials().getEcKeyPair();
-        String walletAddress = credentialsService.getCredentials().getAddress();
+        EIP712Challenge eip712Challenge = oEip712Challenge.get();
 
-        String signedEip712Challenge = Eip712ChallengeUtils.buildAuthorizationToken(
-                eip712Challenge,
-                walletAddress,
-                ecKeyPair);
+        final EIP712Domain domain = eip712Challenge.getDomain();
+        if (domain == null) {
+            log.error("Couldn't get a correct domain from EIP712Challenge " +
+                            "retrieved from Result Proxy [eip712Challenge:{}]",
+                    eip712Challenge);
+            return "";
+        }
+
+        final String expectedDomainName = "iExec Result Repository";
+        final String actualDomainName = domain.getName();
+        if (!Objects.equals(actualDomainName, expectedDomainName)) {
+            log.error("Domain name does not match expected name" +
+                            " [expected:{}, actual:{}]",
+                    expectedDomainName, actualDomainName);
+            return "";
+        }
+
+        final Integer chainId = chainConfig.getChainId();
+        final long domainChainId = domain.getChainId();
+        if (!Objects.equals(domainChainId, chainId.longValue())) {
+            log.error("Domain chain id does not match expected chain id" +
+                            " [expected:{}, actual:{}]",
+                    chainId, domainChainId);
+            return "";
+        }
+        String signedEip712Challenge = credentialsService.signEIP712EntityAndBuildToken(eip712Challenge);
 
         if (signedEip712Challenge.isEmpty()) {
             return "";
@@ -92,9 +112,9 @@ public class ResultService {
         return token;
     }
 
-    private Optional<Eip712Challenge> getChallenge() {
+    private Optional<EIP712Challenge> getChallenge() {
         try {
-            Eip712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
+            EIP712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
             if (challenge != null) {
                 return Optional.of(challenge);
             }
