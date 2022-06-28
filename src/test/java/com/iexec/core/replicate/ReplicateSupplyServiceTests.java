@@ -25,6 +25,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskAbortCause;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.SignatureService;
@@ -66,7 +67,7 @@ class ReplicateSupplyServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    private final static String TEE_TAG = TeeUtils.TEE_TAG;
     private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
     private final static long maxExecutionTime = 60000;
     long workerLastBlock = 12;
