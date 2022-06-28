@@ -33,7 +33,7 @@ public class TaskTestsUtils {
     public final static String DAPP_NAME = "dappName";
     public final static String COMMAND_LINE = "commandLine";
     public final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    public final static String TEE_TAG = TeeUtils.TEE_TAG;
+    public final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     public final static String RESULT_LINK = "/ipfs/the_result_string";
 
     public static Task getStubTask(long maxExecutionTime) {

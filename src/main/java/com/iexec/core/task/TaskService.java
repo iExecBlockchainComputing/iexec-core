@@ -26,10 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -149,19 +146,19 @@ public class TaskService {
     public Optional<Task> getPrioritizedInitializedOrRunningTask(
             boolean shouldExcludeTeeTasks,
             List<String> excludedChainTaskIds) {
-        final String excludedTag = shouldExcludeTeeTasks
-                ? TeeUtils.TEE_TAG
+        final List<String> excludedTags = shouldExcludeTeeTasks
+                ? List.of(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG)
                 : null;
         return findPrioritizedTask(
                 Arrays.asList(INITIALIZED, RUNNING),
-                excludedTag,
+                excludedTags,
                 excludedChainTaskIds,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     /**
-     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn}.
+     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn}.
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
      *     <li>Task is in one of given {@code statuses};</li>
@@ -180,12 +177,12 @@ public class TaskService {
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
     private Optional<Task> findPrioritizedTask(List<TaskStatus> statuses,
-                                               String excludedTag,
+                                               List<String> excludedTags,
                                                List<String> excludedChainTaskIds,
                                                Sort sort) {
-        return taskRepository.findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
+        return taskRepository.findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(
                 statuses,
-                excludedTag,
+                excludedTags,
                 excludedChainTaskIds,
                 sort
         );

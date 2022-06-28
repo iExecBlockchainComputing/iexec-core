@@ -161,7 +161,7 @@ class TaskServiceTests {
     @Test
     void shouldGetInitializedOrRunningTasks() {
         Task task = mock(Task.class);
-        when(taskRepository.findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
+        when(taskRepository.findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
                 eq(Collections.emptyList()),

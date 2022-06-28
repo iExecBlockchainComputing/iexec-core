@@ -67,7 +67,7 @@ class ReplicateSupplyServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    private final static String TEE_TAG = TeeUtils.TEE_TAG;
+    private final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
     private final static long maxExecutionTime = 60000;
     long workerLastBlock = 12;
