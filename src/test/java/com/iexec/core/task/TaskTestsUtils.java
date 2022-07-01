@@ -23,19 +23,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 public class TaskTestsUtils {
-    final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    final static String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    public final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    public final static String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
-    final static String CHAIN_DEAL_ID = "0xd82223e5feff6720792ffed1665e980da95e5d32b177332013eaba8edc07f31c";
-    final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
+    public final static String CHAIN_DEAL_ID = "0xd82223e5feff6720792ffed1665e980da95e5d32b177332013eaba8edc07f31c";
+    public final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
 
-    final static String DAPP_NAME = "dappName";
-    final static String COMMAND_LINE = "commandLine";
-    final static String NO_TEE_TAG = BytesUtils.EMPTY_HEXASTRING_64;
-    final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
-    final static String RESULT_LINK = "/ipfs/the_result_string";
+    public final static String DAPP_NAME = "dappName";
+    public final static String COMMAND_LINE = "commandLine";
+    public final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
+    public final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    public final static String RESULT_LINK = "/ipfs/the_result_string";
 
-    static Task getStubTask(long maxExecutionTime) {
+    public static Task getStubTask(long maxExecutionTime) {
         Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 0, maxExecutionTime, NO_TEE_TAG);
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
         return  task;

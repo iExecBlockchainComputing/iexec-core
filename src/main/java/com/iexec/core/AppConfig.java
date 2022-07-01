@@ -16,12 +16,7 @@
 
 package com.iexec.core;
 
-import com.iexec.core.config.AsyncConfig;
-import com.iexec.core.config.RetryConfig;
-import com.iexec.core.config.SchedulingConfig;
-import com.iexec.core.config.SwaggerConfig;
-import com.iexec.core.config.WebMvcConfig;
-import com.iexec.core.config.WebSocketConfig;
+import com.iexec.core.config.*;
 
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Configuration;
@@ -30,9 +25,9 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
     AsyncConfig.class,
+    OpenApiConfig.class,
     RetryConfig.class,
     SchedulingConfig.class,
-    SwaggerConfig.class,
     WebMvcConfig.class,
     WebSocketConfig.class,
 })

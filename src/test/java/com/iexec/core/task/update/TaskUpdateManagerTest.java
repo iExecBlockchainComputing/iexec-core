@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task;
+package com.iexec.core.task.update;
 
-import com.iexec.common.chain.*;
+import com.iexec.common.chain.ChainReceipt;
+import com.iexec.common.chain.ChainTask;
+import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -29,16 +32,16 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -49,14 +52,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.iexec.common.utils.DateTimeUtils.sleep;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-public class TaskUpdateManagerTest {
+class TaskUpdateManagerTest {
     private final long maxExecutionTime = 60000;
 
     @Mock
@@ -84,26 +85,26 @@ public class TaskUpdateManagerTest {
     private BlockchainAdapterService blockchainAdapterService;
 
     @Mock
-    private TaskRepository taskRepository;
-
-    @Mock
     private TaskService taskService;
 
     @Mock
     private TaskUpdateRequestManager taskUpdateRequestManager;
 
+    @Mock
+    private SmsService smsService;
+
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     // Tests on consensusReached2Reopening transition
 
     @Test
-    public void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
+    void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(RECEIVED);
@@ -111,7 +112,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -120,7 +121,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpgrade2ReopenedSinceNotAfterRevealDeadline() {
+    void shouldNotUpgrade2ReopenedSinceNotAfterRevealDeadline() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -128,7 +129,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -137,7 +138,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpgrade2ReopenedSinceNotWeHaveSomeRevealed() {
+    void shouldNotUpgrade2ReopenedSinceNotWeHaveSomeRevealed() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -145,7 +146,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(1);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -154,7 +155,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpgrade2ReopenedSinceCantReopenOnChain() {
+    void shouldNotUpgrade2ReopenedSinceCantReopenOnChain() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -162,7 +163,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -171,7 +172,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpgrade2ReopenedSinceNotEnoughtGas() {
+    void shouldNotUpgrade2ReopenedSinceNotEnoughtGas() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -179,7 +180,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -189,7 +190,7 @@ public class TaskUpdateManagerTest {
 
 
     @Test
-    public void shouldNotUpgrade2ReopenedBut2ReopendedFailedSinceTxFailed() {
+    void shouldNotUpgrade2ReopenedBut2ReopendedFailedSinceTxFailed() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -197,7 +198,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.empty());
 
         taskUpdateManager.consensusReached2Reopening(task);
@@ -208,7 +209,7 @@ public class TaskUpdateManagerTest {
 
     //TODO: Update reopen call
     //@Test
-    public void shouldUpgrade2Reopened() {
+    void shouldUpgrade2Reopened() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -216,7 +217,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
@@ -235,7 +236,7 @@ public class TaskUpdateManagerTest {
     // Tests on received2Initializing transition
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
+    void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
 
@@ -244,7 +245,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceCurrentStatusIsNotReceived() {
+    void shouldNotUpdateReceived2InitializingSinceCurrentStatusIsNotReceived() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
@@ -253,7 +254,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
+    void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -263,7 +264,7 @@ public class TaskUpdateManagerTest {
         when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 1)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -271,7 +272,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceTaskNotInUnsetStatusOnChain() {
+    void shouldNotUpdateReceived2InitializingSinceTaskNotInUnsetStatusOnChain() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -281,7 +282,7 @@ public class TaskUpdateManagerTest {
         when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(false);
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -289,7 +290,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateReceived2InitializingSinceAfterContributionDeadline() {
+    void shouldNotUpdateReceived2InitializingSinceAfterContributionDeadline() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -299,7 +300,7 @@ public class TaskUpdateManagerTest {
         when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(false);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -307,7 +308,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
+    void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -317,7 +318,7 @@ public class TaskUpdateManagerTest {
         when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.empty());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -327,7 +328,31 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateReceived2Initializing2Initialized() {
+    void shouldUpdateInitializing2InitializeFailedSinceEnclaveChallengeIsEmpty() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTask(task.getChainTaskId());
+
+        assertThat(task.getLastButOneStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    void shouldUpdateReceived2Initializing2Initialized() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -338,12 +363,13 @@ public class TaskUpdateManagerTest {
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
                 .thenReturn(true);
 
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
@@ -351,12 +377,13 @@ public class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
     }
 
     // Tests on initializing2Initialized transition
 
     @Test
-    public void shouldUpdateInitializing2Initialized() {
+    void shouldUpdateInitializing2Initialized() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(INITIALIZING);
@@ -371,7 +398,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateInitializing2InitializedSinceNotInitialized() {
+    void shouldNotUpdateInitializing2InitializedSinceNotInitialized() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(INITIALIZING);
@@ -388,7 +415,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateInitializing2InitializedSinceFailedToCheck() {
+    void shouldNotUpdateInitializing2InitializedSinceFailedToCheck() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(INITIALIZING);
@@ -405,7 +432,7 @@ public class TaskUpdateManagerTest {
     // Tests on initialized2Running transition
 
     @Test
-    public void shouldUpdateInitialized2Running() { // 1 RUNNING out of 2
+    void shouldUpdateInitialized2Running() { // 1 RUNNING out of 2
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
@@ -428,7 +455,7 @@ public class TaskUpdateManagerTest {
         when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
                 .thenReturn(2);
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -436,13 +463,13 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateInitialized2RunningSinceNoRunningOrComputedReplicates() {
+    void shouldNotUpdateInitialized2RunningSinceNoRunningOrComputedReplicates() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(0);
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -450,13 +477,13 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateInitialized2RunningSinceComputedIsMoreThanNeeded() {
+    void shouldNotUpdateInitialized2RunningSinceComputedIsMoreThanNeeded() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(2);
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(4);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -465,7 +492,7 @@ public class TaskUpdateManagerTest {
     // initializedOrRunning2ContributionTimeout
 
     @Test
-    public void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
+    void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
         Date now = new Date();
         Date timeoutInFuture = DateTimeUtils.addMinutesToDate(now, 1);
 
@@ -486,7 +513,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceChainTaskIsntActive() {
+    void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceChainTaskIsntActive() {
         Date now = new Date();
         Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
 
@@ -507,7 +534,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
+    void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
         Date now = new Date();
         Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
 
@@ -529,7 +556,7 @@ public class TaskUpdateManagerTest {
 
 
     @Test
-    public void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
+    void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
         Date now = new Date();
         Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
 
@@ -555,27 +582,31 @@ public class TaskUpdateManagerTest {
     // Tests on running2ConsensusReached transition
 
     @Test
-    public void shouldUpdateRunning2ConsensusReached() {
+    void shouldUpdateRunning2ConsensusReached() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbValidContributedWinners(any(), any())).thenReturn(2);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
+        when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        when(replicatesList.getNbValidContributedWinners(any())).thenReturn(2);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
     @Test
-    public void shouldNotUpdateRunning2ConsensusReachedSinceWrongTaskStatus() {
+    void shouldNotUpdateRunning2ConsensusReachedSinceWrongTaskStatus() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
@@ -583,15 +614,14 @@ public class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     @Test
-    public void shouldNotUpdateRunning2ConsensusReachedSinceCannotGetChainTask() {
+    void shouldNotUpdateRunning2ConsensusReachedSinceCannotGetChainTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
@@ -602,7 +632,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNOTUpdateRunning2ConsensusReachedSinceOnChainStatusNotRevealing() {
+    void shouldNOTUpdateRunning2ConsensusReachedSinceOnChainStatusNotRevealing() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
@@ -610,15 +640,14 @@ public class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.UNSET)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(2);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
     @Test
-    public void shouldNOTUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
+    void shouldNOTUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
@@ -626,8 +655,7 @@ public class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .winnerCounter(2)
                 .build()));
-        when(replicatesService.getNbOffChainReplicatesWithStatus(task.getChainTaskId(), ReplicateStatus.CONTRIBUTED)).thenReturn(1);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
@@ -635,7 +663,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on running2RunningFailed transition
     @Test
-    public void shouldUpdateRunning2RunningFailedOn1Worker() {
+    void shouldUpdateRunning2RunningFailedOn1Worker() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
@@ -668,7 +696,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateRunning2RunningFailedOn2Workers() {
+    void shouldUpdateRunning2RunningFailedOn2Workers() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
@@ -708,7 +736,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateRunning2RunningFailedOn1WorkerAsNonTeeTask() {
+    void shouldNotUpdateRunning2RunningFailedOn1WorkerAsNonTeeTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
@@ -740,7 +768,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateRunning2RunningFailedOn2WorkersAsNonTeeTask() {
+    void shouldNotUpdateRunning2RunningFailedOn2WorkersAsNonTeeTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
@@ -779,7 +807,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillComputing() {
+    void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillComputing() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
@@ -818,7 +846,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateRunning2AllWorkersFailedSinceOneHasReachedComputed() {
+    void shouldNotUpdateRunning2AllWorkersFailedSinceOneHasReachedComputed() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
@@ -856,7 +884,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillHasToBeLaunched() {
+    void shouldNotUpdateRunning2AllWorkersFailedSinceOneStillHasToBeLaunched() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
@@ -890,7 +918,7 @@ public class TaskUpdateManagerTest {
     // Tests on consensusReached2AtLeastOneReveal2UploadRequested transition
 
     @Test
-    public void shouldUpdateConsensusReached2AtLeastOneReveal2Uploading() {
+    void shouldUpdateConsensusReached2AtLeastOneReveal2Uploading() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -898,7 +926,7 @@ public class TaskUpdateManagerTest {
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -910,14 +938,14 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNOTUpdateConsensusReached2AtLeastOneRevealSinceNoRevealedReplicate() {
+    void shouldNOTUpdateConsensusReached2AtLeastOneRevealSinceNoRevealedReplicate() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(0);
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
@@ -925,7 +953,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on AT_LEAST_ONE_REVEALED
     @Test
-    public void shouldRequestUploadAfterOneRevealed() {
+    void shouldRequestUploadAfterOneRevealed() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(AT_LEAST_ONE_REVEALED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -934,7 +962,7 @@ public class TaskUpdateManagerTest {
         replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -944,7 +972,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotRequestUploadAfterOneRevealedAsWorkerLost() {
+    void shouldNotRequestUploadAfterOneRevealedAsWorkerLost() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(AT_LEAST_ONE_REVEALED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -959,7 +987,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on reopening2Reopened transition
     @Test
-    public void shouldUpdateReopening2Reopened() {
+    void shouldUpdateReopening2Reopened() {
         final Task task = getStubTask(maxExecutionTime);
         task.setCurrentStatus(REOPENING);
 
@@ -991,7 +1019,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateReopening2ReopenedSinceUnknownChainTask() {
+    void shouldNotUpdateReopening2ReopenedSinceUnknownChainTask() {
         final Task task = getStubTask(maxExecutionTime);
         task.setCurrentStatus(REOPENING);
 
@@ -1006,12 +1034,12 @@ public class TaskUpdateManagerTest {
 
     // Tests on REOPENED
     @Test
-    public void shouldUpdateReopened() {
+    void shouldUpdateReopened() {
         final Task task = getStubTask(maxExecutionTime);
         task.setCurrentStatus(REOPENED);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -1020,7 +1048,7 @@ public class TaskUpdateManagerTest {
     // Test on resultUploading2Uploaded2Finalizing2Finalized
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
+    void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -1058,7 +1086,7 @@ public class TaskUpdateManagerTest {
     // Tests on finalizing2Finalized transition
 
     @Test
-    public void shouldUpdateFinalized2Completed() {
+    void shouldUpdateFinalized2Completed() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(FINALIZED);
@@ -1071,7 +1099,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateFinalizing2FinalizedFailed() {
+    void shouldUpdateFinalizing2FinalizedFailed() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(FINALIZING);
@@ -1086,7 +1114,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
+    void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -1105,7 +1133,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
+    void shouldUpdateResultUploading2Uploaded2Finalizing2FinalizeFail() { //one worker uploaded && finalize FAIL
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADING);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -1135,7 +1163,7 @@ public class TaskUpdateManagerTest {
 
 
     @Test
-    public void shouldUpdateResultUploading2UploadedFailAndRequestUploadAgain() {
+    void shouldUpdateResultUploading2UploadedFailAndRequestUploadAgain() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADING);
 
@@ -1157,7 +1185,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploading2UploadedSinceNoUploadingReplicate() {
+    void shouldNotUpdateResultUploading2UploadedSinceNoUploadingReplicate() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
 
         Task task = getStubTask(maxExecutionTime);
@@ -1181,7 +1209,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInUploadingStatus() {
+    void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInUploadingStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RESULT_UPLOADING).build());
 
@@ -1199,7 +1227,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInRecoveringUploadingStatus() {
+    void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateInRecoveringUploadingStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RESULT_UPLOADING).build());
         replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.RECOVERING).build());
@@ -1218,7 +1246,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateNotInUploadingNorRecoveringUploadingStatus() {
+    void shouldNotUpdateResultUploading2UploadedSinceUploadingReplicateNotInUploadingNorRecoveringUploadingStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatusUpdate.builder().status(ReplicateStatus.REVEALED).build());
 
@@ -1244,7 +1272,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on resultUploading2UploadTimeout transition
     @Test
-    public void shouldUpdateResultUploading2UploadTimeout() {
+    void shouldUpdateResultUploading2UploadTimeout() {
         Task task = getStubTask(maxExecutionTime);
         task.setCurrentStatus(RESULT_UPLOADING);
         task.setFinalDeadline(new Date(0));
@@ -1259,7 +1287,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on resultUploaded2Finalizing transition
     @Test
-    public void shouldUpdateResultUploaded2Finalizing() {
+    void shouldUpdateResultUploaded2Finalizing() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADED);
 
@@ -1290,7 +1318,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploaded2FinalizingSinceCantFinalize() {
+    void shouldNotUpdateResultUploaded2FinalizingSinceCantFinalize() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADED);
 
@@ -1309,7 +1337,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploaded2FinalizingSinceRevealsNotEqual() {
+    void shouldNotUpdateResultUploaded2FinalizingSinceRevealsNotEqual() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADED);
 
@@ -1328,7 +1356,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploaded2FinalizingSinceNotEnoughGas() {
+    void shouldNotUpdateResultUploaded2FinalizingSinceNotEnoughGas() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADED);
 
@@ -1348,7 +1376,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateResultUploaded2FinalizingSinceCantRequestFinalize() {
+    void shouldNotUpdateResultUploaded2FinalizingSinceCantRequestFinalize() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RESULT_UPLOADED);
 
@@ -1371,7 +1399,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on finalizedToCompleted transition
     @Test
-    public void shouldUpdateFinalizing2Finalized2Completed() {
+    void shouldUpdateFinalizing2Finalized2Completed() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(FINALIZING);
@@ -1385,56 +1413,9 @@ public class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
 
-
-    @Test
-    public void shouldWaitUpdateReplicateStatusFromUnsetToContributed() {
-        List<Replicate> replicates = new ArrayList<>();
-        replicates.add(new Replicate("0x1", "chainTaskId"));
-
-        replicates.get(0).updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
-
-        List<TaskStatusChange> dateStatusList = new ArrayList<>();
-        dateStatusList.add(new TaskStatusChange(TaskStatus.RUNNING));
-
-        Task task = Task.builder()
-                .id("taskId")
-                .chainTaskId("chainTaskId")
-                .currentStatus(TaskStatus.RUNNING)
-                .commandLine("ls")
-                .dateStatusList(dateStatusList)
-                .build();
-
-        when(taskRepository.findByChainTaskId("chainTaskId")).thenReturn(Optional.of(task));
-        when(taskRepository.save(task)).thenReturn(task);
-        ChainContribution chainContribution = ChainContribution.builder().status(ChainContributionStatus.UNSET).build();
-        when(iexecHubService.getChainContribution("chainTaskId", "0x1")).thenReturn(Optional.of(chainContribution));
-
-
-        Runnable runnable1 = () -> {
-            // taskUpdateManager.updateReplicateStatus("chainTaskId", "0x1", ReplicateStatus.CONTRIBUTED);
-            // Optional<Replicate> replicate = task.getReplicate("0x1");
-            // assertThat(replicate.isPresent()).isTrue();
-            // assertThat(replicate.get().getCurrentStatus()).isEqualTo(ReplicateStatus.COMPUTED);
-        };
-
-        Thread thread1 = new Thread(runnable1);
-        thread1.start();
-
-        Runnable runnable2 = () -> {
-            sleep(500L);
-            chainContribution.setStatus(ChainContributionStatus.CONTRIBUTED);
-            sleep(500L);
-            // assertThat(task.getReplicate("0x1").get().getCurrentStatus()).isEqualTo(ReplicateStatus.CONTRIBUTED);
-        };
-
-        Thread thread2 = new Thread(runnable2);
-        thread2.start();
-    }
-
-
     // 3 replicates in RUNNING 0 in COMPUTED
     @Test
-    public void shouldUpdateTaskToRunningFromWorkersInRunning() {
+    void shouldUpdateTaskToRunningFromWorkersInRunning() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
         final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
@@ -1464,7 +1445,7 @@ public class TaskUpdateManagerTest {
 
     // 2 replicates in RUNNING and and 2 in COMPUTED
     @Test
-    public void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
+    void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
         final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
@@ -1494,7 +1475,7 @@ public class TaskUpdateManagerTest {
 
     // all replicates in INITIALIZED
     @Test
-    public void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
+    void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
         Task task = getStubTask(maxExecutionTime);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(0);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
@@ -1506,7 +1487,7 @@ public class TaskUpdateManagerTest {
     // Two replicates in COMPUTED BUT numWorkersNeeded = 2, so the task should not be able to move directly from
     // INITIALIZED to COMPUTED
     @Test
-    public void shouldNotUpdateToRunningCase2() {
+    void shouldNotUpdateToRunningCase2() {
         Task task = getStubTask(maxExecutionTime);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.STARTING, ReplicateStatus.COMPUTED)).thenReturn(2);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
@@ -1518,7 +1499,7 @@ public class TaskUpdateManagerTest {
 
     // at least one UPLOADED
     @Test
-    public void shouldUpdateFromUploadingResultToResultUploaded() {
+    void shouldUpdateFromUploadingResultToResultUploaded() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.RUNNING);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
@@ -1536,7 +1517,7 @@ public class TaskUpdateManagerTest {
 
     // No worker in UPLOADED
     @Test
-    public void shouldNotUpdateToResultUploaded() {
+    void shouldNotUpdateToResultUploaded() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.RUNNING);
         task.changeStatus(TaskStatus.RESULT_UPLOADING);
@@ -1550,7 +1531,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateFromResultUploadedToFinalizingSinceNotEnoughGas() {
+    void shouldNotUpdateFromResultUploadedToFinalizingSinceNotEnoughGas() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.changeStatus(RESULT_UPLOADING);
@@ -1568,7 +1549,7 @@ public class TaskUpdateManagerTest {
 
 
     @Test
-    public void shouldUpdateFromAnyInProgressStatus2FinalDeadlineReached() {
+    void shouldUpdateFromAnyInProgressStatus2FinalDeadlineReached() {
         Task task = getStubTask(maxExecutionTime);
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         task.changeStatus(RECEIVED);
@@ -1576,11 +1557,12 @@ public class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        assertThat(task.getCurrentStatus()).isEqualTo(FINAL_DEADLINE_REACHED);
+        assertThat(task.getLastButOneStatus()).isEqualTo(FINAL_DEADLINE_REACHED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test
-    public void shouldUpdateFromFinalDeadlineReached2Failed() {
+    void shouldUpdateFromFinalDeadlineReached2Failed() {
         Task task = getStubTask(maxExecutionTime);
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         task.changeStatus(FINAL_DEADLINE_REACHED);
@@ -1592,7 +1574,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateToFinalDeadlineReachedIfAlreadyFailed() {
+    void shouldNotUpdateToFinalDeadlineReachedIfAlreadyFailed() {
         Task task = getStubTask(maxExecutionTime);
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         task.changeStatus(FAILED);
@@ -1604,7 +1586,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotUpdateToFinalDeadlineReachedIfAlreadyCompleted() {
+    void shouldNotUpdateToFinalDeadlineReachedIfAlreadyCompleted() {
         Task task = getStubTask(maxExecutionTime);
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         task.changeStatus(COMPLETED);
@@ -1617,7 +1599,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on toFailed() automatic transitions
     @Test
-    public void shouldUpdateToFailed() {
+    void shouldUpdateToFailed() {
         final TaskStatus[] statusThatAutomaticallyFail = new TaskStatus[]{
                 INITIALIZE_FAILED,
                 RUNNING_FAILED,
@@ -1632,7 +1614,7 @@ public class TaskUpdateManagerTest {
             task.setChainTaskId(CHAIN_TASK_ID);
 
             when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-            when(taskRepository.save(task)).thenReturn(task);
+            when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
             taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1642,7 +1624,7 @@ public class TaskUpdateManagerTest {
 
     // Tests on requestUpload
     @Test
-    public void shouldRequestUpload() {
+    void shouldRequestUpload() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
 
@@ -1650,7 +1632,7 @@ public class TaskUpdateManagerTest {
         replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(
                 CHAIN_TASK_ID,
                 ReplicateStatus.RESULT_UPLOADING,
@@ -1668,7 +1650,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotRequestUpload() {
+    void shouldNotRequestUpload() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(AT_LEAST_ONE_REVEALED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -1691,7 +1673,7 @@ public class TaskUpdateManagerTest {
     }
 
     @Test
-    public void shouldNotRequestUploadSinceUploadInProgress() {
+    void shouldNotRequestUploadSinceUploadInProgress() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
         task.changeStatus(AT_LEAST_ONE_REVEALED);
@@ -1700,7 +1682,7 @@ public class TaskUpdateManagerTest {
         replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(taskRepository.save(task)).thenReturn(task);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(
                 CHAIN_TASK_ID,
                 ReplicateStatus.RESULT_UPLOADING,
@@ -1721,8 +1703,8 @@ public class TaskUpdateManagerTest {
     // publishRequest
 
     @Test
-    public void shouldTriggerUpdateTaskAsynchronously() {
-        taskUpdateManager.publishUpdateTaskRequest(CHAIN_TASK_ID);
-        verify(taskUpdateRequestManager).publishRequest(eq(CHAIN_TASK_ID));
+    void shouldTriggerUpdateTaskAsynchronously() {
+        taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
 }

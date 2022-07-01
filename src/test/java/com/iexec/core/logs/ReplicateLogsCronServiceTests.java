@@ -1,4 +1,4 @@
-package com.iexec.core.stdout;
+package com.iexec.core.logs;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -14,28 +14,28 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class StdoutCronServiceTests {
+class ComputeLogsCronServiceTests {
 
     @Mock
-    private StdoutService stdoutService;
+    private TaskLogsService taskLogsService;
 
     @Mock
     private TaskService taskService;
 
     @InjectMocks
-    private StdoutCronService stdoutCronService;
+    private ComputeLogsCronService computeLogsCronService;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldCleanStdout() {
+    void shouldCleanStdout() {
         List<String> ids = List.of("id1", "id2");
         when(taskService.getChainTaskIdsOfTasksExpiredBefore(any()))
                 .thenReturn(ids);
-        stdoutCronService.purgeStdout();
-        verify(stdoutService).delete(ids);
+        computeLogsCronService.purgeLogs();
+        verify(taskLogsService).delete(ids);
     }
 }

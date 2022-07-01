@@ -16,7 +16,6 @@
 
 package com.iexec.core.worker;
 
-
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
 import com.iexec.common.security.Signature;
@@ -25,7 +24,10 @@ import com.iexec.common.utils.SignatureUtils;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
-import com.iexec.core.configuration.*;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
+import com.iexec.core.configuration.SessionService;
+import com.iexec.core.configuration.SmsConfiguration;
+import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -79,34 +81,33 @@ public class WorkerController {
     public ResponseEntity<String> ping(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return workerService.updateLastAlive(workerWalletAddress)
-                .<ResponseEntity<String>>map(worker -> ok(SessionService.getSessionId()))
+                .map(worker -> ok(SessionService.getSessionId()))
                 .orElseGet(() -> status(HttpStatus.NOT_FOUND).build());
     }
 
     @GetMapping(path = "/workers/challenge")
     public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ok(challengeService.getChallenge(walletAddress));
     }
 
     @PostMapping(path = "/workers/login")
     public ResponseEntity<String> getToken(@RequestParam(name = "walletAddress") String walletAddress,
-                                   @RequestBody Signature signature) {
-
+                                           @RequestBody Signature signature) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         String challenge = challengeService.getChallenge(walletAddress);
-        byte[] hashTocheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
+        byte[] hashToCheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
 
         if (SignatureUtils.doesSignatureMatchesAddress(signature.getR(), signature.getS(),
-                BytesUtils.bytesToString(hashTocheck), walletAddress)) {
+                BytesUtils.bytesToString(hashToCheck), walletAddress)) {
             String token = jwtTokenProvider.createToken(walletAddress);
             return ok(token);
         }
@@ -116,11 +117,10 @@ public class WorkerController {
 
     @PostMapping(path = "/workers/register")
     public ResponseEntity<Worker> registerWorker(@RequestHeader("Authorization") String bearerToken,
-                                         @RequestBody WorkerModel model) {
+                                                 @RequestBody WorkerModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
-
-        if (workerWalletAddress.isEmpty()){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+        if (workerWalletAddress.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         // if it is a GPU worker, it can process only 1 task at a time, otherwise it can process cpuNb
@@ -166,7 +166,7 @@ public class WorkerController {
     public ResponseEntity<List<String>> getComputingTasks(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ok(workerService.getComputingTaskIds(workerWalletAddress));
     }

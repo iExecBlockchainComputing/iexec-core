@@ -17,6 +17,7 @@
 package com.iexec.core.replicate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
@@ -36,6 +37,7 @@ import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicate {
 
     private List<ReplicateStatusUpdate> statusUpdateList;
@@ -44,8 +46,8 @@ public class Replicate {
     private String chainCallbackData;
     private String chainTaskId;
     private String contributionHash;
-    private int credibility;
     private int workerWeight;
+    private boolean appComputeLogsPresent;
 
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;
@@ -112,22 +114,6 @@ public class Replicate {
         return statusUpdateList.add(statusUpdate);
     }
 
-    public String getContributionHash() {
-        return contributionHash;
-    }
-
-    public void setContributionHash(String contributionHash) {
-        this.contributionHash = contributionHash;
-    }
-
-    public int getCredibility() {
-        return credibility;
-    }
-
-    public void setCredibility(int credibility) {
-        this.credibility = credibility + 1;
-    }
-
     public boolean containsStatus(ReplicateStatus replicateStatus) {
         for (ReplicateStatusUpdate replicateStatusUpdate : this.getStatusUpdateList()) {
             if (replicateStatusUpdate.getStatus().equals(replicateStatus)) {
@@ -164,13 +150,20 @@ public class Replicate {
 
     public boolean isRecoverable() {
         Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (!currentStatus.isPresent()) return false;
+        if (currentStatus.isEmpty()) return false;
         return ReplicateStatus.isRecoverable(currentStatus.get());
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {
         Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (!getLastRelevantStatus().isPresent()) return false;
+        if (currentStatus.isEmpty()) return false;
         return currentStatus.get().ordinal() < status.ordinal();
+    }
+
+    boolean isStatusBeforeWorkerLostEqualsTo(ReplicateStatus status) {
+        int size = getStatusUpdateList().size();
+        return size >= 2
+                && getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
+                && getStatusUpdateList().get(size - 2).getStatus().equals(status);
     }
 }

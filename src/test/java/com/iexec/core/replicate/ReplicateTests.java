@@ -16,10 +16,11 @@
 
 package com.iexec.core.replicate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -28,10 +29,36 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReplicateTests {
+class ReplicateTests {
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    public void shouldInitializeStatusProperly(){
+    void shouldSerializeAndDeserializeReplicate() throws JsonProcessingException {
+        Replicate replicate = new Replicate("walletAddress", "chainTaskId");
+        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
+        String jsonString = mapper.writeValueAsString(replicate);
+        long date = replicate.getStatusUpdateList().get(0).getDate().getTime();
+        String expectedString = "{"
+                + "\"statusUpdateList\":[{\"status\":\"CREATED\",\"modifier\":\"POOL_MANAGER\","
+                + "\"date\":" + date + ",\"details\":null,\"success\":true}],"
+                + "\"walletAddress\":\"walletAddress\","
+                + "\"resultLink\":null,"
+                + "\"chainCallbackData\":null,"
+                + "\"chainTaskId\":\"chainTaskId\","
+                + "\"contributionHash\":\"\","
+                + "\"workerWeight\":0,"
+                + "\"appComputeLogsPresent\":false,"
+                + "\"busyComputing\":true,"
+                + "\"recoverable\":true"
+                + "}";
+        assertThat(jsonString).isEqualTo(expectedString);
+        Replicate deserializedReplicate = mapper.readValue(jsonString, Replicate.class);
+        assertThat(deserializedReplicate).usingRecursiveComparison().isEqualTo(replicate);
+    }
+
+    @Test
+    void shouldInitializeStatusProperly(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
@@ -45,7 +72,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldUpdateReplicateStatus(){
+    void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
 
@@ -66,7 +93,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldGetProperLatestStatus(){
+    void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
@@ -78,7 +105,7 @@ public class ReplicateTests {
 
 
     @Test
-    public void shouldReturnTrueWhenContributed(){
+    void shouldReturnTrueWhenContributed(){
         Replicate replicate = new Replicate("0x1", "taskId");
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -90,7 +117,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldReturnFalseWhenContributedMissing(){
+    void shouldReturnFalseWhenContributedMissing(){
         Replicate replicate = new Replicate("0x1", "taskId");
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -101,7 +128,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldBeCreatedLongAgo(){
+    void shouldBeCreatedLongAgo(){
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
@@ -113,7 +140,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldNotBeCreatedLongAgo(){
+    void shouldNotBeCreatedLongAgo(){
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", "taskId");
@@ -125,7 +152,7 @@ public class ReplicateTests {
     }
 
     @Test
-    public void shouldBeBusyComputing() {
+    void shouldBeBusyComputing() {
         Replicate replicate = new Replicate("worker", "taskId");
         assertThat(replicate.isBusyComputing()).isTrue();
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);

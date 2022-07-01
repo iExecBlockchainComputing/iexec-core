@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class VersionController {
 
-    private VersionService versionService;
+    private final VersionService versionService;
 
     public VersionController(VersionService versionService) {
         this.versionService = versionService;

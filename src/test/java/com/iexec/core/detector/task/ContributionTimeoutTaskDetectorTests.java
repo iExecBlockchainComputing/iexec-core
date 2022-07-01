@@ -22,7 +22,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.common.utils.DateTimeUtils;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import java.util.Date;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class ContributionTimeoutTaskDetectorTests {
+class ContributionTimeoutTaskDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
@@ -49,19 +49,19 @@ public class ContributionTimeoutTaskDetectorTests {
     private WorkerService workerService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @Spy
     @InjectMocks
     private ContributionTimeoutTaskDetector contributionDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldNotDetectAnyContributionTimeout() {
+    void shouldNotDetectAnyContributionTimeout() {
         when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.emptyList());
         contributionDetector.detect();
 
@@ -71,12 +71,12 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(any());
     }
 
     @Test
-    public void shouldNotUpdateTaskIfBeforeTimeout() {
+    void shouldNotUpdateTaskIfBeforeTimeout() {
         Date now = new Date();
         Date oneMinuteAfterNow = DateTimeUtils.addMinutesToDate(now, 1);
 
@@ -93,13 +93,13 @@ public class ContributionTimeoutTaskDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
+                .publishRequest(any());
     }
 
 
     @Test
-    public void shouldUpdateIfIsTimeout() {
+    void shouldUpdateIfIsTimeout() {
         Date now = new Date();
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(now, -1);
 
@@ -111,7 +111,7 @@ public class ContributionTimeoutTaskDetectorTests {
 
         contributionDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1))
-                .publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
+                .publishRequest(any());
     }
 }

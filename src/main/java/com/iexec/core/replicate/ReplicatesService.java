@@ -16,40 +16,31 @@
 
 package com.iexec.core.replicate;
 
-import static com.iexec.common.replicate.ReplicateStatus.COMPUTED;
-import static com.iexec.common.replicate.ReplicateStatus.CONTRIBUTED;
-import static com.iexec.common.replicate.ReplicateStatus.FAILED;
-import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOADED;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALED;
-import static com.iexec.common.replicate.ReplicateStatus.REVEALING;
-import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
-import static com.iexec.common.replicate.ReplicateStatus.getChainStatus;
-import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.iexec.common.chain.ChainContribution;
 import com.iexec.common.notification.TaskNotificationType;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.common.replicate.ReplicateStatusDetails;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.*;
 import com.iexec.common.task.TaskDescription;
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
-import com.iexec.core.stdout.StdoutService;
+import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.workflow.ReplicateWorkflow;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 
 @Slf4j
 @Service
@@ -60,24 +51,27 @@ public class ReplicatesService {
     private ApplicationEventPublisher applicationEventPublisher;
     private Web3jService web3jService;
     private ResultService resultService;
-    private StdoutService stdoutService;
+    private TaskLogsService taskLogsService;
+
+    private final ContextualLockRunner<String> replicatesUpdateLockRunner =
+            new ContextualLockRunner<>(10, TimeUnit.MINUTES);
 
     public ReplicatesService(ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              ResultService resultService,
-                             StdoutService stdoutService) {
+                             TaskLogsService taskLogsService) {
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.resultService = resultService;
-        this.stdoutService = stdoutService;
+        this.taskLogsService = taskLogsService;
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
-        if (!getReplicate(chainTaskId, walletAddress).isPresent()) {
+        if (getReplicate(chainTaskId, walletAddress).isEmpty()) {
             Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
             if (optional.isPresent()) {
                 ReplicatesList replicatesList = optional.get();
@@ -98,13 +92,17 @@ public class ReplicatesService {
         replicatesRepository.save(new ReplicatesList(chainTaskId));
     }
 
+    public boolean hasReplicatesList(String chainTaskId) {
+        return replicatesRepository.countByChainTaskId(chainTaskId) > 0;
+    }
+
     public Optional<ReplicatesList> getReplicatesList(String chainTaskId) {
         return replicatesRepository.findByChainTaskId(chainTaskId);
     }
 
     public List<Replicate> getReplicates(String chainTaskId) {
         Optional<ReplicatesList> optionalList = getReplicatesList(chainTaskId);
-        if (!optionalList.isPresent()) {
+        if (optionalList.isEmpty()) {
             return Collections.emptyList();
         }
         return optionalList.get().getReplicates();
@@ -112,7 +110,7 @@ public class ReplicatesService {
 
     public Optional<Replicate> getReplicate(String chainTaskId, String walletAddress) {
         Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
-        if (!optional.isPresent()) {
+        if (optional.isEmpty()) {
             return Optional.empty();
         }
 
@@ -125,112 +123,32 @@ public class ReplicatesService {
         return Optional.empty();
     }
 
-    public boolean hasWorkerAlreadyParticipated(String chainTaskId, String walletAddress) {
-        return getReplicate(chainTaskId, walletAddress).isPresent();
-    }
-
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            for (ReplicateStatus status : listStatus) {
-                if (replicate.getCurrentStatus().equals(status)) {
-                    nbReplicates++;
-                }
-            }
-        }
-        return nbReplicates;
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesWithCurrentStatus(listStatus))
+                .orElse(0);
     }
 
     public int getNbReplicatesWithLastRelevantStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            for (ReplicateStatus status : listStatus) {
-                if (Objects.equals(replicate.getLastRelevantStatus().orElse(null), status)) {
-                    nbReplicates++;
-                }
-            }
-        }
-        return nbReplicates;
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesWithLastRelevantStatus(listStatus))
+                .orElse(0);
     }
 
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        Set<String> addressReplicates = new HashSet<>();
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            List<ReplicateStatus> listReplicateStatus = replicate.getStatusUpdateList().stream()
-                    .map(ReplicateStatusUpdate::getStatus)
-                    .collect(Collectors.toList());
-            for (ReplicateStatus status : listStatus) {
-                if (listReplicateStatus.contains(status)) {
-                    addressReplicates.add(replicate.getWalletAddress());
-                }
-            }
-        }
-        return addressReplicates.size();
-    }
-
-    public int getNbValidContributedWinners(String chainTaskId, String contributionHash) {
-        int nbValidWinners = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-            if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
-                    && contributionHash.equals(replicate.getContributionHash())) {
-                nbValidWinners++;
-            }
-        }
-        return nbValidWinners;
-    }
-
-    public int getNbOffChainReplicatesWithStatus(String chainTaskId, ReplicateStatus status) {
-        return getNbReplicatesWithCurrentStatus(chainTaskId, status) +
-                getNbReplicatesWithGivenStatusJustBeforeWorkerLost(chainTaskId, status);
-    }
-
-    /*
-     * For status = CONTRIBUTED, a replicate will be counted when statuses = { CREATED, ..., CONTRIBUTED, WORKER_LOST }
-     * For status = REVEALED, a replicate will be counted when statuses = { CREATED, ..., REVEALED, WORKER_LOST }
-     */
-    private int getNbReplicatesWithGivenStatusJustBeforeWorkerLost(String chainTaskId, ReplicateStatus status) {
-        int nbReplicates = 0;
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-            if (isStatusBeforeWorkerLostEqualsTo(replicate, status)) {
-                nbReplicates++;
-            }
-        }
-        return nbReplicates;
+        return getReplicatesList(chainTaskId)
+                .map(replicatesList -> replicatesList.getNbReplicatesContainingStatus(listStatus))
+                .orElse(0);
     }
 
     public Optional<Replicate> getRandomReplicateWithRevealStatus(String chainTaskId) {
-        List<Replicate> revealReplicates = getReplicates(chainTaskId);
-        Collections.shuffle(revealReplicates);
-
-        for (Replicate replicate : revealReplicates) {
-            if (replicate.getCurrentStatus().equals(REVEALED)) {
-                return Optional.of(replicate);
-            }
-        }
-
-        return Optional.empty();
+        return getReplicatesList(chainTaskId)
+                .flatMap(ReplicatesList::getRandomReplicateWithRevealStatus);
     }
 
     public Optional<Replicate> getReplicateWithResultUploadedStatus(String chainTaskId) {
-        for (Replicate replicate : getReplicates(chainTaskId)) {
-
-            boolean isStatusResultUploaded = replicate.getCurrentStatus().equals(RESULT_UPLOADED);
-            boolean isStatusResultUploadedBeforeWorkerLost = isStatusBeforeWorkerLostEqualsTo(replicate, RESULT_UPLOADED);
-
-            if (isStatusResultUploaded || isStatusResultUploadedBeforeWorkerLost) {
-                return Optional.of(replicate);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    private boolean isStatusBeforeWorkerLostEqualsTo(Replicate replicate, ReplicateStatus status) {
-        int size = replicate.getStatusUpdateList().size();
-        return size >= 2
-                && replicate.getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
-                && replicate.getStatusUpdateList().get(size - 2).getStatus().equals(status);
+        return getReplicatesList(chainTaskId)
+                .flatMap(ReplicatesList::getReplicateWithResultUploadedStatus);
     }
 
     /**
@@ -384,6 +302,15 @@ public class ReplicatesService {
     }
 
     @Recover
+    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+                                      String chainTaskId,
+                                      String walletAddress,
+                                      ReplicateStatus newStatus,
+                                      ReplicateStatusDetails details) {
+        logUpdateReplicateStatusRecover(exception);
+    }
+
+    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate) {
@@ -400,12 +327,12 @@ public class ReplicatesService {
     }
 
     @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
+    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
                                       String chainTaskId,
                                       String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
+                                      ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
+        return Optional.empty();
     }
 
     /*
@@ -418,13 +345,62 @@ public class ReplicatesService {
      *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
+    /**
+     * This method updates a replicate while caring about thread safety.
+     * A single replicate can then NOT be updated twice at the same time.
+     * This method should be preferred to
+     * {@link ReplicatesService#updateReplicateStatusWithoutThreadSafety(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}!
+     *
+     * @param chainTaskId Chain task id of the task whose replicate should be updated.
+     * @param walletAddress Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param updateReplicateStatusArgs Optional args used to update the status.
+     * @return An optional next action for the worker.
+     */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
                                                                 String walletAddress,
                                                                 ReplicateStatusUpdate statusUpdate,
                                                                 UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+        // Synchronization is mandatory there to avoid race conditions.
+        // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
+        final String lockKey = chainTaskId + walletAddress;
+        return replicatesUpdateLockRunner.getWithLock(
+                lockKey,
+                () -> updateReplicateStatusWithoutThreadSafety(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
+        );
+    }
+
+    @Recover
+    public Optional<TaskNotificationType> updateReplicateStatus(
+            OptimisticLockingFailureException exception,
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+        logUpdateReplicateStatusRecover(exception);
+        return Optional.empty();
+    }
+
+    /**
+     * This method updates a replicate but does not care about thread safety.
+     * A single replicate can then be updated twice at the same time
+     * and completely break a task.
+     * This method has to be used with a synchronization mechanism, e.g.
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)}
+     *
+     * @param chainTaskId Chain task id of the task whose replicate should be updated.
+     * @param walletAddress Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param updateReplicateStatusArgs Optional args used to update the status.
+     * @return An optional next action for the worker.
+     */
+    Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
+                                                                                    String walletAddress,
+                                                                                    ReplicateStatusUpdate statusUpdate,
+                                                                                    UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
-                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutStdout());
+                statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
         if (ReplicateStatusUpdateError.NO_ERROR
                 != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
@@ -445,12 +421,13 @@ public class ReplicatesService {
             replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
         }
 
-        if (statusUpdate.getDetails() != null && statusUpdate.getDetails().getStdout() != null) {
-            if (statusUpdate.getStatus().equals(COMPUTED)) {
-                String stdout = statusUpdate.getDetails().tailStdout().getStdout();
-                stdoutService.addReplicateStdout(chainTaskId, walletAddress, stdout);
-            }
-            statusUpdate.getDetails().setStdout(null);
+        if (statusUpdate.getDetails() != null &&
+                (newStatus.equals(COMPUTED) || (newStatus.equals(COMPUTE_FAILED)
+                        && ReplicateStatusCause.APP_COMPUTE_FAILED.equals(statusUpdate.getDetails().getCause())))) {
+            final ComputeLogs computeLogs = statusUpdate.getDetails().tailLogs().getComputeLogs();
+            taskLogsService.addComputeLogs(chainTaskId, computeLogs);
+            statusUpdate.getDetails().setComputeLogs(null);//using null here to keep light replicate
+            replicate.setAppComputeLogsPresent(true);
         }
 
         replicate.updateStatus(statusUpdate);
@@ -464,21 +441,11 @@ public class ReplicatesService {
                         "nextAction:{}, chainTaskId:{}, walletAddress:{}]",
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
-        return Optional.ofNullable(nextAction); // should we return a default action when null?
-    }
-
-    @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatusUpdate statusUpdate) {
-        logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
+        return Optional.ofNullable(nextAction);
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
-        log.error("Could not update replicate status, maximum number of retries reached");
-        exception.printStackTrace();
+        log.error("Could not update replicate status, maximum number of retries reached", exception);
     }
 
     private boolean canUpdateToBlockchainSuccess(String chainTaskId,
@@ -533,13 +500,13 @@ public class ReplicatesService {
         }
 
         if (updateReplicateStatusArgs.getTaskDescription().containsCallback()) {
-            if (StringUtils.isEmpty(updateReplicateStatusArgs.getChainCallbackData())) {
+            if (!StringUtils.hasLength(updateReplicateStatusArgs.getChainCallbackData())) {
                 log.error("Cannot update replicate, missing chainCallbackData {}",
                         getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                 return false;
             }
         } else {
-            if (StringUtils.isEmpty(updateReplicateStatusArgs.getResultLink())) {
+            if (!StringUtils.hasLength(updateReplicateStatusArgs.getResultLink())) {
                 log.error("Cannot update replicate, missing resultLink {}",
                         getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
                 return false;
@@ -589,7 +556,7 @@ public class ReplicatesService {
             return false;
         }
 
-        if (StringUtils.isEmpty(chainContribution.getResultHash())) {
+        if (!StringUtils.hasLength(chainContribution.getResultHash())) {
             String walletAddress = replicate.getWalletAddress();
             log.error("Failed to get chain contribution result hash [chainTaskId:{}, workerWallet:{}]",
                     chainTaskId, walletAddress);
@@ -602,7 +569,7 @@ public class ReplicatesService {
     private String getStatusUpdateLogs(String chainTaskId, Replicate replicate, ReplicateStatusUpdate statusUpdate) {
         return String.format("[currentStatus:%s, newStatus:%s chainTaskId:%s, walletAddress:%s, details:%s]",
                 replicate.getCurrentStatus(), statusUpdate.getStatus(), chainTaskId, replicate.getWalletAddress(),
-                statusUpdate.getDetailsWithoutStdout());
+                statusUpdate.getDetailsWithoutLogs());
     }
 
     public boolean isResultUploaded(String chainTaskId) {
@@ -642,7 +609,7 @@ public class ReplicatesService {
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
         Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-        if (!oStatus.isPresent()) {
+        if (oStatus.isEmpty()) {
             return;
         }
         ReplicateStatus status = oStatus.get();

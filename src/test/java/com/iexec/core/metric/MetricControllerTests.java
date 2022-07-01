@@ -26,7 +26,7 @@ import org.springframework.http.HttpStatus;
 
 import static org.mockito.Mockito.when;
 
-public class MetricControllerTests {
+class MetricControllerTests {
 
     @Mock
     private MetricService metricService;
@@ -35,12 +35,12 @@ public class MetricControllerTests {
     private MetricController metricController;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldGetMetrics() {
+    void shouldGetMetrics() {
         PlatformMetric metric = PlatformMetric.builder()
                 .aliveAvailableCpu(1)
                 .aliveAvailableGpu(1)

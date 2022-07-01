@@ -19,22 +19,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.web3j.crypto.Credentials;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-public class WorkerControllerTests {
+class WorkerControllerTests {
 
     private static final String TOKEN = "token";
-    private static final String WALLET = "wallet";
+    private static final String WALLET = "0x108ca59d5d0eec2ff66003f8909eb40addd1a67d";
     private static final String CHALLENGE = "challenge";
     private static final Worker WORKER = Worker.builder()
             .walletAddress(WALLET)
             .build();
     private static final Signature SIGN =
-            new Signature("0x36a0678dbab83abb34e6c28a7f62ca8dd16499d1afd5e5762242b4051359a1ea2ce70da0dfd5614237d47390162e10415362f64598a32f3d5300193ddc92439f1c");
+            new Signature("0xf11e72d3a1d6e13c5187862cfa0342f135909f36c369e01f2392ad19daee781377328a1441ac993f518d7024aafed664508d8dadf42ebdd97394ebfeb5b837121c");
+    private static final Signature INVALID_SIGNATURE =
+            new Signature("0xab5861286e8ef54febad4e606d7e7f32bec8e017a909bfa54e95ad6a7d42dc3f1cab39bacff7aeb15514d41750a3d7da0b21759063c50db1a8ac378062977ba51b");
     private static final WorkerModel WORKER_MODEL = WorkerModel.builder()
             .walletAddress(WALLET)
             .build();
@@ -62,14 +67,13 @@ public class WorkerControllerTests {
     private WorkerController workerController;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    // ping
-
+    //region ping
     @Test
-    public void shouldAcceptPing() {
+    void shouldAcceptPing() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
@@ -80,7 +84,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
+    void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
@@ -93,7 +97,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotAcceptPingSinceUnauthorizedJwt() {
+    void shouldNotAcceptPingSinceUnauthorizedJwt() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
@@ -102,7 +106,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
+    void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.empty());
 
@@ -110,11 +114,11 @@ public class WorkerControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(workerService).updateLastAlive(WALLET);
     }
+    //endregion
 
-    // getChallenge
-
+    //region getChallenge
     @Test
-    public void shouldGetChallenge() {
+    void shouldGetChallenge() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
 
@@ -125,7 +129,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldGetSameChallengeForSameWorker() {
+    void shouldGetSameChallengeForSameWorker() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
 
@@ -140,7 +144,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldGetDifferentChallengesForDifferentWorkers() {
+    void shouldGetDifferentChallengesForDifferentWorkers() {
         String wallet1 = WALLET;
         String wallet2 = "otherWallet";
         String challenge1 = "challenge1";
@@ -160,42 +164,45 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotGetChallengeSinceNotAllowedToJoin() {
+    void shouldNotGetChallengeSinceNotAllowedToJoin() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(false);
 
         ResponseEntity<String> response = workerController.getChallenge(WALLET);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         verify(challengeService, never()).getChallenge(WALLET);
     }
+    //endregion
 
-    // getToken
-
+    //region getToken
     @Test
-    public void shouldGetToken() {
-        // TODO
+    void shouldGetToken() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+        when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
+        when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
+        when(jwtTokenProvider.createToken(WALLET)).thenReturn(TOKEN);
+        ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void shouldNotGetTokenSinceNotAllowed() {
+    void shouldNotGetTokenSinceNotAllowed() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(false);
-        
         ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    public void shouldNotGetTokenSinceSignatureNotValid() {
+    void shouldNotGetTokenSinceSignatureNotValid() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
         
-        ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
+        ResponseEntity<String> response = workerController.getToken(WALLET, INVALID_SIGNATURE);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+    //endregion
 
-    // registerWorker
-
+    //region registerWorker
     @Test
-    public void shouldRegisterWorker() {
+    void shouldRegisterWorker() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
         when(workerService.addWorker(any())).thenReturn(WORKER);
@@ -207,9 +214,8 @@ public class WorkerControllerTests {
         verify(workerService).addWorker(any());
     }
 
-
     @Test
-    public void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
+    void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
         WORKER_MODEL.setGpuEnabled(true);
         WORKER.setMaxNbTasks(1);
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
@@ -225,7 +231,7 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotRegisterWorkerSinceUnauthorized() {
+    void shouldNotRegisterWorkerSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
 
         ResponseEntity<Worker> response =
@@ -233,20 +239,20 @@ public class WorkerControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         verify(workerService, never()).addWorker(any());
     }
+    //endregion
 
-    // getPublicConfiguration
-
+    //region getPublicConfiguration
     @Test
-    public void shouldGetPublicConfiguration() {
+    void shouldGetPublicConfiguration() {
         when(credentialsService.getCredentials()).thenReturn(mock(Credentials.class));
         assertThat(workerController.getPublicConfiguration().getStatusCode())
                 .isEqualTo(HttpStatus.OK);
     }
+    //endregion
 
-    // getTasksInProgress
-
+    //region getTasksInProgress
     @Test
-    public void shouldGetTasksInProgress() {
+    void shouldGetTasksInProgress() {
         List<String> list = List.of("t1", "t2");
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
@@ -258,12 +264,12 @@ public class WorkerControllerTests {
     }
 
     @Test
-    public void shouldNotGetTasksInProgressSinceUnauthorized() {
+    void shouldNotGetTasksInProgressSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn("");
         ResponseEntity<List<String>> response =
                 workerController.getComputingTasks(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
-
+    //endregion
 
 }

@@ -20,7 +20,7 @@ import com.iexec.core.detector.Detector;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,11 +32,11 @@ import java.util.List;
 public class UnstartedTxDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateManager taskUpdateManager;
+    private final TaskUpdateRequestManager taskUpdateRequestManager;
 
-    public UnstartedTxDetector(TaskService taskService, TaskUpdateManager taskUpdateManager) {
+    public UnstartedTxDetector(TaskService taskService, TaskUpdateRequestManager taskUpdateRequestManager) {
         this.taskService = taskService;
-        this.taskUpdateManager = taskUpdateManager;
+        this.taskUpdateRequestManager = taskUpdateRequestManager;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getUnstartedTx()}")
@@ -47,7 +47,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetFinalizingTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     task.getCurrentStatus(), TaskStatus.FINALIZING, task.getChainTaskId());
-            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+            taskUpdateRequestManager.publishRequest(task.getChainTaskId());
         }
 
         //start initialize when needed
@@ -55,7 +55,7 @@ public class UnstartedTxDetector implements Detector {
         for (Task task : notYetInitializedTasks) {
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, chainTaskId:{}]",
                     task.getCurrentStatus(), TaskStatus.INITIALIZING, task.getChainTaskId());
-            taskUpdateManager.publishUpdateTaskRequest(task.getChainTaskId());
+            taskUpdateRequestManager.publishRequest(task.getChainTaskId());
         }
     }
 }

@@ -23,22 +23,23 @@ import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.event.*;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import uk.org.lidalia.slf4jtest.LoggingEvent;
+import uk.org.lidalia.slf4jtest.TestLogger;
+import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class TaskListenerTest {
+class TaskListenerTest {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET1 = "wallet1";
@@ -47,7 +48,7 @@ public class TaskListenerTest {
     @Captor
     private ArgumentCaptor<TaskNotification> notificationCaptor;
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -59,20 +60,20 @@ public class TaskListenerTest {
     private TaskListeners taskListeners;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldUpdateTaskOnTasCreatedEvent() {
+    void shouldUpdateTaskOnTasCreatedEvent() {
         TaskCreatedEvent event = new TaskCreatedEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskUpdateManager).publishUpdateTaskRequest(anyString());
+        verify(taskUpdateRequestManager).publishRequest(anyString());
     }
 
     @Test
-    public void shouldProcessContributionTimeoutEvent() {
+    void shouldProcessContributionTimeoutEvent() {
         ContributionTimeoutEvent event = new ContributionTimeoutEvent();
         event.setChainTaskId(CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET1, CHAIN_TASK_ID);
@@ -94,7 +95,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void shouldNotifyWinnersAndLosersOnTaskConsensusReached() {
+    void shouldNotifyWinnersAndLosersOnTaskConsensusReached() {
         String winningHash = "hash";
         String badHash = "bad";
         ConsensusReachedEvent event = new ConsensusReachedEvent();
@@ -124,7 +125,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void shouldSendTaskNotificationOnPleaseUploadEvent() {
+    void shouldSendTaskNotificationOnPleaseUploadEvent() {
         PleaseUploadEvent event = new PleaseUploadEvent(CHAIN_TASK_ID, WALLET1);
         taskListeners.onPleaseUploadEvent(event);
         verify(notificationService).sendTaskNotification(any());
@@ -132,8 +133,14 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onResultUploadTimeoutEvent() {
-        taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent());
+    void onResultUploadTimeoutEvent() {
+        TestLogger logger = TestLoggerFactory.getTestLogger(TaskListeners.class);
+        logger.clear();
+
+        taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent(CHAIN_TASK_ID));
+
+        assertThat(logger.getLoggingEvents())
+                .isEqualTo(Collections.singletonList(LoggingEvent.info("Received ResultUploadTimeoutEvent [chainTaskId:{}] ", CHAIN_TASK_ID)));
     }
 
     /**
@@ -143,7 +150,7 @@ public class TaskListenerTest {
      * remove chainTaskId from worker
      */
     @Test
-    public void onTaskCompletedEvent() {
+    void onTaskCompletedEvent() {
         Replicate replicate = new Replicate(WALLET1, CHAIN_TASK_ID);
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         TaskCompletedEvent event = new TaskCompletedEvent(task);
@@ -157,7 +164,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onTaskFailedEvent() {
+    void onTaskFailedEvent() {
         when(replicatesService.getReplicates(CHAIN_TASK_ID))
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 
@@ -173,7 +180,7 @@ public class TaskListenerTest {
     }
 
     @Test
-    public void onTaskRunningFailedEvent() {
+    void onTaskRunningFailedEvent() {
         when(replicatesService.getReplicates(CHAIN_TASK_ID))
                 .thenReturn(List.of(new Replicate(WALLET1, CHAIN_TASK_ID)));
 

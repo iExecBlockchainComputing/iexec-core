@@ -44,6 +44,26 @@ interface TaskRepository extends MongoRepository<Task, String> {
     @Query("{ 'currentStatus': {$in: ?0} }")
     List<Task> findByCurrentStatus(List<TaskStatus> statuses, Sort sort);
 
+    /**
+     * Retrieves the prioritized task matching with given criteria:
+     * <ul>
+     *     <li>Task is in one of given {@code statuses};</li>
+     *     <li>Task has not given {@code excludedTag}
+     *          - this is mainly used to exclude TEE tasks;
+     *     </li>
+     *     <li>Chain task ID is not one of the given {@code excludedChainTaskIds};</li>
+     *     <li>Tasks are prioritized according to the {@code sort} parameter.</li>
+     * </ul>
+     *
+     * @param statuses             The task status should be one of this list.
+     * @param excludedTag          The task tag should not be this tag
+     *                             - use {@literal null} if no tag should be excluded.
+     * @param excludedChainTaskIds The chain task ID should not be one of this list.
+     * @param sort                 How to prioritize tasks.
+     * @return The first task matching with the criteria, according to the {@code sort} parameter.
+     */
+    Optional<Task> findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(List<TaskStatus> statuses, String excludedTag, List<String> excludedChainTaskIds, Sort sort);
+    
     @Query("{ 'currentStatus': {$nin: ?0} }")
     List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
 

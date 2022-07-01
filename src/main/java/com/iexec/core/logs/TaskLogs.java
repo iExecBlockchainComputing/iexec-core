@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.iexec.core.stdout;
+package com.iexec.core.logs;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import com.iexec.common.replicate.ComputeLogs;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -36,7 +37,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TaskStdout {
+public class TaskLogs {
 
     @Id
     @JsonIgnore
@@ -49,21 +50,21 @@ public class TaskStdout {
     @Indexed(unique = true)
     private String chainTaskId;
 
-    private List<ReplicateStdout> replicateStdoutList;
+    private List<ComputeLogs> computeLogsList;
 
-    public TaskStdout(String chainTaskId) {
+    public TaskLogs(String chainTaskId) {
         this.chainTaskId = chainTaskId;
-        this.replicateStdoutList = new ArrayList<>();
+        this.computeLogsList = new ArrayList<>();
     }
 
-    public TaskStdout(String chainTaskId, List<ReplicateStdout> replicateStdoutList) {
+    public TaskLogs(String chainTaskId, List<ComputeLogs> computeLogsList) {
         this.chainTaskId = chainTaskId;
-        this.replicateStdoutList = replicateStdoutList;
+        this.computeLogsList = computeLogsList;
     }
 
     public boolean containsWalletAddress(String walletAddress) {
-        return replicateStdoutList.stream().anyMatch(
-            replicateStdout -> replicateStdout.getWalletAddress().equals(walletAddress)
+        return computeLogsList.stream().anyMatch(
+            computeLog -> computeLog.getWalletAddress().equals(walletAddress)
         );
     }
 }

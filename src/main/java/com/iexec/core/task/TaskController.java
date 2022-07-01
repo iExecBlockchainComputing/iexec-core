@@ -16,68 +16,173 @@
 
 package com.iexec.core.task;
 
-import static org.springframework.http.ResponseEntity.status;
-
-import java.util.Optional;
-
-import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.common.chain.eip712.entity.EIP712Challenge;
+import com.iexec.common.replicate.ComputeLogs;
+import com.iexec.common.security.Signature;
+import com.iexec.common.security.SignedChallenge;
+import com.iexec.common.task.TaskDescription;
+import com.iexec.common.utils.SignatureUtils;
+import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.logs.TaskLogs;
+import com.iexec.core.logs.TaskLogsService;
+import com.iexec.core.replicate.Replicate;
+import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.stdout.ReplicateStdout;
-import com.iexec.core.stdout.StdoutService;
-import com.iexec.core.stdout.TaskStdout;
-
+import com.iexec.core.security.EIP712ChallengeService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.web3j.utils.Numeric;
 
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.http.ResponseEntity.notFound;
+import static org.springframework.http.ResponseEntity.ok;
+
+@Slf4j
 @RestController
 public class TaskController {
 
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
-    private StdoutService stdoutService;
+    private final EIP712ChallengeService eip712ChallengeService;
+    private final IexecHubService iexecHubService;
+    private final ReplicatesService replicatesService;
+    private final TaskLogsService taskLogsService;
+    private final TaskService taskService;
 
-    public TaskController(TaskService taskService,
+    public TaskController(EIP712ChallengeService eip712ChallengeService,
+                          IexecHubService iexecHubService,
                           ReplicatesService replicatesService,
-                          StdoutService stdoutService) {
-        this.taskService = taskService;
+                          TaskLogsService taskLogsService,
+                          TaskService taskService) {
+        this.eip712ChallengeService = eip712ChallengeService;
+        this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
-        this.stdoutService = stdoutService;
+        this.taskLogsService = taskLogsService;
+        this.taskService = taskService;
     }
 
-    // TODO: add auth
+    @GetMapping("/tasks/logs/challenge")
+    public ResponseEntity<EIP712Challenge> getChallenge(@RequestParam("address") String address) {
+        return ok(eip712ChallengeService.getChallenge(address));
+    }
 
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity<TaskModel> getTask(@PathVariable("chainTaskId") String chainTaskId) {
-        Optional<Task> optionalTask = taskService.getTaskByChainTaskId(chainTaskId);
-        if (!optionalTask.isPresent()) {
-            return status(HttpStatus.NOT_FOUND).build();
+        return taskService.getTaskByChainTaskId(chainTaskId).map(task -> {
+            TaskModel taskModel = TaskModel.fromEntity(task);
+            if (replicatesService.hasReplicatesList(chainTaskId)) {
+                taskModel.setReplicates(replicatesService.getReplicates(chainTaskId)
+                        .stream()
+                        .map(this::buildReplicateModel)
+                        .collect(Collectors.toList()));
+            }
+            return ok(taskModel);
+        }).orElse(notFound().build());
+    }
+
+    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}")
+    public ResponseEntity<ReplicateModel> getTaskReplicate(@PathVariable("chainTaskId") String chainTaskId,
+                                                           @PathVariable("walletAddress") String walletAddress) {
+        return replicatesService.getReplicate(chainTaskId, walletAddress)
+                .map(replicate -> ok(buildReplicateModel(replicate)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Converts a replicate to a replicate model with links.
+     * <p>
+     * Note: Currently using links as string to avoid spring hateoas
+     * dependencies in client.
+     *
+     * @param replicate replicate entity
+     * @return replicate model
+     */
+    ReplicateModel buildReplicateModel(Replicate replicate) {
+        ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
+        if (replicate.isAppComputeLogsPresent()) {
+            String logs = linkTo(methodOn(TaskController.class)
+                    .getComputeLogs(
+                            replicate.getChainTaskId(),
+                            replicate.getWalletAddress(),
+                            ""))
+                    .withRel("logs")//useless, but helps understandability
+                    .getHref();
+            replicateModel.setAppLogs(logs);
         }
-        Task task = optionalTask.get();
-
-        ReplicatesList replicates = replicatesService.getReplicatesList(chainTaskId)
-                .orElseGet(ReplicatesList::new);
-
-        TaskModel taskModel = new TaskModel(task, replicates.getReplicates());
-
-        return ResponseEntity.ok(taskModel);
+        String self = linkTo(methodOn(TaskController.class)
+                .getTaskReplicate(
+                        replicate.getChainTaskId(),
+                        replicate.getWalletAddress()))
+                .withSelfRel().getHref();
+        replicateModel.setSelf(self);
+        return replicateModel;
     }
 
-    @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskStdout> getTaskStdout(@PathVariable("chainTaskId") String chainTaskId) {
-        return stdoutService.getTaskStdout(chainTaskId)
-                .<ResponseEntity<TaskStdout>>map(ResponseEntity::ok)
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/stdout",  // @Deprecated
+            "/tasks/{chainTaskId}/logs"
+    })
+    public ResponseEntity<TaskLogs> getTaskLogs(
+            @PathVariable("chainTaskId") String chainTaskId,
+            @RequestHeader("Authorization") String authorization) {
+        SignedChallenge signedChallenge = SignedChallenge.createFromString(authorization);
+        if (signedChallenge == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String taskLogsRequester = signedChallenge.getWalletAddress();
+        if(!isTaskRequester(taskLogsRequester, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
+        EIP712Challenge eip712Challenge = eip712ChallengeService.getChallenge(taskLogsRequester);
+        if (!SignatureUtils.doesSignatureMatchesAddress(
+                signature.getR(), signature.getS(), eip712Challenge.getHash(), taskLogsRequester)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return taskLogsService.getTaskLogs(chainTaskId)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/tasks/{chainTaskId}/stdout/{walletAddress}")
-    public ResponseEntity<ReplicateStdout> getReplicateStdout(
-                @PathVariable("chainTaskId") String chainTaskId,
-                @PathVariable("walletAddress") String walletAddress) {
-        return stdoutService.getReplicateStdout(chainTaskId, walletAddress)
-                .<ResponseEntity<ReplicateStdout>>map(ResponseEntity::ok)
+    @GetMapping(path = {
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
+            "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
+    })
+    public ResponseEntity<ComputeLogs> getComputeLogs(
+            @PathVariable("chainTaskId") String chainTaskId,
+            @PathVariable("walletAddress") String walletAddress,
+            @RequestHeader("Authorization") String authorization) {
+        SignedChallenge signedChallenge = SignedChallenge.createFromString(authorization);
+        if (signedChallenge == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String computeLogsRequester = signedChallenge.getWalletAddress();
+        if (!isTaskRequester(computeLogsRequester, chainTaskId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
+        EIP712Challenge eip712Challenge = eip712ChallengeService.getChallenge(computeLogsRequester);
+        if (!SignatureUtils.doesSignatureMatchesAddress(
+                signature.getR(), signature.getS(), eip712Challenge.getHash(), computeLogsRequester)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return taskLogsService.getComputeLogs(chainTaskId, walletAddress)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Checks if requester address from bearer token is the same as the address used to buy the task execution.
+     * @param logsRequester Wallet address of requester asking task or compute logs
+     * @param chainTaskId Task for which outputs are requested
+     * @return true if the user requesting computation outputs was the one to buy the task, false otherwise
+     */
+    private boolean isTaskRequester(String logsRequester, String chainTaskId) {
+        TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
+        return taskDescription != null && logsRequester.equalsIgnoreCase(taskDescription.getRequester());
+    }
+
 }

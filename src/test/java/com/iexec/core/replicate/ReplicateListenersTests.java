@@ -20,8 +20,8 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskUpdateManager;
 import com.iexec.core.task.listener.ReplicateListeners;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.mockito.ArgumentMatchers.any;
 
-public class ReplicateListenersTests {
+class ReplicateListenersTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
     private final static String WORKER_WALLET = "0xwallet1";
@@ -50,19 +50,19 @@ public class ReplicateListenersTests {
     @Mock
     private ReplicatesService replicatesService;
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private ReplicateListeners replicateListeners;
 
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldUpdateTaskOnReplicateUpdate() {
+    void shouldUpdateTaskOnReplicateUpdate() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
 
         for (ReplicateStatus randomStatus: someStatuses){
@@ -71,31 +71,31 @@ public class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(taskUpdateManager, Mockito.times(someStatuses.size())).publishUpdateTaskRequest(any());
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(someStatuses.size())).publishRequest(any());
     }
 
     @Test
-    public void shouldRemoveFromComputedTasksSinceStartFailed() {
+    void shouldRemoveFromComputedTasksSinceStartFailed() {
         assertIsRemovedFromComputedTasks(START_FAILED);
     }
 
     @Test
-    public void shouldRemoveFromComputedTasksSinceAppDownloadFailed() {
+    void shouldRemoveFromComputedTasksSinceAppDownloadFailed() {
         assertIsRemovedFromComputedTasks(APP_DOWNLOAD_FAILED);
     }
 
     @Test
-    public void shouldRemoveFromComputedTasksSinceDataDownloadFailed() {
+    void shouldRemoveFromComputedTasksSinceDataDownloadFailed() {
         assertIsRemovedFromComputedTasks(DATA_DOWNLOAD_FAILED);
     }
 
     @Test
-    public void shouldRemoveFromComputedTasksSinceComputedFailed() {
+    void shouldRemoveFromComputedTasksSinceComputedFailed() {
         assertIsRemovedFromComputedTasks(COMPUTED);
     }
 
     @Test
-    public void shouldRemoveFromComputedTasksSinceComputeFailed() {
+    void shouldRemoveFromComputedTasksSinceComputeFailed() {
         assertIsRemovedFromComputedTasks(COMPUTE_FAILED);
     }
 
@@ -107,7 +107,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldTriggerDetectOnchainContributedSinceTaskNotActive() {
+    void shouldTriggerDetectOnchainContributedSinceTaskNotActive() {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
@@ -120,7 +120,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldNotTriggerDetectOnchain() {
+    void shouldNotTriggerDetectOnchain() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
         someStatuses.remove(CONTRIBUTING);
 
@@ -134,7 +134,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldNotTriggerDetectOnchainContributedSinceCauseIsNull() {
+    void shouldNotTriggerDetectOnchainContributedSinceCauseIsNull() {
         ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
@@ -147,7 +147,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldAddFailedStatusSinceUncompletableReplicateStatus() {
+    void shouldAddFailedStatusSinceUncompletableReplicateStatus() {
         List<ReplicateStatus> uncompletableStatuses = ReplicateStatus.getUncompletableStatuses();
 
         for (ReplicateStatus uncompletableStatus: uncompletableStatuses){
@@ -161,7 +161,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldNotAddFailedStatusSinceCompletableReplicateStatus() {
+    void shouldNotAddFailedStatusSinceCompletableReplicateStatus() {
         List<ReplicateStatus> completableStatuses = ReplicateStatus.getCompletableStatuses();
 
         for (ReplicateStatus completableStatus: completableStatuses){
@@ -175,7 +175,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldRemoveChainTaskIdFromWorkerSinceCompleted() {
+    void shouldRemoveChainTaskIdFromWorkerSinceCompleted() {
         ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(COMPLETED);
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -185,7 +185,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldRemoveChainTaskIdFromWorkerSinceFailed() {
+    void shouldRemoveChainTaskIdFromWorkerSinceFailed() {
         ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(FAILED);
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -195,7 +195,7 @@ public class ReplicateListenersTests {
     }
 
     @Test
-    public void shouldNotRemoveChainTaskIdFromWorker() {
+    void shouldNotRemoveChainTaskIdFromWorker() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
         someStatuses.remove(COMPLETED);
         someStatuses.remove(FAILED);

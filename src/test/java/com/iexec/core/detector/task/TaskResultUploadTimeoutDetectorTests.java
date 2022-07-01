@@ -16,12 +16,11 @@
 
 package com.iexec.core.detector.task;
 
+import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.common.utils.DateTimeUtils;
-
-import com.iexec.core.task.TaskUpdateManager;
+import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -29,30 +28,30 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.when;
-
 import java.util.Collections;
 import java.util.Date;
 
-public class TaskResultUploadTimeoutDetectorTests {
+import static org.mockito.Mockito.when;
+
+class TaskResultUploadTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
 
     @Mock
-    private TaskUpdateManager taskUpdateManager;
+    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @InjectMocks
     private TaskResultUploadTimeoutDetector taskResultUploadTimeoutDetector;
 
     @BeforeEach
-    public void init() {
-        MockitoAnnotations.initMocks(this);
+    void init() {
+        MockitoAnnotations.openMocks(this);
     }
 
 
     @Test
-    public void shouldDetectResultUploadTimeout() {
+    void shouldDetectResultUploadTimeout() {
         String chainTaskId = "chainTaskId";
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), -1);
 
@@ -66,11 +65,11 @@ public class TaskResultUploadTimeoutDetectorTests {
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(1)).publishUpdateTaskRequest(chainTaskId);
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(1)).publishRequest(chainTaskId);
     }
 
     @Test
-    public void shouldNotDetectResultUploadTimeoutSinceStillBeforeDeadline() {
+    void shouldNotDetectResultUploadTimeoutSinceStillBeforeDeadline() {
         String chainTaskId = "chainTaskId";
         Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), 1);
 
@@ -84,7 +83,7 @@ public class TaskResultUploadTimeoutDetectorTests {
 
         taskResultUploadTimeoutDetector.detect();
 
-        Mockito.verify(taskUpdateManager, Mockito.times(0)).publishUpdateTaskRequest(chainTaskId);
+        Mockito.verify(taskUpdateRequestManager, Mockito.times(0)).publishRequest(chainTaskId);
     }
 
 }
