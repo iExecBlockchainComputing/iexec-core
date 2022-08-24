@@ -18,6 +18,7 @@ package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.sms.api.SmsClient;
+import com.iexec.sms.api.SmsClientCreationException;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,16 @@ public class SmsService {
 
     public SmsService(SmsClientProvider smsClientProvider) {
         this.smsClientProvider = smsClientProvider;
+    }
+
+    public boolean isSmsClientReady(String chainTaskId) {
+        try {
+            smsClientProvider.getOrCreateSmsClientForTask(chainTaskId);
+            return true;
+        } catch (SmsClientCreationException e) {
+            log.error("SmsClient is not ready [chainTaskId: {}]", chainTaskId, e);
+            return false;
+        }
     }
 
     public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {

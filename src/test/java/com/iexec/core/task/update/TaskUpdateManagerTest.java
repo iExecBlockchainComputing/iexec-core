@@ -32,18 +32,19 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import com.iexec.sms.api.SmsClientCreationException;
-import com.iexec.sms.api.SmsClientProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -94,9 +95,6 @@ class TaskUpdateManagerTest {
 
     @Mock
     private SmsService smsService;
-
-    @Mock
-    private SmsClientProvider smsClientProvider;
 
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
@@ -325,7 +323,7 @@ class TaskUpdateManagerTest {
                 .thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
-        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
+        when(smsService.isSmsClientReady(CHAIN_TASK_ID)).thenReturn(false);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);

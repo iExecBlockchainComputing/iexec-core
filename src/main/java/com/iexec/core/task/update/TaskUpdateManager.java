@@ -32,8 +32,6 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import com.iexec.sms.api.SmsClientCreationException;
-import com.iexec.sms.api.SmsClientProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -56,7 +54,6 @@ class TaskUpdateManager  {
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
-    private final SmsClientProvider smsClientProvider;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -64,8 +61,7 @@ class TaskUpdateManager  {
                              ApplicationEventPublisher applicationEventPublisher,
                              WorkerService workerService,
                              BlockchainAdapterService blockchainAdapterService,
-                             SmsService smsService,
-                             SmsClientProvider smsClientProvider) {
+                             SmsService smsService) {
         this.taskService = taskService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
@@ -73,7 +69,6 @@ class TaskUpdateManager  {
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.smsService = smsService;
-        this.smsClientProvider = smsClientProvider;
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -207,17 +202,11 @@ class TaskUpdateManager  {
             return;
         }
 
-        if (task.isTeeTask()) {
-            try {
-                // Try to load the `SmsClient` relative to the task.
-                // If it can't be loaded, then we won't be able to run the task, so we can abort it right now.
-                smsClientProvider.getOrCreateSmsClientForTask(task.getChainTaskId());
-            } catch (SmsClientCreationException e) {
-                log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId(), e);
-                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-                updateTaskStatusAndSave(task, FAILED);
-                return;
-            }
+        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainTaskId())) {
+            log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId());
+            updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+            updateTaskStatusAndSave(task, FAILED);
+            return;
         }
 
         blockchainAdapterService

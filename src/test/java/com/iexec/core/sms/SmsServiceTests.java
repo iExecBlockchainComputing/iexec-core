@@ -2,6 +2,7 @@ package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.sms.api.SmsClient;
+import com.iexec.sms.api.SmsClientCreationException;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import feign.Request;
@@ -35,6 +36,27 @@ class SmsServiceTests {
         MockitoAnnotations.openMocks(this);
     }
 
+    // region isSmsClientReady
+    @Test
+    void smsClientShouldBeReady() {
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(mock(SmsClient.class));
+
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_TASK_ID)).isTrue();
+
+        verify(smsClientProvider).getOrCreateSmsClientForTask(CHAIN_TASK_ID);
+    }
+
+    @Test
+    void smsClientShouldBNoteReady() {
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
+
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_TASK_ID)).isFalse();
+
+        verify(smsClientProvider).getOrCreateSmsClientForTask(CHAIN_TASK_ID);
+    }
+    // endregion
+
+    // region getEnclaveChallenge
     @Test
     void shouldGetEmptyAddressForStandardTask() {
         when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
@@ -76,7 +98,9 @@ class SmsServiceTests {
         verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
         Assertions.assertThat(received).isEmpty();
     }
+    // endregion
 
+    // region generateEnclaveChallenge
     @Test
     void shouldNotGetEnclaveChallengeOnFeignException() {
         when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
@@ -89,4 +113,5 @@ class SmsServiceTests {
         ).isEmpty();
         verifyNoInteractions(smsClient);
     }
+    // endregion
 }
