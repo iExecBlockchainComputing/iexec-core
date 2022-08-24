@@ -37,7 +37,7 @@ class SmsServiceTests {
 
     @Test
     void shouldGetEmptyAddressForStandardTask() {
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.of(smsClient));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
 
         Assertions.assertThat(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false))
                 .get()
@@ -48,7 +48,7 @@ class SmsServiceTests {
     @Test
     void shouldGetEnclaveChallengeForTeeTask() {
         String expected = "challenge";
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.of(smsClient));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
         
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
@@ -59,19 +59,8 @@ class SmsServiceTests {
     }
 
     @Test
-    void shouldNotGetEnclaveChallengeForTeeTaskWhenNoConfiguredSms() {
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
-
-        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
-        verify(smsClient, times(0)).generateTeeChallenge(CHAIN_TASK_ID);
-        Assertions.assertThat(received).isEmpty();
-    }
-
-
-    @Test
     void shouldNotGetEnclaveChallengeForTeeTaskWhenEmptySmsResponse() {
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.of(smsClient));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
         verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
@@ -80,7 +69,7 @@ class SmsServiceTests {
 
     @Test
     void shouldNotGetEnclaveChallengeForTeeTaskWhenNullSmsResponse() {
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.of(smsClient));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(null);
 
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, true);
@@ -90,7 +79,7 @@ class SmsServiceTests {
 
     @Test
     void shouldNotGetEnclaveChallengeOnFeignException() {
-        when(smsClientProvider.getSmsClientForTask(CHAIN_TASK_ID)).thenReturn(Optional.of(smsClient));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(smsClient);
         Request request = Request.create(Request.HttpMethod.HEAD, "http://localhost",
                 Collections.emptyMap(), Request.Body.empty(), null);
         Assertions.assertThat(smsService.generateEnclaveChallenge(

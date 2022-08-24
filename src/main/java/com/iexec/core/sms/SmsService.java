@@ -45,14 +45,12 @@ public class SmsService {
 
     @Retryable(value = FeignException.class)
     Optional<String> generateEnclaveChallenge(String chainTaskId) {
-        final Optional<SmsClient> oSmsClient = smsClientProvider.getSmsClientForTask(chainTaskId);
-        if (oSmsClient.isEmpty()) {
-            log.warn("No SMS related to given task [chainTaskId: {}]", chainTaskId);
-            return Optional.empty();
-        }
-        final SmsClient smsClient = oSmsClient.get();
+        // SMS client should already have been created once before.
+        // If it couldn't be created, then the task would have been aborted.
+        // So the following won't throw an exception.
+        final SmsClient smsClient = smsClientProvider.getOrCreateSmsClientForTask(chainTaskId);
 
-        String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+        final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
         if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
             log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);

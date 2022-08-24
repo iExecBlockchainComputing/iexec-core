@@ -39,6 +39,8 @@ import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import com.iexec.sms.api.SmsClientCreationException;
+import com.iexec.sms.api.SmsClientProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -92,6 +94,9 @@ class TaskUpdateManagerTest {
 
     @Mock
     private SmsService smsService;
+
+    @Mock
+    private SmsClientProvider smsClientProvider;
 
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
@@ -305,6 +310,25 @@ class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    @Test
+    void shouldNotUpdateReceived2InitializingSinceNoSmsClient() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test
