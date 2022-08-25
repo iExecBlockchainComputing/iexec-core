@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 
 class SmsServiceTests {
 
+    private static final String CHAIN_DEAL_ID = "chainDealId";
     private static final String CHAIN_TASK_ID = "chainTaskId";
 
     @Mock
@@ -39,20 +40,20 @@ class SmsServiceTests {
     // region isSmsClientReady
     @Test
     void smsClientShouldBeReady() {
-        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenReturn(mock(SmsClient.class));
+        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenReturn(mock(SmsClient.class));
 
-        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_TASK_ID)).isTrue();
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isTrue();
 
-        verify(smsClientProvider).getOrCreateSmsClientForTask(CHAIN_TASK_ID);
+        verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL_ID, CHAIN_TASK_ID);
     }
 
     @Test
     void smsClientShouldBNoteReady() {
-        when(smsClientProvider.getOrCreateSmsClientForTask(CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
+        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
 
-        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_TASK_ID)).isFalse();
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isFalse();
 
-        verify(smsClientProvider).getOrCreateSmsClientForTask(CHAIN_TASK_ID);
+        verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL_ID, CHAIN_TASK_ID);
     }
     // endregion
 

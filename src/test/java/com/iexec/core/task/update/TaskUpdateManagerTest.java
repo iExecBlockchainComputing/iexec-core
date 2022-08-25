@@ -323,7 +323,7 @@ class TaskUpdateManagerTest {
                 .thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
-        when(smsService.isSmsClientReady(CHAIN_TASK_ID)).thenReturn(false);
+        when(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenReturn(false);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
