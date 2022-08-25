@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class SmsClientConfiguration {
+public class SmsClientProviderConfiguration {
     private final IexecHubService iexecHubService;
 
-    public SmsClientConfiguration(IexecHubService iexecHubService) {
+    public SmsClientProviderConfiguration(IexecHubService iexecHubService) {
         this.iexecHubService = iexecHubService;
     }
 
