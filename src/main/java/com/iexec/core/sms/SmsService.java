@@ -38,9 +38,9 @@ public class SmsService {
         this.smsClientProvider = smsClientProvider;
     }
 
-    public boolean isSmsClientReady(String chainTaskId) {
+    public boolean isSmsClientReady(String chainDealId, String chainTaskId) {
         try {
-            smsClientProvider.getOrCreateSmsClientForTask(chainTaskId);
+            smsClientProvider.getOrCreateSmsClientForUninitializedTask(chainDealId, chainTaskId);
             return true;
         } catch (SmsClientCreationException e) {
             log.error("SmsClient is not ready [chainTaskId: {}]", chainTaskId, e);

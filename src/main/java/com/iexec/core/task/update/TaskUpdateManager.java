@@ -202,7 +202,7 @@ class TaskUpdateManager  {
             return;
         }
 
-        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainTaskId())) {
+        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainDealId(), task.getChainTaskId())) {
             log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId());
             updateTaskStatusAndSave(task, INITIALIZE_FAILED);
             updateTaskStatusAndSave(task, FAILED);
