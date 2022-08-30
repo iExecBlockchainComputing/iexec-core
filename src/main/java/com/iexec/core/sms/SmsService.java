@@ -18,6 +18,8 @@ package com.iexec.core.sms;
 
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.sms.api.SmsClient;
+import com.iexec.sms.api.SmsClientCreationException;
+import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Recover;
@@ -30,10 +32,20 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class SmsService {
-    private final SmsClient smsClient;
+    private final SmsClientProvider smsClientProvider;
 
-    public SmsService(SmsClient smsClient) {
-        this.smsClient = smsClient;
+    public SmsService(SmsClientProvider smsClientProvider) {
+        this.smsClientProvider = smsClientProvider;
+    }
+
+    public boolean isSmsClientReady(String chainDealId, String chainTaskId) {
+        try {
+            smsClientProvider.getOrCreateSmsClientForUninitializedTask(chainDealId, chainTaskId);
+            return true;
+        } catch (SmsClientCreationException e) {
+            log.error("SmsClient is not ready [chainTaskId: {}]", chainTaskId, e);
+            return false;
+        }
     }
 
     public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
@@ -44,8 +56,12 @@ public class SmsService {
 
     @Retryable(value = FeignException.class)
     Optional<String> generateEnclaveChallenge(String chainTaskId) {
+        // SMS client should already have been created once before.
+        // If it couldn't be created, then the task would have been aborted.
+        // So the following won't throw an exception.
+        final SmsClient smsClient = smsClientProvider.getOrCreateSmsClientForTask(chainTaskId);
 
-        String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+        final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
         if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
             log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);

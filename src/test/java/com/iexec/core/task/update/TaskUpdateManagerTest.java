@@ -32,16 +32,19 @@ import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -305,6 +308,25 @@ class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+    }
+
+    @Test
+    void shouldNotUpdateReceived2InitializingSinceNoSmsClient() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenReturn(false);
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test

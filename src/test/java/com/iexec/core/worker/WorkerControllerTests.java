@@ -6,7 +6,6 @@ import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -58,8 +57,6 @@ class WorkerControllerTests {
     private WorkerConfiguration workerConfiguration;
     @Mock
     private ResultRepositoryConfiguration resultRepoConfig;
-    @Mock
-    private SmsConfiguration smsConfiguration;
     @Mock
     private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
