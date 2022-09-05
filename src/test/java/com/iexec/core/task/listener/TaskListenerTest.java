@@ -19,6 +19,7 @@ package com.iexec.core.task.listener;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.task.TaskAbortCause;
+import com.iexec.common.utils.purge.PurgeService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -55,6 +56,8 @@ class TaskListenerTest {
     private ReplicatesService replicatesService;
     @Mock
     private WorkerService workerService;
+    @Mock
+    private PurgeService purgeService;
 
     @InjectMocks
     private TaskListeners taskListeners;
@@ -160,6 +163,7 @@ class TaskListenerTest {
         taskListeners.onTaskCompletedEvent(event);
         verify(notificationService).sendTaskNotification(any());
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
+        verify(purgeService).purgeAllServices(CHAIN_TASK_ID);
         // TODO capture args
     }
 
@@ -177,6 +181,7 @@ class TaskListenerTest {
                         .build()
         );
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
+        verify(purgeService).purgeAllServices(CHAIN_TASK_ID);
     }
 
     @Test
@@ -193,5 +198,6 @@ class TaskListenerTest {
                         .build()
         );
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
+        verify(purgeService).purgeAllServices(CHAIN_TASK_ID);
     }
 }
