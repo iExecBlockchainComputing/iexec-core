@@ -19,6 +19,8 @@ package com.iexec.core.sms;
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.IexecHubAbstractService;
 import com.iexec.common.task.TaskDescription;
+import com.iexec.common.tee.TeeEnclaveProvider;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientCreationException;
@@ -43,6 +45,20 @@ public class SmsService {
         this.iexecHubService = iexecHubService;
     }
 
+    /**
+     * Checks the following conditions:
+     * <ul>
+     *     <li>Given deal exists on-chain;</li>
+     *     <li>The {@link SmsClient} can be created, based on the on-chain deal definition;</li>
+     *     <li>The targeted SMS is configured to run with the task's TEE enclave provider.</li>
+     * </ul>
+     * <p>
+     * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
+     *
+     * @param chainDealId ID of the on-chain deal related to the task to execute.
+     * @param chainTaskId ID of the on-chain task.
+     * @return {@literal true} if previous conditions are met, {@literal false} otherwise.
+     */
     public boolean isSmsClientReady(String chainDealId, String chainTaskId) {
         try {
             final Optional<ChainDeal> chainDeal = iexecHubService.getChainDeal(chainDealId);
@@ -50,12 +66,34 @@ public class SmsService {
                 log.error("No chain deal for given ID [chainDealId: {}]", chainDealId);
                 return false;
             }
-            smsClientProvider.getOrCreateSmsClientForUninitializedTask(chainDeal.get(), chainTaskId);
-            return true;
+            final SmsClient smsClient = smsClientProvider.getOrCreateSmsClientForUninitializedTask(chainDeal.get(), chainTaskId);
+            final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(chainDeal.get().getTag());
+            return checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId);
         } catch (SmsClientCreationException e) {
             log.error("SmsClient is not ready [chainTaskId: {}]", chainTaskId, e);
             return false;
         }
+    }
+
+    private boolean checkSmsTeeEnclaveProvider(SmsClient smsClient,
+                                               TeeEnclaveProvider teeEnclaveProviderForDeal,
+                                               String chainTaskId) {
+        final TeeEnclaveProvider smsTeeEnclaveProvider;
+        try {
+            smsTeeEnclaveProvider = smsClient.getTeeEnclaveProvider();
+        } catch (FeignException e) {
+            log.error("Can't retrieve SMS TEE enclave provider [chainTaskId:{}]",
+                    chainTaskId, e);
+            return false;
+        }
+
+        if (smsTeeEnclaveProvider != teeEnclaveProviderForDeal) {
+            log.error("SMS is configured for another TEE enclave provider " +
+                            "[chainTaskId:{}, teeEnclaveProviderForDeal:{}, smsTeeEnclaveProvider:{}]",
+                    chainTaskId, teeEnclaveProviderForDeal, smsTeeEnclaveProvider);
+            return false;
+        }
+        return true;
     }
 
     public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {

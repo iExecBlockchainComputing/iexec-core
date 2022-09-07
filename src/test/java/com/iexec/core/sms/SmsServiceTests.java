@@ -3,6 +3,7 @@ package com.iexec.core.sms;
 import com.iexec.common.chain.ChainDeal;
 import com.iexec.common.chain.IexecHubAbstractService;
 import com.iexec.common.task.TaskDescription;
+import com.iexec.common.tee.TeeEnclaveProvider;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientCreationException;
@@ -19,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.Collections;
 import java.util.Optional;
 
+import static com.iexec.common.tee.TeeUtils.TEE_GRAMINE_ONLY_TAG;
 import static org.mockito.Mockito.*;
 
 class SmsServiceTests {
@@ -28,6 +30,7 @@ class SmsServiceTests {
     private static final ChainDeal CHAIN_DEAL = ChainDeal
             .builder()
             .chainDealId(CHAIN_DEAL_ID)
+            .tag(TEE_GRAMINE_ONLY_TAG)
             .build();
     private static final TaskDescription TASK_DESCRIPTION = TaskDescription
             .builder()
@@ -54,11 +57,13 @@ class SmsServiceTests {
     @Test
     void smsClientShouldBeReady() {
         when(iexecHubService.getChainDeal(CHAIN_DEAL_ID)).thenReturn(Optional.of(CHAIN_DEAL));
-        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID)).thenReturn(mock(SmsClient.class));
+        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID)).thenReturn(smsClient);
+        when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeEnclaveProvider.GRAMINE);
 
         Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isTrue();
 
         verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID);
+        verify(smsClient).getTeeEnclaveProvider();
     }
 
     @Test
@@ -68,16 +73,42 @@ class SmsServiceTests {
         Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isFalse();
 
         verify(smsClientProvider, times(0)).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID);
+        verify(smsClient, times(0)).getTeeEnclaveProvider();
     }
 
     @Test
-    void smsClientShouldBeNotReady() {
+    void smsClientShouldBeNotReadySinceCantBeCreated() {
         when(iexecHubService.getChainDeal(CHAIN_DEAL_ID)).thenReturn(Optional.of(CHAIN_DEAL));
         when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID)).thenThrow(SmsClientCreationException.class);
 
         Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isFalse();
 
         verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID);
+        verify(smsClient, times(0)).getTeeEnclaveProvider();
+    }
+
+    @Test
+    void smsClientShouldBeNotReadySinceCantRetrieveTeeEnclaveProvider() {
+        when(iexecHubService.getChainDeal(CHAIN_DEAL_ID)).thenReturn(Optional.of(CHAIN_DEAL));
+        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID)).thenReturn(smsClient);
+        when(smsClient.getTeeEnclaveProvider()).thenThrow(mock(FeignException.class));
+
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isFalse();
+
+        verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID);
+        verify(smsClient).getTeeEnclaveProvider();
+    }
+
+    @Test
+    void smsClientShouldBeNotReadySinceWrongTeeEnclaveProvider() {
+        when(iexecHubService.getChainDeal(CHAIN_DEAL_ID)).thenReturn(Optional.of(CHAIN_DEAL));
+        when(smsClientProvider.getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID)).thenReturn(smsClient);
+        when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeEnclaveProvider.SCONE);
+
+        Assertions.assertThat(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).isFalse();
+
+        verify(smsClientProvider).getOrCreateSmsClientForUninitializedTask(CHAIN_DEAL, CHAIN_TASK_ID);
+        verify(smsClient).getTeeEnclaveProvider();
     }
     // endregion
 
