@@ -19,7 +19,7 @@ package com.iexec.core.task.listener;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.task.TaskAbortCause;
-import com.iexec.common.utils.purge.PurgeService;
+import com.iexec.common.lifecycle.purge.PurgeService;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
