@@ -58,10 +58,6 @@ public class Task {
 
     public static final String CURRENT_STATUS_FIELD_NAME        = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
-    /**
-     * An XL task timeout happens after 100 hours.
-     */
-    public static final Duration LONGEST_TASK_TIMEOUT = Duration.ofHours(100);
 
     @Id
     private String id;
