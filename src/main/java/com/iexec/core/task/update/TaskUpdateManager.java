@@ -33,6 +33,7 @@ import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -202,11 +203,16 @@ class TaskUpdateManager  {
             return;
         }
 
-        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainDealId(), task.getChainTaskId())) {
-            log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId());
-            updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-            updateTaskStatusAndSave(task, FAILED);
-            return;
+        if (task.isTeeTask()) {
+            String smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
+            if(StringUtils.isEmpty(smsUrl)){
+                log.error("Couldn't get verified SMS url [chainTaskId: {}]", task.getChainTaskId());
+                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+                updateTaskStatusAndSave(task, FAILED);
+                return;
+            }
+            task.setSmsUrl(smsUrl); //SMS URL source of truth for the task
+            taskService.updateTask(task);
         }
 
         blockchainAdapterService
@@ -215,7 +221,7 @@ class TaskUpdateManager  {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.getSmsUrl());
                     if (enclaveChallenge.isEmpty()) {
                         log.error("Can't initialize task, enclave challenge is empty" +
                                 " [chainTaskId:{}]", chainTaskId);

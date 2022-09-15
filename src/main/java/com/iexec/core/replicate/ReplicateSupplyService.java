@@ -20,6 +20,8 @@ import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
+import com.iexec.common.replicate.ReplicateDemandResponse;
+import com.iexec.common.replicate.ReplicateDemandResponse.ReplicateDemandResponseBuilder;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -87,7 +89,8 @@ public class ReplicateSupplyService {
      *
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<WorkerpoolAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
+    //TODO: Rename methods and var names to ReplicateDemand
+    Optional<ReplicateDemandResponse> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
         // return empty if max computing task is reached or if the worker is not found
         if (!workerService.canAcceptMoreWorks(walletAddress)) {
             return Optional.empty();
@@ -128,12 +131,12 @@ public class ReplicateSupplyService {
      * if any {@link Task} is available and can be handled by this worker,
      * {@link Optional#empty()} otherwise.
      */
-    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyAvailableTask(
+    private Optional<ReplicateDemandResponse> getAuthorizationForAnyAvailableTask(
             String walletAddress,
             boolean isTeeEnabled) {
         final List<String> alreadyScannedTasks = new ArrayList<>();
 
-        Optional<WorkerpoolAuthorization> authorization = Optional.empty();
+        Optional<ReplicateDemandResponse> authorization = Optional.empty();
         while (authorization.isEmpty()) {
             final Optional<Task> oTask = taskService.getPrioritizedInitializedOrRunningTask(
                     !isTeeEnabled,
@@ -146,12 +149,12 @@ public class ReplicateSupplyService {
 
             final Task task = oTask.get();
             alreadyScannedTasks.add(task.getChainTaskId());
-            authorization = getAuthorizationForTask(task, walletAddress);
+            authorization = getDemandForTask(task, walletAddress);
         }
         return authorization;
     }
 
-    private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {
+    private Optional<ReplicateDemandResponse> getDemandForTask(Task task, String walletAddress) {
         String chainTaskId = task.getChainTaskId();
         if (!acceptOrRejectTask(task, walletAddress)) {
             return Optional.empty();
@@ -162,7 +165,12 @@ public class ReplicateSupplyService {
                 walletAddress,
                 chainTaskId,
                 task.getEnclaveChallenge());
-        return Optional.of(authorization);
+        ReplicateDemandResponseBuilder demand = ReplicateDemandResponse.builder()
+            .workerpoolAuthorization(authorization);
+        if(task.isTeeTask()){
+            demand.smsUrl(task.getSmsUrl());
+        }
+        return Optional.of(demand.build());
     }
 
     /**

@@ -65,6 +65,8 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
     implementation "org.springframework.boot:spring-boot-starter-hateoas"
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
 
     // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
     implementation 'com.squareup.okhttp3:okhttp:4.3.1' // Web3j issue: https://github.com/web3j/web3j/issues/1180

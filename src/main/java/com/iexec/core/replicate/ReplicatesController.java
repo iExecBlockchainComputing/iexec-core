@@ -16,7 +16,6 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
@@ -50,7 +49,7 @@ public class ReplicatesController {
     }
 
     @GetMapping("/replicates/available")
-    public ResponseEntity<WorkerpoolAuthorization> getAvailableReplicate(
+    public ResponseEntity<ReplicateDemandResponse> getAvailableReplicate(
         @RequestParam(name = "blockNumber") long blockNumber,
         @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
