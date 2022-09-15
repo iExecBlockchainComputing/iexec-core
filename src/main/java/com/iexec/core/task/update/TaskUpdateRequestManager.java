@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-import static com.iexec.common.utils.CategoriesUtils.LONGEST_TASK_TIMEOUT;
+import static com.iexec.common.chain.CategoriesUtils.LONGEST_TASK_TIMEOUT;
 
 /**
  * This class is used to perform updates on a task one by one.
