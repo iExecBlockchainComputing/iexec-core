@@ -16,7 +16,6 @@
 
 package com.iexec.core.sms;
 
-import com.iexec.common.chain.IexecHubAbstractService;
 import com.iexec.common.tee.TeeEnclaveProvider;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
@@ -36,14 +35,11 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class SmsService {
-    private final IexecHubAbstractService iexecHubService;
     private PlatformRegistryConfiguration registryConfiguration;
     private SmsClientProvider smsClientProvider;
 
-    public SmsService(IexecHubAbstractService iexecHubService,
-        PlatformRegistryConfiguration registryConfiguration,
+    public SmsService(PlatformRegistryConfiguration registryConfiguration,
         SmsClientProvider smsClientProvider) {
-        this.iexecHubService = iexecHubService;
         this.registryConfiguration = registryConfiguration;
         this.smsClientProvider = smsClientProvider;
     }
@@ -64,6 +60,9 @@ public class SmsService {
      */
     public String getVerifiedSmsUrl(String chainTaskId, String tag) {
         final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(tag);
+        if(teeEnclaveProviderForDeal == null){
+            return "";
+        }
         String smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl);
         if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
@@ -119,7 +118,7 @@ public class SmsService {
 
         final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
-        if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
+        if (StringUtils.isEmpty(teeChallengePublicKey)) {
             log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }

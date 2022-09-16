@@ -58,10 +58,12 @@ import java.util.stream.Collectors;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class TaskUpdateManagerTest {
     private final long maxExecutionTime = 60000;
+    private static final String smsUrl = "smsUrl";
 
     @Mock
     private WorkerService workerService;
@@ -323,7 +325,7 @@ class TaskUpdateManagerTest {
                 .thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
-        when(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenReturn(false);
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, task.getTag())).thenReturn(smsUrl);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -365,7 +367,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.empty());
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.empty());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -378,6 +380,7 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
+        task.setSmsUrl(smsUrl);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -391,7 +394,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);

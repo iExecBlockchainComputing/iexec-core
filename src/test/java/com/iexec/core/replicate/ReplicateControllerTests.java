@@ -24,12 +24,17 @@ class ReplicateControllerTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET_ADDRESS = "walletAddress";
+    private static final String SMS_URL = "smsUrl";
     private static final String TOKEN = "token";
     private static final int BLOCK_NUMBER = 1;
     private static final WorkerpoolAuthorization AUTH = WorkerpoolAuthorization.builder()
             .chainTaskId(CHAIN_TASK_ID)
             .workerWallet(WALLET_ADDRESS)
             .build();
+    private static final ReplicateDemandResponse REPLICATE_DEMAND_RESPONSE = ReplicateDemandResponse.builder()
+            .workerpoolAuthorization(AUTH)
+            .smsUrl(SMS_URL)
+            .build(); 
     private static final ReplicateStatusUpdate UPDATE = ReplicateStatusUpdate.builder()
             .status(ReplicateStatus.STARTED)
             .build();
@@ -64,14 +69,14 @@ class ReplicateControllerTests {
                 .thenReturn(true);
         when(replicateSupplyService
                 .getAuthOfAvailableReplicate(BLOCK_NUMBER, WALLET_ADDRESS))
-                .thenReturn(Optional.of(AUTH));
+                .thenReturn(Optional.of(REPLICATE_DEMAND_RESPONSE));
 
-        ResponseEntity<WorkerpoolAuthorization> response =
+        ResponseEntity<ReplicateDemandResponse> response =
                 replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        WorkerpoolAuthorization auth = response.getBody();
-        assertThat(auth.getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
+        ReplicateDemandResponse replicateDemandResponse = response.getBody();
+        assertThat(replicateDemandResponse.getWorkerpoolAuthorization().getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
     }
 
     @Test
@@ -79,7 +84,7 @@ class ReplicateControllerTests {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
 
-        ResponseEntity<WorkerpoolAuthorization> response =
+        ResponseEntity<ReplicateDemandResponse> response =
                 replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -92,7 +97,7 @@ class ReplicateControllerTests {
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(false);
 
-        ResponseEntity<WorkerpoolAuthorization> response =
+        ResponseEntity<ReplicateDemandResponse> response =
                 replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -108,7 +113,7 @@ class ReplicateControllerTests {
                 .getAuthOfAvailableReplicate(BLOCK_NUMBER, WALLET_ADDRESS))
                 .thenReturn(Optional.empty());
 
-        ResponseEntity<WorkerpoolAuthorization> response =
+        ResponseEntity<ReplicateDemandResponse> response =
                 replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
