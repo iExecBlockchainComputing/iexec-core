@@ -17,6 +17,8 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.WorkerpoolAuthorization;
+import com.iexec.common.lifecycle.purge.ExpiringTaskMapFactory;
+import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
@@ -35,22 +37,19 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 
 
 @Service
-public class ReplicateSupplyService {
+public class ReplicateSupplyService implements Purgeable {
 
     private final ReplicatesService replicatesService;
     private final SignatureService signatureService;
@@ -58,10 +57,7 @@ public class ReplicateSupplyService {
     private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final Web3jService web3jService;
-    final Map<String, Lock> taskAccessForNewReplicateLocks =
-            ExpiringMap.builder()
-                    .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
-                    .build();
+    final Map<String, Lock> taskAccessForNewReplicateLocks = ExpiringTaskMapFactory.getExpiringTaskMap();
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -540,4 +536,17 @@ public class ReplicateSupplyService {
                 return TaskAbortCause.UNKNOWN;
         }
     }
+
+    // region purge locks
+    @Override
+    public boolean purgeTask(String chainTaskId) {
+        taskAccessForNewReplicateLocks.remove(chainTaskId);
+        return !taskAccessForNewReplicateLocks.containsKey(chainTaskId);
+    }
+
+    @Override
+    public void purgeAllTasksData() {
+        taskAccessForNewReplicateLocks.clear();
+    }
+    // endregion
 }

@@ -16,6 +16,7 @@
 
 package com.iexec.core.task.listener;
 
+import com.iexec.common.lifecycle.purge.PurgeService;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
@@ -43,15 +44,18 @@ public class TaskListeners {
     private final NotificationService notificationService;
     private final ReplicatesService replicatesService;
     private final WorkerService workerService;
+    private final PurgeService purgeService;
 
     public TaskListeners(TaskUpdateRequestManager taskUpdateRequestManager,
                          NotificationService notificationService,
                          ReplicatesService replicatesService,
-                         WorkerService workerService) {
+                         WorkerService workerService,
+                         PurgeService purgeService) {
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
         this.workerService = workerService;
+        this.purgeService = purgeService;
     }
 
 
@@ -163,7 +167,7 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
-        removeChainTaskIdFromWorkers(chainTaskId);
+        purgeTask(chainTaskId);
     }
 
     @EventListener
@@ -177,7 +181,7 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
-        removeChainTaskIdFromWorkers(chainTaskId);
+        purgeTask(chainTaskId);
     }
 
     @EventListener
@@ -191,13 +195,17 @@ public class TaskListeners {
                 .workersAddress(Collections.emptyList())
                 .build());
 
-        removeChainTaskIdFromWorkers(chainTaskId);
+        purgeTask(chainTaskId);
     }
 
-    private void removeChainTaskIdFromWorkers(String chainTaskId) {
+    private void purgeTask(String chainTaskId) {
+        // Remove task from workers
         for (Replicate replicate : replicatesService.getReplicates(chainTaskId)) {
             workerService.removeChainTaskIdFromWorker(chainTaskId, replicate.getWalletAddress());
         }
+
+        // Remove other services in-mem task info
+        purgeService.purgeAllServices(chainTaskId);
     }
 
 }
