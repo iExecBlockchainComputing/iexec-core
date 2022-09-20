@@ -71,11 +71,6 @@ ipfs:
   host: ${IEXEC_IPFS_HOST:127.0.0.1}
   port: ${IEXEC_IPFS_PORT:5001}
 
-sms:
-  protocol: ${IEXEC_SMS_PROTOCOL:http}
-  host: ${IEXEC_SMS_HOST:localhost}
-  port: ${IEXEC_SMS_PORT:13300}
-
 management:
   server:
     port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}

@@ -25,6 +25,7 @@ import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.task.TaskAbortCause;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.SignatureService;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -49,9 +51,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 @Slf4j
@@ -66,7 +69,7 @@ class ReplicateSupplyServiceTests {
     private final static String DAPP_NAME = "dappName";
     private final static String COMMAND_LINE = "commandLine";
     private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    private final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    private final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
     private final static long maxExecutionTime = 60000;
     long workerLastBlock = 12;
@@ -1155,6 +1158,60 @@ class ReplicateSupplyServiceTests {
         Mockito.verify(replicatesService, times(0))
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RECOVERING);
     }
+
+    // region purgeTask
+    @Test
+    void shouldPurgeTaskWhenKnownTask() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+        taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID, new ReentrantLock());
+
+        assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
+        assertThat(taskAccessForNewReplicateLocks).isEmpty();
+    }
+
+    @Test
+    void shouldPurgeTaskWhenUnknownTask() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+        taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID_2, new ReentrantLock());
+
+        assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
+        assertThat(taskAccessForNewReplicateLocks).containsOnlyKeys(CHAIN_TASK_ID_2);
+    }
+
+    @Test
+    void shouldPurgeTaskWhenEmpty() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+
+        assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
+        assertThat(taskAccessForNewReplicateLocks).isEmpty();
+    }
+
+    private Map<String, Lock> getTaskAccessForNewReplicateLocks() throws NoSuchFieldException, IllegalAccessException {
+        final Field field = ReplicateSupplyService.class.getDeclaredField("taskAccessForNewReplicateLocks");
+        field.setAccessible(true);
+        return (Map<String, Lock>) field.get(replicateSupplyService);
+    }
+    // endregion
+
+    // region purgeAllTasksData
+    @Test
+    void shouldPurgeAllTasksDataWhenEmpty() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+
+        replicateSupplyService.purgeAllTasksData();
+        assertThat(taskAccessForNewReplicateLocks).isEmpty();
+    }
+
+    @Test
+    void shouldPurgeAllTasksDataWhenFull() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+        taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID, new ReentrantLock());
+        taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID_2, new ReentrantLock());
+
+        replicateSupplyService.purgeAllTasksData();
+        assertThat(taskAccessForNewReplicateLocks).isEmpty();
+    }
+    // endregion
 
     List<Task> getStubTaskList(TaskStatus status) {
         Task task = Task.builder()

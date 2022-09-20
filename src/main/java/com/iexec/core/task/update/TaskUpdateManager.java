@@ -202,6 +202,13 @@ class TaskUpdateManager  {
             return;
         }
 
+        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainDealId(), task.getChainTaskId())) {
+            log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId());
+            updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+            updateTaskStatusAndSave(task, FAILED);
+            return;
+        }
+
         blockchainAdapterService
                 .requestInitialize(task.getChainDealId(), task.getTaskIndex())
                 .filter(chainTaskId -> chainTaskId.equalsIgnoreCase(task.getChainTaskId()))

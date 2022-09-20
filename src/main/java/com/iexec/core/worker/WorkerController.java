@@ -26,7 +26,6 @@ import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.configuration.SessionService;
-import com.iexec.core.configuration.SmsConfiguration;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -54,7 +53,6 @@ public class WorkerController {
     private final ChallengeService challengeService;
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
-    private final SmsConfiguration smsConfiguration;
     private final BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
     public WorkerController(WorkerService workerService,
@@ -64,7 +62,6 @@ public class WorkerController {
                             ChallengeService challengeService,
                             WorkerConfiguration workerConfiguration,
                             ResultRepositoryConfiguration resultRepoConfig,
-                            SmsConfiguration smsConfiguration,
                             BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
         this.workerService = workerService;
         this.chainConfig = chainConfig;
@@ -73,7 +70,6 @@ public class WorkerController {
         this.challengeService = challengeService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
-        this.smsConfiguration = smsConfiguration;
         this.blockchainAdapterClientConfig = blockchainAdapterClientConfig;
     }
 
@@ -153,7 +149,6 @@ public class WorkerController {
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
-                .smsURL(smsConfiguration.getSmsURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
