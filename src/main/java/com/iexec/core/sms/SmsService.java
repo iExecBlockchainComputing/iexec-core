@@ -81,7 +81,6 @@ public class SmsService {
         return smsUrl;
     }
 
-    //TODO: Move to sms-lib (remove chainTaskId too)
     private boolean checkSmsTeeEnclaveProvider(SmsClient smsClient,
                                                TeeEnclaveProvider teeEnclaveProviderForDeal,
                                                String chainTaskId) {
