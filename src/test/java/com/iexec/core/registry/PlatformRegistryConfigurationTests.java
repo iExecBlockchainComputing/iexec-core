@@ -14,7 +14,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
     "sms.scone=http://scone-sms",
     "sms.gramine=http://gramine-sms"
     })
-public class PlatformRegistryConfigurationTests {
+class PlatformRegistryConfigurationTests {
 
     @Autowired
     PlatformRegistryConfiguration platformRegistryConfiguration;

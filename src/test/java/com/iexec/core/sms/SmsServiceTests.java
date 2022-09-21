@@ -64,8 +64,8 @@ class SmsServiceTests {
                 TeeUtils.TEE_GRAMINE_ONLY_TAG);
         //Ensure all TeeEnclaveProvider are handled
         // (adding a new one would break assertion)
-        Assertions.assertThat(supportedTeeTags.size())
-            .isEqualTo(TeeEnclaveProvider.values().length);
+        Assertions.assertThat(supportedTeeTags)
+            .hasSize(TeeEnclaveProvider.values().length);
         return Stream.of(
                 Arguments.of(supportedTeeTags.get(0), SCONE_SMS_URL),
                 Arguments.of(supportedTeeTags.get(1), GRAMINE_SMS_URL)
