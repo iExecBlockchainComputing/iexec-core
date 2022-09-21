@@ -71,7 +71,7 @@ public class SmsService {
         return smsUrl;
     }
 
-    public String retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
+    private String retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
         String smsUrl = "";
         if(TeeEnclaveProvider.SCONE.equals(teeEnclaveProvider)){
             smsUrl = registryConfiguration.getSconeSms();
