@@ -85,7 +85,6 @@ public class ReplicateSupplyService implements Purgeable {
      *
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    //TODO: Rename methods and var names to ReplicateDemand
     Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
         // return empty if max computing task is reached or if the worker is not found
         if (!workerService.canAcceptMoreWorks(walletAddress)) {
