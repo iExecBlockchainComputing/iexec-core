@@ -49,7 +49,7 @@ public class ReplicatesController {
     }
 
     @GetMapping("/replicates/available")
-    public ResponseEntity<ReplicateDemandResponse> getAvailableReplicate(
+    public ResponseEntity<ReplicateTaskSummary> getAvailableReplicateTaskSummary(
         @RequestParam(name = "blockNumber") long blockNumber,
         @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
@@ -63,7 +63,7 @@ public class ReplicatesController {
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
         return replicateSupplyService
-                .getAuthOfAvailableReplicate(blockNumber, workerWalletAddress)
+                .getAvailableReplicateTaskSummary(blockNumber, workerWalletAddress)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> status(HttpStatus.NO_CONTENT).build());
     }
