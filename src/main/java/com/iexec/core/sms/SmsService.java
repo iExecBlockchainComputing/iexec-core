@@ -55,28 +55,37 @@ public class SmsService {
      * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
      *
      * @param chainTaskId ID of the on-chain task.
-     * @param tag Tag of the deal
-     * @return {@literal true} if previous conditions are met, {@literal false} otherwise.
+     * @param tag Tag of the deal.
+     * @return SMS url if TEE types of tag & SMS match.
      */
-    public String getVerifiedSmsUrl(String chainTaskId, String tag) {
+    public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
         final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(tag);
         if(teeEnclaveProviderForDeal == null){
-            return "";
+            log.error("Can't get verified SMS url with invalid TEE enclave " + 
+                "provider from tag [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
         }
-        String smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
-        final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl);
+        Optional<String> smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
+        if(smsUrl.isEmpty()){
+            log.error("Can't get verified SMS url since type of tag is not " + 
+                "supported [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
+        }
+        final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
         if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
-            return "";
+            log.error("Can't get verified SMS url since tag TEE type " + 
+                "does not match SMS TEE type [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
         }
         return smsUrl;
     }
 
-    private String retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
-        String smsUrl = "";
+    private Optional<String> retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
+        Optional<String> smsUrl = Optional.empty();
         if(TeeEnclaveProvider.SCONE.equals(teeEnclaveProvider)){
-            smsUrl = registryConfiguration.getSconeSms();
+            smsUrl = Optional.of(registryConfiguration.getSconeSms());
         } else if(TeeEnclaveProvider.GRAMINE.equals(teeEnclaveProvider)){
-            smsUrl = registryConfiguration.getGramineSms();
+            smsUrl = Optional.of(registryConfiguration.getGramineSms());
         }
         return smsUrl;
     }
@@ -118,7 +127,8 @@ public class SmsService {
         final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
         if (StringUtils.isEmpty(teeChallengePublicKey)) {
-            log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
+            log.error("An error occurred while getting teeChallengePublicKey " 
+                + "[chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl);
             return Optional.empty();
         }
 

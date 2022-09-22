@@ -326,7 +326,8 @@ class TaskUpdateManagerTest {
                 .thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
-        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, task.getTag())).thenReturn(smsUrl);
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, task.getTag()))
+                .thenReturn(Optional.of(smsUrl));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -431,7 +432,8 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(smsUrl);
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag))
+                .thenReturn(Optional.of(smsUrl));
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);

@@ -78,7 +78,8 @@ class SmsServiceTests {
         when(smsClientProvider.getSmsClient(expectedSmsUrl)).thenReturn(smsClient);
         when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeUtils.getTeeEnclaveProvider(inputTag));
 
-        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, inputTag)).isEqualTo(expectedSmsUrl);
+        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, inputTag))
+            .isEqualTo(Optional.of(expectedSmsUrl));
 
         verify(smsClientProvider).getSmsClient(expectedSmsUrl);
         verify(smsClient).getTeeEnclaveProvider();
@@ -86,7 +87,8 @@ class SmsServiceTests {
 
     @Test
     void shouldNotGetVerifiedSmsUrlSinceCannotGetEnclaveProviderFromTag() {
-        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, "0xabc")).isEmpty();
+        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, "0xabc"))
+            .isEmpty();
 
         verify(smsClientProvider, times(0)).getSmsClient(anyString());
         verify(smsClient, times(0)).getTeeEnclaveProvider();
@@ -97,7 +99,8 @@ class SmsServiceTests {
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeEnclaveProvider.SCONE);
 
-        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_GRAMINE_ONLY_TAG)).isEmpty();
+        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_GRAMINE_ONLY_TAG))
+            .isEmpty();
 
         verify(smsClientProvider).getSmsClient(GRAMINE_SMS_URL);
         verify(smsClient).getTeeEnclaveProvider();
