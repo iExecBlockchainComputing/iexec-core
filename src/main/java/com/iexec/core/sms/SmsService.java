@@ -35,8 +35,8 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class SmsService {
-    private PlatformRegistryConfiguration registryConfiguration;
-    private SmsClientProvider smsClientProvider;
+    private final PlatformRegistryConfiguration registryConfiguration;
+    private final SmsClientProvider smsClientProvider;
 
     public SmsService(PlatformRegistryConfiguration registryConfiguration,
         SmsClientProvider smsClientProvider) {

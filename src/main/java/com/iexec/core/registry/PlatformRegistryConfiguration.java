@@ -3,10 +3,10 @@ package com.iexec.core.registry;
 import lombok.Getter;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
 @Getter
-@Component
+@Configuration
 public class PlatformRegistryConfiguration {
 
     @URL
