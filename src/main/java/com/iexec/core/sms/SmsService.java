@@ -68,13 +68,15 @@ public class SmsService {
         Optional<String> smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
         if(smsUrl.isEmpty()){
             log.error("Can't get verified SMS url since type of tag is not " + 
-                "supported [chainTaskId:{},teeEnclaveProvider:{}]", chainTaskId, teeEnclaveProviderForDeal);
+                "supported [chainTaskId:{},teeEnclaveProvider:{}]", 
+                    chainTaskId, teeEnclaveProviderForDeal);
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
         if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
             log.error("Can't get verified SMS url since tag TEE type " + 
-                "does not match SMS TEE type [chainTaskId:{},teeProviderForTask:{}]", chainTaskId, teeProviderForDeal);
+                "does not match SMS TEE type [chainTaskId:{},teeProviderForTask:{}]", 
+                    chainTaskId, teeEnclaveProviderForDeal);
             return Optional.empty();
         }
         return smsUrl;
