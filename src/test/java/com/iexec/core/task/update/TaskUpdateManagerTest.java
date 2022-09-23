@@ -22,6 +22,7 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.chain.IexecHubService;
@@ -58,10 +59,12 @@ import java.util.stream.Collectors;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class TaskUpdateManagerTest {
     private final long maxExecutionTime = 60000;
+    private static final String smsUrl = "smsUrl";
 
     @Mock
     private WorkerService workerService;
@@ -323,7 +326,8 @@ class TaskUpdateManagerTest {
                 .thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
-        when(smsService.isSmsClientReady(CHAIN_DEAL_ID, CHAIN_TASK_ID)).thenReturn(false);
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, task.getTag()))
+                .thenReturn(Optional.of(smsUrl));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -365,7 +369,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.empty());
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.empty());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -374,10 +378,12 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldUpdateReceived2Initializing2Initialized() {
+    void shouldUpdateReceived2Initializing2InitializedOnStandard() {
         Task task = getStubTask(maxExecutionTime);
+        String tag = NO_TEE_TAG;
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
+        task.setTag(tag);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -391,7 +397,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
                 .build()));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, false)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
@@ -400,6 +406,82 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
+        assertThat(task.getSmsUrl()).isNull();
+        verify(smsService, times(0)).getVerifiedSmsUrl(anyString(), anyString());
+        verify(taskService, times(2)).updateTask(task); //initializing & initialized 
+    }
+
+
+    @Test
+    void shouldUpdateReceived2Initializing2InitializedOnTee() {
+        Task task = getStubTask(maxExecutionTime);
+        String tag = TeeUtils.TEE_GRAMINE_ONLY_TAG;
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.setTag(tag);// Any TEE would be fine
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag))
+                .thenReturn(Optional.of(smsUrl));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
+        assertThat(task.getSmsUrl()).isEqualTo(smsUrl);
+        verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
+        verify(taskService, times(3)).updateTask(task); //save smsurl, INITIALIZING & INITIALIZED 
+    }
+
+    @Test
+    void shouldNotUpdateReceived2Initializing2InitializedOnTeeSinceCannotRetrieveSmsUrl() {
+        Task task = getStubTask(maxExecutionTime);
+        String tag = TeeUtils.TEE_GRAMINE_ONLY_TAG;
+        task.changeStatus(RECEIVED);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.setTag(tag);// Any TEE would be fine
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.hasEnoughGas()).thenReturn(true);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
+                .thenReturn(true);
+
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
+        when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
+                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .build()));
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(Optional.empty());
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(INITIALIZE_FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+        assertThat(task.getEnclaveChallenge()).isNull();
+        assertThat(task.getSmsUrl()).isNull();
+        verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
+        verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
+        verify(taskService, times(2)).updateTask(task); // INITIALIZE_FAILED & FAILED 
     }
 
     // Tests on initializing2Initialized transition

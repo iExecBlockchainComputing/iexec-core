@@ -202,11 +202,16 @@ class TaskUpdateManager  {
             return;
         }
 
-        if (task.isTeeTask() && !smsService.isSmsClientReady(task.getChainDealId(), task.getChainTaskId())) {
-            log.error("Couldn't get SmsClient [chainTaskId: {}]", task.getChainTaskId());
-            updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-            updateTaskStatusAndSave(task, FAILED);
-            return;
+        if (task.isTeeTask()) {
+            Optional<String> smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
+            if(smsUrl.isEmpty()){
+                log.error("Couldn't get verified SMS url [chainTaskId: {}]", task.getChainTaskId());
+                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
+                updateTaskStatusAndSave(task, FAILED);
+                return;
+            }
+            task.setSmsUrl(smsUrl.get()); //SMS URL source of truth for the task
+            taskService.updateTask(task);
         }
 
         blockchainAdapterService
@@ -215,7 +220,7 @@ class TaskUpdateManager  {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.isTeeTask());
+                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.getSmsUrl());
                     if (enclaveChallenge.isEmpty()) {
                         log.error("Can't initialize task, enclave challenge is empty" +
                                 " [chainTaskId:{}]", chainTaskId);

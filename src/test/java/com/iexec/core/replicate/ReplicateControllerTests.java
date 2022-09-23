@@ -24,12 +24,17 @@ class ReplicateControllerTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET_ADDRESS = "walletAddress";
+    private static final String SMS_URL = "smsUrl";
     private static final String TOKEN = "token";
     private static final int BLOCK_NUMBER = 1;
     private static final WorkerpoolAuthorization AUTH = WorkerpoolAuthorization.builder()
             .chainTaskId(CHAIN_TASK_ID)
             .workerWallet(WALLET_ADDRESS)
             .build();
+    private static final ReplicateTaskSummary REPLICATE_TASK_SUMMARY = ReplicateTaskSummary.builder()
+            .workerpoolAuthorization(AUTH)
+            .smsUrl(SMS_URL)
+            .build(); 
     private static final ReplicateStatusUpdate UPDATE = ReplicateStatusUpdate.builder()
             .status(ReplicateStatus.STARTED)
             .build();
@@ -63,15 +68,15 @@ class ReplicateControllerTests {
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(true);
         when(replicateSupplyService
-                .getAuthOfAvailableReplicate(BLOCK_NUMBER, WALLET_ADDRESS))
-                .thenReturn(Optional.of(AUTH));
+                .getAvailableReplicateTaskSummary(BLOCK_NUMBER, WALLET_ADDRESS))
+                .thenReturn(Optional.of(REPLICATE_TASK_SUMMARY));
 
-        ResponseEntity<WorkerpoolAuthorization> response =
-                replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
+        ResponseEntity<ReplicateTaskSummary> replicateTaskSummaryResponse =
+                replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        WorkerpoolAuthorization auth = response.getBody();
-        assertThat(auth.getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
+        assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ReplicateTaskSummary replicateTaskSummary = replicateTaskSummaryResponse.getBody();
+        assertThat(replicateTaskSummary.getWorkerpoolAuthorization().getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
     }
 
     @Test
@@ -79,10 +84,10 @@ class ReplicateControllerTests {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
 
-        ResponseEntity<WorkerpoolAuthorization> response =
-                replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
+        ResponseEntity<ReplicateTaskSummary> replicateTaskSummaryResponse =
+                replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -92,10 +97,10 @@ class ReplicateControllerTests {
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(false);
 
-        ResponseEntity<WorkerpoolAuthorization> response =
-                replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
+        ResponseEntity<ReplicateTaskSummary> replicateTaskSummaryResponse =
+                replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     @Test
@@ -105,13 +110,13 @@ class ReplicateControllerTests {
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(true);
         when(replicateSupplyService
-                .getAuthOfAvailableReplicate(BLOCK_NUMBER, WALLET_ADDRESS))
+                .getAvailableReplicateTaskSummary(BLOCK_NUMBER, WALLET_ADDRESS))
                 .thenReturn(Optional.empty());
 
-        ResponseEntity<WorkerpoolAuthorization> response =
-                replicatesController.getAvailableReplicate(BLOCK_NUMBER, TOKEN);
+        ResponseEntity<ReplicateTaskSummary> replicateTaskSummaryResponse =
+                replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
     //endregion
 

@@ -21,7 +21,6 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.dapp.DappType;
 import com.iexec.common.tee.TeeUtils;
-
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -92,6 +91,7 @@ public class Task {
     private String chainCallbackData;
     private List<TaskStatusChange> dateStatusList;
     private String enclaveChallenge;
+    private String smsUrl;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;

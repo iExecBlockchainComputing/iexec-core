@@ -16,17 +16,15 @@
 
 package com.iexec.core.sms;
 
-import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.chain.IexecHubAbstractService;
-import com.iexec.common.task.TaskDescription;
 import com.iexec.common.tee.TeeEnclaveProvider;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
+import com.iexec.core.registry.PlatformRegistryConfiguration;
 import com.iexec.sms.api.SmsClient;
-import com.iexec.sms.api.SmsClientCreationException;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -37,12 +35,13 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class SmsService {
+    private final PlatformRegistryConfiguration registryConfiguration;
     private final SmsClientProvider smsClientProvider;
-    private final IexecHubAbstractService iexecHubService;
 
-    public SmsService(SmsClientProvider smsClientProvider, IexecHubAbstractService iexecHubService) {
+    public SmsService(PlatformRegistryConfiguration registryConfiguration,
+        SmsClientProvider smsClientProvider) {
+        this.registryConfiguration = registryConfiguration;
         this.smsClientProvider = smsClientProvider;
-        this.iexecHubService = iexecHubService;
     }
 
     /**
@@ -55,24 +54,42 @@ public class SmsService {
      * <p>
      * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
      *
-     * @param chainDealId ID of the on-chain deal related to the task to execute.
      * @param chainTaskId ID of the on-chain task.
-     * @return {@literal true} if previous conditions are met, {@literal false} otherwise.
+     * @param tag Tag of the deal.
+     * @return SMS url if TEE types of tag & SMS match.
      */
-    public boolean isSmsClientReady(String chainDealId, String chainTaskId) {
-        try {
-            final Optional<ChainDeal> chainDeal = iexecHubService.getChainDeal(chainDealId);
-            if (chainDeal.isEmpty()) {
-                log.error("No chain deal for given ID [chainDealId: {}]", chainDealId);
-                return false;
-            }
-            final SmsClient smsClient = smsClientProvider.getOrCreateSmsClientForUninitializedTask(chainDeal.get(), chainTaskId);
-            final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(chainDeal.get().getTag());
-            return checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId);
-        } catch (SmsClientCreationException e) {
-            log.error("SmsClient is not ready [chainTaskId: {}]", chainTaskId, e);
-            return false;
+    public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
+        final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(tag);
+        if(teeEnclaveProviderForDeal == null){
+            log.error("Can't get verified SMS url with invalid TEE enclave " + 
+                "provider from tag [chainTaskId:{}]", chainTaskId);
+            return Optional.empty();
         }
+        Optional<String> smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
+        if(smsUrl.isEmpty()){
+            log.error("Can't get verified SMS url since type of tag is not " + 
+                "supported [chainTaskId:{},teeEnclaveProvider:{}]", 
+                    chainTaskId, teeEnclaveProviderForDeal);
+            return Optional.empty();
+        }
+        final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
+        if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
+            log.error("Can't get verified SMS url since tag TEE type " + 
+                "does not match SMS TEE type [chainTaskId:{},teeProviderForTask:{}]", 
+                    chainTaskId, teeEnclaveProviderForDeal);
+            return Optional.empty();
+        }
+        return smsUrl;
+    }
+
+    private Optional<String> retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
+        Optional<String> smsUrl = Optional.empty();
+        if(TeeEnclaveProvider.SCONE.equals(teeEnclaveProvider)){
+            smsUrl = Optional.of(registryConfiguration.getSconeSms());
+        } else if(TeeEnclaveProvider.GRAMINE.equals(teeEnclaveProvider)){
+            smsUrl = Optional.of(registryConfiguration.getGramineSms());
+        }
+        return smsUrl;
     }
 
     private boolean checkSmsTeeEnclaveProvider(SmsClient smsClient,
@@ -96,25 +113,24 @@ public class SmsService {
         return true;
     }
 
-    public Optional<String> getEnclaveChallenge(String chainTaskId, boolean isTeeEnabled) {
-        return isTeeEnabled
-                ? generateEnclaveChallenge(chainTaskId)
-                : Optional.of(BytesUtils.EMPTY_ADDRESS);
+    public Optional<String> getEnclaveChallenge(String chainTaskId, String smsUrl) {
+        return StringUtils.isEmpty(smsUrl)
+                ? Optional.of(BytesUtils.EMPTY_ADDRESS)
+                : generateEnclaveChallenge(chainTaskId, smsUrl);
     }
 
     @Retryable(value = FeignException.class)
-    Optional<String> generateEnclaveChallenge(String chainTaskId) {
-        final TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
-
+    Optional<String> generateEnclaveChallenge(String chainTaskId, String smsUrl) {
         // SMS client should already have been created once before.
         // If it couldn't be created, then the task would have been aborted.
         // So the following won't throw an exception.
-        final SmsClient smsClient = smsClientProvider.getOrCreateSmsClientForTask(taskDescription);
+        final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl);
 
         final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
-        if (teeChallengePublicKey == null || teeChallengePublicKey.isEmpty()) {
-            log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}]", chainTaskId);
+        if (StringUtils.isEmpty(teeChallengePublicKey)) {
+            log.error("An error occurred while getting teeChallengePublicKey " 
+                + "[chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl);
             return Optional.empty();
         }
 
@@ -122,7 +138,7 @@ public class SmsService {
     }
 
     @Recover
-    Optional<String> generateEnclaveChallenge(FeignException e, String chainTaskId) {
+    Optional<String> generateEnclaveChallenge(FeignException e, String chainTaskId, String smsUrl) {
         log.error("Failed to get enclaveChallenge from SMS even after retrying [chainTaskId:{}, attempts:3]", chainTaskId, e);
         return Optional.empty();
     }

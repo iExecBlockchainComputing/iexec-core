@@ -25,6 +25,8 @@ import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.ReplicateTaskSummary;
+import com.iexec.common.replicate.ReplicateTaskSummary.ReplicateTaskSummaryBuilder;
 import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
@@ -83,7 +85,7 @@ public class ReplicateSupplyService implements Purgeable {
      *
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<WorkerpoolAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
+    Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
         // return empty if max computing task is reached or if the worker is not found
         if (!workerService.canAcceptMoreWorks(walletAddress)) {
             return Optional.empty();
@@ -108,7 +110,7 @@ public class ReplicateSupplyService implements Purgeable {
         }
         Worker worker = optional.get();
 
-        return getAuthorizationForAnyAvailableTask(
+        return getReplicateTaskSummaryForAnyAvailableTask(
                 walletAddress,
                 worker.isTeeEnabled()
         );
@@ -120,17 +122,17 @@ public class ReplicateSupplyService implements Purgeable {
      *
      * @param walletAddress Wallet address of the worker asking for work.
      * @param isTeeEnabled  Whether this worker supports TEE.
-     * @return An {@link Optional} containing a {@link WorkerpoolAuthorization}
+     * @return An {@link Optional} containing a {@link ReplicateTaskSummary}
      * if any {@link Task} is available and can be handled by this worker,
      * {@link Optional#empty()} otherwise.
      */
-    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyAvailableTask(
+    private Optional<ReplicateTaskSummary> getReplicateTaskSummaryForAnyAvailableTask(
             String walletAddress,
             boolean isTeeEnabled) {
         final List<String> alreadyScannedTasks = new ArrayList<>();
 
-        Optional<WorkerpoolAuthorization> authorization = Optional.empty();
-        while (authorization.isEmpty()) {
+        Optional<ReplicateTaskSummary> replicateTaskSummary = Optional.empty();
+        while (replicateTaskSummary.isEmpty()) {
             final Optional<Task> oTask = taskService.getPrioritizedInitializedOrRunningTask(
                     !isTeeEnabled,
                     alreadyScannedTasks
@@ -142,12 +144,12 @@ public class ReplicateSupplyService implements Purgeable {
 
             final Task task = oTask.get();
             alreadyScannedTasks.add(task.getChainTaskId());
-            authorization = getAuthorizationForTask(task, walletAddress);
+            replicateTaskSummary = getReplicateTaskSummary(task, walletAddress);
         }
-        return authorization;
+        return replicateTaskSummary;
     }
 
-    private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {
+    private Optional<ReplicateTaskSummary> getReplicateTaskSummary(Task task, String walletAddress) {
         String chainTaskId = task.getChainTaskId();
         if (!acceptOrRejectTask(task, walletAddress)) {
             return Optional.empty();
@@ -158,7 +160,12 @@ public class ReplicateSupplyService implements Purgeable {
                 walletAddress,
                 chainTaskId,
                 task.getEnclaveChallenge());
-        return Optional.of(authorization);
+        ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
+            .workerpoolAuthorization(authorization);
+        if(task.isTeeTask()){
+            replicateTaskSummary.smsUrl(task.getSmsUrl());
+        }
+        return Optional.of(replicateTaskSummary.build());
     }
 
     /**
