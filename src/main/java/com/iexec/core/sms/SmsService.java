@@ -74,7 +74,7 @@ public class SmsService {
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
         if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
             log.error("Can't get verified SMS url since tag TEE type " + 
-                "does not match SMS TEE type [chainTaskId:{}]", chainTaskId);
+                "does not match SMS TEE type [chainTaskId:{},teeProviderForTask:{}]", chainTaskId, teeProviderForDeal);
             return Optional.empty();
         }
         return smsUrl;
