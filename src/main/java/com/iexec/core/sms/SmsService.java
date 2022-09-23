@@ -68,7 +68,7 @@ public class SmsService {
         Optional<String> smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
         if(smsUrl.isEmpty()){
             log.error("Can't get verified SMS url since type of tag is not " + 
-                "supported [chainTaskId:{}]", chainTaskId);
+                "supported [chainTaskId:{},teeEnclaveProvider:{}]", chainTaskId, teeEnclaveProviderForDeal);
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
