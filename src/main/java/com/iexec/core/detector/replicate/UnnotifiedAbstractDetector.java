@@ -60,7 +60,7 @@ public abstract class UnnotifiedAbstractDetector {
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
-                if (!lastRelevantStatus.equals(offchainCompleting)) {
+                if (lastRelevantStatus != offchainCompleting) {
                     continue;
                 }
 
@@ -83,7 +83,7 @@ public abstract class UnnotifiedAbstractDetector {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
-                if (lastRelevantStatus.equals(offchainCompleted)) {
+                if (lastRelevantStatus == offchainCompleted) {
                     continue;
                 }
 

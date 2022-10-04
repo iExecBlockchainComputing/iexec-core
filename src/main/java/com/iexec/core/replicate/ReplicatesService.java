@@ -609,7 +609,7 @@ public class ReplicatesService {
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
         ReplicateStatus status = replicate.getLastRelevantStatus();
-        if (status.equals(REVEALING) || status.equals(CONTRIBUTED)) {
+        if (status == REVEALING || status == CONTRIBUTED) {
             ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(FAILED, REVEAL_TIMEOUT);
             updateReplicateStatus(chainTaskId, replicate.getWalletAddress(), statusUpdate);
         }

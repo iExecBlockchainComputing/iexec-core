@@ -39,7 +39,7 @@ public class ContributionHelper {
 
             ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
-            boolean isContributed = lastRelevantStatus.equals(ReplicateStatus.CONTRIBUTED);
+            boolean isContributed = lastRelevantStatus == ReplicateStatus.CONTRIBUTED;
             boolean haveSameContribution = contribution.equals(replicate.getContributionHash());
             boolean hasWeight = replicate.getWorkerWeight() > 0;
 
@@ -63,8 +63,8 @@ public class ContributionHelper {
             ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
             boolean isCreatedLessThanOnePeriodAgo = !replicate.isCreatedMoreThanNPeriodsAgo(1, maxExecutionTime);
-            boolean isNotContributed = !lastRelevantStatus.equals(ReplicateStatus.CONTRIBUTED);
-            boolean isNotFailed = !lastRelevantStatus.equals(ReplicateStatus.FAILED);
+            boolean isNotContributed = lastRelevantStatus != ReplicateStatus.CONTRIBUTED;
+            boolean isNotFailed = lastRelevantStatus != ReplicateStatus.FAILED;
             boolean hasWeight = replicate.getWorkerWeight() > 0;
 
             if (isCreatedLessThanOnePeriodAgo && isNotContributed && isNotFailed && hasWeight) {

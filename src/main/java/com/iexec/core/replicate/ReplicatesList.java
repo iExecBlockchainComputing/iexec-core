@@ -70,7 +70,7 @@ public class ReplicatesList {
         int nbValidWinners = 0;
         for (Replicate replicate : replicates) {
             ReplicateStatus status = replicate.getLastRelevantStatus();
-            if (status.equals(CONTRIBUTED)
+            if (status == CONTRIBUTED
                     && contributionHash.equals(replicate.getContributionHash())) {
                 nbValidWinners++;
             }
@@ -94,7 +94,7 @@ public class ReplicatesList {
         int nbReplicates = 0;
         for (Replicate replicate : replicates) {
             for (ReplicateStatus status : listStatus) {
-                if (Objects.equals(replicate.getLastRelevantStatus(), status)) {
+                if (replicate.getLastRelevantStatus() == status) {
                     nbReplicates++;
                 }
             }
