@@ -86,7 +86,7 @@ public class ContributionHelper {
         for (Replicate replicate : replicates) {
 
             ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.equals(ReplicateStatus.CONTRIBUTED)) {
+            if (lastRelevantStatus == ReplicateStatus.CONTRIBUTED) {
                 distinctContributions.add(replicate.getContributionHash());
             }
         }
