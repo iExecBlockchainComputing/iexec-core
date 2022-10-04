@@ -39,6 +39,7 @@ import static com.iexec.common.replicate.ReplicateStatusUpdate.poolManagerReques
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicate {
 
+    // FIXME: should be final
     private List<ReplicateStatusUpdate> statusUpdateList = new ArrayList<>(
             // a new replicate should only be created by the scheduler
             List.of(poolManagerRequest(CREATED))
@@ -66,7 +67,7 @@ public class Replicate {
     public ReplicateStatus getLastRelevantStatus() {
         // ignore cases like: WORKER_LOST and RECOVERING
 
-        List<ReplicateStatus> statusList = getStatusUpdateList().stream()
+        List<ReplicateStatus> statusList = statusUpdateList.stream()
                 .map(ReplicateStatusUpdate::getStatus)
                 .collect(Collectors.toList());
 
@@ -85,12 +86,12 @@ public class Replicate {
 
     @JsonIgnore
     public ReplicateStatus getLastButOneStatus() {
-        return this.getStatusUpdateList().get(this.getStatusUpdateList().size() - 2).getStatus();
+        return statusUpdateList.get(statusUpdateList.size() - 2).getStatus();
     }
 
     @JsonIgnore
     private ReplicateStatusUpdate getLatestStatusUpdate() {
-        return this.getStatusUpdateList().get(this.getStatusUpdateList().size() - 1);
+        return statusUpdateList.get(statusUpdateList.size() - 1);
     }
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusModifier modifier) {
@@ -114,7 +115,7 @@ public class Replicate {
     }
 
     public boolean containsStatus(ReplicateStatus replicateStatus) {
-        for (ReplicateStatusUpdate replicateStatusUpdate : this.getStatusUpdateList()) {
+        for (ReplicateStatusUpdate replicateStatusUpdate : statusUpdateList) {
             if (replicateStatusUpdate.getStatus().equals(replicateStatus)) {
                 return true;
             }
@@ -131,7 +132,7 @@ public class Replicate {
     }
 
     public boolean isCreatedMoreThanNPeriodsAgo(int numberPeriod, long maxExecutionTime) {
-        Date creationDate = this.getStatusUpdateList().get(0).getDate();
+        Date creationDate = statusUpdateList.get(0).getDate();
         Date numberPeriodsAfterCreationDate = new Date(creationDate.getTime() + numberPeriod * maxExecutionTime);
         Date now = new Date();
 
@@ -158,9 +159,9 @@ public class Replicate {
     }
 
     boolean isStatusBeforeWorkerLostEqualsTo(ReplicateStatus status) {
-        int size = getStatusUpdateList().size();
+        int size = statusUpdateList.size();
         return size >= 2
-                && getStatusUpdateList().get(size - 1).getStatus().equals(WORKER_LOST)
-                && getStatusUpdateList().get(size - 2).getStatus().equals(status);
+                && statusUpdateList.get(size - 1).getStatus().equals(WORKER_LOST)
+                && statusUpdateList.get(size - 2).getStatus().equals(status);
     }
 }
