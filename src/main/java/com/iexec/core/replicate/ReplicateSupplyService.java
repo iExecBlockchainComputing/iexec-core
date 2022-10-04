@@ -345,12 +345,8 @@ public class ReplicateSupplyService implements Purgeable {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
         boolean beforeContributing = replicate.isBeforeStatus(ReplicateStatus.CONTRIBUTING);
-        boolean didReplicateStartContributing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTING);
+        boolean didReplicateStartContributing = replicate.getLastRelevantStatus() == ReplicateStatus.CONTRIBUTING;
         boolean didReplicateContributeOnChain = replicatesService.didReplicateContributeOnchain(chainTaskId, walletAddress);
 
         if (beforeContributing) {
@@ -373,12 +369,8 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         Replicate replicateWithLatestChanges = oReplicateWithLatestChanges.get();
-        if (replicateWithLatestChanges.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean didReplicateContribute = replicateWithLatestChanges.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.CONTRIBUTED);
+        boolean didReplicateContribute = replicateWithLatestChanges.getLastRelevantStatus()
+                == ReplicateStatus.CONTRIBUTED;
 
         if (didReplicateContribute) {
             final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
@@ -408,12 +400,8 @@ public class ReplicateSupplyService implements Purgeable {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean isInStatusContributed = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTED);
-        boolean didReplicateStartRevealing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.REVEALING);
+        boolean isInStatusContributed = replicate.getLastRelevantStatus() == ReplicateStatus.CONTRIBUTED;
+        boolean didReplicateStartRevealing = replicate.getLastRelevantStatus() == ReplicateStatus.REVEALING;
         boolean didReplicateRevealOnChain = replicatesService.didReplicateRevealOnchain(chainTaskId, walletAddress);
 
         if (isInStatusContributed) {
@@ -437,15 +425,12 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.empty();
         }
         replicate = oReplicateWithLatestChanges.get();
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
 
-        boolean didReplicateReveal = replicate.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.REVEALED);
+        boolean didReplicateReveal = replicate.getLastRelevantStatus()
+                == ReplicateStatus.REVEALED;
 
-        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus()
+                == ReplicateStatus.RESULT_UPLOAD_REQUESTED;
 
         if (didReplicateReveal) {
             return Optional.of(TaskNotificationType.PLEASE_WAIT);
@@ -470,14 +455,10 @@ public class ReplicateSupplyService implements Purgeable {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
-        boolean didReplicateStartUploading = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADING);
+        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED;
+        boolean didReplicateStartUploading = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOADING;
         boolean didReplicateUploadWithoutNotifying = replicatesService.isResultUploaded(task.getChainTaskId());
-        boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADED);
+        boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOADED;
 
         if (wasReplicateRequestedToUpload) {
             return Optional.of(TaskNotificationType.PLEASE_UPLOAD);

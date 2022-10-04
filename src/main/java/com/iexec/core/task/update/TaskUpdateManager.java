@@ -377,7 +377,6 @@ class TaskUpdateManager  {
         boolean notAllReplicatesFailed = replicatesOfAliveWorkers
                 .stream()
                 .map(Replicate::getLastRelevantStatus)
-                .map(Optional::get)
                 .anyMatch(Predicate.not(ReplicateStatus::isFailedBeforeComputed));
 
         if (notAllReplicatesFailed) {
@@ -498,8 +497,7 @@ class TaskUpdateManager  {
 
         boolean isReplicateUploading = replicate.getCurrentStatus() == ReplicateStatus.RESULT_UPLOADING;
         boolean isReplicateRecoveringToUpload = replicate.getCurrentStatus() == ReplicateStatus.RECOVERING &&
-                replicate.getLastRelevantStatus().isPresent() &&
-                replicate.getLastRelevantStatus().get() == ReplicateStatus.RESULT_UPLOADING;
+                replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOADING;
 
         if (!isReplicateUploading && !isReplicateRecoveringToUpload) {
             requestUpload(task);

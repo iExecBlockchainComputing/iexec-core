@@ -21,7 +21,6 @@ import com.iexec.core.replicate.Replicate;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public class ContributionHelper {
@@ -38,12 +37,9 @@ public class ContributionHelper {
         int groupWeight = 0;
         for (Replicate replicate : replicates) {
 
-            Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
-                continue;
-            }
+            ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
-            boolean isContributed = lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTED);
+            boolean isContributed = lastRelevantStatus == ReplicateStatus.CONTRIBUTED;
             boolean haveSameContribution = contribution.equals(replicate.getContributionHash());
             boolean hasWeight = replicate.getWorkerWeight() > 0;
 
@@ -64,14 +60,11 @@ public class ContributionHelper {
 
         for (Replicate replicate : replicates) {
 
-            Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
-                continue;
-            }
+            ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
             boolean isCreatedLessThanOnePeriodAgo = !replicate.isCreatedMoreThanNPeriodsAgo(1, maxExecutionTime);
-            boolean isNotContributed = !lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTED);
-            boolean isNotFailed = !lastRelevantStatus.get().equals(ReplicateStatus.FAILED);
+            boolean isNotContributed = lastRelevantStatus != ReplicateStatus.CONTRIBUTED;
+            boolean isNotFailed = lastRelevantStatus != ReplicateStatus.FAILED;
             boolean hasWeight = replicate.getWorkerWeight() > 0;
 
             if (isCreatedLessThanOnePeriodAgo && isNotContributed && isNotFailed && hasWeight) {
@@ -92,12 +85,8 @@ public class ContributionHelper {
 
         for (Replicate replicate : replicates) {
 
-            Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-            if (lastRelevantStatus.isEmpty()) {
-                continue;
-            }
-
-            if (lastRelevantStatus.get().equals(ReplicateStatus.CONTRIBUTED)) {
+            ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
+            if (lastRelevantStatus == ReplicateStatus.CONTRIBUTED) {
                 distinctContributions.add(replicate.getContributionHash());
             }
         }
