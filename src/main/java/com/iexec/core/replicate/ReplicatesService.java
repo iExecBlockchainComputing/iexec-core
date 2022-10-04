@@ -608,11 +608,7 @@ public class ReplicatesService {
     }
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {
-        Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-        if (oStatus.isEmpty()) {
-            return;
-        }
-        ReplicateStatus status = oStatus.get();
+        ReplicateStatus status = replicate.getLastRelevantStatus();
         if (status.equals(REVEALING) || status.equals(CONTRIBUTED)) {
             ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(FAILED, REVEAL_TIMEOUT);
             updateReplicateStatus(chainTaskId, replicate.getWalletAddress(), statusUpdate);

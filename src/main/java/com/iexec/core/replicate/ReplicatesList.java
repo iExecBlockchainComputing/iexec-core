@@ -69,8 +69,8 @@ public class ReplicatesList {
     public int getNbValidContributedWinners(String contributionHash) {
         int nbValidWinners = 0;
         for (Replicate replicate : replicates) {
-            Optional<ReplicateStatus> oStatus = replicate.getLastRelevantStatus();
-            if (oStatus.isPresent() && oStatus.get().equals(CONTRIBUTED)
+            ReplicateStatus status = replicate.getLastRelevantStatus();
+            if (status.equals(CONTRIBUTED)
                     && contributionHash.equals(replicate.getContributionHash())) {
                 nbValidWinners++;
             }
@@ -94,7 +94,7 @@ public class ReplicatesList {
         int nbReplicates = 0;
         for (Replicate replicate : replicates) {
             for (ReplicateStatus status : listStatus) {
-                if (Objects.equals(replicate.getLastRelevantStatus().orElse(null), status)) {
+                if (Objects.equals(replicate.getLastRelevantStatus(), status)) {
                     nbReplicates++;
                 }
             }

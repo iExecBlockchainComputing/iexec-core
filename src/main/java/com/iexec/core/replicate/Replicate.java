@@ -19,20 +19,19 @@ package com.iexec.core.replicate;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.iexec.common.chain.ChainReceipt;
-import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.common.replicate.ReplicateStatusDetails;
-import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
-
+import com.iexec.common.replicate.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
+import static com.iexec.common.replicate.ReplicateStatus.CREATED;
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
+import static com.iexec.common.replicate.ReplicateStatusUpdate.poolManagerRequest;
 
 
 @Data
@@ -40,7 +39,10 @@ import static com.iexec.common.replicate.ReplicateStatusUpdate.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicate {
 
-    private List<ReplicateStatusUpdate> statusUpdateList;
+    private List<ReplicateStatusUpdate> statusUpdateList = new ArrayList<>(
+            // a new replicate should only be created by the scheduler
+            List.of(poolManagerRequest(CREATED))
+    );
     private String walletAddress;
     private String resultLink;
     private String chainCallbackData;
@@ -52,9 +54,6 @@ public class Replicate {
     public Replicate(String walletAddress, String chainTaskId) {
         this.chainTaskId = chainTaskId;
         this.walletAddress = walletAddress;
-        this.statusUpdateList = new ArrayList<>();
-        // a new replicate should only be create by the scheduler
-        this.statusUpdateList.add(poolManagerRequest(CREATED));
         this.contributionHash = "";
     }
 
@@ -64,7 +63,7 @@ public class Replicate {
     }
 
     @JsonIgnore
-    public Optional<ReplicateStatus> getLastRelevantStatus() {  // FIXME: remove Optional and add a no-args constructor
+    public ReplicateStatus getLastRelevantStatus() {
         // ignore cases like: WORKER_LOST and RECOVERING
 
         List<ReplicateStatus> statusList = getStatusUpdateList().stream()
@@ -77,11 +76,11 @@ public class Replicate {
 
         for (int i = statusList.size() - 1; i >= 0; i--) {
             if (!ignoredStatuses.contains(statusList.get(i))) {
-                return Optional.of(statusList.get(i));
+                return statusList.get(i);
             }
         }
 
-        return Optional.empty();
+        throw new NoReplicateStatusException(chainTaskId);
     }
 
     @JsonIgnore
@@ -149,15 +148,13 @@ public class Replicate {
     }
 
     public boolean isRecoverable() {
-        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (currentStatus.isEmpty()) return false;
-        return ReplicateStatus.isRecoverable(currentStatus.get());
+        ReplicateStatus currentStatus = getLastRelevantStatus();
+        return ReplicateStatus.isRecoverable(currentStatus);
     }
 
     public boolean isBeforeStatus(ReplicateStatus status) {
-        Optional<ReplicateStatus> currentStatus = getLastRelevantStatus();
-        if (currentStatus.isEmpty()) return false;
-        return currentStatus.get().ordinal() < status.ordinal();
+        ReplicateStatus currentStatus = getLastRelevantStatus();
+        return currentStatus.ordinal() < status.ordinal();
     }
 
     boolean isStatusBeforeWorkerLostEqualsTo(ReplicateStatus status) {

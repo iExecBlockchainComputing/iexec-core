@@ -1220,9 +1220,7 @@ class ReplicateSupplyServiceTests {
     }
 
     Optional<Replicate> getStubReplicate(ReplicateStatus status) {
-        Replicate replicate = new Replicate();
-        replicate.setWalletAddress(WALLET_WORKER_1);
-        replicate.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.setStatusUpdateList(new ArrayList<>());
         replicate.updateStatus(status, ReplicateStatusModifier.WORKER);
         return Optional.of(replicate);

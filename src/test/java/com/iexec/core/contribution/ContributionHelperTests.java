@@ -38,17 +38,17 @@ class ContributionHelperTests {
     @Test
     void shouldGetContributedWeight() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate1.getContributionHash()).thenReturn(A);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate2.getContributionHash()).thenReturn(A);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         Replicate replicate3 = mock(Replicate.class);
-        when(replicate3.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate3.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate3.getContributionHash()).thenReturn(B);
         when(replicate3.getWorkerWeight()).thenReturn(10);
 
@@ -61,7 +61,7 @@ class ContributionHelperTests {
     @Test
     void shouldNotGetContributedWeightSinceNoContribution() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate1.getContributionHash()).thenReturn("");
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
@@ -73,7 +73,7 @@ class ContributionHelperTests {
     @Test
     void shouldNotGetContributedWeightSinceNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate1.getContributionHash()).thenReturn(A);
         when(replicate1.getWorkerWeight()).thenReturn(0);
 
@@ -85,7 +85,7 @@ class ContributionHelperTests {
     @Test
     void shouldNotGetContributedWeightSinceNoTContributed() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTING));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTING);
         when(replicate1.getContributionHash()).thenReturn(A);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
@@ -98,12 +98,12 @@ class ContributionHelperTests {
     void shouldGetPendingWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
         when(replicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
@@ -115,7 +115,7 @@ class ContributionHelperTests {
     void shouldCount0PendingWeightSinceContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
@@ -127,12 +127,12 @@ class ContributionHelperTests {
     void shouldCountOnlyPendingWeightForOneSinceOtherFailed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
         when(replicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.FAILED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.FAILED);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
@@ -144,12 +144,12 @@ class ContributionHelperTests {
     void shouldCountOnlyPendingWeightForOneSinceOtherContributed() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
         when(replicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
@@ -161,12 +161,12 @@ class ContributionHelperTests {
     void shouldCountOnlyPendingWeightForOneSinceOtherVeryOld() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
         when(replicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(true);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
@@ -178,12 +178,12 @@ class ContributionHelperTests {
     void shouldCountOnlyPendingWeightForOneSinceOtherNoWeight() {
         Replicate replicate1 = mock(Replicate.class);
         when(replicate1.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
         when(replicate2.isCreatedMoreThanNPeriodsAgo(anyInt(), anyLong())).thenReturn(false);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
         when(replicate2.getWorkerWeight()).thenReturn(0);
 
         List<Replicate> replicates = Arrays.asList(replicate1, replicate2);
@@ -194,17 +194,17 @@ class ContributionHelperTests {
     @Test
     void shouldGetDistinctContributions() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate1.getContributionHash()).thenReturn(A);
         when(replicate1.getWorkerWeight()).thenReturn(3);
 
         Replicate replicate2 = mock(Replicate.class);
-        when(replicate2.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate2.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate2.getContributionHash()).thenReturn(A);
         when(replicate2.getWorkerWeight()).thenReturn(5);
 
         Replicate replicate3 = mock(Replicate.class);
-        when(replicate3.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CONTRIBUTED));
+        when(replicate3.getLastRelevantStatus()).thenReturn(ReplicateStatus.CONTRIBUTED);
         when(replicate3.getContributionHash()).thenReturn(B);
         when(replicate3.getWorkerWeight()).thenReturn(10);
 
@@ -217,7 +217,7 @@ class ContributionHelperTests {
     @Test
     void shouldNotGetDistinctContributionsSinceNotContributed() {
         Replicate replicate1 = mock(Replicate.class);
-        when(replicate1.getLastRelevantStatus()).thenReturn(Optional.of(ReplicateStatus.CREATED));
+        when(replicate1.getLastRelevantStatus()).thenReturn(ReplicateStatus.CREATED);
 
         List<Replicate> replicates = Collections.singletonList(replicate1);
 

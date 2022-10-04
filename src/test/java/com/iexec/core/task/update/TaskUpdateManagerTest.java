@@ -774,9 +774,7 @@ class TaskUpdateManagerTest {
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
@@ -808,15 +806,11 @@ class TaskUpdateManagerTest {
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
         // - R2 is in `APP_DOWNLOAD_FAILED` status.
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        Replicate replicate2 = new Replicate();
-        replicate2.setWalletAddress(WALLET_WORKER_2);
-        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.APP_DOWNLOAD_FAILED, ReplicateStatusModifier.WORKER);
 
@@ -847,9 +841,7 @@ class TaskUpdateManagerTest {
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
@@ -880,15 +872,11 @@ class TaskUpdateManagerTest {
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
         // - R2 is in `APP_DOWNLOAD_FAILED` status.
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        Replicate replicate2 = new Replicate();
-        replicate2.setWalletAddress(WALLET_WORKER_2);
-        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.APP_DOWNLOAD_FAILED, ReplicateStatusModifier.WORKER);
 
@@ -919,15 +907,11 @@ class TaskUpdateManagerTest {
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
         // - R2 is in `COMPUTING` status.
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        Replicate replicate2 = new Replicate();
-        replicate2.setWalletAddress(WALLET_WORKER_2);
-        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
 
@@ -959,15 +943,11 @@ class TaskUpdateManagerTest {
         // - R1 is in `COMPUTE_FAILED` status;
         // - R2 is in `CONTRIBUTE_FAILED` status.
         // Worker of R2 has been lost.
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        Replicate replicate2 = new Replicate();
-        replicate2.setWalletAddress(WALLET_WORKER_2);
-        replicate2.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTE_FAILED, ReplicateStatusModifier.WORKER);
 
@@ -996,9 +976,7 @@ class TaskUpdateManagerTest {
         // 1 replicates have tried to run the task and 1 is still to be run:
         // - R1 is in `COMPUTE_FAILED` status;
         // - R2 has not started yet.
-        Replicate replicate1 = new Replicate();
-        replicate1.setWalletAddress(WALLET_WORKER_1);
-        replicate1.setChainTaskId(CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
