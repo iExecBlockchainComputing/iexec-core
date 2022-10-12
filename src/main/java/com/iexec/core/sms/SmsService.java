@@ -73,7 +73,7 @@ public class SmsService {
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
-        if(!checkSmsTeeEnclaveProvider(smsClient, teeFrameworkForDeal, chainTaskId)){
+        if(!checkSmsTeeFramework(smsClient, teeFrameworkForDeal, chainTaskId)){
             log.error("Can't get verified SMS url since tag TEE type " + 
                 "does not match SMS TEE type [chainTaskId:{},teeFrameworkForDeal:{}]",
                     chainTaskId, teeFrameworkForDeal);
@@ -84,17 +84,17 @@ public class SmsService {
 
     private Optional<String> retrieveSmsUrl(TeeFramework teeFramework) {
         Optional<String> smsUrl = Optional.empty();
-        if(TeeFramework.SCONE.equals(teeFramework)){
+        if(teeFramework == TeeFramework.SCONE){
             smsUrl = Optional.of(registryConfiguration.getSconeSms());
-        } else if(TeeFramework.GRAMINE.equals(teeFramework)){
+        } else if(teeFramework == TeeFramework.GRAMINE){
             smsUrl = Optional.of(registryConfiguration.getGramineSms());
         }
         return smsUrl;
     }
 
-    private boolean checkSmsTeeEnclaveProvider(SmsClient smsClient,
-                                               TeeFramework teeFrameworkForDeal,
-                                               String chainTaskId) {
+    private boolean checkSmsTeeFramework(SmsClient smsClient,
+                                         TeeFramework teeFrameworkForDeal,
+                                         String chainTaskId) {
         final TeeFramework smsTeeFramework;
         try {
             smsTeeFramework = smsClient.getTeeFramework();
