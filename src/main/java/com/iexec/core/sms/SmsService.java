@@ -16,7 +16,7 @@
 
 package com.iexec.core.sms;
 
-import com.iexec.common.tee.TeeEnclaveProvider;
+import com.iexec.common.tee.TeeFramework;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
@@ -49,7 +49,7 @@ public class SmsService {
      * <ul>
      *     <li>Given deal exists on-chain;</li>
      *     <li>The {@link SmsClient} can be created, based on the on-chain deal definition;</li>
-     *     <li>The targeted SMS is configured to run with the task's TEE enclave provider.</li>
+     *     <li>The targeted SMS is configured to run with the task's TEE framework.</li>
      * </ul>
      * <p>
      * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
@@ -59,55 +59,55 @@ public class SmsService {
      * @return SMS url if TEE types of tag & SMS match.
      */
     public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
-        final TeeEnclaveProvider teeEnclaveProviderForDeal = TeeUtils.getTeeEnclaveProvider(tag);
-        if(teeEnclaveProviderForDeal == null){
-            log.error("Can't get verified SMS url with invalid TEE enclave " + 
-                "provider from tag [chainTaskId:{}]", chainTaskId);
+        final TeeFramework teeFrameworkForDeal = TeeUtils.getTeeFramework(tag);
+        if(teeFrameworkForDeal == null){
+            log.error("Can't get verified SMS url with invalid TEE framework " +
+                "from tag [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
-        Optional<String> smsUrl = retrieveSmsUrl(teeEnclaveProviderForDeal);
+        Optional<String> smsUrl = retrieveSmsUrl(teeFrameworkForDeal);
         if(smsUrl.isEmpty()){
             log.error("Can't get verified SMS url since type of tag is not " + 
-                "supported [chainTaskId:{},teeEnclaveProvider:{}]", 
-                    chainTaskId, teeEnclaveProviderForDeal);
+                "supported [chainTaskId:{},teeFrameworkForDeal:{}]",
+                    chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
-        if(!checkSmsTeeEnclaveProvider(smsClient, teeEnclaveProviderForDeal, chainTaskId)){
+        if(!checkSmsTeeFramework(smsClient, teeFrameworkForDeal, chainTaskId)){
             log.error("Can't get verified SMS url since tag TEE type " + 
-                "does not match SMS TEE type [chainTaskId:{},teeProviderForTask:{}]", 
-                    chainTaskId, teeEnclaveProviderForDeal);
+                "does not match SMS TEE type [chainTaskId:{},teeFrameworkForDeal:{}]",
+                    chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
         return smsUrl;
     }
 
-    private Optional<String> retrieveSmsUrl(TeeEnclaveProvider teeEnclaveProvider) {
+    private Optional<String> retrieveSmsUrl(TeeFramework teeFramework) {
         Optional<String> smsUrl = Optional.empty();
-        if(TeeEnclaveProvider.SCONE.equals(teeEnclaveProvider)){
+        if(teeFramework == TeeFramework.SCONE){
             smsUrl = Optional.of(registryConfiguration.getSconeSms());
-        } else if(TeeEnclaveProvider.GRAMINE.equals(teeEnclaveProvider)){
+        } else if(teeFramework == TeeFramework.GRAMINE){
             smsUrl = Optional.of(registryConfiguration.getGramineSms());
         }
         return smsUrl;
     }
 
-    private boolean checkSmsTeeEnclaveProvider(SmsClient smsClient,
-                                               TeeEnclaveProvider teeEnclaveProviderForDeal,
-                                               String chainTaskId) {
-        final TeeEnclaveProvider smsTeeEnclaveProvider;
+    private boolean checkSmsTeeFramework(SmsClient smsClient,
+                                         TeeFramework teeFrameworkForDeal,
+                                         String chainTaskId) {
+        final TeeFramework smsTeeFramework;
         try {
-            smsTeeEnclaveProvider = smsClient.getTeeEnclaveProvider();
+            smsTeeFramework = smsClient.getTeeFramework();
         } catch (FeignException e) {
-            log.error("Can't retrieve SMS TEE enclave provider [chainTaskId:{}]",
+            log.error("Can't retrieve SMS TEE framework [chainTaskId:{}]",
                     chainTaskId, e);
             return false;
         }
 
-        if (smsTeeEnclaveProvider != teeEnclaveProviderForDeal) {
-            log.error("SMS is configured for another TEE enclave provider " +
-                            "[chainTaskId:{}, teeEnclaveProviderForDeal:{}, smsTeeEnclaveProvider:{}]",
-                    chainTaskId, teeEnclaveProviderForDeal, smsTeeEnclaveProvider);
+        if (smsTeeFramework != teeFrameworkForDeal) {
+            log.error("SMS is configured for another TEE framework " +
+                            "[chainTaskId:{}, teeFrameworkForDeal:{}, smsTeeFramework:{}]",
+                    chainTaskId, teeFrameworkForDeal, smsTeeFramework);
             return false;
         }
         return true;

@@ -1,7 +1,7 @@
 package com.iexec.core.sms;
 
 import com.iexec.common.task.TaskDescription;
-import com.iexec.common.tee.TeeEnclaveProvider;
+import com.iexec.common.tee.TeeFramework;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
@@ -65,7 +65,7 @@ class SmsServiceTests {
         //Ensure all TeeEnclaveProvider are handled
         // (adding a new one would break assertion)
         Assertions.assertThat(supportedTeeTags)
-            .hasSize(TeeEnclaveProvider.values().length);
+            .hasSize(TeeFramework.values().length);
         return Stream.of(
                 Arguments.of(supportedTeeTags.get(0), SCONE_SMS_URL),
                 Arguments.of(supportedTeeTags.get(1), GRAMINE_SMS_URL)
@@ -76,13 +76,13 @@ class SmsServiceTests {
     @MethodSource("validData")
     void shouldGetVerifiedSmsUrl(String inputTag, String expectedSmsUrl) {
         when(smsClientProvider.getSmsClient(expectedSmsUrl)).thenReturn(smsClient);
-        when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeUtils.getTeeEnclaveProvider(inputTag));
+        when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(inputTag));
 
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, inputTag))
             .isEqualTo(Optional.of(expectedSmsUrl));
 
         verify(smsClientProvider).getSmsClient(expectedSmsUrl);
-        verify(smsClient).getTeeEnclaveProvider();
+        verify(smsClient).getTeeFramework();
     }
 
     @Test
@@ -91,19 +91,19 @@ class SmsServiceTests {
             .isEmpty();
 
         verify(smsClientProvider, times(0)).getSmsClient(anyString());
-        verify(smsClient, times(0)).getTeeEnclaveProvider();
+        verify(smsClient, times(0)).getTeeFramework();
     }
 
     @Test
     void shouldNotGetVerifiedSmsUrlSinceSinceWrongTeeEnclaveProviderOnRemoteSms() {
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
-        when(smsClient.getTeeEnclaveProvider()).thenReturn(TeeEnclaveProvider.SCONE);
+        when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
 
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_GRAMINE_ONLY_TAG))
             .isEmpty();
 
         verify(smsClientProvider).getSmsClient(GRAMINE_SMS_URL);
-        verify(smsClient).getTeeEnclaveProvider();
+        verify(smsClient).getTeeFramework();
     }
     // endregion
 
