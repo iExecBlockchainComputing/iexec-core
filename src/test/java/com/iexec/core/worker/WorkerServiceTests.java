@@ -16,6 +16,7 @@
 
 package com.iexec.core.worker;
 
+import com.iexec.core.chain.WorkerPassService;
 import com.iexec.core.configuration.WorkerConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class WorkerServiceTests {
 
     @Mock
     private WorkerConfiguration workerConfiguration;
+
+    @Mock
+    private WorkerPassService workerPassService;
 
     @InjectMocks
     private WorkerService workerService;
@@ -138,6 +142,78 @@ class WorkerServiceTests {
     void shouldBeAllowedWhenNoWhiteList() {
         when(workerConfiguration.getWhitelist()).thenReturn(List.of());
         assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldBeAllowedWhenNoWhiteListAndHasPass() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(true));
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldBeAllowedWhenNoWhiteListAndHasPassNotRequired() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(false);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(false));
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldBeAllowedWhenWhiteListAndHasPass() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of("w1"));
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(true));
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldBeAllowedWhenNoWhiteListAndHasPassIsEmptyAndNotRequired() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(false);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.empty());
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldBeAllowedWhenWhiteListAndHasPassNotRequired() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of("w1"));
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(false);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(false));
+        assertThat(workerService.isAllowedToJoin("w1")).isTrue();
+    }
+
+    @Test
+    void shouldNotBeAllowedWhenWhiteListAndNoHasPass() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of("w1"));
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(false));
+        assertThat(workerService.isAllowedToJoin("w1")).isFalse();
+    }
+
+    @Test
+    void shouldNotBeAllowedWhenNoWhiteListAndNoHasPass() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(false));
+        assertThat(workerService.isAllowedToJoin("w1")).isFalse();
+    }
+
+    @Test
+    void shouldNotBeAllowedWhenWrongWhiteListAndNoHasPass() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of("w2"));
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.of(false));
+        assertThat(workerService.isAllowedToJoin("w1")).isFalse();
+    }
+
+    @Test
+    void shouldNotBeAllowedWhenNoWhiteListAndHasPassIsEmpty() {
+        when(workerConfiguration.getWhitelist()).thenReturn(List.of());
+        when(workerConfiguration.getWorkerPassRequired()).thenReturn(true);
+        when(workerPassService.hasWorkerPass("w1")).thenReturn(Optional.empty());
+        assertThat(workerService.isAllowedToJoin("w1")).isFalse();
     }
 
     @Test
@@ -251,7 +327,7 @@ class WorkerServiceTests {
     // addChainTaskIdToWorker
 
     @Test
-    void shouldAddTaskIdToWorker(){
+    void shouldAddTaskIdToWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -279,7 +355,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotAddTaskIdToWorker(){
+    void shouldNotAddTaskIdToWorker() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
@@ -327,11 +403,11 @@ class WorkerServiceTests {
 
         assertThat(workerService.getComputingTaskIds(wallet)).isEmpty();
     }
-    
+
     // removeChainTaskIdFromWorker
 
     @Test
-    void shouldRemoveTaskIdFromWorker(){
+    void shouldRemoveTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -359,14 +435,14 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveTaskIdWorkerNotFound(){
+    void shouldNotRemoveTaskIdWorkerNotFound() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker.isPresent()).isFalse();
     }
 
     @Test
-    void shouldNotRemoveAnythingSinceTaskIdNotFound(){
+    void shouldNotRemoveAnythingSinceTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -397,7 +473,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldRemoveComputedChainTaskIdFromWorker(){
+    void shouldRemoveComputedChainTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -428,7 +504,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -453,7 +529,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -581,7 +657,7 @@ class WorkerServiceTests {
 
         List<Worker> dummyWorkers = new ArrayList<>();
 
-        for (int i=0; i<n; i++) {
+        for (int i = 0; i < n; i++) {
             dummyWorkers.add(Worker.builder().id(Integer.toString(i)).build());
         }
         return dummyWorkers;
@@ -690,4 +766,32 @@ class WorkerServiceTests {
 
         assertThat(workerService.getAliveAvailableGpu()).isEqualTo(1);
     }
+
+    //    deleteWorkerByAddress
+    @Test
+    void shouldDeleteWorker() {
+        String workerName = "worker1";
+        String walletAddress = "w1";
+        Worker worker = Worker.builder()
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(8)
+                .lastAliveDate(new Date())
+                .build();
+        when(workerRepository.findByWalletAddress("w1")).thenReturn(Optional.of(worker));
+
+        assertThat(workerService.deleteWorkerByAddress("w1")).isEqualTo(Optional.of(worker));
+        Mockito.verify(workerRepository).delete(worker);
+    }
+
+    @Test
+    void shouldNotDeleteWorkerIfAddressNotPresent() {
+        when(workerRepository.findByWalletAddress("w1")).thenReturn(Optional.empty());
+
+        assertThat(workerService.deleteWorkerByAddress("w1")).isEqualTo(Optional.empty());
+        Mockito.verify(workerRepository, Mockito.never()).delete(any());
+    }
+
 }

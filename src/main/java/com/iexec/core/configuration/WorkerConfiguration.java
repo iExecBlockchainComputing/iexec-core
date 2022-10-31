@@ -36,6 +36,9 @@ public class WorkerConfiguration {
     @Value("${workers.whitelist}")
     private String[] whitelist;
 
+    @Value("${workers.workerPassRequired}")
+    private boolean workerPassRequired;
+
     // getters are overridden since the whitelist should return a list, not an array
     public long getAskForReplicatePeriod() {
         return askForReplicatePeriod;
@@ -47,5 +50,9 @@ public class WorkerConfiguration {
 
     public List<String> getWhitelist() {
         return Arrays.asList(whitelist);
+    }
+
+    public boolean getWorkerPassRequired() {
+        return workerPassRequired;
     }
 }

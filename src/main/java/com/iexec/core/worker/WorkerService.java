@@ -16,6 +16,7 @@
 
 package com.iexec.core.worker;
 
+import com.iexec.core.chain.WorkerPassService;
 import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,11 +34,13 @@ public class WorkerService {
 
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
+    private final WorkerPassService workerPassService;
 
     public WorkerService(WorkerRepository workerRepository,
-                         WorkerConfiguration workerConfiguration) {
+                         WorkerConfiguration workerConfiguration, WorkerPassService workerPassService) {
         this.workerRepository = workerRepository;
         this.workerConfiguration = workerConfiguration;
+        this.workerPassService = workerPassService;
     }
 
     public Optional<Worker> getWorker(String walletAddress) {
@@ -60,13 +63,32 @@ public class WorkerService {
         return workerRepository.save(worker);
     }
 
-    public boolean isAllowedToJoin(String workerAddress){
+    public boolean isAllowedToJoin(String workerAddress) {
         List<String> whitelist = workerConfiguration.getWhitelist();
-        // if the whitelist is empty, there is no restriction on the workers
-        if (whitelist.isEmpty()){
-            return true;
+        boolean isAllowedByWhitelist = whitelist.isEmpty() || whitelist.contains(workerAddress);
+
+//        return early to avoid errors from missing configuration of the address for the WorkerPassContract
+        if (!workerConfiguration.getWorkerPassRequired()) {
+            return isAllowedByWhitelist;
         }
-        return whitelist.contains(workerAddress);
+        boolean isAllowedByWorkerPass = workerPassService.hasWorkerPass(workerAddress).isPresent() && workerPassService.hasWorkerPass(workerAddress).get();
+
+        if (whitelist.isEmpty()) {
+            return isAllowedByWorkerPass;
+        }
+
+        return isAllowedByWhitelist && isAllowedByWorkerPass;
+    }
+
+    public Optional<Worker> deleteWorkerByAddress(String walletAddress){
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            workerRepository.delete(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
     }
 
     public Optional<Worker> updateLastAlive(String walletAddress) {
@@ -183,7 +205,7 @@ public class WorkerService {
 
     public boolean canAcceptMoreWorks(String walletAddress) {
         Optional<Worker> optionalWorker = getWorker(walletAddress);
-        if (optionalWorker.isEmpty()){
+        if (optionalWorker.isEmpty()) {
             return false;
         }
 
@@ -202,7 +224,7 @@ public class WorkerService {
 
     public int getAliveAvailableCpu() {
         int availableCpus = 0;
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 continue;
             }
@@ -210,18 +232,18 @@ public class WorkerService {
             int workerCpuNb = worker.getCpuNb();
             int computingReplicateNb = worker.getComputingChainTaskIds().size();
             int availableCpu = workerCpuNb - computingReplicateNb;
-            availableCpus+= availableCpu;
+            availableCpus += availableCpu;
         }
         return availableCpus;
     }
 
     public int getAliveTotalCpu() {
         int totalCpus = 0;
-        for (Worker worker: getAliveWorkers()){
-            if(worker.isGpuEnabled()) {
+        for (Worker worker : getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
                 continue;
             }
-            totalCpus+= worker.getCpuNb();
+            totalCpus += worker.getCpuNb();
         }
         return totalCpus;
     }
@@ -229,7 +251,7 @@ public class WorkerService {
     // We suppose for now that 1 Gpu enabled worker has only one GPU
     public int getAliveTotalGpu() {
         int totalGpus = 0;
-        for(Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 totalGpus++;
             }
@@ -237,9 +259,9 @@ public class WorkerService {
         return totalGpus;
     }
 
-    public int getAliveAvailableGpu () {
+    public int getAliveAvailableGpu() {
         int availableGpus = getAliveTotalGpu();
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 boolean isWorking = !worker.getComputingChainTaskIds().isEmpty();
                 if (isWorking) {

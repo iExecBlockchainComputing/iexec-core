@@ -161,8 +161,8 @@ public class ReplicateSupplyService implements Purgeable {
                 chainTaskId,
                 task.getEnclaveChallenge());
         ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
-            .workerpoolAuthorization(authorization);
-        if(task.isTeeTask()){
+                .workerpoolAuthorization(authorization);
+        if (task.isTeeTask()) {
             replicateTaskSummary.smsUrl(task.getSmsUrl());
         }
         return Optional.of(replicateTaskSummary.build());
@@ -173,12 +173,16 @@ public class ReplicateSupplyService implements Purgeable {
      * tries to accept the task - i.e. create a new {@link Replicate}
      * for that task on that worker.
      *
-     * @param task  {@link Task} needing at least one new {@link Replicate}.
+     * @param task          {@link Task} needing at least one new {@link Replicate}.
      * @param walletAddress Wallet address of a worker looking for new {@link Task}.
      * @return {@literal true} if the task has been accepted,
      * {@literal false} otherwise.
      */
     private boolean acceptOrRejectTask(Task task, String walletAddress) {
+        if (!workerService.isAllowedToJoin(walletAddress)) {
+            workerService.deleteWorkerByAddress(walletAddress);
+            return false;
+        }
         if (task.getEnclaveChallenge().isEmpty()) {
             return false;
         }
@@ -234,8 +238,8 @@ public class ReplicateSupplyService implements Purgeable {
 
     /**
      * Get notifications missed by the worker during the time it was absent.
-     * 
-     * @param blockNumber last seen blocknumber by the worker
+     *
+     * @param blockNumber   last seen blocknumber by the worker
      * @param walletAddress of the worker
      * @return list of missed notifications. Can be empty if no notification is found
      */
@@ -264,7 +268,7 @@ public class ReplicateSupplyService implements Purgeable {
                 continue;
             }
             TaskNotificationExtra taskNotificationExtra =
-                    getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
+                    getTaskNotificationExtra(task, taskNotificationType.get(), walletAddress, enclaveChallenge);
 
             TaskNotification taskNotification = TaskNotification.builder()
                     .chainTaskId(chainTaskId)
@@ -286,7 +290,7 @@ public class ReplicateSupplyService implements Purgeable {
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
         TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
 
-        switch (taskNotificationType){
+        switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
                 WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                         walletAddress, task.getChainTaskId(), enclaveChallenge);
@@ -312,7 +316,7 @@ public class ReplicateSupplyService implements Purgeable {
         // CONTRIBUTION_TIMEOUT or CONSENSUS_REACHED without contribution
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)
                 || (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED)
-                        && !replicate.containsContributedStatus())) {
+                && !replicate.containsContributedStatus())) {
             return Optional.of(TaskNotificationType.PLEASE_ABORT);
         }
 
