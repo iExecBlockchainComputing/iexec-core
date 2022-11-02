@@ -35,6 +35,7 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
@@ -48,6 +49,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
@@ -128,7 +130,9 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    void shouldNotGetReplicateSinceNotAllowedToJoin() {
+    @DisplayName("A worker should not get new tasks and be removed from the pool if it is no longer allowed to be there (sold NFT)")
+    void shouldNotGetReplicateAndRemovedFromPool() {
+//        given
         Worker worker1 = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
@@ -136,7 +140,39 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .lastAliveDate(new Date())
                 .build();
+        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.changeStatus(RUNNING);
+        runningTask.setTag(NO_TEE_TAG);
+        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
+//        when
+        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
+        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+                .thenReturn(Optional.of(runningTask));
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
+        when(workerService.isAllowedToJoin(WALLET_WORKER_1)).thenReturn(false);
+        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(worker1));
+        when(workerService.deleteWorkerByAddress(WALLET_WORKER_1)).thenReturn(Optional.of(worker1));
+
+
+//       then
+        Optional<ReplicateTaskSummary> replicateTaskSummary =
+                replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
+        assertThat(replicateTaskSummary).isEmpty();
+
+        Mockito.verify(taskService, Mockito.never()).isConsensusReached(any());
+        Mockito.verifyNoInteractions(signatureService);
+        Mockito.verify(workerService).isAllowedToJoin(WALLET_WORKER_1);
+        Mockito.verify(workerService).deleteWorkerByAddress(WALLET_WORKER_1);
+        assertTaskAccessForNewReplicateLockNeverUsed(CHAIN_TASK_ID);
+    }
+
+    @Test
+    @DisplayName("A replicate should be assigned to worker, if it is allowed to be in the pool")
+    void shouldGetReplicateWhenAllowedToJoin() {
+//        given
         Worker worker2 = Worker.builder()
                 .id("2")
                 .walletAddress(WALLET_WORKER_2)
@@ -144,8 +180,6 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .lastAliveDate(new Date())
                 .build();
-
-//        general setup
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
         runningTask.setMaxExecutionTime(maxExecutionTime);
@@ -158,20 +192,10 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-
+//        when
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-
-//        worker1 setup
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
-        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
-        when(workerService.isAllowedToJoin(WALLET_WORKER_1)).thenReturn(false);
-        when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(worker1));
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
-        when(workerService.deleteWorkerByAddress(WALLET_WORKER_1)).thenReturn(Optional.of(worker1));
-
-//        worker2 setup
 
         workerCanWorkAndHasGas(WALLET_WORKER_2);
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker2));
@@ -179,26 +203,18 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(new WorkerpoolAuthorization());
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).thenReturn(false);
 
-
-//        worker1 does not get the task and gets removed
-        Optional<ReplicateTaskSummary> replicateTaskSummary =
-                replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
-        assertThat(replicateTaskSummary).isEmpty();
-
-        Mockito.verify(taskService, Mockito.never()).isConsensusReached(any());
-        Mockito.verifyNoInteractions(signatureService);
-        Mockito.verify(workerService).isAllowedToJoin(WALLET_WORKER_1);
-        Mockito.verify(workerService).deleteWorkerByAddress(WALLET_WORKER_1);
-        assertTaskAccessForNewReplicateLockNeverUsed(CHAIN_TASK_ID);
-
-//        worker2 gets the task
-
-        replicateTaskSummary =
+//        then
+        Optional<ReplicateTaskSummary> worker2ReplicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_2);
-        assertThat(replicateTaskSummary).isPresent();
+
+        assertAll(
+                () -> assertThat(worker2ReplicateTaskSummary).isPresent()
+        );
 
         Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_2);
+        Mockito.verify(workerService, Mockito.never()).deleteWorkerByAddress(any());
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_2);
+        Mockito.verify(workerService).isAllowedToJoin(WALLET_WORKER_2);
         Mockito.verify(signatureService).createAuthorization(WALLET_WORKER_2, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }

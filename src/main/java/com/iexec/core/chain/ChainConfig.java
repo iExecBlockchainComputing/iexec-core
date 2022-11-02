@@ -40,7 +40,7 @@ public class ChainConfig {
     @Value("#{blockchainAdapterService.publicChainConfig.iexecHubContractAddress}")
     private String hubAddress;
 
-    @Value("${workerPassAddress}")
+    @Value("${chain.workerPassAddress}")
     private String workerPassAddress;
 
     @Value("${chain.poolAddress}")

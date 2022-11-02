@@ -3,7 +3,6 @@ package com.iexec.core.chain;
 import com.iexec.common.chain.IexecHubAbstractService;
 import com.iexec.core.contract.generated.IExecTokenABI;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.ens.EnsResolutionException;
 import org.web3j.tx.ChainIdLong;
@@ -25,10 +24,9 @@ public class WorkerPassService extends IexecHubAbstractService {
     private final Web3jService web3jService;
     private final CredentialsService credentialsService;
 
-    @Autowired
     public WorkerPassService(CredentialsService credentialsService,
-                           Web3jService web3jService,
-                           ChainConfig chainConfig) {
+                             Web3jService web3jService,
+                             ChainConfig chainConfig) {
         super(
                 credentialsService.getCredentials(),
                 web3jService,
@@ -36,15 +34,15 @@ public class WorkerPassService extends IexecHubAbstractService {
         this.credentialsService = credentialsService;
         this.web3jService = web3jService;
         this.workerPassAddress = chainConfig.getWorkerPassAddress();
-        if (!hasEnoughGas(credentialsService.getCredentials().getAddress())) {
+        if (!hasEnoughGas()) {
             System.exit(0);
         }
     }
 
     public IExecTokenABI getWorkerPassContract(ContractGasProvider contractGasProvider,
-                                        long chainId,
-                                        int watchFrequency,
-                                        int watchAttempts) {
+                                               long chainId,
+                                               int watchFrequency,
+                                               int watchAttempts) {
         ExceptionInInitializerError exceptionInInitializerError =
                 new ExceptionInInitializerError("Failed to load WorkerPass " +
                         "contract from address " + workerPassAddress);
@@ -95,5 +93,9 @@ public class WorkerPassService extends IexecHubAbstractService {
             }
         }
         return Optional.empty();
+    }
+
+    private boolean hasEnoughGas() {
+        return hasEnoughGas(credentialsService.getCredentials().getAddress());
     }
 }
