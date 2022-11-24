@@ -16,6 +16,7 @@
 
 package com.iexec.core.security;
 
+import com.iexec.common.utils.FileHelper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -23,6 +24,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
@@ -30,16 +34,38 @@ import java.util.Date;
 @Slf4j
 @Component
 public class JwtTokenProvider {
+    private static final int KEY_SIZE = 32;
 
     private final ChallengeService challengeService;
     private final String secretKey;
 
-    public JwtTokenProvider(ChallengeService challengeService) {
+    public JwtTokenProvider(ChallengeService challengeService, JwtConfig jwtConfig) throws IOException {
         this.challengeService = challengeService;
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] seed = new byte[32];
-        secureRandom.nextBytes(seed);
-        this.secretKey = Base64.getEncoder().encodeToString(seed);
+        this.secretKey = initKey(jwtConfig.getKeyPath());
+    }
+
+    /**
+     * Reads the key used to sign JWT tokens from a file.
+     * <p>
+     * If the file does not exist, it is created.
+     * <p>
+     * There does not seem to be a best practice between hosting a key within a file or a database,
+     * for an easier implementation, the key is currently hosted in a file for the moment.
+     *
+     * @param jwtKeyPath Path to the file hosting the key.
+     * @return The key as a Base64-encoded {@link String}.
+     * @throws IOException if an error occurs during file system interactions
+     */
+    private String initKey(String jwtKeyPath) throws IOException {
+        Path path = Path.of(jwtKeyPath);
+        if (!path.toFile().exists()) {
+            SecureRandom random = new SecureRandom();
+            byte[] seed = new byte[KEY_SIZE];
+            random.nextBytes(seed);
+            String content = Base64.getEncoder().encodeToString(seed);
+            FileHelper.createFileWithContent(jwtKeyPath, content);
+        }
+        return Files.readString(path);
     }
 
     public String createToken(String walletAddress) {

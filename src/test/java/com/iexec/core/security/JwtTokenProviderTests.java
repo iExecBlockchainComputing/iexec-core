@@ -17,30 +17,67 @@
 package com.iexec.core.security;
 
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 class JwtTokenProviderTests {
 
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
+    @TempDir
+    private static Path tmpDir;
+
     @Mock
     private ChallengeService challengeService;
 
-    @InjectMocks
+    private JwtConfig jwtConfig;
+
     private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
-    void init() {
+    void init() throws IOException {
+        jwtConfig = new JwtConfig(String.join(File.separator, tmpDir.toString(), ".key"));
         MockitoAnnotations.openMocks(this);
+        jwtTokenProvider = new JwtTokenProvider(challengeService, jwtConfig);
     }
+
+    //region key persistence
+    @Test
+    void shouldValidateTokenWhenKeyFileExists() throws IOException {
+        final String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        final JwtTokenProvider newService = new JwtTokenProvider(challengeService, jwtConfig);
+        assertAll(
+                () -> assertEquals(WALLET_ADDRESS, jwtTokenProvider.getWalletAddress(token)),
+                () -> assertEquals(WALLET_ADDRESS, newService.getWalletAddress(token))
+        );
+    }
+
+    @Test
+    void shouldNotValidateTokenWhenKeyFileRecreated() throws IOException {
+        final String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        Files.deleteIfExists(Path.of(jwtConfig.getKeyPath()));
+        final JwtTokenProvider newService = new JwtTokenProvider(challengeService, jwtConfig);
+        assertAll(
+                () -> assertEquals(WALLET_ADDRESS, jwtTokenProvider.getWalletAddress(token)),
+                () -> assertThrows(SignatureException.class,
+                        () -> newService.getWalletAddress(token))
+        );
+    }
+    //endregion
 
     //region resolveToken
     @Test

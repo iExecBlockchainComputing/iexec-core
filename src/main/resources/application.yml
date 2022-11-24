@@ -76,6 +76,9 @@ sms:
   host: ${IEXEC_SMS_HOST:localhost}
   port: ${IEXEC_SMS_PORT:13300}
 
+jwt:
+  key-path: /data/scheduler-jwt-sign.key
+
 management:
   server:
     port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
