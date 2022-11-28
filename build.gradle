@@ -15,16 +15,26 @@ targetCompatibility = 11
 ext {
     springCloudVersion = '2021.0.0'
     mongockVersion = '4.2.7.BETA'
-    gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
 }
 
-if (gitBranch != 'main' && gitBranch != 'master' && ! (gitBranch ==~ '(release|hotifx|support)/.*')) {
+if (!project.hasProperty('gitBranch')) {
+    ext.gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+}
+
+if (gitBranch != 'main' && gitBranch != 'master' && ! (gitBranch ==~ '(release|hotfix|support)/.*')) {
     version += '-NEXT-SNAPSHOT'
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
+    maven {
+        url "https://docker-regis-adm.iex.ec/repository/maven-public/"
+        credentials {
+            username nexusUser
+            password nexusPassword
+        }
+    }
     maven {
         url "https://nexus.intra.iex.ec/repository/maven-public/"
     }
@@ -150,8 +160,8 @@ publishing {
     repositories {
         maven {
             credentials {
-                username project.hasProperty('nexusUser') ? nexusUser : ''
-                password project.hasProperty('nexusPassword') ? nexusPassword : ''
+                username nexusUser
+                password nexusPassword
             }
             url project.hasProperty('nexusUrl') ? nexusUrl : ''
         }
