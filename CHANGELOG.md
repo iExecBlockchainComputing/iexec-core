@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 * Handle task supply and task update management based on their level of priority.
 * Upgrade automated build system.
 
-## [[7.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.0.0) 2021-12-17
+## [[7.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/7.0.0) 2021-12-17
 
 Highly improved throughput of the iExec protocol.
 
@@ -88,29 +88,29 @@ What has changed since v6.0.0?
 
 * Fixed Recovering for the Retryable updateReplicateStatus(..) method.
 
-## [[6.1.5]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.1.5]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.5) 2021-10-21
 
 * Added checks before locally upgrading to the INITIALIZED status.
 * Removed 2-blocks waiting time before supplying a new replicate.
 
-## [[6.1.4]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.1.4]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.4) 2021-10-14
 
 * Fixed OptimisticLockingFailureException happening when 2 detectors detect the same change at the same time, leading to race updates on a same task.
 
-## [[6.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.3) 2021-10-05
 
 * Bump iexec-common dependency (iexec-common@5.5.1) featuring socket reuse when sending multiple requests to a blockchain node.
 
-## [[6.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.2) 2021-10-01
 
 Bugfix - Replay fromBlockNumber now lives in a dedicated configuration:
 * A configuration document did store two different states. Updates on different states at the same time might lead to race conditions when saving to database. Now each state has its own document to avoid race conditions when saving.
 
-## [[6.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.0.1) 2021-09-28
 
 * Fix : TaskRepositoy.findByChainDealIdAndTaskIndex() returns non-unique result
 
-## [[6.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
+## [[6.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v6.0.0) 2021-07-29
 
 What's new?
 * Added Prometheus actuators
