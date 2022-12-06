@@ -212,6 +212,7 @@ In summary this version introduces:
 * iExec End-To-End Encryption with Secret Management Service (SMS): from this version, inputs and outputs of the job can be fully encrypted using the Secret Management Service.
 * Decentralized oracle: If the result is needed by a smart contract, it is available directly on the blockchain.
 * IPFS: data can be retrieved from IPFS and public results can be published on IPFS.
+
 For further information on this version, please read our documentation.
 
 ## [[3.0.0-alpha3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/3.0.0-alpha3) 2019-04-15
