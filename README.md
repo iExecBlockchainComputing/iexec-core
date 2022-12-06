@@ -15,7 +15,6 @@ To run properly, the _iExec Core Scheduler_ requires:
 * An _iExec Blockchain Adapter_ for several blockchain network interactions.
 * An _iExec Result Proxy_ to check if tasks results have been published.
 * An _iExec Secret Management Service_ (_iExec SMS_) for secret and enclave sessions management of TEE tasks.
-* An _iExec Secret Management Service_ (_iExec SMS_) for secret and enclave sessions management of TEE tasks.
 
 You can configure the _iExec Core Scheduler_ with the following properties:
 
