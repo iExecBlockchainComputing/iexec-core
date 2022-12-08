@@ -21,13 +21,7 @@ import com.iexec.common.config.WorkerModel;
 import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.SignatureUtils;
-import com.iexec.core.chain.ChainConfig;
-import com.iexec.core.chain.CredentialsService;
-import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.configuration.SessionService;
-import com.iexec.core.configuration.SmsConfiguration;
-import com.iexec.core.configuration.WorkerConfiguration;
+import com.iexec.core.configuration.PublicConfigurationService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -48,33 +42,18 @@ import static org.springframework.http.ResponseEntity.status;
 public class WorkerController {
 
     private final WorkerService workerService;
-    private final ChainConfig chainConfig;
-    private final CredentialsService credentialsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final ChallengeService challengeService;
-    private final WorkerConfiguration workerConfiguration;
-    private final ResultRepositoryConfiguration resultRepoConfig;
-    private final SmsConfiguration smsConfiguration;
-    private final BlockchainAdapterClientConfig blockchainAdapterClientConfig;
+    private final PublicConfigurationService publicConfigurationService;
 
     public WorkerController(WorkerService workerService,
-                            ChainConfig chainConfig,
-                            CredentialsService credentialsService,
                             JwtTokenProvider jwtTokenProvider,
                             ChallengeService challengeService,
-                            WorkerConfiguration workerConfiguration,
-                            ResultRepositoryConfiguration resultRepoConfig,
-                            SmsConfiguration smsConfiguration,
-                            BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
+                            PublicConfigurationService publicConfigurationService) {
         this.workerService = workerService;
-        this.chainConfig = chainConfig;
-        this.credentialsService = credentialsService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.challengeService = challengeService;
-        this.workerConfiguration = workerConfiguration;
-        this.resultRepoConfig = resultRepoConfig;
-        this.smsConfiguration = smsConfiguration;
-        this.blockchainAdapterClientConfig = blockchainAdapterClientConfig;
+        this.publicConfigurationService = publicConfigurationService;
     }
 
     @PostMapping(path = "/workers/ping")
@@ -83,8 +62,9 @@ public class WorkerController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        final String publicConfigurationHash = publicConfigurationService.getPublicConfigurationHash();
         return workerService.updateLastAlive(workerWalletAddress)
-                .map(worker -> ok(SessionService.getSessionId()))
+                .map(worker -> ok(publicConfigurationHash))
                 .orElseGet(() -> status(HttpStatus.NOT_FOUND).build());
     }
 
@@ -148,16 +128,7 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/config")
     public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
-        PublicConfiguration config = PublicConfiguration.builder()
-                .workerPoolAddress(chainConfig.getPoolAddress())
-                .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
-                .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
-                .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
-                .smsURL(smsConfiguration.getSmsURL())
-                .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
-                .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
-                .build();
-
+        final PublicConfiguration config = publicConfigurationService.getPublicConfiguration();
         return ok(config);
     }
 
