@@ -53,7 +53,7 @@ public class PublicConfigurationService {
                                       WorkerConfiguration workerConfiguration,
                                       ResultRepositoryConfiguration resultRepoConfig,
                                       SmsConfiguration smsConfiguration,
-                                      BlockchainAdapterClientConfig blockchainAdapterClientConfig)  {
+                                      BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.workerConfiguration = workerConfiguration;
@@ -88,7 +88,7 @@ public class PublicConfigurationService {
         this.publicConfigurationHash = Base64.getEncoder().encodeToString(digest.digest(publicConfigurationAsString.getBytes()));
     }
 
-    public String getPublicConfigurationHash(){
+    public String getPublicConfigurationHash() {
         if (publicConfigurationHash == null) {
             throw new IllegalArgumentException("Public configuration accessed before initialization.");
         }
