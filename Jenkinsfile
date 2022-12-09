@@ -1,4 +1,4 @@
-@Library('global-jenkins-library@2.1.4') _
+@Library('global-jenkins-library@2.2.3') _
 buildJavaProject(
         buildInfo: getBuildInfo(),
         integrationTestsEnvVars: [],

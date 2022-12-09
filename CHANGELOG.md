@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-11-29
+
+* Increments of jenkins-library up to version 2.2.3. Enable SonarCloud analyses on branches and Pull Requests.
+* Update `iexec-common` version to [6.1.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.1.0).
+
+## [[7.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.3) 2022-11-29
+
+* Bump version to 7.1.3.
+
 ## [[7.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.2) 2022-11-29
 
 * Update README and add CHANGELOG.
