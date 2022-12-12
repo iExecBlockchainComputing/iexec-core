@@ -89,7 +89,7 @@ public class PublicConfigurationService {
 
     public String getPublicConfigurationHash() {
         if (publicConfigurationHash == null) {
-            throw new IllegalArgumentException("Public configuration accessed before initialization.");
+            throw new IllegalArgumentException("Public configuration hash accessed before initialization.");
         }
         return publicConfigurationHash;
     }
