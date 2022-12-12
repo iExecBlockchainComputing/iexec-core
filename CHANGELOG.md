@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-12
+
+* `sessionId` is now a hash of the public configuration to avoid a reboot of the worker in case the configuration has not changed.
+
 ## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-11-29
 
 * Increments of jenkins-library up to version 2.2.3. Enable SonarCloud analyses on branches and Pull Requests.
