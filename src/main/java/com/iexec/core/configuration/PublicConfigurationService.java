@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 
 import javax.annotation.PostConstruct;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * This simple service will generate a random session id when the scheduler is started, it will be send to workers when
