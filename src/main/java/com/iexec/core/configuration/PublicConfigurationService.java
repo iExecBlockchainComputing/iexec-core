@@ -21,11 +21,10 @@ import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
 import org.springframework.stereotype.Service;
+import org.web3j.crypto.Hash;
 
 import javax.annotation.PostConstruct;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 
 /**
  * This simple service will generate a random session id when the scheduler is started, it will be send to workers when
@@ -74,6 +73,8 @@ public class PublicConfigurationService {
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
 
+        // TODO: would be great to put this in Common
+        // (a simple `@ToString` would be sufficient)
         final String publicConfigurationAsString = String.join("\n",
                 publicConfiguration.getWorkerPoolAddress(),
                 publicConfiguration.getBlockchainAdapterUrl(),
@@ -84,8 +85,7 @@ public class PublicConfigurationService {
                 publicConfiguration.getRequiredWorkerVersion()
         );
 
-        final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        this.publicConfigurationHash = Base64.getEncoder().encodeToString(digest.digest(publicConfigurationAsString.getBytes()));
+        this.publicConfigurationHash = Hash.sha3String(publicConfigurationAsString);
     }
 
     public String getPublicConfigurationHash() {
