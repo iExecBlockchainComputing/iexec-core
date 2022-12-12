@@ -61,7 +61,7 @@ public class PublicConfigurationService {
     }
 
     @PostConstruct
-    void buildPublicConfiguration() throws NoSuchAlgorithmException {
+    void buildPublicConfiguration() {
         this.publicConfiguration = PublicConfiguration.builder()
                 .workerPoolAddress(chainConfig.getPoolAddress())
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
