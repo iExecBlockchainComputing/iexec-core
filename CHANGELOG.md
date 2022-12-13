@@ -2,20 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-12
+## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-13
 
 * Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant hash received from the `POST /ping` response indicates that the scheduler configuration has not changed. With such constant hash, either the scheduler has restarted or not, the consumer does not need to reboot.
 
-## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-11-29
+## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-12-09
 
 * Increments of jenkins-library up to version 2.2.3. Enable SonarCloud analyses on branches and Pull Requests.
 * Update `iexec-common` version to [6.1.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.1.0).
 
-## [[7.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.3) 2022-11-29
+## [[7.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.3) 2022-12-07
 
 * Bump version to 7.1.3.
 
-## [[7.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.2) 2022-11-29
+## [[7.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.2) 2022-12-07
 
 * Update README and add CHANGELOG.
 
