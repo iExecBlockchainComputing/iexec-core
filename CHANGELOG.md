@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-12
 
-* Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant hash means that the scheduler configuration has not changed and allows reboot from the scheduler without requiring it from the consumers.
+* Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant hash received from the `POST /ping` response indicates that the scheduler configuration has not changed. With such constant hash, either the scheduler has restarted or not, the consumer does not need to reboot.
 
 ## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-11-29
 
