@@ -43,8 +43,6 @@ class PublicConfigurationServiceTests {
     @Mock
     private ResultRepositoryConfiguration resultRepoConfig;
     @Mock
-    private SmsConfiguration smsConfiguration;
-    @Mock
     private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
     @InjectMocks
@@ -58,7 +56,7 @@ class PublicConfigurationServiceTests {
 
     // region getPublicConfiguration
     @Test
-    void shouldGetPublicConfiguration() throws NoSuchAlgorithmException {
+    void shouldGetPublicConfiguration() {
         // This would be done by Spring in production
         publicConfigurationService.buildPublicConfiguration();
 
@@ -73,7 +71,7 @@ class PublicConfigurationServiceTests {
 
     // region getPublicConfiguration
     @Test
-    void shouldGetPublicConfigurationHash() throws NoSuchAlgorithmException {
+    void shouldGetPublicConfigurationHash() {
         // This would be done by Spring in production
         publicConfigurationService.buildPublicConfiguration();
 

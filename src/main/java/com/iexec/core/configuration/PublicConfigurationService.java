@@ -35,7 +35,6 @@ public class PublicConfigurationService {
     private final CredentialsService credentialsService;
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
-    private final SmsConfiguration smsConfiguration;
     private final BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
     private PublicConfiguration publicConfiguration = null;
@@ -50,13 +49,11 @@ public class PublicConfigurationService {
                                       CredentialsService credentialsService,
                                       WorkerConfiguration workerConfiguration,
                                       ResultRepositoryConfiguration resultRepoConfig,
-                                      SmsConfiguration smsConfiguration,
                                       BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
-        this.smsConfiguration = smsConfiguration;
         this.blockchainAdapterClientConfig = blockchainAdapterClientConfig;
     }
 
@@ -67,7 +64,6 @@ public class PublicConfigurationService {
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
-                .smsURL(smsConfiguration.getSmsURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
@@ -79,7 +75,6 @@ public class PublicConfigurationService {
                 publicConfiguration.getBlockchainAdapterUrl(),
                 publicConfiguration.getSchedulerPublicAddress(),
                 publicConfiguration.getResultRepositoryURL(),
-                publicConfiguration.getSmsURL(),
                 publicConfiguration.getAskForReplicatePeriod() + "",
                 publicConfiguration.getRequiredWorkerVersion()
         );
