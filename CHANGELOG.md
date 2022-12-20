@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[7.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.2) 2022-12-20
+
+* Use `iexec-common` version [6.2.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.2.0).
+* Use `okhttp` version 4.9.0 to keep it consistent with the one in the web3j dependency imported by `iexec-common`.
+
 ## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-13
 
 * Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant hash received from the `POST /ping` response indicates that the scheduler configuration has not changed. With such constant hash, either the scheduler has restarted or not, the consumer does not need to reboot.
