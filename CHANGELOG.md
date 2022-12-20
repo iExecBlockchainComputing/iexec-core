@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [[7.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.2) 2022-12-20
 
 * Use `iexec-common` version [6.2.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.2.0).
-* Use `okhttp` version 4.9.0 to keep it in sync with web3j dependency updated in `iexec-common`.
+* Use `okhttp` version 4.9.0 to keep it consistent with the one in the web3j dependency imported by `iexec-common`.
 
 ## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-13
 
