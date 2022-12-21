@@ -1,12 +1,9 @@
 package com.iexec.core.worker;
 
+import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
 import com.iexec.common.security.Signature;
-import com.iexec.core.chain.ChainConfig;
-import com.iexec.core.chain.CredentialsService;
-import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.configuration.WorkerConfiguration;
+import com.iexec.core.configuration.PublicConfigurationService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.web3j.crypto.Credentials;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -42,23 +38,16 @@ class WorkerControllerTests {
     private static final WorkerModel WORKER_MODEL = WorkerModel.builder()
             .walletAddress(WALLET)
             .build();
+    private static final String PUBLIC_CONFIGURATION_HASH = "publicConfigurationHash";
 
     @Mock
     private WorkerService workerService;
-    @Mock
-    private ChainConfig chainConfig;
-    @Mock
-    private CredentialsService credentialsService;
     @Mock
     private JwtTokenProvider jwtTokenProvider;
     @Mock
     private ChallengeService challengeService;
     @Mock
-    private WorkerConfiguration workerConfiguration;
-    @Mock
-    private ResultRepositoryConfiguration resultRepoConfig;
-    @Mock
-    private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
+    private PublicConfigurationService publicConfigurationService;
 
     @InjectMocks
     private WorkerController workerController;
@@ -73,6 +62,7 @@ class WorkerControllerTests {
     void shouldAcceptPing() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
         when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
+        when(publicConfigurationService.getPublicConfigurationHash()).thenReturn(PUBLIC_CONFIGURATION_HASH);
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -241,7 +231,7 @@ class WorkerControllerTests {
     //region getPublicConfiguration
     @Test
     void shouldGetPublicConfiguration() {
-        when(credentialsService.getCredentials()).thenReturn(mock(Credentials.class));
+        when(publicConfigurationService.getPublicConfiguration()).thenReturn(new PublicConfiguration());
         assertThat(workerController.getPublicConfiguration().getStatusCode())
                 .isEqualTo(HttpStatus.OK);
     }
