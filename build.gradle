@@ -146,7 +146,7 @@ jacoco {
 // sonarqube code coverage requires jacoco XML report
 jacocoTestReport {
     reports {
-        xml.enabled true
+        xml.required = true
     }
 }
 tasks.test.finalizedBy    tasks.jacocoTestReport
