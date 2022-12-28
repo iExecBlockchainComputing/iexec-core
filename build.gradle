@@ -9,8 +9,6 @@ plugins {
 }
 
 group = 'com.iexec.core'
-sourceCompatibility = 11
-targetCompatibility = 11
 
 ext {
     springCloudVersion = '2021.0.0'
@@ -38,7 +36,6 @@ repositories {
     maven {
         url "https://nexus.intra.iex.ec/repository/maven-public/"
     }
-
     maven { url "https://jitpack.io" }
 }
 
@@ -109,6 +106,12 @@ dependencies {
 
     // slf4j-test
     testImplementation 'uk.org.lidalia:slf4j-test:1.2.0'
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
 
 jar {
