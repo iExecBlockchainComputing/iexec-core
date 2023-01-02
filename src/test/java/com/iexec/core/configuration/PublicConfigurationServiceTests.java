@@ -26,8 +26,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.web3j.crypto.Credentials;
 
-import java.security.NoSuchAlgorithmException;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;

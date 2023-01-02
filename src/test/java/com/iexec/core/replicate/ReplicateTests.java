@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import org.hamcrest.Condition;
-import org.hamcrest.Description;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -32,7 +30,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ReplicateTests {
 

@@ -1,6 +1,5 @@
 package com.iexec.core.sms;
 
-import com.iexec.common.task.TaskDescription;
 import com.iexec.common.tee.TeeFramework;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
@@ -33,10 +32,6 @@ class SmsServiceTests {
     private static final String SCONE_SMS_URL = "http://scone-sms";
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String url = "url";
-    private static final TaskDescription TASK_DESCRIPTION = TaskDescription
-            .builder()
-            .chainTaskId(CHAIN_TASK_ID)
-            .build();
 
     @Mock
     private SmsClient smsClient;

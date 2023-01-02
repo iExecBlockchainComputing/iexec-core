@@ -38,8 +38,6 @@ import static org.mockito.Mockito.when;
 
 class FinalDeadlineTaskDetectorTests {
 
-    private final static String CHAIN_TASK_ID = "chainTaskId";
-
     @Mock
     private TaskService taskService;
 
