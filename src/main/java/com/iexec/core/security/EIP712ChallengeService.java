@@ -16,10 +16,9 @@
 
 package com.iexec.core.security;
 
+import com.iexec.common.chain.eip712.EIP712Domain;
 import com.iexec.common.chain.eip712.entity.Challenge;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
-import com.iexec.common.chain.eip712.EIP712Domain;
-import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,6 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Service
 public class EIP712ChallengeService {
 

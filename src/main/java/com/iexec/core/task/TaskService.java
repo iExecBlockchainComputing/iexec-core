@@ -21,12 +21,14 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -36,14 +38,11 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
-    private final ReplicatesService replicatesService;
 
     public TaskService(TaskRepository taskRepository,
-                       IexecHubService iexecHubService,
-                       ReplicatesService replicatesService) {
+                       IexecHubService iexecHubService) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
-        this.replicatesService = replicatesService;
     }
 
     /**

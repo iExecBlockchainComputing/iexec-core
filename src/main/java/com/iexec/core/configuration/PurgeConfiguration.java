@@ -2,14 +2,12 @@ package com.iexec.core.configuration;
 
 import com.iexec.common.lifecycle.purge.PurgeService;
 import com.iexec.common.lifecycle.purge.Purgeable;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
 @Configuration
-@Slf4j
 public class PurgeConfiguration {
     /**
      * Creates a {@link PurgeService} bean, with a list of all {@link Purgeable} beans as a parameter.
