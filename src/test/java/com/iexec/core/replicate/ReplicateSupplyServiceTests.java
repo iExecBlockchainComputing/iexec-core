@@ -36,6 +36,7 @@ import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -1156,52 +1157,51 @@ class ReplicateSupplyServiceTests {
 
     // region purgeTask
     @Test
-    void shouldPurgeTaskWhenKnownTask() throws NoSuchFieldException, IllegalAccessException {
-        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+    void shouldPurgeTaskWhenKnownTask() {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = new HashMap<>();
         taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID, new ReentrantLock());
+        ReflectionTestUtils.setField(replicateSupplyService, "taskAccessForNewReplicateLocks", taskAccessForNewReplicateLocks);
 
         assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
         assertThat(taskAccessForNewReplicateLocks).isEmpty();
     }
 
     @Test
-    void shouldPurgeTaskWhenUnknownTask() throws NoSuchFieldException, IllegalAccessException {
-        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+    void shouldPurgeTaskWhenUnknownTask() {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = new HashMap<>();
         taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID_2, new ReentrantLock());
+        ReflectionTestUtils.setField(replicateSupplyService, "taskAccessForNewReplicateLocks", taskAccessForNewReplicateLocks);
 
         assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
         assertThat(taskAccessForNewReplicateLocks).containsOnlyKeys(CHAIN_TASK_ID_2);
     }
 
     @Test
-    void shouldPurgeTaskWhenEmpty() throws NoSuchFieldException, IllegalAccessException {
-        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+    void shouldPurgeTaskWhenEmpty() {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = new HashMap<>();
+        ReflectionTestUtils.setField(replicateSupplyService, "taskAccessForNewReplicateLocks", taskAccessForNewReplicateLocks);
 
         assertTrue(replicateSupplyService.purgeTask(CHAIN_TASK_ID));
         assertThat(taskAccessForNewReplicateLocks).isEmpty();
-    }
-
-    private Map<String, Lock> getTaskAccessForNewReplicateLocks() throws NoSuchFieldException, IllegalAccessException {
-        final Field field = ReplicateSupplyService.class.getDeclaredField("taskAccessForNewReplicateLocks");
-        field.setAccessible(true);
-        return (Map<String, Lock>) field.get(replicateSupplyService);
     }
     // endregion
 
     // region purgeAllTasksData
     @Test
-    void shouldPurgeAllTasksDataWhenEmpty() throws NoSuchFieldException, IllegalAccessException {
-        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+    void shouldPurgeAllTasksDataWhenEmpty() {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = new HashMap<>();
+        ReflectionTestUtils.setField(replicateSupplyService, "taskAccessForNewReplicateLocks", taskAccessForNewReplicateLocks);
 
         replicateSupplyService.purgeAllTasksData();
         assertThat(taskAccessForNewReplicateLocks).isEmpty();
     }
 
     @Test
-    void shouldPurgeAllTasksDataWhenFull() throws NoSuchFieldException, IllegalAccessException {
-        final Map<String, Lock> taskAccessForNewReplicateLocks = getTaskAccessForNewReplicateLocks();
+    void shouldPurgeAllTasksDataWhenFull() {
+        final Map<String, Lock> taskAccessForNewReplicateLocks = new HashMap<>();
         taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID, new ReentrantLock());
         taskAccessForNewReplicateLocks.put(CHAIN_TASK_ID_2, new ReentrantLock());
+        ReflectionTestUtils.setField(replicateSupplyService, "taskAccessForNewReplicateLocks", taskAccessForNewReplicateLocks);
 
         replicateSupplyService.purgeAllTasksData();
         assertThat(taskAccessForNewReplicateLocks).isEmpty();
