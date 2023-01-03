@@ -139,7 +139,7 @@ class BlockchainAdapterServiceTests {
         Optional<Boolean> commandCompleted = blockchainAdapterService
                 .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
                 CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS);
-        Assertions.assertThat(commandCompleted.isPresent()).isTrue();
+        Assertions.assertThat(commandCompleted).isPresent();
         Assertions.assertThat(commandCompleted.get()).isTrue();
     }
 
@@ -153,7 +153,7 @@ class BlockchainAdapterServiceTests {
         Optional<Boolean> commandCompleted = blockchainAdapterService
                 .isCommandCompleted(blockchainAdapterClient::getStatusForInitializeTaskRequest,
                 CHAIN_TASK_ID, PERIOD, MAX_ATTEMPTS);
-        Assertions.assertThat(commandCompleted.isPresent()).isTrue();
+        Assertions.assertThat(commandCompleted).isPresent();
         Assertions.assertThat(commandCompleted.get()).isFalse();
     }
 
@@ -170,7 +170,7 @@ class BlockchainAdapterServiceTests {
     // region getPublicChainConfig
     @Test
     void shouldGetPublicChainConfigOnlyOnce() {
-        final PublicChainConfig expectedChainConfig = new PublicChainConfig();
+        final PublicChainConfig expectedChainConfig = PublicChainConfig.builder().build();
         when(blockchainAdapterClient.getPublicChainConfig())
                 .thenReturn(expectedChainConfig);
 
