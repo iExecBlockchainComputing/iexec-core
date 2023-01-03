@@ -21,17 +21,25 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ConfigurationRepositoryMigrationTest {
+
+    @Mock
+    private MongoCollection<Document> collection;
+
+    @Mock
+    private MongoDatabase db;
+
+    @Mock
+    private FindIterable<Document> findIterable;
 
     @Mock
     private MongockTemplate mongockTemplate;
@@ -58,11 +66,8 @@ class ConfigurationRepositoryMigrationTest {
     }
 
     private void mockFindFirstConfiguration(Document document) {
-        MongoDatabase db = mock(MongoDatabase.class);
         when(mongockTemplate.getDb()).thenReturn(db);
-        MongoCollection<Document> collection = mock(MongoCollection.class);
         when(db.getCollection(anyString())).thenReturn(collection);
-        FindIterable<Document> findIterable = mock(FindIterable.class);
         when(collection.find()).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(document);
     }
