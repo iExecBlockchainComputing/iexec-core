@@ -1,16 +1,14 @@
 plugins {
     id 'java'
-    id 'eclipse'
+    id 'io.freefair.lombok' version '6.6.1'
+    id 'org.springframework.boot' version '2.6.2'
+    id 'io.spring.dependency-management' version '1.1.0'
     id 'jacoco'
     id 'org.sonarqube' version '3.3'
     id 'maven-publish'
-    id "org.springframework.boot" version "2.6.2"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
 }
 
 group = 'com.iexec.core'
-sourceCompatibility = 11
-targetCompatibility = 11
 
 ext {
     springCloudVersion = '2021.0.0'
@@ -38,7 +36,6 @@ repositories {
     maven {
         url "https://nexus.intra.iex.ec/repository/maven-public/"
     }
-
     maven { url "https://jitpack.io" }
 }
 
@@ -95,12 +92,6 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-registry-prometheus:1.8.1'
 
-    // lombok
-    compileOnly "org.projectlombok:lombok:1.18.2"
-    annotationProcessor "org.projectlombok:lombok:1.18.2"
-    testCompileOnly "org.projectlombok:lombok:1.18.2"
-    testAnnotationProcessor "org.projectlombok:lombok:1.18.2"
-
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
@@ -115,6 +106,12 @@ dependencies {
 
     // slf4j-test
     testImplementation 'uk.org.lidalia:slf4j-test:1.2.0'
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
 
 jar {
@@ -146,7 +143,7 @@ jacoco {
 // sonarqube code coverage requires jacoco XML report
 jacocoTestReport {
     reports {
-        xml.enabled true
+        xml.required = true
     }
 }
 tasks.test.finalizedBy    tasks.jacocoTestReport
