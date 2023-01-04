@@ -73,8 +73,6 @@ dependencies {
     // It is required to define the dependency version required by web3j until migration to at least Spring Boot 2.7.X
     implementation 'com.squareup.okhttp3:okhttp:4.9.0' // Web3j issue: https://github.com/web3j/web3j/issues/1180
 
-    testImplementation "org.springframework.boot:spring-boot-starter-test"
-
     // Spring Doc
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
 
@@ -96,6 +94,8 @@ dependencies {
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
 
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
     // awaitility
     testImplementation 'org.awaitility:awaitility:4.0.1'
 
@@ -103,9 +103,6 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers:1.16.2'
     testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
     testImplementation 'org.testcontainers:mongodb:1.16.2'
-
-    // slf4j-test
-    testImplementation 'uk.org.lidalia:slf4j-test:1.2.0'
 }
 
 java {
@@ -125,11 +122,6 @@ springBoot {
 
 test {
     useJUnitPlatform()
-
-    // To avoid warnings on multiple SLF4J bindings,
-    // let's remove the Logback implementation
-    // and keep only SLF4j Test.
-    classpath = classpath.filter {!it.name.contains('logback-classic')}
 }
 
 task itest {

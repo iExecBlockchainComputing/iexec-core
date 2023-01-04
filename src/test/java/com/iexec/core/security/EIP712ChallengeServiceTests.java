@@ -23,7 +23,7 @@ import org.web3j.crypto.Keys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class EIP712ChallengeServiceTests {
+class EIP712ChallengeServiceTests {
 
     private static final String WALLET_ADDRESS_1 = "1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private static final String WALLET_ADDRESS_2 = "2a69b2eb604db8eba185df03ea4f5288dcbbd248";
