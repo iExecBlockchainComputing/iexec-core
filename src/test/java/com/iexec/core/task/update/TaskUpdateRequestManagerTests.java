@@ -119,7 +119,7 @@ class TaskUpdateRequestManagerTests {
                 .timeout(30, TimeUnit.SECONDS)
                 .until(() -> callsOrder.size() == callsPerUpdate * updates.size());
 
-        Assertions.assertThat(callsOrder.size()).isEqualTo(callsPerUpdate * updates.size());
+        Assertions.assertThat(callsOrder).hasSize(callsPerUpdate * updates.size());
 
         // We loop through calls order and see if all calls for a given update have finished
         // before another update starts for this task.
