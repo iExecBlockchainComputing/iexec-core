@@ -65,8 +65,8 @@ class WorkerServiceTests {
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         Optional<Worker> foundWorker = workerService.getWorker(walletAddress);
-        assertThat(foundWorker.isPresent()).isTrue();
-        assertThat(foundWorker.get()).isEqualTo(existingWorker);
+        assertThat(foundWorker).isPresent();
+        assertThat(foundWorker).contains(existingWorker);
     }
 
     // addWorker
@@ -175,15 +175,15 @@ class WorkerServiceTests {
         Date now = new Date();
         long duration = now.getTime() - argument.getValue().getLastAliveDate().getTime();
         long diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
-        assertThat(diffInSeconds).isEqualTo(0);
+        assertThat(diffInSeconds).isZero();
 
         // check object returned by the method
-        assertThat(updatedWorker.isPresent()).isTrue();
+        assertThat(updatedWorker).isPresent();
         assertThat(updatedWorker.get().getId()).isEqualTo(worker.getId());
         assertThat(updatedWorker.get().getName()).isEqualTo(worker.getName());
         duration = now.getTime() - updatedWorker.get().getLastAliveDate().getTime();
         diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
-        assertThat(diffInSeconds).isEqualTo(0);
+        assertThat(diffInSeconds).isZero();
     }
 
     @Test
@@ -192,7 +192,7 @@ class WorkerServiceTests {
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
 
         Optional<Worker> optional = workerService.updateLastAlive(walletAddress);
-        assertThat(optional.isPresent()).isFalse();
+        assertThat(optional).isEmpty();
     }
 
     // isWorkerAllowedToAskReplicate
@@ -270,11 +270,11 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", walletAddress);
-        assertThat(addedWorker.isPresent()).isTrue();
+        assertThat(addedWorker).isPresent();
         Worker worker = addedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(3);
         assertThat(worker.getParticipatingChainTaskIds().get(2)).isEqualTo("task3");
-        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(3);
+        assertThat(worker.getComputingChainTaskIds()).hasSize(3);
         assertThat(worker.getComputingChainTaskIds().get(2)).isEqualTo("task3");
     }
 
@@ -282,7 +282,7 @@ class WorkerServiceTests {
     void shouldNotAddTaskIdToWorker(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
-        assertThat(addedWorker.isPresent()).isFalse();
+        assertThat(addedWorker).isEmpty();
     }
 
     // getChainTaskIds
@@ -350,11 +350,11 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("task2", walletAddress);
-        assertThat(removedWorker.isPresent()).isTrue();
+        assertThat(removedWorker).isPresent();
         Worker worker = removedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(1);
         assertThat(worker.getParticipatingChainTaskIds().get(0)).isEqualTo("task1");
-        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getComputingChainTaskIds()).hasSize(1);
         assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task1");
     }
 
@@ -362,7 +362,7 @@ class WorkerServiceTests {
     void shouldNotRemoveTaskIdWorkerNotFound(){
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
-        assertThat(addedWorker.isPresent()).isFalse();
+        assertThat(addedWorker).isEmpty();
     }
 
     @Test
@@ -387,12 +387,12 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("dummyTaskId", walletAddress);
-        assertThat(removedWorker.isPresent()).isTrue();
+        assertThat(removedWorker).isPresent();
         Worker worker = removedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
         assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
 
-        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getComputingChainTaskIds()).hasSize(2);
         assertThat(worker.getComputingChainTaskIds()).isEqualTo(computingIds);
     }
 
@@ -418,12 +418,12 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", walletAddress);
-        assertThat(removedWorker.isPresent()).isTrue();
+        assertThat(removedWorker).isPresent();
         Worker worker = removedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
         assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
 
-        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(1);
+        assertThat(worker.getComputingChainTaskIds()).hasSize(1);
         assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task2");
     }
 
@@ -449,7 +449,7 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", walletAddress);
-        assertThat(removedWorker.isPresent()).isFalse();
+        assertThat(removedWorker).isEmpty();
     }
 
     @Test
@@ -474,12 +474,12 @@ class WorkerServiceTests {
         when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
 
         Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("dummyTaskId", walletAddress);
-        assertThat(removedWorker.isPresent()).isTrue();
+        assertThat(removedWorker).isPresent();
         Worker worker = removedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
         assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
 
-        assertThat(worker.getComputingChainTaskIds().size()).isEqualTo(2);
+        assertThat(worker.getComputingChainTaskIds()).hasSize(2);
         assertThat(worker.getComputingChainTaskIds()).isEqualTo(computingIds);
     }
 
@@ -500,8 +500,9 @@ class WorkerServiceTests {
         assertThat(diffInMinutes).isEqualTo(1);
 
         // check the claimedLostWorkers are actually the lostWorkers
-        assertThat(claimedLostWorkers.size()).isEqualTo(2);
-        assertThat(claimedLostWorkers).isEqualTo(lostWorkers);
+        assertThat(claimedLostWorkers)
+                .hasSize(2)
+                .isEqualTo(lostWorkers);
     }
 
     @Test
@@ -529,8 +530,9 @@ class WorkerServiceTests {
         assertThat(diffInMinutes).isEqualTo(1);
 
         // check the claimedAliveWorkers are actually the aliveWorkers
-        assertThat(claimedAliveWorkers.size()).isEqualTo(1);
-        assertThat(claimedAliveWorkers).isEqualTo(aliveWorkers);
+        assertThat(claimedAliveWorkers)
+                .hasSize(1)
+                .isEqualTo(aliveWorkers);
     }
 
     @Test
@@ -631,13 +633,13 @@ class WorkerServiceTests {
                 Arrays.asList("task1", "task2", "task3", "task4"));
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
 
-        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
+        assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
     @Test
     void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
-        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(0);
+        assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
     // getAliveTotalCpu
