@@ -81,7 +81,7 @@ public class DealWatcherService {
     Disposable subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
         log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
         return iexecHubService.getDealEventObservableToLatest(from)
-                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
+                .subscribe(dealEvent -> dealEvent.ifPresent(de -> onDealEvent(de, "Start watcher")));
     }
 
     /**
@@ -90,11 +90,11 @@ public class DealWatcherService {
      * 
      * @param dealEvent
      */
-    private void onDealEvent(DealEvent dealEvent) {
+    private void onDealEvent(DealEvent dealEvent, String origin) {
         String dealId = dealEvent.getChainDealId();
         BigInteger dealBlock = dealEvent.getBlockNumber();
-        log.info("Received deal [dealId:{}, block:{}]", dealId,
-                dealBlock);
+        log.info("Received deal [dealId:{}, block:{}, origin:{}]",
+                dealId, dealBlock, origin);
         if (dealBlock == null || dealBlock.equals(BigInteger.ZERO)){
             log.warn("Deal block number is empty, fetching later blockchain " +
                     "events will be more expensive [chainDealId:{}, dealBlock:{}, " +
@@ -176,6 +176,6 @@ public class DealWatcherService {
         log.info("Replay Watcher DealEvent started [from:{}, to:{}]",
                 from, (to == null) ? "latest" : to);
         return iexecHubService.getDealEventObservable(from, to)
-                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
+                .subscribe(dealEvent -> dealEvent.ifPresent(de -> onDealEvent(de, "Replay watcher")));
     }
 }
