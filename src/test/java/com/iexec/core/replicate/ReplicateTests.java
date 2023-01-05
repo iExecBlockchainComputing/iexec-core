@@ -68,7 +68,7 @@ class ReplicateTests {
     @Test
     void shouldInitializeStatusProperly(){
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList()).hasSize(1);
 
         ReplicateStatusUpdate statusChange = replicate.getStatusUpdateList().get(0);
         assertThat(statusChange.getStatus()).isEqualTo(ReplicateStatus.CREATED);
@@ -82,11 +82,11 @@ class ReplicateTests {
     @Test
     void shouldUpdateReplicateStatus(){
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList()).hasSize(1);
 
         // only pool manager sets date of the update
         replicate.updateStatus(STARTING, ReplicateStatusModifier.POOL_MANAGER);
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusUpdateList()).hasSize(2);
 
         ReplicateStatusUpdate initialStatus = replicate.getStatusUpdateList().get(0);
         assertThat(initialStatus.getStatus()).isEqualTo(ReplicateStatus.CREATED);
@@ -103,11 +103,11 @@ class ReplicateTests {
     @Test
     void shouldGetProperLatestStatus(){
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList()).hasSize(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
 
         replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(2);
+        assertThat(replicate.getStatusUpdateList()).hasSize(2);
         assertThat(replicate.getCurrentStatus()).isEqualTo(STARTING);
     }
 
