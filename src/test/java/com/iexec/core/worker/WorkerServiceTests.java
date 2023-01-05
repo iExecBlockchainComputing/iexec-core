@@ -65,7 +65,6 @@ class WorkerServiceTests {
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
         Optional<Worker> foundWorker = workerService.getWorker(walletAddress);
-        assertThat(foundWorker).isPresent();
         assertThat(foundWorker).contains(existingWorker);
     }
 
