@@ -68,6 +68,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
 
+    // apache commons.lang3
+    implementation 'org.apache.commons:commons-lang3'
+
     // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
     // Spring Boot dependencies BOM enforces okhttp3 3.14.9 in 2.6.X
     // It is required to define the dependency version required by web3j until migration to at least Spring Boot 2.7.X
