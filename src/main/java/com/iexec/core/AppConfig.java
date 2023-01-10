@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Import;
     WebMvcConfig.class,
     WebSocketConfig.class,
 })
-@EnableFeignClients
+@EnableFeignClients // TODO: remove this line & Spring Cloud dependency
 public class AppConfig {
     
 }
