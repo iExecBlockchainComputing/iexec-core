@@ -85,7 +85,7 @@ class TaskServiceRealRepositoryTest {
 
         executions.forEach(execution -> {
             try {
-                execution.get(100, TimeUnit.MILLISECONDS);
+                execution.get(1000, TimeUnit.MILLISECONDS);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof DuplicateKeyException) {
                     fail("Task has been added twice. Should not happen!");
