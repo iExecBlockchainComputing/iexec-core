@@ -18,7 +18,9 @@ package com.iexec.core.task;
 
 import com.iexec.common.chain.ChainTask;
 import com.iexec.common.chain.ChainTaskStatus;
+import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.tee.TeeUtils;
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -38,6 +41,7 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
+    private final ContextualLockRunner<String> taskAdditionLock = new ContextualLockRunner<>(1, TimeUnit.MINUTES);
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService) {
@@ -74,26 +78,28 @@ public class TaskService {
             Date contributionDeadline,
             Date finalDeadline
     ) {
-        return taskRepository
+        final String chainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
+        return taskAdditionLock.getWithLock(chainTaskId, () -> taskRepository
                 .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
                 .<Optional<Task>>map(task -> {
-                        log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                                "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust);
-                        return Optional.empty();
+                    log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
+                                    "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
+                            taskIndex, imageName, commandLine, trust);
+                    return Optional.empty();
                 })
                 .orElseGet(() -> {
-                        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                                commandLine, trust, maxExecutionTime, tag);
-                        newTask.setDealBlockNumber(dealBlockNumber);
-                        newTask.setFinalDeadline(finalDeadline);
-                        newTask.setContributionDeadline(contributionDeadline);
-                        newTask = taskRepository.save(newTask);
-                        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
-                        return Optional.of(newTask);
-                });
+                    Task newTask = new Task(chainDealId, taskIndex, imageName,
+                            commandLine, trust, maxExecutionTime, tag);
+                    newTask.setDealBlockNumber(dealBlockNumber);
+                    newTask.setFinalDeadline(finalDeadline);
+                    newTask.setContributionDeadline(contributionDeadline);
+                    newTask = taskRepository.save(newTask);
+                    log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
+                                    "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
+                            taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+                    return Optional.of(newTask);
+                })
+        );
     }
 
     /**
