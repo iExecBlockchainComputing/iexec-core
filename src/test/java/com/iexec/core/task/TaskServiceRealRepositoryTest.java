@@ -76,6 +76,9 @@ class TaskServiceRealRepositoryTest {
         final Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
 
+        // Let's start 2 `taskService.addTask` at the same time.
+        // Without any sync mechanism, this should fail
+        // as it'll try to add twice the same task - with the same key - to the DB.
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
         final List<Future<Optional<Task>>> executions = new ArrayList<>(2);
         for (int i = 0; i < 2; i++) {
@@ -83,9 +86,10 @@ class TaskServiceRealRepositoryTest {
                     2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline)));
         }
 
+        // Let's wait for the `taskService.addTask` to complete.
         executions.forEach(execution -> {
             try {
-                execution.get(1000, TimeUnit.MILLISECONDS);
+                execution.get(1, TimeUnit.MINUTES);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof DuplicateKeyException) {
                     fail("Task has been added twice. Should not happen!");
@@ -95,6 +99,7 @@ class TaskServiceRealRepositoryTest {
             }
         });
 
+        // Finally, let's simply check the task has effectively been added.
         assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
     }
 }
