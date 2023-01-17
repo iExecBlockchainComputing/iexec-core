@@ -59,15 +59,15 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter") {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging' //required for Graylog
     }
-    implementation "org.springframework.boot:spring-boot-starter-web"
-    implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
-    implementation "org.springframework.boot:spring-boot-starter-websocket"
-    implementation "org.springframework.retry:spring-retry"
-    implementation "org.springframework.boot:spring-boot-starter-aop"
-    implementation "org.springframework.boot:spring-boot-starter-security"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
-    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
     implementation "org.springframework.boot:spring-boot-starter-hateoas"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-websocket"
+    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
+    implementation "org.springframework.retry:spring-retry"
 
     // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
     // Spring Boot dependencies BOM enforces okhttp3 3.14.9 in 2.6.X
