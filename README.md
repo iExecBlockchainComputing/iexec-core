@@ -59,6 +59,12 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 
 A more exhaustive documentation is available on [the official documentation of iExec](https://docs.iex.ec/).
 
+## Health checks
+
+A health endpoint (`/actuator/health`) is enabled by default and can be accessed on the `IEXEC_CORE_PORT`.
+This endpoint allows to define health checks in an orchestrator or a [compose file](https://github.com/compose-spec/compose-spec/blob/master/spec.md#healthcheck).
+No default strategy has been implemented in the [Dockerfile](Dockerfile) at the moment.
+
 ## Build from sources
 
 ```
