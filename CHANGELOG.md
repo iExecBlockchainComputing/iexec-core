@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[7.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.0) 2022-12-18
+
+* Add endpoint to allow health checks.
+
 ## [[7.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.2) 2022-12-20
 
 * Use `iexec-common` version [6.2.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.2.0).
