@@ -77,8 +77,6 @@ sms:
   port: ${IEXEC_SMS_PORT:13300}
 
 management:
-  server:
-    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
   endpoints:
     web:
       exposure:
