@@ -51,7 +51,6 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_SMS_PROTOCOL` | _iExec SMS_ server communication protocol. | String | `http` |
 | `IEXEC_SMS_HOST` | _iExec SMS_ server host. | String | `localhost` |
 | `IEXEC_SMS_PORT` | _iExec SMS_ server port. | Positive integer | `13300` |
-| `IEXEC_CORE_MANAGEMENT_PORT` | Management endpoint HTTP port (uses the same port as the application by default). Configure a different port to use management-specific SSL. | Positive integer | `13001` |
 | `IEXEC_CORE_MANAGEMENT_ACTUATORS` | Endpoint IDs that should be included or `*` for all. | String | `health, info` |
 | `IEXEC_CORE_GRAYLOG_HOST` | _Graylog_ server host. | String | `localhost` |
 | `IEXEC_CORE_GRAYLOG_PORT` | _Graylog_ server port. | Positive integer | `12201` |
