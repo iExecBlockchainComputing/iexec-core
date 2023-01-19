@@ -76,8 +76,6 @@ ipfs:
   port: ${IEXEC_IPFS_PORT:5001}
 
 management:
-  server:
-    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
   endpoints:
     web:
       exposure:
