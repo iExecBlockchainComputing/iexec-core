@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * Upgrade to Spring Boot 2.6.14.
 * Improve code quality and tests.
-* Upgrade to Gradle 7.2.
+* Upgrade to Gradle 7.6.
 * Retrieve location of SMS services through an _iExec Platform Registry_.
 * Support Gramine framework for TEE tasks.
 
