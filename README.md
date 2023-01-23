@@ -14,7 +14,7 @@ To run properly, the _iExec Core Scheduler_ requires:
 * A _MongoDB_ instance to persist its data.
 * An _iExec Blockchain Adapter_ for several blockchain network interactions.
 * An _iExec Result Proxy_ to check if tasks results have been published.
-* An _iExec Platform Registry_ to retrieve locations of _iExec SMS_ services. An _iExec Secret Management Service_ handles secret and enclave sessions of TEE tasks.
+* An _iExec Platform Registry_ to retrieve locations of _iExec SMS_ services. An _iExec Secret Management Service_ handles secrets and enclave sessions of TEE tasks.
 
 You can configure the _iExec Core Scheduler_ with the following properties:
 
@@ -25,7 +25,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `MONGO_PORT` | _MongoDB_ server port. Cannot be set with URI. | Positive integer | `13002` |
 | `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | none |
 | `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific "profile" of the _iExec Platform Registry_ targeting specific iExec services you want to connect to. | String | none |
-| `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files of the _iExec Platform Registry_. It might be a Git label such as `main`, `v10`, `07998be`. | String | none |
+| `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files of the _iExec Platform Registry_. It might be a Git label such as `main`, `v10` or `07998be`. | String | none |
 | `REVEAL_TIMEOUT_PERIOD` | Detector period to track reveal timeouts for tasks. | Positive integer | `120000` |
 | `IEXEC_ASK_REPLICATE_PERIOD` | Worker configuration, interval in milliseconds between 2 replicate requests. | Positive integer | `5000` |
 | `IEXEC_CORE_REQUIRED_WORKER_VERSION` | Empty value will allow any worker version. | String | |
