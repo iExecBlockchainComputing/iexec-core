@@ -23,7 +23,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CORE_PORT` | Server port of the _iExec Core Scheduler_. | Positive integer | `13000` |
 | `MONGO_HOST` | _MongoDB_ server host. Cannot be set with URI. | String | `localhost` |
 | `MONGO_PORT` | _MongoDB_ server port. Cannot be set with URI. | Positive integer | `13002` |
-| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server host. | URL | none |
+| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | none |
 | `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific "profile" of the _iExec Platform Registry_ targeting specific iExec services you want to connect to. | String | none |
 | `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files of the _iExec Platform Registry_. It might be a Git label such as `main`, `v10`, `07998be`. | String | none |
 | `REVEAL_TIMEOUT_PERIOD` | Detector period to track reveal timeouts for tasks. | Positive integer | `120000` |
