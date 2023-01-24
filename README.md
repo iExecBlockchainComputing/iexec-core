@@ -14,8 +14,8 @@ To run properly, the _iExec Core Scheduler_ requires:
 * A _MongoDB_ instance to persist its data.
 * An _iExec Blockchain Adapter_ for several blockchain network interactions.
 * An _iExec Result Proxy_ to check if tasks results have been published.
-* An _iExec Platform Registry_ to retrieve locations of _iExec SMS_ services. 
-* An _iExec Secret Management Service_ to handle secrets and enclave sessions of TEE tasks.
+* An _iExec Platform Registry_ to retrieve locations of _iExec SMS_ services.
+* One or many _iExec Secret Management Service_ instances (referenced by the _iExec Platform Registry_) to handle secrets and enclave sessions of TEE tasks.
 
 You can configure the _iExec Core Scheduler_ with the following properties:
 
