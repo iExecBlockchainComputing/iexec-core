@@ -4,11 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023
 
-* Upgrade to Spring Boot 2.6.14.
-* Improve code quality and tests.
-* Upgrade to Gradle 7.6.
-* Retrieve location of SMS services through an _iExec Platform Registry_.
-* Support Gramine framework for TEE tasks.
+### New Features
+* #515 #519 #521 #522 #525 Support TEE tasks requesting Gramine framework.
+* #523 Retrieve location of SMS services through an _iExec Platform Registry_.
+### Quality
+* #524 #536 #538 #539 #540 #541 Improve code quality and tests.
+* #546 Removed unused variables in configuration.
+### Dependency Upgrades
+* #542 Upgrade to Spring Boot 2.6.14.
+* #537 Upgrade to Gradle 7.6.
 
 ## [[7.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.0) 2022-12-18
 
