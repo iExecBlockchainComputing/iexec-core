@@ -24,9 +24,9 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CORE_PORT` | Server port of the _iExec Core Scheduler_. | Positive integer | `13000` |
 | `MONGO_HOST` | _MongoDB_ server host. Cannot be set with URI. | String | `localhost` |
 | `MONGO_PORT` | _MongoDB_ server port. Cannot be set with URI. | Positive integer | `13002` |
-| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | none |
-| `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific "profile" of the _iExec Platform Registry_ targeting specific iExec services you want to connect to. | String | none |
-| `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files of the _iExec Platform Registry_. It might be a Git label such as `main`, `v10` or `07998be`. | String | none |
+| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | |
+| `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific stack configuration exposed by the _iExec Platform Registry_. | String | |
+| `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files exposed by the _iExec Platform Registry_. It might be a Git label such as `main`, `v10` or `07998be`. | String | |
 | `REVEAL_TIMEOUT_PERIOD` | Detector period to track reveal timeouts for tasks. | Positive integer | `120000` |
 | `IEXEC_ASK_REPLICATE_PERIOD` | Worker configuration, interval in milliseconds between 2 replicate requests. | Positive integer | `5000` |
 | `IEXEC_CORE_REQUIRED_WORKER_VERSION` | Empty value will allow any worker version. | String | |
