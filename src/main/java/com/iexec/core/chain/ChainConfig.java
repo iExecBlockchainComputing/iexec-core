@@ -34,11 +34,11 @@ public class ChainConfig {
     @Value("#{blockchainAdapterService.publicChainConfig.isSidechain()}")
     private boolean isSidechain;
 
-    @Value("${chain.privateAddress}")
-    private String privateChainAddress;
-
     @Value("#{blockchainAdapterService.publicChainConfig.iexecHubContractAddress}")
     private String hubAddress;
+
+    @Value("${chain.privateAddress}")
+    private String privateChainAddress;
 
     @Value("${chain.poolAddress}")
     private String poolAddress;
