@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Dependency Upgrades
 * Upgrade to Spring Boot 2.6.14.
 * Upgrade to Gradle 7.6.
+* Upgrade OkHttp to 4.9.0.
 
 ## [[7.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.0) 2022-12-18
 
