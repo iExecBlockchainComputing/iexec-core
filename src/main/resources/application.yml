@@ -48,11 +48,7 @@ wallet:
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
 
 chain:
-  id: ${IEXEC_CHAIN_ID:17}
-  sidechain: ${IEXEC_IS_SIDECHAIN:false}
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
-  publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
-  hubAddress: ${IEXEC_HUB_ADDRESS:0xBF6B2B07e47326B7c8bfCb4A5460bef9f0Fd2002}
   poolAddress: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
@@ -71,13 +67,7 @@ resultRepository:
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:13200}
 
-ipfs:
-  host: ${IEXEC_IPFS_HOST:127.0.0.1}
-  port: ${IEXEC_IPFS_PORT:5001}
-
 management:
-  server:
-    port: ${IEXEC_CORE_MANAGEMENT_PORT:13001}
   endpoints:
     web:
       exposure:
