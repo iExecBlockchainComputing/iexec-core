@@ -25,6 +25,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
@@ -93,7 +94,8 @@ class TaskServiceTests {
     void shouldNotAddTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
-        when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any())).thenThrow(DuplicateKeyException.class);
+
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEmpty();

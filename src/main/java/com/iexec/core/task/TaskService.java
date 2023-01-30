@@ -22,6 +22,7 @@ import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -74,26 +75,23 @@ public class TaskService {
             Date contributionDeadline,
             Date finalDeadline
     ) {
-        return taskRepository
-                .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
-                .<Optional<Task>>map(task -> {
-                        log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                                "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust);
-                        return Optional.empty();
-                })
-                .orElseGet(() -> {
-                        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                                commandLine, trust, maxExecutionTime, tag);
-                        newTask.setDealBlockNumber(dealBlockNumber);
-                        newTask.setFinalDeadline(finalDeadline);
-                        newTask.setContributionDeadline(contributionDeadline);
-                        newTask = taskRepository.save(newTask);
-                        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
-                        return Optional.of(newTask);
-                });
+        Task newTask = new Task(chainDealId, taskIndex, imageName,
+                commandLine, trust, maxExecutionTime, tag);
+        newTask.setDealBlockNumber(dealBlockNumber);
+        newTask.setFinalDeadline(finalDeadline);
+        newTask.setContributionDeadline(contributionDeadline);
+        try {
+            newTask = taskRepository.save(newTask);
+            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
+                            "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
+                    taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+            return Optional.of(newTask);
+        } catch (DuplicateKeyException e) {
+            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
+                            "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
+                    taskIndex, imageName, commandLine, trust);
+            return Optional.empty();
+        }
     }
 
     /**
