@@ -103,13 +103,13 @@ class TaskServiceRealRepositoryTest {
         final Optional<Task> task1 = results.get(0);
         final Optional<Task> task2 = results.get(1);
         assertThat(task1.isEmpty() || task2.isEmpty()).isTrue();
-        assertThat(isExcpectedTask(task, task1) || isExcpectedTask(task, task2)).isTrue();
+        assertThat(isExpectedTask(task, task1) || isExpectedTask(task, task2)).isTrue();
 
         // Finally, let's simply check the task has effectively been added.
         assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
     }
 
-    private static boolean isExcpectedTask(Task task, Optional<Task> task1) {
-        return task1.isPresent() && Objects.equals(task1.get().getChainTaskId(), task.getChainTaskId());
+    private static boolean isExpectedTask(Task expectedTask, Optional<Task> resultTask) {
+        return resultTask.isPresent() && Objects.equals(resultTask.get().getChainTaskId(), expectedTask.getChainTaskId());
     }
 }
