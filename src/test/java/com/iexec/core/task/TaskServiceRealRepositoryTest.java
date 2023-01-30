@@ -31,11 +31,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,20 +84,32 @@ class TaskServiceRealRepositoryTest {
                     2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline)));
         }
 
-        // Let's wait for the `taskService.addTask` to complete.
-        executions.forEach(execution -> {
+        // Let's wait for the `taskService.addTask` to complete and retrieve the results.
+        List<Optional<Task>> results = executions.stream().map(execution -> {
             try {
-                execution.get(1, TimeUnit.MINUTES);
+                return execution.get(1, TimeUnit.MINUTES);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof DuplicateKeyException) {
                     fail("Task has been added twice. Should not happen!");
                 }
+                throw new RuntimeException("Something went wrong.", e);
             } catch (InterruptedException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }).collect(Collectors.toList());
+
+        // Check one execution has added the task,
+        // while the other one has failed.
+        final Optional<Task> task1 = results.get(0);
+        final Optional<Task> task2 = results.get(1);
+        assertThat(task1.isEmpty() || task2.isEmpty()).isTrue();
+        assertThat(isExcpectedTask(task, task1) || isExcpectedTask(task, task2)).isTrue();
 
         // Finally, let's simply check the task has effectively been added.
         assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
+    }
+
+    private static boolean isExcpectedTask(Task task, Optional<Task> task1) {
+        return task1.isPresent() && Objects.equals(task1.get().getChainTaskId(), task.getChainTaskId());
     }
 }
