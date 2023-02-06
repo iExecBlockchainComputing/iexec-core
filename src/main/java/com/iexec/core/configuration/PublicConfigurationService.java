@@ -20,6 +20,7 @@ import com.iexec.common.config.PublicConfiguration;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 
@@ -29,6 +30,7 @@ import javax.annotation.PostConstruct;
  * This simple service will generate a random session id when the scheduler is started, it will be send to workers when
  * they ping the scheduler. If they see that the session id has changed, it means that the scheduler has restarted.
  */
+@Slf4j
 @Service
 public class PublicConfigurationService {
     private final ChainConfig chainConfig;
@@ -67,19 +69,9 @@ public class PublicConfigurationService {
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
-
-        // TODO: would be great to put this in Common
-        // (a simple `@ToString` would be sufficient)
-        final String publicConfigurationAsString = String.join("\n",
-                publicConfiguration.getWorkerPoolAddress(),
-                publicConfiguration.getBlockchainAdapterUrl(),
-                publicConfiguration.getSchedulerPublicAddress(),
-                publicConfiguration.getResultRepositoryURL(),
-                publicConfiguration.getAskForReplicatePeriod() + "",
-                publicConfiguration.getRequiredWorkerVersion()
-        );
-
-        this.publicConfigurationHash = Hash.sha3String(publicConfigurationAsString);
+        this.publicConfigurationHash = Hash.sha3String(publicConfiguration.toString());
+        log.info(publicConfiguration.toString());
+        log.info("Public configuration hash {}", publicConfigurationHash);
     }
 
     public String getPublicConfigurationHash() {
