@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 * Improve code quality and tests.
 * Removed unused variables in configuration.
 * Use existing `toString()` method to serialize and hash scheduler public configuration.
+* Use recommended annotation in `MetricController`.
 ### Dependency Upgrades
 * Upgrade to Spring Boot 2.6.14.
 * Upgrade to Gradle 7.6.
