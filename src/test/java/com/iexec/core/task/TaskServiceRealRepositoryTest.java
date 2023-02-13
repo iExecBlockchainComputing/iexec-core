@@ -102,8 +102,8 @@ class TaskServiceRealRepositoryTest {
         // while the other one has failed.
         final Optional<Task> task1 = results.get(0);
         final Optional<Task> task2 = results.get(1);
-        assertThat(task1.isEmpty() || task2.isEmpty()).isTrue();
-        assertThat(isExpectedTask(task, task1) || isExpectedTask(task, task2)).isTrue();
+        assertThat(task1.isEmpty() ^ task2.isEmpty()).isTrue();
+        assertThat(isExpectedTask(task, task1) ^ isExpectedTask(task, task2)).isTrue();
 
         // Finally, let's simply check the task has effectively been added.
         assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
