@@ -110,9 +110,6 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers:1.16.2'
     testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
     testImplementation 'org.testcontainers:mongodb:1.16.2'
-
-    // slf4j-test
-    testImplementation 'uk.org.lidalia:slf4j-test:1.2.0'
 }
 
 jar {
@@ -126,11 +123,6 @@ springBoot {
 
 test {
     useJUnitPlatform()
-
-    // To avoid warnings on multiple SLF4J bindings,
-    // let's remove the Logback implementation
-    // and keep only SLF4j Test.
-    classpath = classpath.filter {!it.name.contains('logback-classic')}
 }
 
 task itest {
