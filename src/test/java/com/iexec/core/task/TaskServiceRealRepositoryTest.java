@@ -16,6 +16,7 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,11 +32,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,31 +72,43 @@ class TaskServiceRealRepositoryTest {
 
     @Test
     void shouldAddTaskASingleTime() {
-        final Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(TaskStatus.INITIALIZED);
+        final int concurrentRequests = 5;
+        final String expectedChainTaskId = ChainUtils.generateChainTaskId(CHAIN_DEAL_ID, 0);
 
-        // Let's start 2 `taskService.addTask` at the same time.
+        // Let's start n `taskService.addTask` at the same time.
         // Without any sync mechanism, this should fail
-        // as it'll try to add twice the same task - with the same key - to the DB.
-        final ExecutorService executorService = Executors.newFixedThreadPool(2);
-        final List<Future<Optional<Task>>> executions = new ArrayList<>(2);
-        for (int i = 0; i < 2; i++) {
+        // as it'll try to add more than once the same task - with the same key - to the DB.
+        final ExecutorService executorService = Executors.newFixedThreadPool(concurrentRequests);
+        final List<Future<Optional<Task>>> executions = new ArrayList<>(concurrentRequests);
+        for (int i = 0; i < concurrentRequests; i++) {
             executions.add(executorService.submit(() -> taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                     2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline)));
         }
 
-        // Let's wait for the `taskService.addTask` to complete.
-        executions.forEach(execution -> {
+        // Let's wait for the `taskService.addTask` to complete and retrieve the results.
+        List<Optional<Task>> results = executions.stream().map(execution -> {
             try {
-                execution.get(1, TimeUnit.MINUTES);
+                return execution.get(1, TimeUnit.MINUTES);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof DuplicateKeyException) {
                     fail("Task has been added twice. Should not happen!");
                 }
+                throw new RuntimeException("Something went wrong.", e);
             } catch (InterruptedException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }).collect(Collectors.toList());
+
+        // Check one execution has added the task,
+        // while the others have failed.
+        assertThat(results).hasSize(concurrentRequests);
+        final List<Task> nonEmptyResults = results
+                .stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        assertThat(nonEmptyResults).hasSize(1);
+        assertThat(nonEmptyResults.get(0).getChainTaskId()).isEqualTo(expectedChainTaskId);
 
         // Finally, let's simply check the task has effectively been added.
         assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
