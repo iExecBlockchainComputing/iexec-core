@@ -25,11 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.web3j.abi.EventEncoder;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.RemoteCall;
+import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +46,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
+import static com.iexec.common.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
 import static com.iexec.common.utils.BytesUtils.stringToBytes;
 import static com.iexec.common.utils.DateTimeUtils.now;
 
@@ -382,7 +386,11 @@ public class IexecHubService extends IexecHubAbstractService {
         if (to != null) {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
-        return getHubContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
+        EthFilter filter = new EthFilter(fromBlock, toBlock, getHubContract().getContractAddress());
+        BigInteger poolAddressBigInt = Numeric.toBigInt(poolAddress);
+        filter.addSingleTopic(EventEncoder.encode(SCHEDULERNOTICE_EVENT));
+        filter.addSingleTopic(Numeric.toHexStringWithPrefixZeroPadded(poolAddressBigInt, 64));
+        return getHubContract().schedulerNoticeEventFlowable(filter).map(schedulerNotice -> {
             dealEventCount++;
             BigInteger noticeBlockNumber = schedulerNotice.log.getBlockNumber();
             if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
