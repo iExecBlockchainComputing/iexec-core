@@ -16,6 +16,7 @@
 
 package com.iexec.core.metric;
 
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.WorkerService;
@@ -24,12 +25,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class MetricService {
 
-
+    private final IexecHubService iexecHubService;
     private final WorkerService workerService;
     private final TaskService taskService;
 
-    public MetricService(WorkerService workerService,
+    public MetricService(IexecHubService iexecHubService,
+                         WorkerService workerService,
                          TaskService taskService) {
+        this.iexecHubService = iexecHubService;
         this.workerService = workerService;
         this.taskService = taskService;
     }
@@ -42,6 +45,8 @@ public class MetricService {
                 .aliveTotalGpu(workerService.getAliveTotalGpu())
                 .aliveAvailableGpu(workerService.getAliveAvailableGpu())
                 .completedTasks(taskService.findByCurrentStatus(TaskStatus.COMPLETED).size())
+                .dealEventCount(iexecHubService.getDealEventCount())
+                .latestBlockNumberWithDeal(iexecHubService.getLatestBlockNumberWithDeal())
                 .build();
     }
 

@@ -20,6 +20,7 @@ import com.iexec.common.chain.*;
 import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,10 @@ public class IexecHubService extends IexecHubAbstractService {
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
     private final String poolAddress;
+    @Getter
+    private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
+    @Getter
+    private int dealEventCount = 0;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
@@ -378,10 +383,16 @@ public class IexecHubService extends IexecHubAbstractService {
             toBlock = DefaultBlockParameter.valueOf(to);
         }
         return getHubContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
-
+            dealEventCount++;
+            BigInteger noticeBlockNumber = schedulerNotice.log.getBlockNumber();
+            if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
+                latestBlockNumberWithDeal = noticeBlockNumber;
+            }
+            log.info("Received {} deal events notifications since scheduler startup", dealEventCount);
             if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
                 return Optional.of(new DealEvent(schedulerNotice));
             }
+            log.warn("This deal event should not have been received");
             return Optional.empty();
         });
     }
