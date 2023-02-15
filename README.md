@@ -57,6 +57,12 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_LOGS_PURGE_RATE_IN_DAYS` | Interval in days between 2 executions of the purge mechanism. | Positive integer | `1` |
 | `IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS` | Number of days to keep logs of past tasks. | Positive integer | `3` |
 
+> If it is not the first startup of the _iExec Core Scheduler_ and if it received deals previously,
+> the _MongoDB_ instance will contain a __configuration Collection__ in the __iexec Database__.
+> The value stored in this document takes the precedence over the `IEXEC_START_BLOCK_NUMBER` configuration parameter.
+> To enforce deal observation starting from the `IEXEC_START_BLOCK_NUMBER` value, the aforementioned document has to be deleted in the _MongoDB_.
+> All deals prior to the `IEXEC_START_BLOCK_NUMBER` will then be ignored.
+
 A more exhaustive documentation is available on [the official documentation of iExec](https://docs.iex.ec/).
 
 ## Health checks
