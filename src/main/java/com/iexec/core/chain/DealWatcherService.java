@@ -111,11 +111,10 @@ public class DealWatcherService {
         BigInteger dealBlock = dealEvent.getBlockNumber();
         log.info("Received deal [dealId:{}, block:{}]", dealId,
                 dealBlock);
-        if (dealBlock == null || dealBlock.equals(BigInteger.ZERO)){
+        if (dealBlock.equals(BigInteger.ZERO)) {
             log.warn("Deal block number is empty, fetching later blockchain " +
                     "events will be more expensive [chainDealId:{}, dealBlock:{}, " +
                     "lastBlock:{}]", dealId, dealBlock, web3jService.getLatestBlockNumber());
-            dealEvent.setBlockNumber(BigInteger.ZERO);
         }
         this.handleDeal(dealEvent);
         if (configurationService.getLastSeenBlockWithDeal().compareTo(dealBlock) < 0) {
