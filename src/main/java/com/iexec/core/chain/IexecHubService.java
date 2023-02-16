@@ -20,19 +20,14 @@ import com.iexec.common.chain.*;
 import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import io.reactivex.Flowable;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.web3j.abi.EventEncoder;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +41,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
 import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
-import static com.iexec.common.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
 import static com.iexec.common.utils.BytesUtils.stringToBytes;
 import static com.iexec.common.utils.DateTimeUtils.now;
 
@@ -57,11 +51,6 @@ public class IexecHubService extends IexecHubAbstractService {
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
-    private final String poolAddress;
-    @Getter
-    private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
-    @Getter
-    private int dealEventCount = 0;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
@@ -74,7 +63,6 @@ public class IexecHubService extends IexecHubAbstractService {
         this.credentialsService = credentialsService;
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-        this.poolAddress = chainConfig.getPoolAddress();
         if (!hasEnoughGas()) {
             System.exit(0);
         }
@@ -375,34 +363,8 @@ public class IexecHubService extends IexecHubAbstractService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-
-    Flowable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
-        return getDealEventObservable(from, null);
-    }
-
-    Flowable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
-        DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
-        DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
-        if (to != null) {
-            toBlock = DefaultBlockParameter.valueOf(to);
-        }
-        EthFilter filter = new EthFilter(fromBlock, toBlock, getHubContract().getContractAddress());
-        BigInteger poolAddressBigInt = Numeric.toBigInt(poolAddress);
-        filter.addSingleTopic(EventEncoder.encode(SCHEDULERNOTICE_EVENT));
-        filter.addSingleTopic(Numeric.toHexStringWithPrefixZeroPadded(poolAddressBigInt, 64));
-        return getHubContract().schedulerNoticeEventFlowable(filter).map(schedulerNotice -> {
-            dealEventCount++;
-            BigInteger noticeBlockNumber = schedulerNotice.log.getBlockNumber();
-            if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
-                latestBlockNumberWithDeal = noticeBlockNumber;
-            }
-            log.info("Received {} deal events notifications since scheduler startup", dealEventCount);
-            if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
-                return Optional.of(new DealEvent(schedulerNotice));
-            }
-            log.warn("This deal event should not have been received");
-            return Optional.empty();
-        });
+    Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
+        return getHubContract().schedulerNoticeEventFlowable(filter);
     }
 
     public boolean hasEnoughGas() {

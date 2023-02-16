@@ -17,28 +17,37 @@
 package com.iexec.core.chain;
 
 import com.iexec.common.chain.ChainDeal;
+import com.iexec.common.contract.generated.IexecHubContract;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
 import io.reactivex.disposables.Disposable;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.web3j.abi.EventEncoder;
+import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.util.Optional;
+
+import static com.iexec.common.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
 
 @Slf4j
 @Service
 public class DealWatcherService {
 
+    private final ChainConfig chainConfig;
     private final IexecHubService iexecHubService;
     private final ConfigurationService configurationService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -46,13 +55,18 @@ public class DealWatcherService {
     private final Web3jService web3jService;
     // internal variables
     private Disposable dealEventSubscriptionReplay;
+    @Getter
+    private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
+    @Getter
+    private int dealEventsCount = 0;
 
-    @Autowired
-    public DealWatcherService(IexecHubService iexecHubService,
+    public DealWatcherService(ChainConfig chainConfig,
+                              IexecHubService iexecHubService,
                               ConfigurationService configurationService,
                               ApplicationEventPublisher applicationEventPublisher,
                               TaskService taskService,
                               Web3jService web3jService) {
+        this.chainConfig = chainConfig;
         this.iexecHubService = iexecHubService;
         this.configurationService = configurationService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -80,7 +94,9 @@ public class DealWatcherService {
      */
     Disposable subscribeToDealEventFromOneBlockToLatest(BigInteger from) {
         log.info("Watcher DealEvent started [from:{}, to:{}]", from, "latest");
-        return iexecHubService.getDealEventObservableToLatest(from)
+        EthFilter filter = createDealEventFilter(from, null);
+        return iexecHubService.getDealEventObservable(filter)
+                .map(this::schedulerNoticeToDealEvent)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
 
@@ -175,7 +191,36 @@ public class DealWatcherService {
     private Disposable subscribeToDealEventInRange(BigInteger from, BigInteger to) {
         log.info("Replay Watcher DealEvent started [from:{}, to:{}]",
                 from, (to == null) ? "latest" : to);
-        return iexecHubService.getDealEventObservable(from, to)
+        EthFilter filter = createDealEventFilter(from, to);
+        return iexecHubService.getDealEventObservable(filter)
+                .map(this::schedulerNoticeToDealEvent)
                 .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
+    }
+
+    EthFilter createDealEventFilter(BigInteger from, BigInteger to) {
+        DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
+        DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
+        if (to != null) {
+            toBlock = DefaultBlockParameter.valueOf(to);
+        }
+        EthFilter filter = new EthFilter(fromBlock, toBlock, chainConfig.getHubAddress());
+        BigInteger poolAddressBigInt = Numeric.toBigInt(chainConfig.getPoolAddress());
+        filter.addSingleTopic(EventEncoder.encode(SCHEDULERNOTICE_EVENT));
+        filter.addSingleTopic(Numeric.toHexStringWithPrefixZeroPadded(poolAddressBigInt, 64));
+        return filter;
+    }
+
+    Optional<DealEvent> schedulerNoticeToDealEvent(IexecHubContract.SchedulerNoticeEventResponse schedulerNotice) {
+        dealEventsCount++;
+        BigInteger noticeBlockNumber = schedulerNotice.log.getBlockNumber();
+        if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
+            latestBlockNumberWithDeal = noticeBlockNumber;
+        }
+        log.info("Received {} deal events notifications since scheduler startup", dealEventsCount);
+        if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
+            return Optional.of(new DealEvent(schedulerNotice));
+        }
+        log.warn("This deal event should not have been received");
+        return Optional.empty();
     }
 }
