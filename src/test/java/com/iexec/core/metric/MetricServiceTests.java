@@ -60,8 +60,8 @@ class MetricServiceTests {
         when(workerService.getAliveAvailableGpu()).thenReturn(1);
         when(taskService.findByCurrentStatus(TaskStatus.COMPLETED))
                 .thenReturn(List.of());
-        when(dealWatcherService.getDealEventsCount()).thenReturn(0);
-        when(dealWatcherService.getLatestBlockNumberWithDeal()).thenReturn(BigInteger.ZERO);
+        when(dealWatcherService.getDealEventsCount()).thenReturn(10);
+        when(dealWatcherService.getLatestBlockNumberWithDeal()).thenReturn(BigInteger.valueOf(255L));
 
         PlatformMetric metric = metricService.getPlatformMetrics();
         assertThat(metric.getAliveWorkers()).isEqualTo(aliveWorkers.size());
@@ -70,8 +70,8 @@ class MetricServiceTests {
         assertThat(metric.getAliveTotalGpu()).isEqualTo(1);
         assertThat(metric.getAliveAvailableGpu()).isEqualTo(1);
         assertThat(metric.getCompletedTasks()).isZero();
-        assertThat(metric.getDealEventsCount()).isZero();
-        assertThat(metric.getLatestBlockNumberWithDeal()).isZero();
+        assertThat(metric.getDealEventsCount()).isEqualTo(10);
+        assertThat(metric.getLatestBlockNumberWithDeal()).isEqualTo(255);
     }
 
 }
