@@ -216,7 +216,7 @@ public class DealWatcherService {
         if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
             latestBlockNumberWithDeal = noticeBlockNumber;
         }
-        log.info("Received {} deal events notifications since scheduler startup", dealEventsCount);
+        log.info("Received new deal [dealEventsCount:{}, chainDealId:{}]", dealEventsCount, BytesUtils.bytesToString(schedulerNotice.dealid));
         if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
             return Optional.of(new DealEvent(schedulerNotice));
         }
