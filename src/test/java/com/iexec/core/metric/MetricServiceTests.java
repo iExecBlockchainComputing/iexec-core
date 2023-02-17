@@ -16,6 +16,7 @@
 
 package com.iexec.core.metric;
 
+import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
@@ -26,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.when;
 
 class MetricServiceTests {
 
+    @Mock
+    private DealWatcherService dealWatcherService;
     @Mock
     private WorkerService workerService;
     @Mock
@@ -56,6 +60,10 @@ class MetricServiceTests {
         when(workerService.getAliveAvailableGpu()).thenReturn(1);
         when(taskService.findByCurrentStatus(TaskStatus.COMPLETED))
                 .thenReturn(List.of());
+        when(dealWatcherService.getDealEventsCount()).thenReturn(10L);
+        when(dealWatcherService.getDealsCount()).thenReturn(8L);
+        when(dealWatcherService.getReplayDealsCount()).thenReturn(2L);
+        when(dealWatcherService.getLatestBlockNumberWithDeal()).thenReturn(BigInteger.valueOf(255L));
 
         PlatformMetric metric = metricService.getPlatformMetrics();
         assertThat(metric.getAliveWorkers()).isEqualTo(aliveWorkers.size());
@@ -64,6 +72,10 @@ class MetricServiceTests {
         assertThat(metric.getAliveTotalGpu()).isEqualTo(1);
         assertThat(metric.getAliveAvailableGpu()).isEqualTo(1);
         assertThat(metric.getCompletedTasks()).isZero();
+        assertThat(metric.getDealEventsCount()).isEqualTo(10);
+        assertThat(metric.getDealsCount()).isEqualTo(8);
+        assertThat(metric.getReplayDealsCount()).isEqualTo(2);
+        assertThat(metric.getLatestBlockNumberWithDeal()).isEqualTo(255);
     }
 
 }

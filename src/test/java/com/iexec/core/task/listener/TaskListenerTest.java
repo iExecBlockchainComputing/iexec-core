@@ -28,10 +28,10 @@ import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import uk.org.lidalia.slf4jtest.LoggingEvent;
-import uk.org.lidalia.slf4jtest.TestLogger;
-import uk.org.lidalia.slf4jtest.TestLoggerFactory;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +39,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(OutputCaptureExtension.class)
 class TaskListenerTest {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
@@ -133,14 +134,10 @@ class TaskListenerTest {
     }
 
     @Test
-    void onResultUploadTimeoutEvent() {
-        TestLogger logger = TestLoggerFactory.getTestLogger(TaskListeners.class);
-        logger.clear();
-
+    void onResultUploadTimeoutEvent(CapturedOutput output) {
         taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent(CHAIN_TASK_ID));
-
-        assertThat(logger.getLoggingEvents())
-                .isEqualTo(Collections.singletonList(LoggingEvent.info("Received ResultUploadTimeoutEvent [chainTaskId:{}] ", CHAIN_TASK_ID)));
+        assertThat(output.getOut())
+                .contains("Received ResultUploadTimeoutEvent [chainTaskId:" + CHAIN_TASK_ID + "]");
     }
 
     /**
