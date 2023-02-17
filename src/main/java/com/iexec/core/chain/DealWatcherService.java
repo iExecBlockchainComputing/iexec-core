@@ -198,10 +198,9 @@ public class DealWatcherService {
 
     EthFilter createDealEventFilter(BigInteger from, BigInteger to) {
         DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
-        DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
-        if (to != null) {
-            toBlock = DefaultBlockParameter.valueOf(to);
-        }
+        DefaultBlockParameter toBlock = to == null
+                ? DefaultBlockParameterName.LATEST
+                : DefaultBlockParameter.valueOf(to);
         EthFilter filter = new EthFilter(fromBlock, toBlock, chainConfig.getHubAddress());
         BigInteger poolAddressBigInt = Numeric.toBigInt(chainConfig.getPoolAddress());
         filter.addSingleTopic(EventEncoder.encode(SCHEDULERNOTICE_EVENT));
