@@ -214,11 +214,13 @@ public class DealWatcherService {
         if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
             latestBlockNumberWithDeal = noticeBlockNumber;
         }
-        log.info("Received new deal [dealEventsCount:{}, chainDealId:{}]", dealEventsCount, BytesUtils.bytesToString(schedulerNotice.dealid));
+        log.info("Received new deal [blockNumber:{}, chainDealId:{}, dealEventsCount:{}]",
+                schedulerNotice.log.getBlockNumber(), BytesUtils.bytesToString(schedulerNotice.dealid), dealEventsCount);
         if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
             return Optional.of(new DealEvent(schedulerNotice));
         }
-        log.warn("This deal event should not have been received");
+        log.warn("This deal event should not have been received [blockNumber:{}, chainDealId:{}, dealEventsCount:{}]",
+                schedulerNotice.log.getBlockNumber(), BytesUtils.bytesToString(schedulerNotice.dealid), dealEventsCount);
         return Optional.empty();
     }
 }
