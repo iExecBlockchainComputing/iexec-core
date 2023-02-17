@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
 
-* Improve filter to receive deal events addressed to the current _iExec Core Scheduler_. Improve `IEXEC_START_BLOCK_NUMBER` documentation.
+* Subscribe only to deal events addressed targeting a specific workerpool.
 
 ## [[7.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.0) 2022-12-18
 
