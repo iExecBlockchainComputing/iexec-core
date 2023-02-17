@@ -46,6 +46,8 @@ public class MetricService {
                 .aliveAvailableGpu(workerService.getAliveAvailableGpu())
                 .completedTasks(taskService.findByCurrentStatus(TaskStatus.COMPLETED).size())
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
+                .dealsCount(dealWatcherService.getDealsCount())
+                .replayDealsCount(dealWatcherService.getReplayDealsCount())
                 .latestBlockNumberWithDeal(dealWatcherService.getLatestBlockNumberWithDeal())
                 .build();
     }

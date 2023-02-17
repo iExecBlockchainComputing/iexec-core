@@ -33,7 +33,9 @@ public class PlatformMetric {
     private int aliveTotalGpu;
     private int aliveAvailableGpu;
     private int completedTasks;
-    private int dealEventsCount;
+    private long dealEventsCount;
+    private long dealsCount;
+    private long replayDealsCount;
     private BigInteger latestBlockNumberWithDeal;
 
 }

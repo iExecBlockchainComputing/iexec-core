@@ -58,7 +58,11 @@ public class DealWatcherService {
     @Getter
     private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
     @Getter
-    private int dealEventsCount = 0;
+    private long dealEventsCount = 0;
+    @Getter
+    private long dealsCount = 0;
+    @Getter
+    private long replayDealsCount = 0;
 
     public DealWatcherService(ChainConfig chainConfig,
                               IexecHubService iexecHubService,
@@ -97,7 +101,7 @@ public class DealWatcherService {
         EthFilter filter = createDealEventFilter(from, null);
         return iexecHubService.getDealEventObservable(filter)
                 .map(this::schedulerNoticeToDealEvent)
-                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
+                .subscribe(dealEvent -> dealEvent.ifPresent(event -> onDealEvent(event, "start")));
     }
 
     /**
@@ -106,11 +110,16 @@ public class DealWatcherService {
      * 
      * @param dealEvent
      */
-    private void onDealEvent(DealEvent dealEvent) {
+    private void onDealEvent(DealEvent dealEvent, String watcher) {
+        if ("replay".equals(watcher)) {
+            replayDealsCount++;
+        } else {
+            dealsCount++;
+        }
         String dealId = dealEvent.getChainDealId();
         BigInteger dealBlock = dealEvent.getBlockNumber();
-        log.info("Received deal [dealId:{}, block:{}]", dealId,
-                dealBlock);
+        log.info("Received deal [dealId:{}, block:{}, watcher: {}]",
+                dealId, dealBlock, watcher);
         if (dealBlock.equals(BigInteger.ZERO)) {
             log.warn("Deal block number is empty, fetching later blockchain " +
                     "events will be more expensive [chainDealId:{}, dealBlock:{}, " +
@@ -193,7 +202,7 @@ public class DealWatcherService {
         EthFilter filter = createDealEventFilter(from, to);
         return iexecHubService.getDealEventObservable(filter)
                 .map(this::schedulerNoticeToDealEvent)
-                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
+                .subscribe(dealEvent -> dealEvent.ifPresent(event -> onDealEvent(event, "replay")));
     }
 
     EthFilter createDealEventFilter(BigInteger from, BigInteger to) {
