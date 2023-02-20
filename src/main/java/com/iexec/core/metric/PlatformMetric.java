@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigInteger;
+
 @Data
 @AllArgsConstructor
 @Builder
@@ -31,5 +33,9 @@ public class PlatformMetric {
     private int aliveTotalGpu;
     private int aliveAvailableGpu;
     private int completedTasks;
+    private long dealEventsCount;
+    private long dealsCount;
+    private long replayDealsCount;
+    private BigInteger latestBlockNumberWithDeal;
 
 }
