@@ -99,7 +99,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     // awaitility
-    testImplementation 'org.awaitility:awaitility:4.0.1'
+    testImplementation 'org.awaitility:awaitility'
 
     // mongo
     testImplementation 'org.testcontainers:testcontainers:1.16.2'
