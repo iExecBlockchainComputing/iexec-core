@@ -24,9 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.RemoteCall;
+import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
@@ -52,7 +51,6 @@ public class IexecHubService extends IexecHubAbstractService {
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
-    private final String poolAddress;
 
     @Autowired
     public IexecHubService(CredentialsService credentialsService,
@@ -65,7 +63,6 @@ public class IexecHubService extends IexecHubAbstractService {
         this.credentialsService = credentialsService;
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-        this.poolAddress = chainConfig.getPoolAddress();
         if (!hasEnoughGas()) {
             System.exit(0);
         }
@@ -366,24 +363,8 @@ public class IexecHubService extends IexecHubAbstractService {
         return executor.getTaskCount() - executor.getCompletedTaskCount();
     }
 
-
-    Flowable<Optional<DealEvent>> getDealEventObservableToLatest(BigInteger from) {
-        return getDealEventObservable(from, null);
-    }
-
-    Flowable<Optional<DealEvent>> getDealEventObservable(BigInteger from, BigInteger to) {
-        DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
-        DefaultBlockParameter toBlock = DefaultBlockParameterName.LATEST;
-        if (to != null) {
-            toBlock = DefaultBlockParameter.valueOf(to);
-        }
-        return getHubContract().schedulerNoticeEventFlowable(fromBlock, toBlock).map(schedulerNotice -> {
-
-            if (schedulerNotice.workerpool.equalsIgnoreCase(poolAddress)) {
-                return Optional.of(new DealEvent(schedulerNotice));
-            }
-            return Optional.empty();
-        });
+    Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
+        return getHubContract().schedulerNoticeEventFlowable(filter);
     }
 
     public boolean hasEnoughGas() {

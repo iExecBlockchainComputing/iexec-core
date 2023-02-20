@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file.
 * Upgrade to Gradle 7.6.
 * Upgrade OkHttp to 4.9.0.
 
+## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
+
+* Subscribe only to deal events targeting a specific workerpool.
+
 ## [[7.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.0) 2022-12-18
 
 * Add endpoint to allow health checks.

@@ -139,7 +139,6 @@ class TaskListenerTest {
     @Test
     void onResultUploadTimeoutEvent(CapturedOutput output) {
         taskListeners.onResultUploadTimeoutEvent(new ResultUploadTimeoutEvent(CHAIN_TASK_ID));
-
         assertThat(output.getOut())
                 .contains("Received ResultUploadTimeoutEvent [chainTaskId:" + CHAIN_TASK_ID + "]");
     }
