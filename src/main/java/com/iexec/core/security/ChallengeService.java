@@ -27,8 +27,7 @@ public class ChallengeService {
     private final ConcurrentHashMap<String, String> challengesMap = new ConcurrentHashMap<>();
 
     public String getChallenge(String workerWallet) {
-        challengesMap.computeIfAbsent(workerWallet, wallet -> RandomStringUtils.randomAlphabetic(10));
-        return challengesMap.get(workerWallet);
+        return challengesMap.computeIfAbsent(workerWallet, wallet -> RandomStringUtils.randomAlphabetic(10));
     }
 
     public void removeChallenge(String workerWallet) {

@@ -50,7 +50,7 @@ public class JwtTokenProvider {
      * @return A signed JWT for a given ethereum address
      */
     public String createToken(String walletAddress) {
-        jwTokensMap.computeIfAbsent(walletAddress, address -> {
+        return jwTokensMap.computeIfAbsent(walletAddress, address -> {
             Date now = new Date();
             return Jwts.builder()
                     .setAudience(address)
@@ -60,7 +60,6 @@ public class JwtTokenProvider {
                     .signWith(SignatureAlgorithm.HS256, secretKey)
                     .compact();
         });
-        return jwTokensMap.get(walletAddress);
     }
 
     public String resolveToken(String token) {
