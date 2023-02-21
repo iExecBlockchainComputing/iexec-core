@@ -16,22 +16,22 @@
 
 package com.iexec.core.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
+    private static final long TOKEN_VALIDITY_DURATION = 1000L * 60 * 60;
     private final ChallengeService challengeService;
+    private final ConcurrentHashMap<String, String> jwTokensMap = new ConcurrentHashMap<>();
     private final String secretKey;
 
     public JwtTokenProvider(ChallengeService challengeService) {
@@ -42,13 +42,25 @@ public class JwtTokenProvider {
         this.secretKey = Base64.getEncoder().encodeToString(seed);
     }
 
+    /**
+     * Creates a signed JWT with expiration date for a given ethereum address.
+     * <p>
+     * The token is cached until it expires.
+     * @param walletAddress worker address for which the token is created
+     * @return A signed JWT for a given ethereum address
+     */
     public String createToken(String walletAddress) {
-        return Jwts.builder()
-                .setAudience(walletAddress)
-                .setIssuedAt(new Date())
-                .setSubject(challengeService.getChallenge(walletAddress))
-                .signWith(SignatureAlgorithm.HS256, secretKey)
-                .compact();
+        jwTokensMap.computeIfAbsent(walletAddress, address -> {
+            Date now = new Date();
+            return Jwts.builder()
+                    .setAudience(address)
+                    .setIssuedAt(now)
+                    .setExpiration(new Date(now.getTime() + TOKEN_VALIDITY_DURATION))
+                    .setSubject(challengeService.getChallenge(address))
+                    .signWith(SignatureAlgorithm.HS256, secretKey)
+                    .compact();
+        });
+        return jwTokensMap.get(walletAddress);
     }
 
     public String resolveToken(String token) {
@@ -58,38 +70,37 @@ public class JwtTokenProvider {
         return null;
     }
 
-    /*
-     * IMPORTANT /!\
-     * Having the same validity duration for both challenge
-     * and jwtoken can cause a problem. The latter should be
-     * slightly longer (in minutes). In this case the challenge
-     * is valid for 60 minutes while jwtoken stays valid
-     * for 65 minutes.
-     * 
-     * Problem description:
-     *  1) jwtString expires
-     *  2) worker gets old challenge
-     *  3) old challenge expires
-     *  4) worker tries logging with old challenge
+    /**
+     * Checks if a JW token is valid.
+     * <p>
+     * A valid token must:
+     * <ul>
+     * <li>be signed with the scheduler private key
+     * <li>not be expired
+     * <li>contain valid address and challenge values respectively in audience and subject claims
+     * <p>
+     * On expiration, the token and the challenge are removed from their respective cache.
+     *
+     * @param token The token whose validity must be established
+     * @return true if the token is valid, false otherwise
      */
     public boolean isValidToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
-                    .parseClaimsJws(token).getBody();
-
-            // check the expiration date
-            Date now = new Date();
-            long validityInMilliseconds = 1000L * 60 * 65; // 65 minutes
-            Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
+                    .parseClaimsJws(token)
+                    .getBody();
 
             // check the content of the challenge
             String walletAddress = claims.getAudience();
-            boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
-
-            return tokenExpiryDate.after(now) && isChallengeCorrect;
+            return challengeService.getChallenge(walletAddress).equals(claims.getSubject());
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT has expired");
+            String walletAddress = e.getClaims().getAudience();
+            jwTokensMap.remove(walletAddress);
+            challengeService.removeChallenge(walletAddress);
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("Expired or invalid JWT token [exception:{}]", e.getMessage());
+            log.warn("JWT is invalid [exception:{}]", e.getMessage());
         }
         return false;
     }
