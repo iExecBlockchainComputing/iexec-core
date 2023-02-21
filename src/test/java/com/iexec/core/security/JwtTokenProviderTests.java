@@ -16,16 +16,21 @@
 
 package com.iexec.core.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.impl.DefaultClaims;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class JwtTokenProviderTests {
 
@@ -71,6 +76,21 @@ class JwtTokenProviderTests {
         String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
         boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(isValidToken).isTrue();
+    }
+
+    @Test
+    void isValidTokenFalseSinceExpired() {
+        when(challengeService.getChallenge(WALLET_ADDRESS)).thenReturn(" challenge");
+        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        new DefaultClaims().setAudience(WALLET_ADDRESS);
+        try (MockedStatic<Jwts> mockedStatic = mockStatic(Jwts.class)) {
+            JwtParser parser = mock(JwtParser.class);
+            when(parser.setSigningKey(anyString())).thenReturn(parser);
+            when(parser.parseClaimsJws(anyString())).thenThrow(new ExpiredJwtException(null, new DefaultClaims().setAudience(WALLET_ADDRESS), ""));
+            mockedStatic.when(Jwts::parser).thenReturn(parser);
+            boolean isValidToken = jwtTokenProvider.isValidToken(token);
+            assertThat(isValidToken).isFalse();
+        }
     }
 
     @Test
