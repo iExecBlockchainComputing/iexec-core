@@ -18,7 +18,6 @@ package com.iexec.core.security;
 
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -51,12 +50,10 @@ public class JwtTokenProvider {
      * @return A signed JWT for a given ethereum address
      */
     public String createToken(String walletAddress) {
-        final String token = jwTokensMap.get(walletAddress);
-        if (!StringUtils.isEmpty(token) && isValidToken((token))) {
-            return token;
-        }
-        challengeService.removeChallenge(walletAddress);
-        jwTokensMap.remove(walletAddress);
+        // Do not try to check if JWT is valid here, it introduces too many questions on challenge validity,
+        // concurrency of operations and potential race conditions.
+        // When a token is presented, scheduler answers UNAUTHORIZED if the JWT is invalid and purges caches
+        // on expiration of a known JWT.
         return jwTokensMap.computeIfAbsent(walletAddress, address -> {
             Date now = new Date();
             return Jwts.builder()
@@ -77,21 +74,28 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Checks if a JW token is valid.
+     * Checks if a JWT is valid.
      * <p>
-     * A valid token must:
+     * A valid JWT must:
      * <ul>
      * <li>be signed with the scheduler private key
      * <li>not be expired
      * <li>contain valid address and challenge values respectively in audience and subject claims
      * <p>
-     * On expiration, the token and the challenge are removed from their respective cache.
+     * On expiration, the JWT and the challenge are removed from their respective cache at the condition
+     * that each cache still holds the expired value. An expired JWT will enforce the creation of a new challenge
+     * and a new JWT on next login (get new challenge -> sign challenge -> check signed challenge -> create new JWT).
+     * <p>
+     * All other invalid JWTs will produce a retrieval from cache on next login.
      *
      * @param token The token whose validity must be established
      * @return true if the token is valid, false otherwise
      */
     public boolean isValidToken(String token) {
         try {
+            if (!jwTokensMap.containsValue(token)) {
+                throw new JwtException("Unknown JWT");
+            }
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
                     .parseClaimsJws(token)
@@ -103,8 +107,8 @@ public class JwtTokenProvider {
         } catch (ExpiredJwtException e) {
             log.warn("JWT has expired");
             String walletAddress = e.getClaims().getAudience();
-            jwTokensMap.remove(walletAddress);
-            challengeService.removeChallenge(walletAddress);
+            jwTokensMap.remove(walletAddress, token);
+            challengeService.removeChallenge(walletAddress, e.getClaims().getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT is invalid [{}: {}]", e.getClass().getSimpleName(), e.getMessage());
         }

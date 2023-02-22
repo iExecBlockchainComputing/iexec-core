@@ -38,8 +38,8 @@ public class ChallengeService {
         return challengesMap.computeIfAbsent(workerWallet, wallet -> computeChallenge());
     }
 
-    public void removeChallenge(String workerWallet) {
-        challengesMap.remove(workerWallet);
+    public void removeChallenge(String workerWallet, String challenge) {
+        challengesMap.remove(workerWallet, challenge);
     }
 
 }

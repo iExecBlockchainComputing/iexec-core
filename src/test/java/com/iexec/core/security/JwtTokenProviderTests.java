@@ -38,14 +38,9 @@ class JwtTokenProviderTests {
 
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
-    private final ChallengeService challengeService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private ChallengeService challengeService;
+    private JwtTokenProvider jwtTokenProvider;
     private String secretKey;
-
-    JwtTokenProviderTests() {
-        challengeService = spy(new ChallengeService());
-        jwtTokenProvider = spy(new JwtTokenProvider(challengeService));
-    }
 
     @BeforeEach
     void init() {
@@ -54,8 +49,8 @@ class JwtTokenProviderTests {
         byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
         secretKey = Base64.getEncoder().encodeToString(seed);
-        ReflectionTestUtils.setField(challengeService, "challengesMap", new ConcurrentHashMap<>());
-        ReflectionTestUtils.setField(jwtTokenProvider, "jwTokensMap", new ConcurrentHashMap<>());
+        challengeService = spy(new ChallengeService());
+        jwtTokenProvider = spy(new JwtTokenProvider(challengeService));
         ReflectionTestUtils.setField(jwtTokenProvider, "secretKey", Base64.getEncoder().encodeToString(seed));
     }
 
@@ -65,23 +60,7 @@ class JwtTokenProviderTests {
         String token1 = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String token2 = jwtTokenProvider.createToken(WALLET_ADDRESS);
         assertThat(token1).isEqualTo(token2);
-        verify(challengeService).removeChallenge(WALLET_ADDRESS);
-    }
-
-    @Test
-    void shouldReturnNewTokenIfExpired() {
-        Date now = new Date();
-        String token = Jwts.builder()
-                .setAudience(WALLET_ADDRESS)
-                .setIssuedAt(now)
-                .setExpiration(now)
-                .signWith(SignatureAlgorithm.HS256, secretKey)
-                .compact();
-        ConcurrentHashMap<String, String> tokensMap = new ConcurrentHashMap<>();
-        tokensMap.put(WALLET_ADDRESS, token);
-        ReflectionTestUtils.setField(jwtTokenProvider, "jwTokensMap", tokensMap);
-        String newToken = jwtTokenProvider.createToken(WALLET_ADDRESS);
-        assertThat(newToken).isNotEqualTo(WALLET_ADDRESS);
+        verify(challengeService).getChallenge(WALLET_ADDRESS);
     }
     //endregion
 
@@ -124,6 +103,9 @@ class JwtTokenProviderTests {
                 .setExpiration(now)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
+        ConcurrentHashMap<String, String> tokensMap = new ConcurrentHashMap<>();
+        tokensMap.put(WALLET_ADDRESS, token);
+        ReflectionTestUtils.setField(jwtTokenProvider, "jwTokensMap", tokensMap);
         boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(isValidToken).isFalse();
     }
@@ -132,7 +114,7 @@ class JwtTokenProviderTests {
     void isValidTokenFalseSinceNotSameChallenge() {
         String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String challenge1 = challengeService.getChallenge(WALLET_ADDRESS);
-        challengeService.removeChallenge(WALLET_ADDRESS);
+        challengeService.removeChallenge(WALLET_ADDRESS, challenge1);
         String challenge2 = challengeService.getChallenge(WALLET_ADDRESS);
         boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(challenge1).isNotEqualTo(challenge2);

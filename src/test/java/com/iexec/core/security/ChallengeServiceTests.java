@@ -30,7 +30,7 @@ class ChallengeServiceTests {
     @Test
     void shouldCreateNewChallengeAfterRemoval() {
         String challenge1 = challengeService.getChallenge(WALLET_WORKER_1);
-        challengeService.removeChallenge(WALLET_WORKER_1);
+        challengeService.removeChallenge(WALLET_WORKER_1, challenge1);
         String challenge2 = challengeService.getChallenge(WALLET_WORKER_1);
         assertThat(challenge1).isNotEqualTo(challenge2);
     }
