@@ -16,9 +16,10 @@
 
 package com.iexec.core.security;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -26,8 +27,15 @@ public class ChallengeService {
 
     private final ConcurrentHashMap<String, String> challengesMap = new ConcurrentHashMap<>();
 
+    public String computeChallenge() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] seed = new byte[32];
+        secureRandom.nextBytes(seed);
+        return Base64.getEncoder().encodeToString(seed);
+    }
+
     public String getChallenge(String workerWallet) {
-        return challengesMap.computeIfAbsent(workerWallet, wallet -> RandomStringUtils.randomAlphabetic(10));
+        return challengesMap.computeIfAbsent(workerWallet, wallet -> computeChallenge());
     }
 
     public void removeChallenge(String workerWallet) {
