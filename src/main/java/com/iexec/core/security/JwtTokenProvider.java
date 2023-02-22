@@ -53,10 +53,8 @@ public class JwtTokenProvider {
     public String createToken(String walletAddress) {
         final String token = jwTokensMap.get(walletAddress);
         if (!StringUtils.isEmpty(token) && isValidToken((token))) {
-            log.info("token found");
             return token;
         }
-        log.info("token not found");
         challengeService.removeChallenge(walletAddress);
         jwTokensMap.remove(walletAddress);
         return jwTokensMap.computeIfAbsent(walletAddress, address -> {
