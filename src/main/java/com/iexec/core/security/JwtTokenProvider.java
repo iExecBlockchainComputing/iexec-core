@@ -18,6 +18,7 @@ package com.iexec.core.security;
 
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -50,6 +51,14 @@ public class JwtTokenProvider {
      * @return A signed JWT for a given ethereum address
      */
     public String createToken(String walletAddress) {
+        final String token = jwTokensMap.get(walletAddress);
+        if (!StringUtils.isEmpty(token) && isValidToken((token))) {
+            log.info("token found");
+            return token;
+        }
+        log.info("token not found");
+        challengeService.removeChallenge(walletAddress);
+        jwTokensMap.remove(walletAddress);
         return jwTokensMap.computeIfAbsent(walletAddress, address -> {
             Date now = new Date();
             return Jwts.builder()
@@ -99,7 +108,7 @@ public class JwtTokenProvider {
             jwTokensMap.remove(walletAddress);
             challengeService.removeChallenge(walletAddress);
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("JWT is invalid [exception:{}]", e.getMessage());
+            log.warn("JWT is invalid [{}: {}]", e.getClass().getSimpleName(), e.getMessage());
         }
         return false;
     }
