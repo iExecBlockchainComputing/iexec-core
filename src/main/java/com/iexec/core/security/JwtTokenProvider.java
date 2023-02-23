@@ -81,13 +81,13 @@ public class JwtTokenProvider {
      * <ul>
      * <li>be signed with the scheduler private key
      * <li>not be expired
-     * <li>contain valid address and challenge values respectively in audience and subject claims
+     * <li>contain th scheduler application ID in the audience claim
      * <p>
-     * On expiration, the JWT and the challenge are removed from their respective cache at the condition
-     * that each cache still holds the expired value. An expired JWT will enforce the creation of a new challenge
-     * and a new JWT on next login (get new challenge -> sign challenge -> check signed challenge -> create new JWT).
+     * An invalid JWT will return an UNAUTHORIZED status and require to perform a full authentication loop
+     * with a new signed challenge (get new challenge -> sign challenge -> check signed challenge -> get or create JWT).
      * <p>
-     * All other invalid JWTs will produce a retrieval from cache on next login.
+     * If the JWT was expired, the cache will have been purged and a new JWT will be generated.
+     * For other invalid JWTs, the cached JWT will be returned on next login.
      *
      * @param token The token whose validity must be established
      * @return true if the token is valid, false otherwise
