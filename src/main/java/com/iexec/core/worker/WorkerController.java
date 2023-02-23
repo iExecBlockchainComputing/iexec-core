@@ -85,10 +85,10 @@ public class WorkerController {
 
         String challenge = challengeService.getChallenge(walletAddress);
         byte[] hashToCheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
-        challengeService.removeChallenge(walletAddress, challenge);
 
         if (SignatureUtils.doesSignatureMatchesAddress(signature.getR(), signature.getS(),
                 BytesUtils.bytesToString(hashToCheck), walletAddress)) {
+            challengeService.removeChallenge(walletAddress, challenge);
             String token = jwtTokenProvider.createToken(walletAddress);
             return ok(token);
         }
