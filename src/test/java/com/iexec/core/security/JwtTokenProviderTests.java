@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.SecureRandom;
@@ -31,14 +32,12 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 class JwtTokenProviderTests {
 
+    private static final String JWT_AUDIENCE = "iExec Scheduler vX.Y.Z";
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-
-    private ChallengeService challengeService;
     private JwtTokenProvider jwtTokenProvider;
     private String secretKey;
 
@@ -49,8 +48,9 @@ class JwtTokenProviderTests {
         byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
         secretKey = Base64.getEncoder().encodeToString(seed);
-        challengeService = spy(new ChallengeService());
-        jwtTokenProvider = spy(new JwtTokenProvider(challengeService));
+        BuildProperties buildProperties = mock(BuildProperties.class);
+        when(buildProperties.getVersion()).thenReturn("X.Y.Z");
+        jwtTokenProvider = spy(new JwtTokenProvider(buildProperties));
         ReflectionTestUtils.setField(jwtTokenProvider, "secretKey", Base64.getEncoder().encodeToString(seed));
     }
 
@@ -60,7 +60,6 @@ class JwtTokenProviderTests {
         String token1 = jwtTokenProvider.createToken(WALLET_ADDRESS);
         String token2 = jwtTokenProvider.createToken(WALLET_ADDRESS);
         assertThat(token1).isEqualTo(token2);
-        verify(challengeService).getChallenge(WALLET_ADDRESS);
     }
     //endregion
 
@@ -95,10 +94,28 @@ class JwtTokenProviderTests {
     }
 
     @Test
+    void isValidTokenFalseSinceBadAudience() {
+        Date now = new Date();
+        String token = Jwts.builder()
+                .setAudience("iExec Scheduler")
+                .setSubject(WALLET_ADDRESS)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + 10000L))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .compact();
+        ConcurrentHashMap<String, String> tokensMap = new ConcurrentHashMap<>();
+        tokensMap.put(WALLET_ADDRESS, token);
+        ReflectionTestUtils.setField(jwtTokenProvider, "jwTokensMap", tokensMap);
+        boolean isValidToken = jwtTokenProvider.isValidToken(token);
+        assertThat(isValidToken).isFalse();
+    }
+
+    @Test
     void isValidTokenFalseSinceExpired() {
         Date now = new Date();
         String token = Jwts.builder()
-                .setAudience(WALLET_ADDRESS)
+                .setAudience(JWT_AUDIENCE)
+                .setSubject(WALLET_ADDRESS)
                 .setIssuedAt(now)
                 .setExpiration(now)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
@@ -111,22 +128,11 @@ class JwtTokenProviderTests {
     }
 
     @Test
-    void isValidTokenFalseSinceNotSameChallenge() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
-        String challenge1 = challengeService.getChallenge(WALLET_ADDRESS);
-        challengeService.removeChallenge(WALLET_ADDRESS, challenge1);
-        String challenge2 = challengeService.getChallenge(WALLET_ADDRESS);
-        boolean isValidToken = jwtTokenProvider.isValidToken(token);
-        assertThat(challenge1).isNotEqualTo(challenge2);
-        assertThat(isValidToken).isFalse();
-    }
-
-    @Test
     void isValidTokenFalseSinceNotSigned() {
         String token = Jwts.builder()
-                .setAudience(WALLET_ADDRESS)
+                .setAudience(JWT_AUDIENCE)
                 .setIssuedAt(new Date())
-                .setSubject(challengeService.getChallenge(WALLET_ADDRESS))
+                .setSubject(WALLET_ADDRESS)
                 .compact();
         boolean isTokenValid = jwtTokenProvider.isValidToken(token);
         assertThat(isTokenValid).isFalse();

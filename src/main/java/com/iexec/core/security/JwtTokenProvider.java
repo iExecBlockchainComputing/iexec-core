@@ -18,6 +18,7 @@ package com.iexec.core.security;
 
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -30,12 +31,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class JwtTokenProvider {
 
     private static final long TOKEN_VALIDITY_DURATION = 1000L * 60 * 60;
-    private final ChallengeService challengeService;
     private final ConcurrentHashMap<String, String> jwTokensMap = new ConcurrentHashMap<>();
+    private final String applicationId;
     private final String secretKey;
 
-    public JwtTokenProvider(ChallengeService challengeService) {
-        this.challengeService = challengeService;
+    public JwtTokenProvider(BuildProperties buildProperties) {
+        this.applicationId = "iExec Scheduler v" + buildProperties.getVersion();
         SecureRandom secureRandom = new SecureRandom();
         byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
@@ -57,10 +58,10 @@ public class JwtTokenProvider {
         return jwTokensMap.computeIfAbsent(walletAddress, address -> {
             Date now = new Date();
             return Jwts.builder()
-                    .setAudience(address)
+                    .setAudience(applicationId)
                     .setIssuedAt(now)
                     .setExpiration(new Date(now.getTime() + TOKEN_VALIDITY_DURATION))
-                    .setSubject(challengeService.getChallenge(address))
+                    .setSubject(address)
                     .signWith(SignatureAlgorithm.HS256, secretKey)
                     .compact();
         });
@@ -100,15 +101,11 @@ public class JwtTokenProvider {
                     .setSigningKey(secretKey)
                     .parseClaimsJws(token)
                     .getBody();
-
-            // check the content of the challenge
-            String walletAddress = claims.getAudience();
-            return challengeService.getChallenge(walletAddress).equals(claims.getSubject());
+            return applicationId.equals(claims.getAudience());
         } catch (ExpiredJwtException e) {
             log.warn("JWT has expired");
-            String walletAddress = e.getClaims().getAudience();
+            String walletAddress = e.getClaims().getSubject();
             jwTokensMap.remove(walletAddress, token);
-            challengeService.removeChallenge(walletAddress, e.getClaims().getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT is invalid [{}: {}]", e.getClass().getSimpleName(), e.getMessage());
         }
@@ -118,7 +115,9 @@ public class JwtTokenProvider {
     public String getWalletAddress(String token) {
         return Jwts.parser()
                 .setSigningKey(secretKey)
-                .parseClaimsJws(token).getBody().getAudience();
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
     public String getWalletAddressFromBearerToken(String bearerToken) {
