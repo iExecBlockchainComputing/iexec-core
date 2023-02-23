@@ -16,16 +16,21 @@
 
 package com.iexec.core.security;
 
+import net.jodah.expiringmap.ExpirationPolicy;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ChallengeService {
 
-    private final ConcurrentHashMap<String, String> challengesMap = new ConcurrentHashMap<>();
+    private final ExpiringMap<String, String> challengesMap = ExpiringMap.builder()
+            .expiration(5, TimeUnit.MINUTES)
+            .expirationPolicy(ExpirationPolicy.CREATED)
+            .build();
 
     public String computeChallenge() {
         SecureRandom secureRandom = new SecureRandom();
