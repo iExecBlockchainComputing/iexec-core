@@ -50,7 +50,7 @@ public class JwtTokenProvider {
      * @param walletAddress worker address for which the token is created
      * @return A signed JWT for a given ethereum address
      */
-    public String createToken(String walletAddress) {
+    public String getOrCreateToken(String walletAddress) {
         // Do not try to check if JWT is valid here, it introduces too many questions on challenge validity,
         // concurrency of operations and potential race conditions.
         // When a token is presented, scheduler answers UNAUTHORIZED if the JWT is invalid and purges caches

@@ -57,8 +57,8 @@ class JwtTokenProviderTests {
     //region createToken
     @Test
     void shouldReturnExistingTokenIfValid() {
-        String token1 = jwtTokenProvider.createToken(WALLET_ADDRESS);
-        String token2 = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String token1 = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
+        String token2 = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         assertThat(token1).isEqualTo(token2);
     }
     //endregion
@@ -73,7 +73,7 @@ class JwtTokenProviderTests {
 
     @Test
     void shouldNotResolveTokenSinceNotValidOne() {
-        String notBearerToken = "Not " + jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String notBearerToken = "Not " + jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         String resolvedToken = jwtTokenProvider.resolveToken(notBearerToken);
         assertThat(resolvedToken).isNull();
     } 
@@ -88,7 +88,7 @@ class JwtTokenProviderTests {
     //region isValidToken
     @Test
     void isValidTokenTrue() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String token = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         boolean isValidToken = jwtTokenProvider.isValidToken(token);
         assertThat(isValidToken).isTrue();
     }
@@ -140,7 +140,7 @@ class JwtTokenProviderTests {
 
     @Test
     void isValidTokenFalseSinceNotValidOne() {
-        jwtTokenProvider.createToken(WALLET_ADDRESS);
+        jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         boolean isValidToken = jwtTokenProvider.isValidToken("non.valid.token");
         assertThat(isValidToken).isFalse();
     }
@@ -149,7 +149,7 @@ class JwtTokenProviderTests {
     //region getWalletAddress
     @Test
     void shouldGetCorrectWalletAddress() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String token = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         String walletAddress = jwtTokenProvider.getWalletAddress(token);
         assertThat(walletAddress).isEqualTo(WALLET_ADDRESS);
     }
@@ -163,7 +163,7 @@ class JwtTokenProviderTests {
     //region getWalletAddressFromBearerToken
     @Test
     void shouldGetCorrectWalletAddressFromBearerToken() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String token = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         String bearerToken = "Bearer " + token;
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         assertThat(walletAddress).isEqualTo(WALLET_ADDRESS);
@@ -171,7 +171,7 @@ class JwtTokenProviderTests {
 
     @Test
     void shouldNotGetWalletAddressSinceNotValidBearerToken() {
-        String token = jwtTokenProvider.createToken(WALLET_ADDRESS);
+        String token = jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         String notBearerToken = "Not Bearer " + token;
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(notBearerToken);
         assertThat(walletAddress).isEmpty();
