@@ -46,7 +46,7 @@ public class JwtTokenProvider {
     /**
      * Creates a signed JWT with expiration date for a given ethereum address.
      * <p>
-     * The token is cached until it expires.
+     * The token is cached. It might be pruned in best effort mode by other processes founding that token is expired.
      * @param walletAddress worker address for which the token is created
      * @return A signed JWT for a given ethereum address
      */
