@@ -81,7 +81,7 @@ public class JwtTokenProvider {
      * <ul>
      * <li>be signed with the scheduler private key
      * <li>not be expired
-     * <li>contain th scheduler application ID in the audience claim
+     * <li>contain the scheduler application ID in the audience claim
      * <p>
      * An invalid JWT will return an UNAUTHORIZED status and require to perform a full authentication loop
      * with a new signed challenge (get new challenge -> sign challenge -> check signed challenge -> get or create JWT).
