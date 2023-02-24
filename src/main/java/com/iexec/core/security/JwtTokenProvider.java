@@ -86,7 +86,7 @@ public class JwtTokenProvider {
      * An invalid JWT will return an UNAUTHORIZED status and require to perform a full authentication loop
      * with a new signed challenge (get new challenge -> sign challenge -> check signed challenge -> get or create JWT).
      * <p>
-     * If the JWT was expired, the cache will have been purged and a new JWT will be generated.
+     * If the JWT has expired, the cache will be purged and a new JWT will be generated.
      * For other invalid JWTs, the cached JWT will be returned on next login.
      *
      * @param token The token whose validity must be established
