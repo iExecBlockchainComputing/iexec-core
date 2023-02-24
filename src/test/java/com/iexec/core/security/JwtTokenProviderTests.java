@@ -38,20 +38,24 @@ class JwtTokenProviderTests {
 
     private static final String JWT_AUDIENCE = "iExec Scheduler vX.Y.Z";
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final SecureRandom secureRandom = new SecureRandom();
     private JwtTokenProvider jwtTokenProvider;
     private String secretKey;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] seed = new byte[32];
-        secureRandom.nextBytes(seed);
-        secretKey = Base64.getEncoder().encodeToString(seed);
+        secretKey = createJwtSigningKey();
         BuildProperties buildProperties = mock(BuildProperties.class);
         when(buildProperties.getVersion()).thenReturn("X.Y.Z");
         jwtTokenProvider = spy(new JwtTokenProvider(buildProperties));
-        ReflectionTestUtils.setField(jwtTokenProvider, "secretKey", Base64.getEncoder().encodeToString(seed));
+        ReflectionTestUtils.setField(jwtTokenProvider, "secretKey", secretKey);
+    }
+
+    private String createJwtSigningKey() {
+        byte[] seed = new byte[32];
+        secureRandom.nextBytes(seed);
+        return Base64.getEncoder().encodeToString(seed);
     }
 
     //region createToken
@@ -133,6 +137,20 @@ class JwtTokenProviderTests {
                 .setAudience(JWT_AUDIENCE)
                 .setIssuedAt(new Date())
                 .setSubject(WALLET_ADDRESS)
+                .compact();
+        boolean isTokenValid = jwtTokenProvider.isValidToken(token);
+        assertThat(isTokenValid).isFalse();
+    }
+
+    @Test
+    void isValidTokenFalseSinceWronglySigned() {
+        Date now = new Date();
+        String token = Jwts.builder()
+                .setAudience(JWT_AUDIENCE)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + 10000L))
+                .setSubject(WALLET_ADDRESS)
+                .signWith(SignatureAlgorithm.HS256, createJwtSigningKey())
                 .compact();
         boolean isTokenValid = jwtTokenProvider.isValidToken(token);
         assertThat(isTokenValid).isFalse();
