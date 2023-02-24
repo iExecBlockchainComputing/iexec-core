@@ -14,9 +14,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.List;
 import java.util.Optional;
 
@@ -162,10 +159,10 @@ class WorkerControllerTests {
 
     //region getToken
     @Test
-    void shouldGetToken() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    void shouldGetToken() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
-        when(jwtTokenProvider.createToken(WALLET)).thenReturn(TOKEN);
+        when(jwtTokenProvider.getOrCreateToken(WALLET)).thenReturn(TOKEN);
         ResponseEntity<String> response = workerController.getToken(WALLET, SIGN);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }

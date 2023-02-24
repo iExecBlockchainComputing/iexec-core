@@ -16,39 +16,55 @@
 
 package com.iexec.core.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
-    private final ChallengeService challengeService;
+    private static final long TOKEN_VALIDITY_DURATION = 1000L * 60 * 60;
+    private final ConcurrentHashMap<String, String> jwTokensMap = new ConcurrentHashMap<>();
+    private final String applicationId;
     private final String secretKey;
 
-    public JwtTokenProvider(ChallengeService challengeService) {
-        this.challengeService = challengeService;
+    public JwtTokenProvider(BuildProperties buildProperties) {
+        this.applicationId = "iExec Scheduler v" + buildProperties.getVersion();
         SecureRandom secureRandom = new SecureRandom();
         byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
         this.secretKey = Base64.getEncoder().encodeToString(seed);
     }
 
-    public String createToken(String walletAddress) {
-        return Jwts.builder()
-                .setAudience(walletAddress)
-                .setIssuedAt(new Date())
-                .setSubject(challengeService.getChallenge(walletAddress))
-                .signWith(SignatureAlgorithm.HS256, secretKey)
-                .compact();
+    /**
+     * Creates a signed JWT with expiration date for a given ethereum address.
+     * <p>
+     * The token is cached. It might be pruned in best effort mode by other processes founding that token is expired.
+     * @param walletAddress worker address for which the token is created
+     * @return A signed JWT for a given ethereum address
+     */
+    public String getOrCreateToken(String walletAddress) {
+        // Do not try to check if JWT is valid here, it introduces too many questions on challenge validity,
+        // concurrency of operations and potential race conditions.
+        // When a token is presented, scheduler answers UNAUTHORIZED if the JWT is invalid and purges caches
+        // on expiration of a known JWT.
+        return jwTokensMap.computeIfAbsent(walletAddress, address -> {
+            Date now = new Date();
+            return Jwts.builder()
+                    .setAudience(applicationId)
+                    .setIssuedAt(now)
+                    .setExpiration(new Date(now.getTime() + TOKEN_VALIDITY_DURATION))
+                    .setSubject(address)
+                    .signWith(SignatureAlgorithm.HS256, secretKey)
+                    .compact();
+        });
     }
 
     public String resolveToken(String token) {
@@ -58,38 +74,40 @@ public class JwtTokenProvider {
         return null;
     }
 
-    /*
-     * IMPORTANT /!\
-     * Having the same validity duration for both challenge
-     * and jwtoken can cause a problem. The latter should be
-     * slightly longer (in minutes). In this case the challenge
-     * is valid for 60 minutes while jwtoken stays valid
-     * for 65 minutes.
-     * 
-     * Problem description:
-     *  1) jwtString expires
-     *  2) worker gets old challenge
-     *  3) old challenge expires
-     *  4) worker tries logging with old challenge
+    /**
+     * Checks if a JWT is valid.
+     * <p>
+     * A valid JWT must:
+     * <ul>
+     * <li>be signed with the scheduler private key
+     * <li>not be expired
+     * <li>contain the scheduler application ID in the audience claim
+     * <p>
+     * An invalid JWT will return an UNAUTHORIZED status and require to perform a full authentication loop
+     * with a new signed challenge (get new challenge -> sign challenge -> check signed challenge -> get or create JWT).
+     * <p>
+     * If the JWT has expired, the cache will be purged and a new JWT will be generated.
+     * For other invalid JWTs, the cached JWT will be returned on next login.
+     *
+     * @param token The token whose validity must be established
+     * @return true if the token is valid, false otherwise
      */
     public boolean isValidToken(String token) {
         try {
+            if (!jwTokensMap.containsValue(token)) {
+                throw new JwtException("Unknown JWT");
+            }
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)
-                    .parseClaimsJws(token).getBody();
-
-            // check the expiration date
-            Date now = new Date();
-            long validityInMilliseconds = 1000L * 60 * 65; // 65 minutes
-            Date tokenExpiryDate = new Date(claims.getIssuedAt().getTime() + validityInMilliseconds);
-
-            // check the content of the challenge
-            String walletAddress = claims.getAudience();
-            boolean isChallengeCorrect = challengeService.getChallenge(walletAddress).equals(claims.getSubject());
-
-            return tokenExpiryDate.after(now) && isChallengeCorrect;
+                    .parseClaimsJws(token)
+                    .getBody();
+            return applicationId.equals(claims.getAudience());
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT has expired");
+            String walletAddress = e.getClaims().getSubject();
+            jwTokensMap.remove(walletAddress, token);
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("Expired or invalid JWT token [exception:{}]", e.getMessage());
+            log.warn("JWT is invalid [{}: {}]", e.getClass().getSimpleName(), e.getMessage());
         }
         return false;
     }
@@ -97,7 +115,9 @@ public class JwtTokenProvider {
     public String getWalletAddress(String token) {
         return Jwts.parser()
                 .setSigningKey(secretKey)
-                .parseClaimsJws(token).getBody().getAudience();
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
     public String getWalletAddressFromBearerToken(String bearerToken) {
