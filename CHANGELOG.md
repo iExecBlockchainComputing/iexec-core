@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
   * handle JWT expiration through the expiration claim.
   * cache JWT until expiration.
   * better claims usage.
+* Show application version on banner.
 ### Quality
 * Improve code quality and tests.
 * Removed unused variables in configuration.

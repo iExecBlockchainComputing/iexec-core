@@ -4,4 +4,4 @@ ${Ansi.YELLOW}  \    / | |  _| \ \/ / _ \/ __|  \ \ \ \
 ${Ansi.YELLOW}  /_  _\ | | |___ >  <  __/ (__   / / / /
 ${Ansi.YELLOW}    \/   |_|_____/_/\_\___|\___| /_/_/_/
 ${Ansi.YELLOW}                                =========
-${Ansi.YELLOW} :: Spring Boot${spring-boot.formatted-version} :: ${Ansi.DEFAULT}
+${Ansi.YELLOW} :: ${application.title}${application.formatted-version} built with Spring Boot${spring-boot.formatted-version} :: ${Ansi.DEFAULT}
