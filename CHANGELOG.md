@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 * Use recommended annotation in `MetricController`.
 * Remove `spring-cloud-starter-openfeign` dependency
 ### Dependency Upgrades
+* Replace the deprecated `openjdk` Docker base image with `eclipse-temurin` and upgrade to Java 11.0.18 patch.
 * Upgrade to Spring Boot 2.6.14.
 * Upgrade to Gradle 7.6.
 * Upgrade OkHttp to 4.9.0.
