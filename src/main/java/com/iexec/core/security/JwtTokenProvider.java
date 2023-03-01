@@ -17,6 +17,7 @@
 package com.iexec.core.security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
@@ -30,17 +31,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class JwtTokenProvider {
 
+    static final int KEY_SIZE = 128;
     private static final long TOKEN_VALIDITY_DURATION = 1000L * 60 * 60;
     private final ConcurrentHashMap<String, String> jwTokensMap = new ConcurrentHashMap<>();
     private final String applicationId;
-    private final String secretKey;
+    private final byte[] secretKey = new byte[KEY_SIZE];
 
     public JwtTokenProvider(BuildProperties buildProperties) {
         this.applicationId = "iExec Scheduler v" + buildProperties.getVersion();
         SecureRandom secureRandom = new SecureRandom();
-        byte[] seed = new byte[32];
-        secureRandom.nextBytes(seed);
-        this.secretKey = Base64.getEncoder().encodeToString(seed);
+        secureRandom.nextBytes(secretKey);
     }
 
     /**
@@ -62,7 +62,7 @@ public class JwtTokenProvider {
                     .setIssuedAt(now)
                     .setExpiration(new Date(now.getTime() + TOKEN_VALIDITY_DURATION))
                     .setSubject(address)
-                    .signWith(SignatureAlgorithm.HS256, secretKey)
+                    .signWith(Keys.hmacShaKeyFor(secretKey), SignatureAlgorithm.HS256)
                     .compact();
         });
     }
@@ -97,8 +97,9 @@ public class JwtTokenProvider {
             if (!jwTokensMap.containsValue(token)) {
                 throw new JwtException("Unknown JWT");
             }
-            Claims claims = Jwts.parser()
+            Claims claims = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
             return applicationId.equals(claims.getAudience());
@@ -113,8 +114,9 @@ public class JwtTokenProvider {
     }
 
     public String getWalletAddress(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
