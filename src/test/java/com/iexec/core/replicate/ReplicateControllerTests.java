@@ -169,7 +169,6 @@ class ReplicateControllerTests {
     //endregion
 
     //region update replicate
-
     @Test
     void shouldUpdateReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
@@ -225,6 +224,7 @@ class ReplicateControllerTests {
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNull();
     }
 
     @Test
@@ -240,6 +240,7 @@ class ReplicateControllerTests {
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isEqualTo(TaskNotificationType.PLEASE_ABORT);
     }
 
     @Test

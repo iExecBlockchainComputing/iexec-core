@@ -54,11 +54,11 @@ public class ReplicatesController {
         @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)){
-            return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
+        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
@@ -75,7 +75,7 @@ public class ReplicatesController {
 
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         List<TaskNotification> missedTaskNotifications =
@@ -93,7 +93,7 @@ public class ReplicatesController {
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (walletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
@@ -124,16 +124,17 @@ public class ReplicatesController {
                 return replicatesService
                         .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
                         .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
-                                .build());
+                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(TaskNotificationType.PLEASE_ABORT));
             case ALREADY_REPORTED:
-                return status(HttpStatus.ALREADY_REPORTED.value())
+                return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
                         .body(TaskNotificationType.PLEASE_WAIT);
             case UNKNOWN_REPLICATE:
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:
-                return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(TaskNotificationType.PLEASE_ABORT);
         }
     }
 }
