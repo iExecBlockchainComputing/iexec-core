@@ -84,6 +84,17 @@ public class ReplicatesController {
         return ResponseEntity.ok(missedTaskNotifications);
     }
 
+    /**
+     * Handles workers requests to update a replicate status.
+     * <p>
+     * The scheduler response can only be null on authentication failures.
+     * In all other situations, a notification must be sent and the body cannot be null.
+     *
+     * @param bearerToken Authentication token of a worker.
+     * @param chainTaskId ID of the task on which the worker has an update.
+     * @param statusUpdate Status update sent by the worker.
+     * @return A notification to the worker. A notification is implemented in {@code TaskNotificationType}.
+     */
     @PostMapping("/replicates/{chainTaskId}/updateStatus")
     public ResponseEntity<TaskNotificationType> updateReplicateStatus(
             @RequestHeader("Authorization") String bearerToken,
