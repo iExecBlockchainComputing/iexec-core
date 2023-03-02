@@ -12,6 +12,7 @@ group = 'com.iexec.core'
 
 ext {
     springCloudVersion = '2021.0.5'
+    jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
 }
 
@@ -79,7 +80,9 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
 
     // jason web token
-    implementation "io.jsonwebtoken:jjwt:0.7.0"
+    implementation "io.jsonwebtoken:jjwt-api:$jjwtVersion"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:$jjwtVersion"
 
     // expiring map
     implementation "net.jodah:expiringmap:0.5.10"

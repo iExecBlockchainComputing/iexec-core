@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 * Upgrade to Spring Boot 2.6.14.
 * Upgrade to Gradle 7.6.
 * Upgrade OkHttp to 4.9.0.
+* Upgrade `jjwt` to `jjwt-api` 0.11.5.
 
 ## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
 
