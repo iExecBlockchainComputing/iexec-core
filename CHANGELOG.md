@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
   * cache JWT until expiration.
   * better claims usage.
 * Show application version on banner.
+### Bug Fixes
+* Always return a `TaskNotificationType` on replicate status update when it has been authorized.
 ### Quality
 * Improve code quality and tests.
 * Removed unused variables in configuration.

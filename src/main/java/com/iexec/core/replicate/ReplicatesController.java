@@ -54,11 +54,11 @@ public class ReplicatesController {
         @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)){
-            return ResponseEntity.status(HttpStatus.NO_CONTENT.value()).build();
+        if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
 
@@ -75,7 +75,7 @@ public class ReplicatesController {
 
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         List<TaskNotification> missedTaskNotifications =
@@ -84,6 +84,17 @@ public class ReplicatesController {
         return ResponseEntity.ok(missedTaskNotifications);
     }
 
+    /**
+     * Handles workers requests to update a replicate status.
+     * <p>
+     * The scheduler response can only be null on authentication failures.
+     * In all other situations, a notification must be sent and the body cannot be null.
+     *
+     * @param bearerToken Authentication token of a worker.
+     * @param chainTaskId ID of the task on which the worker has an update.
+     * @param statusUpdate Status update sent by the worker.
+     * @return A notification to the worker. A notification is implemented in {@code TaskNotificationType}.
+     */
     @PostMapping("/replicates/{chainTaskId}/updateStatus")
     public ResponseEntity<TaskNotificationType> updateReplicateStatus(
             @RequestHeader("Authorization") String bearerToken,
@@ -93,7 +104,7 @@ public class ReplicatesController {
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (walletAddress.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
@@ -124,16 +135,17 @@ public class ReplicatesController {
                 return replicatesService
                         .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
                         .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN.value())
-                                .build());
+                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(TaskNotificationType.PLEASE_ABORT));
             case ALREADY_REPORTED:
-                return status(HttpStatus.ALREADY_REPORTED.value())
+                return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
                         .body(TaskNotificationType.PLEASE_WAIT);
             case UNKNOWN_REPLICATE:
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:
-                return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(TaskNotificationType.PLEASE_ABORT);
         }
     }
 }
