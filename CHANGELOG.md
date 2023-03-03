@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 * Upgrade OkHttp to 4.9.0.
 * Upgrade `jjwt` to `jjwt-api` 0.11.5.
 * Upgrade to `iexec-common` 7.0.0.
+* Upgrade to `jenkins-library` 2.4.0.
 
 ## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
 
