@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-06
+## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
 
 ### New Features
 * Support Gramine framework for TEE tasks.
