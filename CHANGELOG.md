@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023
+## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
+
+### New Features
+### Bug Fixes
+### Quality
+### Dependency Upgrades
+
+## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
 
 ### New Features
 * Support Gramine framework for TEE tasks.
@@ -15,12 +22,13 @@ All notable changes to this project will be documented in this file.
 * Show application version on banner.
 ### Bug Fixes
 * Always return a `TaskNotificationType` on replicate status update when it has been authorized.
+* Handle task added twice.
 ### Quality
 * Improve code quality and tests.
 * Removed unused variables in configuration.
 * Use existing `toString()` method to serialize and hash scheduler public configuration.
 * Use recommended annotation in `MetricController`.
-* Remove `spring-cloud-starter-openfeign` dependency
+* Remove `spring-cloud-starter-openfeign` dependency.
 ### Dependency Upgrades
 * Replace the deprecated `openjdk` Docker base image with `eclipse-temurin` and upgrade to Java 11.0.18 patch.
 * Upgrade to Spring Boot 2.6.14.
