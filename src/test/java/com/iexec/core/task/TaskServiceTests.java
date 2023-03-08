@@ -25,6 +25,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
@@ -66,7 +67,7 @@ class TaskServiceTests {
     void shouldNotGetTaskWithTrust() {
         when(taskRepository.findByChainTaskId("dummyId")).thenReturn(Optional.empty());
         Optional<Task> task = taskService.getTaskByChainTaskId("dummyId");
-        assertThat(task.isPresent()).isFalse();
+        assertThat(task).isEmpty();
     }
 
     @Test
@@ -75,8 +76,7 @@ class TaskServiceTests {
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
 
-        assertThat(optional.isPresent()).isTrue();
-        assertThat(optional).isEqualTo(Optional.of(task));
+        assertThat(optional).contains(task);
     }
 
     @Test
@@ -87,18 +87,18 @@ class TaskServiceTests {
         when(taskRepository.save(any())).thenReturn(task);
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
-        assertThat(saved).isPresent();
-        assertThat(saved).isEqualTo(Optional.of(task));
+        assertThat(saved).contains(task);
     }
 
     @Test
     void shouldNotAddTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
-        when(taskRepository.findByChainDealIdAndTaskIndex(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any())).thenThrow(DuplicateKeyException.class);
+
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
-        assertThat(saved).isEqualTo(Optional.empty());
+        assertThat(saved).isEmpty();
     }
 
     @Test
@@ -161,7 +161,7 @@ class TaskServiceTests {
     @Test
     void shouldGetInitializedOrRunningTasks() {
         Task task = mock(Task.class);
-        when(taskRepository.findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
+        when(taskRepository.findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(
                 eq(Arrays.asList(INITIALIZED, RUNNING)),
                 any(),
                 eq(Collections.emptyList()),

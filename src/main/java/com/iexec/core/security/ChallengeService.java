@@ -18,28 +18,33 @@ package com.iexec.core.security;
 
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class ChallengeService {
 
-    // Map <WorkerWalletAdress, Challenge>
-    // this map will automatically delete entries older than one hour, ExpiringMap is thread-safe
-    private final ExpiringMap<String, String> challengeMap;
+    private final ExpiringMap<String, String> challengesMap = ExpiringMap.builder()
+            .expiration(5, TimeUnit.MINUTES)
+            .expirationPolicy(ExpirationPolicy.CREATED)
+            .build();
 
-    ChallengeService() {
-        this.challengeMap = ExpiringMap.builder()
-                .expiration(60, TimeUnit.MINUTES)
-                .expirationPolicy(ExpirationPolicy.CREATED)
-                .build();
+    public String computeChallenge() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] seed = new byte[32];
+        secureRandom.nextBytes(seed);
+        return Base64.getEncoder().encodeToString(seed);
     }
 
     public String getChallenge(String workerWallet) {
-        String challenge = RandomStringUtils.randomAlphabetic(10);
-        challengeMap.putIfAbsent(workerWallet, challenge);
-        return challengeMap.get(workerWallet);
+        return challengesMap.computeIfAbsent(workerWallet, wallet -> computeChallenge());
     }
+
+    public void removeChallenge(String workerWallet, String challenge) {
+        challengesMap.remove(workerWallet, challenge);
+    }
+
 }

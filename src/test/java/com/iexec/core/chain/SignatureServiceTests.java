@@ -20,8 +20,6 @@ import com.iexec.common.chain.WorkerpoolAuthorization;
 import com.iexec.common.security.Signature;
 import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.HashUtils;
-import com.iexec.core.configuration.SmsConfiguration;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +34,6 @@ import static org.mockito.Mockito.when;
 class SignatureServiceTests {
 
     @Mock private CredentialsService credentialsService;
-    @Mock private SmsConfiguration smsConfiguration;
 
     @InjectMocks
     private SignatureService signatureService;

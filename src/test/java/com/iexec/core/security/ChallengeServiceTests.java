@@ -28,6 +28,13 @@ class ChallengeServiceTests {
     private final ChallengeService challengeService = new ChallengeService();
 
     @Test
+    void shouldCreateNewChallengeAfterRemoval() {
+        String challenge1 = challengeService.getChallenge(WALLET_WORKER_1);
+        challengeService.removeChallenge(WALLET_WORKER_1, challenge1);
+        String challenge2 = challengeService.getChallenge(WALLET_WORKER_1);
+        assertThat(challenge1).isNotEqualTo(challenge2);
+    }
+    @Test
     void shouldGetSameChallengeForSameWallet() {
         String challenge1 = challengeService.getChallenge(WALLET_WORKER_1);
         String challenge2 = challengeService.getChallenge(WALLET_WORKER_1);

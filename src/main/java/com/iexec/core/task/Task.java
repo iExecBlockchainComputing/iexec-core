@@ -21,7 +21,6 @@ import com.iexec.common.chain.ChainReceipt;
 import com.iexec.common.chain.ChainUtils;
 import com.iexec.common.dapp.DappType;
 import com.iexec.common.tee.TeeUtils;
-
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -30,7 +29,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -58,10 +56,6 @@ public class Task {
 
     public static final String CURRENT_STATUS_FIELD_NAME        = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
-    /**
-     * An XL task timeout happens after 100 hours.
-     */
-    public static final Duration LONGEST_TASK_TIMEOUT = Duration.ofHours(100);
 
     @Id
     private String id;
@@ -96,6 +90,7 @@ public class Task {
     private String chainCallbackData;
     private List<TaskStatusChange> dateStatusList;
     private String enclaveChallenge;
+    private String smsUrl;
 
     public Task(String dappName, String commandLine, int trust) {
         this.dappType = DappType.DOCKER;

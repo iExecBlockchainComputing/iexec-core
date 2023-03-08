@@ -17,7 +17,6 @@
 package com.iexec.core.task;
 
 import com.iexec.common.dapp.DappType;
-import com.iexec.common.tee.TeeUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +28,7 @@ class TaskModelTests {
 
     public static final String CHAIN_TASK_ID = "task";
     public static final long MAX_EXECUTION_TIME = 1;
-    public static final String TAG = TeeUtils.TEE_TAG;
+    public static final String TAG = "0xa";
     public static final DappType DAPP_TYPE = DappType.DOCKER;
     public static final String DAPP_NAME = "name";
     public static final String COMMAND_LINE = "line";

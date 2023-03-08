@@ -21,7 +21,6 @@ import com.iexec.common.chain.eip712.entity.Challenge;
 import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.task.TaskDescription;
-import com.iexec.common.utils.CredentialsUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.logs.TaskLogs;
 import com.iexec.core.logs.TaskLogsService;
@@ -29,8 +28,7 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.security.EIP712ChallengeService;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -38,21 +36,16 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Keys;
 
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@Slf4j
 class TaskControllerTests {
 
     private static final String TASK_ID = "0xtask";
@@ -72,21 +65,22 @@ class TaskControllerTests {
     @InjectMocks private TaskController taskController;
 
     @BeforeEach
-    void setUp() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    @SneakyThrows
+    void setUp() {
         MockitoAnnotations.openMocks(this);
         EIP712Domain domain = new EIP712Domain();
         challenge = new EIP712Challenge(domain, Challenge.builder().challenge("challenge").build());
         badChallenge = new EIP712Challenge(domain, Challenge.builder().challenge("bad-challenge").build());
         ecKeyPair = Keys.createEcKeyPair();
-        requesterAddress = CredentialsUtils.getAddress(String.format("0x%032x", ecKeyPair.getPrivateKey()));
+        requesterAddress = Credentials.create(ecKeyPair).getAddress();
         signature = challenge.signMessage(ecKeyPair);
     }
 
     //region utilities
-    String generateWalletAddress() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    @SneakyThrows
+    String generateWalletAddress() {
         ECKeyPair ecKeyPair = Keys.createEcKeyPair();
-        BigInteger pk = ecKeyPair.getPrivateKey();
-        return CredentialsUtils.getAddress(String.format("0x%032x", pk));
+        return Credentials.create(ecKeyPair).getAddress();
     }
     //endregion
 
@@ -208,7 +202,7 @@ class TaskControllerTests {
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         when(taskLogsService.getTaskLogs(TASK_ID)).thenReturn(Optional.of(taskStdout));
         ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
-        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
@@ -248,11 +242,10 @@ class TaskControllerTests {
     }
 
     @Test
-    void shouldFailToGetTaskLogsWhenNotTaskRequester()
-            throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    void shouldFailToGetTaskLogsWhenNotTaskRequester() {
         String notRequesterAddress = generateWalletAddress();
         TaskDescription description = TaskDescription.builder()
-                .requester(CredentialsUtils.getAddress(notRequesterAddress))
+                .requester(notRequesterAddress)
                 .build();
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
@@ -275,7 +268,7 @@ class TaskControllerTests {
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.of(computeLogs));
         ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
-        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
@@ -315,11 +308,10 @@ class TaskControllerTests {
     }
 
     @Test
-    void shouldFailToGetComputeLogsWhenNotTaskRequester()
-            throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    void shouldFailToGetComputeLogsWhenNotTaskRequester() {
         String notRequesterAddress = generateWalletAddress();
         TaskDescription description = TaskDescription.builder()
-                .requester(CredentialsUtils.getAddress(notRequesterAddress))
+                .requester(notRequesterAddress)
                 .build();
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);

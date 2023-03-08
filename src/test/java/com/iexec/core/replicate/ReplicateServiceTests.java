@@ -140,7 +140,7 @@ class ReplicateServiceTests {
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).isNotNull();
-        assertThat(replicatesService.getReplicates(CHAIN_TASK_ID).size()).isEqualTo(1);
+        assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).hasSize(1);
     }
 
     @Test
@@ -167,7 +167,7 @@ class ReplicateServiceTests {
     @Test
     void shouldNotGetReplicate1() {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
-        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).isEqualTo(Optional.empty());
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).isEmpty();
     }
 
     @Test
@@ -181,7 +181,7 @@ class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Arrays.asList(replicate1, replicate2));
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_3)).isEqualTo(Optional.empty());
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_3)).isEmpty();
     }
 
     @Test
@@ -200,7 +200,7 @@ class ReplicateServiceTests {
 
         assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, STARTING)).isEqualTo(2);
         assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, COMPUTED)).isEqualTo(1);
-        assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
+        assertThat(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, CONTRIBUTED)).isZero();
     }
 
     @Test
@@ -252,7 +252,7 @@ class ReplicateServiceTests {
 
         assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING)).isEqualTo(3);
         assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, COMPUTED)).isEqualTo(1);
-        assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
+        assertThat(replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, CONTRIBUTED)).isZero();
     }
 
     @Test
@@ -304,7 +304,7 @@ class ReplicateServiceTests {
 
         assertThat(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, STARTING)).isEqualTo(3);
         assertThat(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPUTED)).isEqualTo(1);
-        assertThat(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, CONTRIBUTED)).isEqualTo(0);
+        assertThat(replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, CONTRIBUTED)).isZero();
     }
 
     @Test
@@ -333,7 +333,7 @@ class ReplicateServiceTests {
 
         int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPLETED, FAILED,
                 RESULT_UPLOADING);
-        assertThat(shouldBe0).isEqualTo(0);
+        assertThat(shouldBe0).isZero();
     }
 
     @Test
@@ -354,8 +354,7 @@ class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         Optional<Replicate> optional = replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
-        assertThat(optional.isPresent()).isTrue();
-        assertThat(optional).isEqualTo(Optional.of(replicate));
+        assertThat(optional).contains(replicate);
     }
 
     @Test
@@ -363,7 +362,7 @@ class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
         Optional<Replicate> optional = replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
-        assertThat(optional.isPresent()).isFalse();
+        assertThat(optional).isEmpty();
     }
 
     @Test
@@ -383,7 +382,7 @@ class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
         Optional<Replicate> optional = replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
-        assertThat(optional.isPresent()).isFalse();
+        assertThat(optional).isEmpty();
     }
 
     @Test
@@ -629,8 +628,7 @@ class ReplicateServiceTests {
                 .build();
 
         final Optional<TaskNotificationType> result = replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-        assertThat(result)
-                .isEqualTo(Optional.empty());
+        assertThat(result).isEmpty();
     }
 
     @Test

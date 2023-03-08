@@ -17,12 +17,16 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.chain.WorkerpoolAuthorization;
+import com.iexec.common.lifecycle.purge.ExpiringTaskMapFactory;
+import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.common.notification.TaskNotification;
 import com.iexec.common.notification.TaskNotificationExtra;
 import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.ReplicateTaskSummary;
+import com.iexec.common.replicate.ReplicateTaskSummary.ReplicateTaskSummaryBuilder;
 import com.iexec.common.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
@@ -33,22 +37,19 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.core.task.Task.LONGEST_TASK_TIMEOUT;
 
 
 @Service
-public class ReplicateSupplyService {
+public class ReplicateSupplyService implements Purgeable {
 
     private final ReplicatesService replicatesService;
     private final SignatureService signatureService;
@@ -56,10 +57,7 @@ public class ReplicateSupplyService {
     private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final Web3jService web3jService;
-    final Map<String, Lock> taskAccessForNewReplicateLocks =
-            ExpiringMap.builder()
-                    .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
-                    .build();
+    final Map<String, Lock> taskAccessForNewReplicateLocks = ExpiringTaskMapFactory.getExpiringTaskMap();
 
     public ReplicateSupplyService(ReplicatesService replicatesService,
                                   SignatureService signatureService,
@@ -87,7 +85,7 @@ public class ReplicateSupplyService {
      *
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
-    Optional<WorkerpoolAuthorization> getAuthOfAvailableReplicate(long workerLastBlock, String walletAddress) {
+    Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
         // return empty if max computing task is reached or if the worker is not found
         if (!workerService.canAcceptMoreWorks(walletAddress)) {
             return Optional.empty();
@@ -112,7 +110,7 @@ public class ReplicateSupplyService {
         }
         Worker worker = optional.get();
 
-        return getAuthorizationForAnyAvailableTask(
+        return getReplicateTaskSummaryForAnyAvailableTask(
                 walletAddress,
                 worker.isTeeEnabled()
         );
@@ -124,17 +122,17 @@ public class ReplicateSupplyService {
      *
      * @param walletAddress Wallet address of the worker asking for work.
      * @param isTeeEnabled  Whether this worker supports TEE.
-     * @return An {@link Optional} containing a {@link WorkerpoolAuthorization}
+     * @return An {@link Optional} containing a {@link ReplicateTaskSummary}
      * if any {@link Task} is available and can be handled by this worker,
      * {@link Optional#empty()} otherwise.
      */
-    private Optional<WorkerpoolAuthorization> getAuthorizationForAnyAvailableTask(
+    private Optional<ReplicateTaskSummary> getReplicateTaskSummaryForAnyAvailableTask(
             String walletAddress,
             boolean isTeeEnabled) {
         final List<String> alreadyScannedTasks = new ArrayList<>();
 
-        Optional<WorkerpoolAuthorization> authorization = Optional.empty();
-        while (authorization.isEmpty()) {
+        Optional<ReplicateTaskSummary> replicateTaskSummary = Optional.empty();
+        while (replicateTaskSummary.isEmpty()) {
             final Optional<Task> oTask = taskService.getPrioritizedInitializedOrRunningTask(
                     !isTeeEnabled,
                     alreadyScannedTasks
@@ -146,12 +144,12 @@ public class ReplicateSupplyService {
 
             final Task task = oTask.get();
             alreadyScannedTasks.add(task.getChainTaskId());
-            authorization = getAuthorizationForTask(task, walletAddress);
+            replicateTaskSummary = getReplicateTaskSummary(task, walletAddress);
         }
-        return authorization;
+        return replicateTaskSummary;
     }
 
-    private Optional<WorkerpoolAuthorization> getAuthorizationForTask(Task task, String walletAddress) {
+    private Optional<ReplicateTaskSummary> getReplicateTaskSummary(Task task, String walletAddress) {
         String chainTaskId = task.getChainTaskId();
         if (!acceptOrRejectTask(task, walletAddress)) {
             return Optional.empty();
@@ -162,7 +160,12 @@ public class ReplicateSupplyService {
                 walletAddress,
                 chainTaskId,
                 task.getEnclaveChallenge());
-        return Optional.of(authorization);
+        ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
+            .workerpoolAuthorization(authorization);
+        if(task.isTeeTask()){
+            replicateTaskSummary.smsUrl(task.getSmsUrl());
+        }
+        return Optional.of(replicateTaskSummary.build());
     }
 
     /**
@@ -342,12 +345,8 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
         boolean beforeContributing = replicate.isBeforeStatus(ReplicateStatus.CONTRIBUTING);
-        boolean didReplicateStartContributing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTING);
+        boolean didReplicateStartContributing = replicate.getLastRelevantStatus() == ReplicateStatus.CONTRIBUTING;
         boolean didReplicateContributeOnChain = replicatesService.didReplicateContributeOnchain(chainTaskId, walletAddress);
 
         if (beforeContributing) {
@@ -370,12 +369,8 @@ public class ReplicateSupplyService {
         }
 
         Replicate replicateWithLatestChanges = oReplicateWithLatestChanges.get();
-        if (replicateWithLatestChanges.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean didReplicateContribute = replicateWithLatestChanges.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.CONTRIBUTED);
+        boolean didReplicateContribute = replicateWithLatestChanges.getLastRelevantStatus()
+                == ReplicateStatus.CONTRIBUTED;
 
         if (didReplicateContribute) {
             final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
@@ -405,12 +400,8 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean isInStatusContributed = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.CONTRIBUTED);
-        boolean didReplicateStartRevealing = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.REVEALING);
+        boolean isInStatusContributed = replicate.getLastRelevantStatus() == ReplicateStatus.CONTRIBUTED;
+        boolean didReplicateStartRevealing = replicate.getLastRelevantStatus() == ReplicateStatus.REVEALING;
         boolean didReplicateRevealOnChain = replicatesService.didReplicateRevealOnchain(chainTaskId, walletAddress);
 
         if (isInStatusContributed) {
@@ -434,15 +425,12 @@ public class ReplicateSupplyService {
             return Optional.empty();
         }
         replicate = oReplicateWithLatestChanges.get();
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
 
-        boolean didReplicateReveal = replicate.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.REVEALED);
+        boolean didReplicateReveal = replicate.getLastRelevantStatus()
+                == ReplicateStatus.REVEALED;
 
-        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get()
-                .equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus()
+                == ReplicateStatus.RESULT_UPLOAD_REQUESTED;
 
         if (didReplicateReveal) {
             return Optional.of(TaskNotificationType.PLEASE_WAIT);
@@ -467,14 +455,10 @@ public class ReplicateSupplyService {
         String chainTaskId = task.getChainTaskId();
         String walletAddress = replicate.getWalletAddress();
 
-        if (replicate.getLastRelevantStatus().isEmpty()) {
-            return Optional.empty();
-        }
-
-        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOAD_REQUESTED);
-        boolean didReplicateStartUploading = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADING);
+        boolean wasReplicateRequestedToUpload = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOAD_REQUESTED;
+        boolean didReplicateStartUploading = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOADING;
         boolean didReplicateUploadWithoutNotifying = replicatesService.isResultUploaded(task.getChainTaskId());
-        boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus().get().equals(ReplicateStatus.RESULT_UPLOADED);
+        boolean hasReplicateAlreadyUploaded = replicate.getLastRelevantStatus() == ReplicateStatus.RESULT_UPLOADED;
 
         if (wasReplicateRequestedToUpload) {
             return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
@@ -532,4 +516,17 @@ public class ReplicateSupplyService {
                 return TaskAbortCause.UNKNOWN;
         }
     }
+
+    // region purge locks
+    @Override
+    public boolean purgeTask(String chainTaskId) {
+        taskAccessForNewReplicateLocks.remove(chainTaskId);
+        return !taskAccessForNewReplicateLocks.containsKey(chainTaskId);
+    }
+
+    @Override
+    public void purgeAllTasksData() {
+        taskAccessForNewReplicateLocks.clear();
+    }
+    // endregion
 }

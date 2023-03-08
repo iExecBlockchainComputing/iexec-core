@@ -16,6 +16,7 @@
 
 package com.iexec.core.task;
 
+import com.iexec.common.tee.TeeUtils;
 import com.iexec.common.utils.BytesUtils;
 
 import java.time.Instant;
@@ -32,7 +33,7 @@ public class TaskTestsUtils {
     public final static String DAPP_NAME = "dappName";
     public final static String COMMAND_LINE = "commandLine";
     public final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    public final static String TEE_TAG = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    public final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     public final static String RESULT_LINK = "/ipfs/the_result_string";
 
     public static Task getStubTask(long maxExecutionTime) {

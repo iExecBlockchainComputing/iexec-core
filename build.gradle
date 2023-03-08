@@ -1,19 +1,18 @@
 plugins {
     id 'java'
-    id 'eclipse'
+    id 'io.freefair.lombok' version '6.6.1'
+    id 'org.springframework.boot' version '2.6.14'
+    id 'io.spring.dependency-management' version '1.1.0'
     id 'jacoco'
     id 'org.sonarqube' version '3.3'
     id 'maven-publish'
-    id "org.springframework.boot" version "2.6.2"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
 }
 
 group = 'com.iexec.core'
-sourceCompatibility = 11
-targetCompatibility = 11
 
 ext {
-    springCloudVersion = '2021.0.0'
+    springCloudVersion = '2021.0.5'
+    jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
 }
 
@@ -38,7 +37,6 @@ repositories {
     maven {
         url "https://nexus.intra.iex.ec/repository/maven-public/"
     }
-
     maven { url "https://jitpack.io" }
 }
 
@@ -64,23 +62,27 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
     implementation "org.springframework.boot:spring-boot-starter-hateoas"
     implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-websocket"
-    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation "org.springframework.retry:spring-retry"
+
+    // apache commons.lang3
+    implementation 'org.apache.commons:commons-lang3'
 
     // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
     // Spring Boot dependencies BOM enforces okhttp3 3.14.9 in 2.6.X
     // It is required to define the dependency version required by web3j until migration to at least Spring Boot 2.7.X
     implementation 'com.squareup.okhttp3:okhttp:4.9.0' // Web3j issue: https://github.com/web3j/web3j/issues/1180
 
-    testImplementation "org.springframework.boot:spring-boot-starter-test"
-
     // Spring Doc
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
 
     // jason web token
-    implementation "io.jsonwebtoken:jjwt:0.7.0"
+    implementation "io.jsonwebtoken:jjwt-api:$jjwtVersion"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:$jjwtVersion"
 
     // expiring map
     implementation "net.jodah:expiringmap:0.5.10"
@@ -93,23 +95,25 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-registry-prometheus:1.8.1'
 
-    // lombok
-    compileOnly "org.projectlombok:lombok:1.18.2"
-    annotationProcessor "org.projectlombok:lombok:1.18.2"
-    testCompileOnly "org.projectlombok:lombok:1.18.2"
-    testAnnotationProcessor "org.projectlombok:lombok:1.18.2"
-
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
 
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
     // awaitility
-    testImplementation 'org.awaitility:awaitility:4.0.1'
+    testImplementation 'org.awaitility:awaitility'
 
     // mongo
     testImplementation 'org.testcontainers:testcontainers:1.16.2'
     testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
     testImplementation 'org.testcontainers:mongodb:1.16.2'
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
 
 jar {
@@ -119,6 +123,13 @@ jar {
 
 springBoot {
     buildInfo()
+}
+
+tasks.named("bootJar") {
+    manifest {
+        attributes("Implementation-Title": "iExec Core Scheduler",
+                   "Implementation-Version": project.version)
+    }
 }
 
 test {
@@ -136,7 +147,7 @@ jacoco {
 // sonarqube code coverage requires jacoco XML report
 jacocoTestReport {
     reports {
-        xml.enabled true
+        xml.required = true
     }
 }
 tasks.test.finalizedBy    tasks.jacocoTestReport
@@ -145,7 +156,7 @@ tasks.sonarqube.dependsOn tasks.jacocoTestReport
 publishing {
     publications {
         maven(MavenPublication) {
-            artifact bootJar
+            artifact tasks.named("bootJar")
             from components.java
         }
     }

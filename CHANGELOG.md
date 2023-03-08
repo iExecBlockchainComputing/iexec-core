@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
+
+### New Features
+* Support Gramine framework for TEE tasks.
+* Retrieve location of SMS services through an _iExec Platform Registry_.
+* Improve authentication on scheduler.
+  * burn challenge after login.
+  * handle JWT expiration through the expiration claim.
+  * cache JWT until expiration.
+  * better claims usage.
+* Show application version on banner.
+### Bug Fixes
+* Always return a `TaskNotificationType` on replicate status update when it has been authorized.
+* Handle task added twice.
+### Quality
+* Improve code quality and tests.
+* Removed unused variables in configuration.
+* Use existing `toString()` method to serialize and hash scheduler public configuration.
+* Use recommended annotation in `MetricController`.
+* Remove `spring-cloud-starter-openfeign` dependency.
+### Dependency Upgrades
+* Replace the deprecated `openjdk` Docker base image with `eclipse-temurin` and upgrade to Java 11.0.18 patch.
+* Upgrade to Spring Boot 2.6.14.
+* Upgrade to Gradle 7.6.
+* Upgrade OkHttp to 4.9.0.
+* Upgrade `jjwt` to `jjwt-api` 0.11.5.
+* Upgrade to `iexec-common` 7.0.0.
+* Upgrade to `jenkins-library` 2.4.0.
+
 ## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
 
 * Subscribe only to deal events targeting a specific workerpool.

@@ -21,8 +21,8 @@ import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -39,14 +39,11 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
-    private final ReplicatesService replicatesService;
 
     public TaskService(TaskRepository taskRepository,
-                       IexecHubService iexecHubService,
-                       ReplicatesService replicatesService) {
+                       IexecHubService iexecHubService) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
-        this.replicatesService = replicatesService;
     }
 
     /**
@@ -78,26 +75,23 @@ public class TaskService {
             Date contributionDeadline,
             Date finalDeadline
     ) {
-        return taskRepository
-                .findByChainDealIdAndTaskIndex(chainDealId, taskIndex)
-                .<Optional<Task>>map(task -> {
-                        log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                                "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust);
-                        return Optional.empty();
-                })
-                .orElseGet(() -> {
-                        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                                commandLine, trust, maxExecutionTime, tag);
-                        newTask.setDealBlockNumber(dealBlockNumber);
-                        newTask.setFinalDeadline(finalDeadline);
-                        newTask.setContributionDeadline(contributionDeadline);
-                        newTask = taskRepository.save(newTask);
-                        log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                                "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                                taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
-                        return Optional.of(newTask);
-                });
+        Task newTask = new Task(chainDealId, taskIndex, imageName,
+                commandLine, trust, maxExecutionTime, tag);
+        newTask.setDealBlockNumber(dealBlockNumber);
+        newTask.setFinalDeadline(finalDeadline);
+        newTask.setContributionDeadline(contributionDeadline);
+        try {
+            newTask = taskRepository.save(newTask);
+            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
+                            "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
+                    taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+            return Optional.of(newTask);
+        } catch (DuplicateKeyException e) {
+            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
+                            "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
+                    taskIndex, imageName, commandLine, trust);
+            return Optional.empty();
+        }
     }
 
     /**
@@ -149,19 +143,19 @@ public class TaskService {
     public Optional<Task> getPrioritizedInitializedOrRunningTask(
             boolean shouldExcludeTeeTasks,
             List<String> excludedChainTaskIds) {
-        final String excludedTag = shouldExcludeTeeTasks
-                ? TeeUtils.TEE_TAG
+        final List<String> excludedTags = shouldExcludeTeeTasks
+                ? List.of(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG)
                 : null;
         return findPrioritizedTask(
                 Arrays.asList(INITIALIZED, RUNNING),
-                excludedTag,
+                excludedTags,
                 excludedChainTaskIds,
                 Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
                         Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     /**
-     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn}.
+     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn}.
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
      *     <li>Task is in one of given {@code statuses};</li>
@@ -180,12 +174,12 @@ public class TaskService {
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
     private Optional<Task> findPrioritizedTask(List<TaskStatus> statuses,
-                                               String excludedTag,
+                                               List<String> excludedTags,
                                                List<String> excludedChainTaskIds,
                                                Sort sort) {
-        return taskRepository.findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(
+        return taskRepository.findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(
                 statuses,
-                excludedTag,
+                excludedTags,
                 excludedChainTaskIds,
                 sort
         );

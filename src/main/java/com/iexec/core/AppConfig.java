@@ -17,8 +17,6 @@
 package com.iexec.core;
 
 import com.iexec.core.config.*;
-
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -31,7 +29,5 @@ import org.springframework.context.annotation.Import;
     WebMvcConfig.class,
     WebSocketConfig.class,
 })
-@EnableFeignClients
 public class AppConfig {
-    
 }

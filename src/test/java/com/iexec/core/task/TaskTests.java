@@ -37,24 +37,24 @@ class TaskTests {
     void shouldInitializeProperly(){
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
 
-        assertThat(task.getDateStatusList().size()).isEqualTo(1);
+        assertThat(task.getDateStatusList()).hasSize(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
     }
 
     @Test
     void shouldSetCurrentStatus() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        assertThat(task.getDateStatusList().size()).isEqualTo(1);
+        assertThat(task.getDateStatusList()).hasSize(1);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RECEIVED);
 
         task.changeStatus(TaskStatus.INITIALIZED);
-        assertThat(task.getDateStatusList().size()).isEqualTo(2);
+        assertThat(task.getDateStatusList()).hasSize(2);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
         assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.INITIALIZED);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.INITIALIZED);
 
         task.changeStatus(TaskStatus.RUNNING);
-        assertThat(task.getDateStatusList().size()).isEqualTo(3);
+        assertThat(task.getDateStatusList()).hasSize(3);
         assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.RUNNING);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }

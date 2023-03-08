@@ -20,6 +20,7 @@ import com.iexec.common.config.PublicConfiguration;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 
@@ -29,13 +30,13 @@ import javax.annotation.PostConstruct;
  * This simple service will generate a random session id when the scheduler is started, it will be send to workers when
  * they ping the scheduler. If they see that the session id has changed, it means that the scheduler has restarted.
  */
+@Slf4j
 @Service
 public class PublicConfigurationService {
     private final ChainConfig chainConfig;
     private final CredentialsService credentialsService;
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
-    private final SmsConfiguration smsConfiguration;
     private final BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
     private PublicConfiguration publicConfiguration = null;
@@ -50,13 +51,11 @@ public class PublicConfigurationService {
                                       CredentialsService credentialsService,
                                       WorkerConfiguration workerConfiguration,
                                       ResultRepositoryConfiguration resultRepoConfig,
-                                      SmsConfiguration smsConfiguration,
                                       BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
-        this.smsConfiguration = smsConfiguration;
         this.blockchainAdapterClientConfig = blockchainAdapterClientConfig;
     }
 
@@ -67,24 +66,12 @@ public class PublicConfigurationService {
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
-                .smsURL(smsConfiguration.getSmsURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();
-
-        // TODO: would be great to put this in Common
-        // (a simple `@ToString` would be sufficient)
-        final String publicConfigurationAsString = String.join("\n",
-                publicConfiguration.getWorkerPoolAddress(),
-                publicConfiguration.getBlockchainAdapterUrl(),
-                publicConfiguration.getSchedulerPublicAddress(),
-                publicConfiguration.getResultRepositoryURL(),
-                publicConfiguration.getSmsURL(),
-                publicConfiguration.getAskForReplicatePeriod() + "",
-                publicConfiguration.getRequiredWorkerVersion()
-        );
-
-        this.publicConfigurationHash = Hash.sha3String(publicConfigurationAsString);
+        this.publicConfigurationHash = Hash.sha3String(publicConfiguration.toString());
+        log.info(publicConfiguration.toString());
+        log.info("Public configuration hash {}", publicConfigurationHash);
     }
 
     public String getPublicConfigurationHash() {

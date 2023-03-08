@@ -8,6 +8,10 @@ spring:
       host: ${MONGO_HOST:localhost}
       port: ${MONGO_PORT:13002}
       auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
+  config.import: "configserver:${IEXEC_PLATFORM_REGISTRY}" # configserver:http://platform-registry:8888
+  cloud.config:
+    profile: ${IEXEC_PLATFORM_REGISTRY_STACK:} # mainnet, bellecour3, 1234, ..
+    label: ${IEXEC_PLATFORM_REGISTRY_LABEL:} # main, develop, v10, 07998be
 mongock:
   runner-type: InitializingBean
   change-logs-scan-package:
@@ -44,11 +48,7 @@ wallet:
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
 
 chain:
-  id: ${IEXEC_CHAIN_ID:17}
-  sidechain: ${IEXEC_IS_SIDECHAIN:false}
   privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
-  publicAddress: ${IEXEC_PUBLIC_CHAIN_ADDRESS:http://localhost:8545}
-  hubAddress: ${IEXEC_HUB_ADDRESS:0xBF6B2B07e47326B7c8bfCb4A5460bef9f0Fd2002}
   poolAddress: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
@@ -66,15 +66,6 @@ resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:13200}
-
-ipfs:
-  host: ${IEXEC_IPFS_HOST:127.0.0.1}
-  port: ${IEXEC_IPFS_PORT:5001}
-
-sms:
-  protocol: ${IEXEC_SMS_PROTOCOL:http}
-  host: ${IEXEC_SMS_HOST:localhost}
-  port: ${IEXEC_SMS_PORT:13300}
 
 management:
   endpoints:

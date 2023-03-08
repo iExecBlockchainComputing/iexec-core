@@ -26,8 +26,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.web3j.crypto.Credentials;
 
-import java.security.NoSuchAlgorithmException;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -43,8 +41,6 @@ class PublicConfigurationServiceTests {
     @Mock
     private ResultRepositoryConfiguration resultRepoConfig;
     @Mock
-    private SmsConfiguration smsConfiguration;
-    @Mock
     private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
 
     @InjectMocks
@@ -58,7 +54,7 @@ class PublicConfigurationServiceTests {
 
     // region getPublicConfiguration
     @Test
-    void shouldGetPublicConfiguration() throws NoSuchAlgorithmException {
+    void shouldGetPublicConfiguration() {
         // This would be done by Spring in production
         publicConfigurationService.buildPublicConfiguration();
 
@@ -73,7 +69,7 @@ class PublicConfigurationServiceTests {
 
     // region getPublicConfiguration
     @Test
-    void shouldGetPublicConfigurationHash() throws NoSuchAlgorithmException {
+    void shouldGetPublicConfigurationHash() {
         // This would be done by Spring in production
         publicConfigurationService.buildPublicConfiguration();
 

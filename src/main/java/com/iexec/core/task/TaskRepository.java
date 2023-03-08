@@ -56,13 +56,13 @@ interface TaskRepository extends MongoRepository<Task, String> {
      * </ul>
      *
      * @param statuses             The task status should be one of this list.
-     * @param excludedTag          The task tag should not be this tag
+     * @param excludedTags         The task tag should not be one this tag list
      *                             - use {@literal null} if no tag should be excluded.
      * @param excludedChainTaskIds The chain task ID should not be one of this list.
      * @param sort                 How to prioritize tasks.
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
-    Optional<Task> findFirstByCurrentStatusInAndTagNotAndChainTaskIdNotIn(List<TaskStatus> statuses, String excludedTag, List<String> excludedChainTaskIds, Sort sort);
+    Optional<Task> findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(List<TaskStatus> statuses, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
     
     @Query("{ 'currentStatus': {$nin: ?0} }")
     List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);

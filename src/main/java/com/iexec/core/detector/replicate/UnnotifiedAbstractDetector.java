@@ -30,7 +30,6 @@ import com.iexec.core.task.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
@@ -60,8 +59,8 @@ public abstract class UnnotifiedAbstractDetector {
                                                        ChainContributionStatus onchainCompleted) {
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
-                if (lastRelevantStatus.isEmpty() || !lastRelevantStatus.get().equals(offchainCompleting)) {
+                ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
+                if (lastRelevantStatus != offchainCompleting) {
                     continue;
                 }
 
@@ -69,7 +68,7 @@ public abstract class UnnotifiedAbstractDetector {
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
+                            lastRelevantStatus, onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task, replicate, offchainCompleted);
                 }
             }
@@ -82,9 +81,9 @@ public abstract class UnnotifiedAbstractDetector {
                                  ChainContributionStatus onchainCompleted) {
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                Optional<ReplicateStatus> lastRelevantStatus = replicate.getLastRelevantStatus();
+                ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
-                if (lastRelevantStatus.isEmpty() || lastRelevantStatus.get().equals(offchainCompleted)) {
+                if (lastRelevantStatus == offchainCompleted) {
                     continue;
                 }
 
@@ -92,7 +91,7 @@ public abstract class UnnotifiedAbstractDetector {
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus.get(), onchainCompleted, task.getChainTaskId());
+                            lastRelevantStatus, onchainCompleted, task.getChainTaskId());
                     updateReplicateStatuses(task, replicate, offchainCompleted);
                 }
             }
