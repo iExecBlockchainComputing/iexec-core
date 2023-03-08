@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
+
+### New Features
+### Bug Fixes
+### Quality
+### Dependency Upgrades
+
 ## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
 
 ### New Features
