@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 ### Bug Fixes
+* Remove explicit version on `micrometer-registry-prometheus` dependency. (#563)
 ### Quality
 ### Dependency Upgrades
 
