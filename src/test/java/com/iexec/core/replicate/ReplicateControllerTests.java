@@ -228,7 +228,7 @@ class ReplicateControllerTests {
     }
 
     @Test
-    void shouldNotUpdateReplicateSinceForbidden() {
+    void shouldReturnPleaseAbortSinceCantUpdate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
@@ -239,8 +239,7 @@ class ReplicateControllerTests {
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody()).isEqualTo(TaskNotificationType.PLEASE_ABORT);
+        assertThat(response).isEqualTo(ResponseEntity.ok(TaskNotificationType.PLEASE_ABORT));
     }
 
     @Test

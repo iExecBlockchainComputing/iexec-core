@@ -135,8 +135,7 @@ public class ReplicatesController {
                 return replicatesService
                         .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
                         .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(TaskNotificationType.PLEASE_ABORT));
+                        .orElse(ResponseEntity.ok(TaskNotificationType.PLEASE_ABORT));
             case ALREADY_REPORTED:
                 return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
                         .body(TaskNotificationType.PLEASE_WAIT);
@@ -144,8 +143,7 @@ public class ReplicatesController {
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(TaskNotificationType.PLEASE_ABORT);
+                return ResponseEntity.ok(TaskNotificationType.PLEASE_ABORT);
         }
     }
 }
