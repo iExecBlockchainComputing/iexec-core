@@ -21,6 +21,7 @@ import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
+import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -89,6 +90,8 @@ public class ReplicatesController {
      * <p>
      * The scheduler response can only be null on authentication failures.
      * In all other situations, a notification must be sent and the body cannot be null.
+     * To avoid body deserialization from a {@link FeignException}, a notification with a non-null body
+     * is sent with a 2XX HTTP status code.
      *
      * @param bearerToken Authentication token of a worker.
      * @param chainTaskId ID of the task on which the worker has an update.
@@ -135,7 +138,7 @@ public class ReplicatesController {
                 return replicatesService
                         .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
                         .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .orElse(ResponseEntity.status(HttpStatus.ACCEPTED)
                                 .body(TaskNotificationType.PLEASE_ABORT));
             case ALREADY_REPORTED:
                 return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
@@ -144,7 +147,7 @@ public class ReplicatesController {
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                return ResponseEntity.status(HttpStatus.ACCEPTED)
                         .body(TaskNotificationType.PLEASE_ABORT);
         }
     }
