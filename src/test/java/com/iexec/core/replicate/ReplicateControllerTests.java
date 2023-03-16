@@ -239,7 +239,8 @@ class ReplicateControllerTests {
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
-        assertThat(response).isEqualTo(ResponseEntity.ok(TaskNotificationType.PLEASE_ABORT));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(response.getBody()).isEqualTo(TaskNotificationType.PLEASE_ABORT);
     }
 
     @Test
