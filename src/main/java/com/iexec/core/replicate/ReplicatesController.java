@@ -22,6 +22,8 @@ import com.iexec.common.replicate.*;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import feign.FeignException;
+import io.vavr.control.Either;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ import java.util.List;
 
 import static org.springframework.http.ResponseEntity.status;
 
+@Slf4j
 @RestController
 public class ReplicatesController {
 
@@ -127,22 +130,21 @@ public class ReplicatesController {
                 chainTaskId,
                 walletAddress,
                 statusUpdate);
-        final ReplicateStatusUpdateError replicateStatusUpdateError = replicatesService.canUpdateReplicateStatus(
-                chainTaskId,
-                walletAddress,
-                statusUpdate,
-                updateReplicateStatusArgs);
 
-        switch (replicateStatusUpdateError) {
-            case NO_ERROR:
-                return replicatesService
-                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
-                        .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.ACCEPTED)
-                                .body(TaskNotificationType.PLEASE_ABORT));
+        final Either<ReplicateStatusUpdateError, TaskNotificationType> updateResult = replicatesService
+                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs);
+        if (updateResult.isRight()) {
+            return ResponseEntity.ok(updateResult.get());
+        }
+
+        switch (updateResult.getLeft()) {
             case ALREADY_REPORTED:
                 return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
                         .body(TaskNotificationType.PLEASE_WAIT);
+            case NO_ERROR:
+                log.warn("An error has been detected on replicate update but no error is returned" +
+                                " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
+                return ResponseEntity.internalServerError().build();
             case UNKNOWN_REPLICATE:
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:

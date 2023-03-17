@@ -100,6 +100,9 @@ dependencies {
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
 
+    // vavr
+    implementation 'io.vavr:vavr:0.10.4'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     // awaitility
