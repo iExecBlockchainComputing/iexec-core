@@ -2,15 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
+## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
-### New Features
 ### Bug Fixes
 - Remove explicit version on `micrometer-registry-prometheus` dependency. (#563)
-- Send a `TaskNotificationType` to worker through a 2XX HTTP status code. (#564)
+- Send a `TaskNotificationType` to worker with a 2XX HTTP status code. (#564)
+- Remove `com.iexec.core.dataset` package. (#565)
 - Improve log on `canUpdateReplicateStatus` method. (#566)
-### Quality
-### Dependency Upgrades
 
 ## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
 
