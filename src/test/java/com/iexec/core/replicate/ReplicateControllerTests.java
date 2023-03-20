@@ -260,5 +260,20 @@ class ReplicateControllerTests {
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_WAIT);
     }
+
+    @Test
+    void shouldReply500WhenErrorNoExpected() {
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+                .thenReturn(UPDATE_ARGS);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.NO_ERROR));
+
+        ResponseEntity<TaskNotificationType> response =
+                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     //endregion
 }
