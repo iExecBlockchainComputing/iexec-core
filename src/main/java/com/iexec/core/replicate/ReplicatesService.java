@@ -183,7 +183,8 @@ public class ReplicatesService {
 
         boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
         if (hasAlreadyTransitionedToStatus) {
-            log.warn("Cannot update replicate, status {} already reported.", newStatus);
+            log.warn("Cannot update replicate, status already reported {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
             return ReplicateStatusUpdateError.ALREADY_REPORTED;
         }
 

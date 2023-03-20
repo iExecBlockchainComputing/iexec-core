@@ -6,9 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 ### Bug Fixes
-* Remove explicit version on `micrometer-registry-prometheus` dependency. (#563)
-* Send a `TaskNotificationType` to worker through a 2XX HTTP status code. (#564)
-* Prevent race condition on replicate update. (#568)
+- Remove explicit version on `micrometer-registry-prometheus` dependency. (#563)
+- Send a `TaskNotificationType` to worker through a 2XX HTTP status code. (#564)
+- Improve log on `canUpdateReplicateStatus` method. (#566)
+- Prevent race condition on replicate update. (#568)
 ### Quality
 ### Dependency Upgrades
 
