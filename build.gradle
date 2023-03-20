@@ -93,7 +93,8 @@ dependencies {
     // graylog
     implementation 'biz.paluch.logging:logstash-gelf:1.5.1'
 
-    implementation 'io.micrometer:micrometer-registry-prometheus:1.8.1'
+    // observability
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
