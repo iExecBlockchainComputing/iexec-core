@@ -26,6 +26,7 @@ import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.result.ResultService;
+import io.vavr.control.Either;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -627,8 +628,9 @@ class ReplicateServiceTests {
                 .status(CONTRIBUTED)
                 .build();
 
-        final Optional<TaskNotificationType> result = replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-        assertThat(result).isEmpty();
+        final Either<ReplicateStatusUpdateError, TaskNotificationType> result =
+                replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(result.getLeft()).isEqualTo(ReplicateStatusUpdateError.ALREADY_REPORTED);
     }
 
     @Test
