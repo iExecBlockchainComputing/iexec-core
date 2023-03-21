@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[7.3.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.2) 2023-03-21
+
+- Remove `com.iexec.core.dataset` package. (#570)
+
 ## [[7.3.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.3.1) 2023-02-17
 
 * Subscribe only to deal events targeting a specific workerpool.
