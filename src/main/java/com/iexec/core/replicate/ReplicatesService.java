@@ -313,9 +313,10 @@ public class ReplicatesService {
     }
 
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         final UpdateReplicateStatusArgs updateReplicateStatusArgs = computeUpdateReplicateStatusArgs(
                 chainTaskId,
                 walletAddress,
@@ -329,10 +330,11 @@ public class ReplicatesService {
     }
 
     @Recover
-    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            OptimisticLockingFailureException exception,
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
         return null;
     }
@@ -361,10 +363,11 @@ public class ReplicatesService {
      * or a next action for the worker.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate,
-                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         // Synchronization is mandatory there to avoid race conditions.
         // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
         final String lockKey = chainTaskId + walletAddress;
@@ -399,10 +402,11 @@ public class ReplicatesService {
      * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
      * or a next action for the worker.
      */
-    Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
-                                                                          String walletAddress,
-                                                                          ReplicateStatusUpdate statusUpdate,
-                                                                          UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatusWithoutThreadSafety(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
