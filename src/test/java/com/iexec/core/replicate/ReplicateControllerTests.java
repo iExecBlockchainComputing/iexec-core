@@ -262,7 +262,7 @@ class ReplicateControllerTests {
     }
 
     @Test
-    void shouldReply500WhenErrorNoExpected() {
+    void shouldReply500WhenErrorNotExpected() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
