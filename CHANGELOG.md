@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 ### Bug Fixes
+- Prevent race condition on replicate update. (#568)
 ### Quality
 ### Dependency Upgrades
 

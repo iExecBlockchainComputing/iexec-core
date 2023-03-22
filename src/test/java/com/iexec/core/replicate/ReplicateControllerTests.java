@@ -6,6 +6,7 @@ import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
+import io.vavr.control.Either;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -178,7 +179,7 @@ class ReplicateControllerTests {
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
+                .thenReturn(Either.right(TaskNotificationType.PLEASE_DOWNLOAD_APP));
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -203,7 +204,7 @@ class ReplicateControllerTests {
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
-                .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
+                .thenReturn(Either.right((TaskNotificationType.PLEASE_DOWNLOAD_APP)));
 
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, updateWithLogs);
@@ -233,8 +234,8 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE));
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -249,8 +250,8 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.ALREADY_REPORTED);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.ALREADY_REPORTED));
 
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -258,6 +259,21 @@ class ReplicateControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ALREADY_REPORTED);
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_WAIT);
+    }
+
+    @Test
+    void shouldReply500WhenErrorNotExpected() {
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+                .thenReturn(UPDATE_ARGS);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.NO_ERROR));
+
+        ResponseEntity<TaskNotificationType> response =
+                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
     //endregion
 }

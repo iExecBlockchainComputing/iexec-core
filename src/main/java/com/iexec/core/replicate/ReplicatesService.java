@@ -26,6 +26,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.result.ResultService;
 import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.workflow.ReplicateWorkflow;
+import io.vavr.control.Either;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -312,9 +313,10 @@ public class ReplicatesService {
     }
 
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         final UpdateReplicateStatusArgs updateReplicateStatusArgs = computeUpdateReplicateStatusArgs(
                 chainTaskId,
                 walletAddress,
@@ -328,12 +330,13 @@ public class ReplicatesService {
     }
 
     @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            OptimisticLockingFailureException exception,
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
+        return null;
     }
 
     /*
@@ -356,13 +359,15 @@ public class ReplicatesService {
      * @param walletAddress Wallet address of the worker whose replicate should be updated.
      * @param statusUpdate Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
-     * @return An optional next action for the worker.
+     * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
+     * or a next action for the worker.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate,
-                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         // Synchronization is mandatory there to avoid race conditions.
         // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
         final String lockKey = chainTaskId + walletAddress;
@@ -373,14 +378,14 @@ public class ReplicatesService {
     }
 
     @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
             OptimisticLockingFailureException exception,
             String chainTaskId,
             String walletAddress,
             ReplicateStatusUpdate statusUpdate,
             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
+        return null;
     }
 
     /**
@@ -394,18 +399,20 @@ public class ReplicatesService {
      * @param walletAddress Wallet address of the worker whose replicate should be updated.
      * @param statusUpdate Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
-     * @return An optional next action for the worker.
+     * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
+     * or a next action for the worker.
      */
-    Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
-                                                                                    String walletAddress,
-                                                                                    ReplicateStatusUpdate statusUpdate,
-                                                                                    UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatusWithoutThreadSafety(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
-        if (ReplicateStatusUpdateError.NO_ERROR
-                != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
-            return Optional.empty();
+        final ReplicateStatusUpdateError error = canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs);
+        if (ReplicateStatusUpdateError.NO_ERROR != error) {
+            return Either.left(error);
         }
 
         ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
@@ -442,7 +449,7 @@ public class ReplicatesService {
                         "nextAction:{}, chainTaskId:{}, walletAddress:{}]",
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
-        return Optional.ofNullable(nextAction);
+        return Either.right(nextAction);
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
