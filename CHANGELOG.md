@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - Prevent race condition on replicate update. (#568)
 ### Quality
 ### Dependency Upgrades
+- Upgrade to `iexec-common` 8.0.0. (#571)
+- Add new `iexec-commons-poco` 1.0.2 dependency. (#571)
 
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
