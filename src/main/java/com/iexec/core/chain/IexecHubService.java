@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.IexecHubContract;
-import com.iexec.common.utils.BytesUtils;
+import com.iexec.commons.poco.chain.*;
+import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.utils.BytesUtils;
 import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -39,10 +39,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
-import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
-import static com.iexec.common.utils.BytesUtils.stringToBytes;
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.commons.poco.chain.ChainTaskStatus.ACTIVE;
+import static com.iexec.commons.poco.chain.ChainTaskStatus.COMPLETED;
+import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
 @Service

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import lombok.*;
 
 import java.util.Date;
 
-import com.iexec.common.chain.ChainReceipt;
+import com.iexec.commons.poco.chain.ChainReceipt;
 
 @Data
 @NoArgsConstructor
