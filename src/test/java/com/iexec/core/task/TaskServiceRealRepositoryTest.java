@@ -16,7 +16,7 @@
 
 package com.iexec.core.task;
 
-import com.iexec.common.chain.ChainUtils;
+import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

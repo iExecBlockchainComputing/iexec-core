@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.chain.ChainContributionStatus;
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
-import com.iexec.common.task.TaskDescription;
-import com.iexec.common.utils.BytesUtils;
+import com.iexec.commons.poco.chain.ChainContribution;
+import com.iexec.commons.poco.chain.ChainContributionStatus;
+import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.logs.TaskLogsService;
@@ -38,7 +38,7 @@ import java.util.stream.IntStream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
-import static com.iexec.common.utils.TestUtils.*;
+import static com.iexec.commons.poco.utils.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

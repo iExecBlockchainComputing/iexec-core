@@ -1,8 +1,24 @@
+/*
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.iexec.core.worker;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
-import com.iexec.common.security.Signature;
+import com.iexec.commons.poco.security.Signature;
 import com.iexec.core.configuration.PublicConfigurationService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -191,24 +207,24 @@ class WorkerControllerTests {
                 .thenReturn(WALLET);
         when(workerService.addWorker(any())).thenReturn(WORKER);
 
-        ResponseEntity<Worker> response =
-                workerController.registerWorker(TOKEN, WORKER_MODEL);
+        ResponseEntity<Worker> response = workerController.registerWorker(TOKEN, WORKER_MODEL);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getWalletAddress()).isEqualTo(WALLET);
         verify(workerService).addWorker(any());
     }
 
     @Test
     void shouldRegisterGPUWorkerWithMaxNbTasksEqualToOne() {
-        WORKER_MODEL.setGpuEnabled(true);
-        WORKER.setMaxNbTasks(1);
+        WorkerModel model = WorkerModel.builder().walletAddress(WALLET).gpuEnabled(true).build();
+        Worker worker = Worker.builder().walletAddress(WALLET).maxNbTasks(1).build();
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET);
-        when(workerService.addWorker(any())).thenReturn(WORKER);
+        when(workerService.addWorker(any())).thenReturn(worker);
 
-        ResponseEntity<Worker> response =
-                workerController.registerWorker(TOKEN, WORKER_MODEL);
+        ResponseEntity<Worker> response = workerController.registerWorker(TOKEN, model);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getWalletAddress()).isEqualTo(WALLET);
         assertThat(response.getBody().getMaxNbTasks()).isEqualTo(1);
         verify(workerService).addWorker(any());
@@ -228,7 +244,7 @@ class WorkerControllerTests {
     //region getPublicConfiguration
     @Test
     void shouldGetPublicConfiguration() {
-        when(publicConfigurationService.getPublicConfiguration()).thenReturn(new PublicConfiguration());
+        when(publicConfigurationService.getPublicConfiguration()).thenReturn(PublicConfiguration.builder().build());
         assertThat(workerController.getPublicConfiguration().getStatusCode())
                 .isEqualTo(HttpStatus.OK);
     }

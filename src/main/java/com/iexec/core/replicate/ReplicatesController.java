@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.notification.TaskNotification;
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
+import com.iexec.commons.poco.notification.TaskNotification;
+import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import feign.FeignException;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import com.iexec.common.notification.TaskNotification;
+import com.iexec.commons.poco.notification.TaskNotification;
 
 class NotificationServiceTests {
 
