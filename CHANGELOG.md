@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality
+- Remove unused methods in `IexecHubService`. (#572)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0. (#571)
 - Add new `iexec-commons-poco` 1.0.2 dependency. (#571)
