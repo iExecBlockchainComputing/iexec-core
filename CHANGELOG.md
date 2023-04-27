@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality
+- Remove unused methods in `IexecHubService`. (#572)
 - Clean unused Replicate methods and update tests. (#573)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0. (#571)
