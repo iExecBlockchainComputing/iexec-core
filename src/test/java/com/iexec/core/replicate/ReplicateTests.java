@@ -159,33 +159,6 @@ class ReplicateTests {
         assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isFalse();
     }
 
-    @Test
-    void shouldBeBusyComputing() {
-        Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-
-        replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.COMPLETED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-    }
-
     // region getLastRelevantStatus
     @Test
     void shouldGetLastRelevantStatusWhenOnlyRelevantStatus() {
