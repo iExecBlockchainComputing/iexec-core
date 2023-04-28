@@ -139,6 +139,10 @@ public class Replicate {
         return now.after(numberPeriodsAfterCreationDate);
     }
 
+    public boolean isBusyComputing() {
+        return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
+    }
+
     public boolean isRecoverable() {
         ReplicateStatus currentStatus = getLastRelevantStatus();
         return ReplicateStatus.isRecoverable(currentStatus);
