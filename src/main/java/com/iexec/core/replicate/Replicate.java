@@ -139,11 +139,6 @@ public class Replicate {
         return now.after(numberPeriodsAfterCreationDate);
     }
 
-    public boolean isLostAfterStatus(ReplicateStatus status) {
-        return getCurrentStatus() == ReplicateStatus.WORKER_LOST &&
-                getLastButOneStatus() == status;
-    }
-
     public boolean isBusyComputing() {
         return ReplicateStatus.getSuccessStatusesBeforeComputed().contains(getCurrentStatus());
     }
