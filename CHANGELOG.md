@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
 
 ### New Features
+- Add ContributeAndFinalize to `ReplicateWorkflow`. (#574)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality
@@ -12,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0. (#571)
 - Add new `iexec-commons-poco` 1.0.2 dependency. (#571)
+- Update `iexec-commons-poco` to 1.0.2-NEXT-SNAPSHOT. (#574)
 
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
