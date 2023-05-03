@@ -245,6 +245,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(RESULT_UPLOADED, PLEASE_WAIT);
         setNextAction(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
 
+        setNextAction(CONTRIBUTE_AND_FINALIZE_ONGOING, PLEASE_CONTINUE);
+        setNextAction(CONTRIBUTE_AND_FINALIZE_DONE, PLEASE_WAIT);
+        setNextAction(CONTRIBUTE_AND_FINALIZE_FAILED, PLEASE_ABORT);
+
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
         setNextAction(COMPLETE_FAILED, PLEASE_ABORT);

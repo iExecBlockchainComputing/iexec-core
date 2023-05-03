@@ -239,6 +239,9 @@ class ReplicateWorkflowTests {
             expectedActions.put(RESULT_UPLOADING, PLEASE_CONTINUE);
             expectedActions.put(RESULT_UPLOADED, PLEASE_WAIT);
             expectedActions.put(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_ONGOING, PLEASE_CONTINUE);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_DONE, PLEASE_WAIT);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_FAILED, PLEASE_ABORT);
             expectedActions.put(COMPLETING, PLEASE_CONTINUE);
             expectedActions.put(COMPLETED, PLEASE_WAIT);
             expectedActions.put(COMPLETE_FAILED, PLEASE_ABORT);
