@@ -99,7 +99,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADED, toList(COMPLETING));
 
         // contribute and finalize
-        addTransition(CONTRIBUTE_AND_FINALIZE_ONGOING, toList(CONTRIBUTE_AND_FINALIZE_FAILED, CONTRIBUTE_AND_FINALIZE_DONE));
+        addTransition(CONTRIBUTE_AND_FINALIZE_ONGOING, toList(CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTE_AND_FINALIZE_FAILED));
         addTransition(CONTRIBUTE_AND_FINALIZE_DONE, COMPLETING);
 
         // complete
