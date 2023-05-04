@@ -80,7 +80,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
         // computation
         addTransition(COMPUTING, toList(COMPUTED, COMPUTE_FAILED));
-        addTransition(COMPUTED, CONTRIBUTING);
+        addTransition(COMPUTED, toList(CONTRIBUTING, CONTRIBUTE_AND_FINALIZE_ONGOING));
 
         // contribution
         addTransition(CONTRIBUTING, toList(CONTRIBUTED, CONTRIBUTE_FAILED));
@@ -97,6 +97,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED));
         addTransition(RESULT_UPLOAD_FAILED, toList(COMPLETING));
         addTransition(RESULT_UPLOADED, toList(COMPLETING));
+
+        // contribute and finalize
+        addTransition(CONTRIBUTE_AND_FINALIZE_ONGOING, toList(CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTE_AND_FINALIZE_FAILED));
+        addTransition(CONTRIBUTE_AND_FINALIZE_DONE, COMPLETING);
 
         // complete
         addTransition(COMPLETING, toList(COMPLETED, COMPLETE_FAILED));
@@ -240,6 +244,10 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         setNextAction(RESULT_UPLOADING, PLEASE_CONTINUE);
         setNextAction(RESULT_UPLOADED, PLEASE_WAIT);
         setNextAction(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
+
+        setNextAction(CONTRIBUTE_AND_FINALIZE_ONGOING, PLEASE_CONTINUE);
+        setNextAction(CONTRIBUTE_AND_FINALIZE_DONE, PLEASE_WAIT);
+        setNextAction(CONTRIBUTE_AND_FINALIZE_FAILED, PLEASE_ABORT);
 
         setNextAction(COMPLETING, PLEASE_CONTINUE);
         setNextAction(COMPLETED, PLEASE_WAIT);
