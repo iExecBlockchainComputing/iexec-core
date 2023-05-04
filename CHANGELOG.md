@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Quality
 - Remove unused methods in `IexecHubService`. (#572)
 - Clean unused Replicate methods and update tests. (#573)
-- Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#)
+- Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0. (#571)
 - Add new `iexec-commons-poco` 1.0.2 dependency. (#571)
