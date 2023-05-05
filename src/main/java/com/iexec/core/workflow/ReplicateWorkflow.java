@@ -92,8 +92,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         addTransition(REVEALED, toList(RESULT_UPLOAD_REQUESTED, COMPLETING));
 
         // result upload
-        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED));
-        addTransition(RESULT_UPLOAD_REQUEST_FAILED, toList(COMPLETING));
+        addTransition(RESULT_UPLOAD_REQUESTED, toList(RESULT_UPLOADING));
         addTransition(RESULT_UPLOADING, toList(RESULT_UPLOADED, RESULT_UPLOAD_FAILED));
         addTransition(RESULT_UPLOAD_FAILED, toList(COMPLETING));
         addTransition(RESULT_UPLOADED, toList(COMPLETING));
