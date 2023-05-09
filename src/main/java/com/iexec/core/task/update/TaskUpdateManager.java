@@ -46,7 +46,7 @@ import static com.iexec.core.task.TaskStatus.*;
 
 @Service
 @Slf4j
-class TaskUpdateManager  {
+class TaskUpdateManager {
     private final TaskService taskService;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
@@ -82,7 +82,7 @@ class TaskUpdateManager  {
 
         boolean isFinalDeadlinePossible =
                 !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(currentStatus);
-        if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())){
+        if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())) {
             updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
             // Eventually should fire a "final deadline reached" notification to worker,
             // but here let's just trigger an toFailed(task) leading to a failed status
@@ -175,7 +175,7 @@ class TaskUpdateManager  {
             return savedTask.get();
         } else {
             log.warn("UpdateTaskStatus failed. Chain Task is probably unknown." +
-                    " [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
+                            " [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
                     task.getChainTaskId(), currentStatus, newStatus);
             return null;
         }
@@ -204,7 +204,7 @@ class TaskUpdateManager  {
 
         if (task.isTeeTask()) {
             Optional<String> smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
-            if(smsUrl.isEmpty()){
+            if (smsUrl.isEmpty()) {
                 log.error("Couldn't get verified SMS url [chainTaskId: {}]", task.getChainTaskId());
                 updateTaskStatusAndSave(task, INITIALIZE_FAILED);
                 updateTaskStatusAndSave(task, FAILED);
@@ -241,7 +241,7 @@ class TaskUpdateManager  {
     }
 
     void initializing2Initialized(Task task) {
-        if (!INITIALIZING.equals(task.getCurrentStatus())){
+        if (!INITIALIZING.equals(task.getCurrentStatus())) {
             return;
         }
         // TODO: the block where initialization happened can be found
@@ -262,7 +262,7 @@ class TaskUpdateManager  {
                     updateTaskStatusAndSave(task, INITIALIZE_FAILED);
                     updateTaskStatusAndSave(task, FAILED);
                 }, () -> log.error("Unable to check initialization on blockchain " +
-                        "(likely too long), should use a detector [chainTaskId:{}]",
+                                "(likely too long), should use a detector [chainTaskId:{}]",
                         task.getChainTaskId()));
     }
 
@@ -324,6 +324,46 @@ class TaskUpdateManager  {
                     .blockNumber(task.getConsensusReachedBlockNumber())
                     .build());
         }
+    }
+
+    void running2Finalized2Completed(Task task) {
+        boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
+        final String chainTaskId = task.getChainTaskId();
+        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+
+        if (!isTaskInRunningStatus) {
+            log.error("Can't transition task to `Finalized` or `Completed` when task is not `Running` " +
+                    " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+
+        if (oReplicatesList.isEmpty()) {
+            log.error("Can't transition task to `Finalized` or `Completed` when no replicatesList exists" +
+                    " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+
+        if (!task.isTeeTask()) {
+            log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
+                    + " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+        final ReplicatesList replicates = oReplicatesList.get();
+        final int nbReplicatesWithContributeAndFinalizeStatus = replicates.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE);
+
+        if (nbReplicatesWithContributeAndFinalizeStatus == 0) {
+            log.debug("No replicate in ContributeAndFinalize status"
+                    + " [chainTaskId:{}]", chainTaskId);
+            return;
+        } else if (nbReplicatesWithContributeAndFinalizeStatus > 1) {
+            log.error("Too many replicates in ContributeAndFinalize status"
+                    + " [chainTaskId:{}, nbReplicates:{}]", chainTaskId, nbReplicatesWithContributeAndFinalizeStatus);
+            toFailed(task);
+            return;
+        }
+
+        updateTaskStatusAndSave(task, FINALIZED);
+        finalizedToCompleted(task);
     }
 
     void initializedOrRunning2ContributionTimeout(Task task) {
