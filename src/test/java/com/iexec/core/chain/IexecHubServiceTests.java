@@ -22,7 +22,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class IexecHubServiceTests {
+class IexecHubServiceTests {
 
     @Mock
     private CredentialsService credentialsService;
