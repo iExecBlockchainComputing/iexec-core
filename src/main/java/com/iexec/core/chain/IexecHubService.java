@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
@@ -72,6 +73,12 @@ public class IexecHubService extends IexecHubAbstractService {
         Optional<ChainTask> chainTask = getChainTask(generatedChainTaskId);
         return chainTask.isEmpty()
                 || ChainTaskStatus.UNSET.equals(chainTask.get().getStatus());
+    }
+
+
+    public boolean isTaskInCompletedStatusOnChain(String chainTaskId) {
+        Optional<ChainTask> oTask = getChainTask(chainTaskId);
+        return oTask.filter(chainTask -> ChainTaskStatus.COMPLETED.equals(chainTask.getStatus())).isPresent();
     }
 
     /**

@@ -203,6 +203,7 @@ public class ReplicatesService {
             case REVEAL_FAILED:
                 canUpdate = false;
                 break;
+            case CONTRIBUTE_AND_FINALIZE_DONE:
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
                 break;
@@ -537,6 +538,8 @@ public class ReplicatesService {
                 return isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case RESULT_UPLOAD_FAILED:
                 return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
+            case CONTRIBUTE_AND_FINALIZE_DONE:
+                return iexecHubService.repeatIsRevealedTrue(chainTaskId,walletAddress) && iexecHubService.isTaskInCompletedStatusOnChain(chainTaskId);
             default:
                 return true;
         }
