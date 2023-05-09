@@ -62,7 +62,7 @@ public class IexecHubService extends IexecHubAbstractService {
     /**
      * Check if the task is defined onchain and
      * has the status {@link ChainTaskStatus#UNSET}.
-     * 
+     *
      * @param chainDealId
      * @param taskIndex
      * @return true if the task is found with the status UNSET, false otherwise.
@@ -77,14 +77,15 @@ public class IexecHubService extends IexecHubAbstractService {
 
 
     public boolean isTaskInCompletedStatusOnChain(String chainTaskId) {
-        Optional<ChainTask> oTask = getChainTask(chainTaskId);
-        return oTask.filter(chainTask -> ChainTaskStatus.COMPLETED.equals(chainTask.getStatus())).isPresent();
+        return getChainTask(chainTaskId)
+                .filter(chainTask -> ChainTaskStatus.COMPLETED == chainTask.getStatus())
+                .isPresent();
     }
 
     /**
      * Check if a deal's contribution deadline
      * is still not reached.
-     * 
+     *
      * @param chainDealId
      * @return true if deadline is not reached, false otherwise.
      */
@@ -97,7 +98,7 @@ public class IexecHubService extends IexecHubAbstractService {
     /**
      * Check if a deal's contribution deadline
      * is still not reached.
-     * 
+     *
      * @param chainDeal
      * @return true if deadline is not reached, false otherwise.
      */
@@ -110,13 +111,13 @@ public class IexecHubService extends IexecHubAbstractService {
      * <p> Get deal's contribution deadline date. The deadline
      * is calculated as follow:
      * start + maxCategoryTime * maxNbOfPeriods.
-     * 
+     *
      * <ul>
      * <li> start: the start time of the deal.
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> nbOfCategoryUnits: number of category units dedicated
      *      for the contribution phase.
-     * 
+     *
      * @param chainDeal
      * @return
      */
@@ -132,13 +133,13 @@ public class IexecHubService extends IexecHubAbstractService {
      * <p> Get deal's final deadline date. The deadline
      * is calculated as follow:
      * start + maxCategoryTime * 10.
-     * 
+     *
      * <ul>
      * <li> start: the start time of the deal.
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> 10: number of category units dedicated
      *      for the hole execution.
-     * 
+     *
      * @param chainDeal
      * @return
      */
@@ -242,7 +243,7 @@ public class IexecHubService extends IexecHubAbstractService {
     private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {
         return ChainReceipt.builder()
                 .txHash(receipt.getTransactionHash())
-                .blockNumber(receipt.getBlockNumber() != null?
+                .blockNumber(receipt.getBlockNumber() != null ?
                         receipt.getBlockNumber().longValue() : 0)
                 .build();
     }
