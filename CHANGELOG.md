@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### New Features
 - Add ContributeAndFinalize to `ReplicateWorkflow`. (#574)
 - Add check for ContributeAndFinalize in `ReplicatesService`. (#576)
+- Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality

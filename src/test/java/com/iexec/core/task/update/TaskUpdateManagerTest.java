@@ -682,6 +682,88 @@ class TaskUpdateManagerTest {
         assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
 
+    // Tests on running2Finalized2Completed transition
+
+    @Test
+    void shouldUpdateRunning2Finalized2Completed() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getLastButOneStatus()).isEqualTo(FINALIZED);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(INITIALIZED);
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicates() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskIsNotTee() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(NO_TEE_TAG);
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicatesOnContributeAndFinalizeStatus() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(0);
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenMoreThanOneReplicatesOnContributeAndFinalizeStatus() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(2);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
 
     // Tests on running2ConsensusReached transition
 
