@@ -203,6 +203,7 @@ public class ReplicatesService {
             case REVEAL_FAILED:
                 canUpdate = false;
                 break;
+            case CONTRIBUTE_AND_FINALIZE_DONE:
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
                 break;
@@ -349,15 +350,16 @@ public class ReplicatesService {
      *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
+
     /**
      * This method updates a replicate while caring about thread safety.
      * A single replicate can then NOT be updated twice at the same time.
      * This method should be preferred to
      * {@link ReplicatesService#updateReplicateStatusWithoutThreadSafety(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}!
      *
-     * @param chainTaskId Chain task id of the task whose replicate should be updated.
-     * @param walletAddress Wallet address of the worker whose replicate should be updated.
-     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param chainTaskId               Chain task id of the task whose replicate should be updated.
+     * @param walletAddress             Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate              Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
      * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
      * or a next action for the worker.
@@ -395,9 +397,9 @@ public class ReplicatesService {
      * This method has to be used with a synchronization mechanism, e.g.
      * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)}
      *
-     * @param chainTaskId Chain task id of the task whose replicate should be updated.
-     * @param walletAddress Wallet address of the worker whose replicate should be updated.
-     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param chainTaskId               Chain task id of the task whose replicate should be updated.
+     * @param walletAddress             Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate              Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
      * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
      * or a next action for the worker.
@@ -537,6 +539,9 @@ public class ReplicatesService {
                 return isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case RESULT_UPLOAD_FAILED:
                 return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
+            case CONTRIBUTE_AND_FINALIZE_DONE:
+                return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress)
+                        && iexecHubService.isTaskInCompletedStatusOnChain(chainTaskId);
             default:
                 return true;
         }
@@ -583,7 +588,7 @@ public class ReplicatesService {
     public boolean isResultUploaded(String chainTaskId) {
         Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
 
-        if (task.isEmpty()){
+        if (task.isEmpty()) {
             return false;
         }
 
@@ -592,7 +597,7 @@ public class ReplicatesService {
 
     public boolean isResultUploaded(TaskDescription task) {
         // Offchain computing - basic & tee
-        if (task.containsCallback()){
+        if (task.containsCallback()) {
             return true;
         }
 
