@@ -19,8 +19,6 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.ChainContribution;
 import com.iexec.commons.poco.chain.ChainContributionStatus;
-import com.iexec.commons.poco.chain.ChainTask;
-import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
