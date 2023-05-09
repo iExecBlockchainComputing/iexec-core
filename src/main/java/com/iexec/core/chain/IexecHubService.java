@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.utils.DateTimeUtils.now;
-import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
