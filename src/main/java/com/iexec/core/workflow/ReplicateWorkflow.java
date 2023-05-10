@@ -191,7 +191,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         }
 
         if (whenStatus == COMPUTED) {
-
             if (null == taskDescription) {
                 log.error("TaskDescription is null with a COMPUTED status, this case shouldn't happen");
                 return PLEASE_ABORT;
