@@ -106,6 +106,7 @@ class TaskUpdateManager {
                 toFailed(task);
                 break;
             case RUNNING:
+                running2Finalized2Completed(task); // running2Finalized2Completed must be the first call to prevent other transition execution
                 running2ConsensusReached(task);
                 running2RunningFailed(task);
                 initializedOrRunning2ContributionTimeout(task);

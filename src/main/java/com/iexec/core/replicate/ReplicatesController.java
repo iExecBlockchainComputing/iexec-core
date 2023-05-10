@@ -146,6 +146,7 @@ public class ReplicatesController {
                                 " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
                 return ResponseEntity.internalServerError().build();
             case UNKNOWN_REPLICATE:
+            case UNKNOWN_TASK:
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:

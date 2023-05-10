@@ -19,6 +19,8 @@ package com.iexec.core.workflow;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.task.TaskDescription;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -28,7 +30,7 @@ import java.util.Map;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.commons.poco.notification.TaskNotificationType.*;
 
-
+@Slf4j
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private static ReplicateWorkflow instance;
@@ -64,14 +66,14 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
 
     private void setDefaultWorkflowTransitions() {
         // start
-        addTransition(CREATED,      toList(STARTING));
-        addTransition(STARTING,     toList(STARTED, START_FAILED));
-        addTransition(STARTED,      toList(APP_DOWNLOADING));
+        addTransition(CREATED, toList(STARTING));
+        addTransition(STARTING, toList(STARTED, START_FAILED));
+        addTransition(STARTED, toList(APP_DOWNLOADING));
 
         // app
-        addTransition(APP_DOWNLOADING,      toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
-        addTransition(APP_DOWNLOAD_FAILED,  toList(CONTRIBUTING));
-        addTransition(APP_DOWNLOADED,       toList(DATA_DOWNLOADING));
+        addTransition(APP_DOWNLOADING, toList(APP_DOWNLOADED, APP_DOWNLOAD_FAILED));
+        addTransition(APP_DOWNLOAD_FAILED, toList(CONTRIBUTING));
+        addTransition(APP_DOWNLOADED, toList(DATA_DOWNLOADING));
 
         // data
         addTransition(DATA_DOWNLOADING, toList(DATA_DOWNLOADED, DATA_DOWNLOAD_FAILED));
@@ -121,7 +123,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
      * - Default*   ---                   --- Default
      * - RECOVERING ---|-- WORKER_LOST --|--- RECOVERING
      * - ABORTED    ---                   --- ABORTED
-     * 
+     *
      * (*) except COMPLETED and FAILED
      */
     private void addWorkerLostTransitions() {
@@ -138,7 +140,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
     }
 
     /*
-     * - Recoverable ---                   All statuses 
+     * - Recoverable ---                   All statuses
      *                  |-- RECOVERING --| except CREATED,
      * - WORKER_LOST ---                   STARTING
      */
@@ -158,7 +160,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
      * Default*    ---                 --- COMPLETED
      *                |--- ABORTED ---|
      * WORKER_LOST ---                 --- FAILED
-     * 
+     *
      * (*) except COMPLETED and FAILED
      */
     private void addAbortedTransitions() {
@@ -175,31 +177,42 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         actionMap.putIfAbsent(whenStatus, nextAction);
     }
 
-    public TaskNotificationType getNextAction(ReplicateStatus whenStatus, ReplicateStatusCause whenCause) {
-        TaskNotificationType nextAction = getNextActionWhenStatusAndCause(whenStatus, whenCause);
-        if (nextAction == null){
+    public TaskNotificationType getNextAction(ReplicateStatus whenStatus, ReplicateStatusCause whenCause, TaskDescription taskDescription) {
+        TaskNotificationType nextAction = getNextActionWhenStatusAndCause(whenStatus, whenCause, taskDescription);
+        if (nextAction == null) {
             nextAction = getNextActionWhenStatus(whenStatus);
         }
         return nextAction;
     }
 
-    TaskNotificationType getNextActionWhenStatusAndCause(ReplicateStatus whenStatus, ReplicateStatusCause whenCause) {
-        if (whenStatus == null){
+    TaskNotificationType getNextActionWhenStatusAndCause(ReplicateStatus whenStatus, ReplicateStatusCause whenCause, TaskDescription taskDescription) {
+        if (whenStatus == null) {
             return null;
         }
-        if (whenCause == null){
+
+        if (whenStatus == COMPUTED) {
+            if (null == taskDescription) {
+                log.error("TaskDescription is null with a COMPUTED status, this case shouldn't happen");
+                return PLEASE_ABORT;
+            }
+            if (taskDescription.isTeeTask()) {
+                return PLEASE_CONTRIBUTE_AND_FINALIZE;
+            }
+        }
+
+        if (whenCause == null) {
             return null;
         }
-        switch (whenStatus){
+        switch (whenStatus) {
             case APP_DOWNLOAD_FAILED:
-                if (whenCause.equals(ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED)){
+                if (whenCause.equals(ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED)) {
                     return PLEASE_CONTRIBUTE;
                 }
                 return PLEASE_ABORT;
             case DATA_DOWNLOAD_FAILED:
                 if (whenCause.equals(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED)
                         || whenCause.equals(ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM)
-                        || whenCause.equals(ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)){
+                        || whenCause.equals(ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) {
                     return PLEASE_CONTRIBUTE;
                 }
                 return PLEASE_ABORT;
@@ -209,7 +222,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
     }
 
     TaskNotificationType getNextActionWhenStatus(ReplicateStatus whenStatus) {
-        if (actionMap.containsKey(whenStatus)){
+        if (actionMap.containsKey(whenStatus)) {
             return actionMap.get(whenStatus);
         }
         return null;

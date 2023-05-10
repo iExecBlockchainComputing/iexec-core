@@ -196,6 +196,12 @@ public class ReplicatesService {
             return ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION;
         }
 
+        if (newStatus == COMPUTED && updateReplicateStatusArgs.getTaskDescription() == null) {
+            log.warn("TaskDescription is null with a COMPUTED status, this case shouldn't happen {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+            return ReplicateStatusUpdateError.UNKNOWN_TASK;
+        }
+
         boolean canUpdate = true;
 
         switch (newStatus) {
@@ -253,6 +259,7 @@ public class ReplicatesService {
                 }
                 taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
                 break;
+            case COMPUTED:
             case RESULT_UPLOAD_FAILED:
                 taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
                 break;
@@ -445,7 +452,7 @@ public class ReplicatesService {
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         ReplicateStatusCause newStatusCause = statusUpdate.getDetails() != null ?
                 statusUpdate.getDetails().getCause() : null;
-        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus, newStatusCause);
+        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus, newStatusCause, updateReplicateStatusArgs.getTaskDescription());
 
         log.info("Replicate updated successfully [newStatus:{}, newStatusCause:{} " +
                         "nextAction:{}, chainTaskId:{}, walletAddress:{}]",

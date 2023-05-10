@@ -441,6 +441,8 @@ class ReplicateServiceTests {
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
+        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(TaskDescription.builder().isTeeTask(true).build()));
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
@@ -1330,6 +1332,48 @@ class ReplicateServiceTests {
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, null))
                 .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+    }
+
+    @Test
+    void shouldNotAuthorizeUpdateOnComputedWhenTaskDescriptionIsNull() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(COMPUTED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.UNKNOWN_TASK);
+    }
+
+
+    @Test
+    void shouldAuthorizeUpdateOnComputedWhenTaskDescriptionIsFilled() {
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(COMPUTED)
+                .build();
+        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
+                .builder()
+                .taskDescription(TaskDescription.builder().build())
+                .build();
+
+        when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+
+        assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs))
+                .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
     }
 
     // computeUpdateReplicateStatusArgs
