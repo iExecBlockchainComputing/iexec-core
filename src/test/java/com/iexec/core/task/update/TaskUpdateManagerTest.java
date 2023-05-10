@@ -685,7 +685,7 @@ class TaskUpdateManagerTest {
     // Tests on running2Finalized2Completed transition
 
     @Test
-    void shouldUpdateRunning2Finalized2Completed() {
+    void shouldUpdateRunning2Finalized2Completed_deprec() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
@@ -1711,6 +1711,26 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
     }
 
+    @Test
+    void shouldUpdateTaskRunning2Finalized2Completed() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RUNNING);
+    }
 
     @Test
     void shouldUpdateFromAnyInProgressStatus2FinalDeadlineReached() {

@@ -25,6 +25,8 @@ import com.iexec.core.worker.WorkerService;
 import io.vavr.control.Either;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -244,14 +246,20 @@ class ReplicateControllerTests {
         assertThat(response.getBody()).isNull();
     }
 
-    @Test
-    void shouldReturnPleaseAbortSinceCantUpdate() {
+    @ParameterizedTest
+    @EnumSource(value = ReplicateStatusUpdateError.class, names = {
+            "UNKNOWN_REPLICATE",
+            "UNKNOWN_TASK",
+            "BAD_WORKFLOW_TRANSITION",
+            "GENERIC_CANT_UPDATE"
+    })
+    void shouldReturnPleaseAbortSinceCantUpdate(ReplicateStatusUpdateError error) {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(Either.left(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE));
+                .thenReturn(Either.left(error));
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);

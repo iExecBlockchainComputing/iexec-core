@@ -19,6 +19,7 @@ package com.iexec.core.workflow;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.task.TaskDescription;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,8 @@ class ReplicateWorkflowTests {
     void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(null,
-                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) //any
+                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
+                        null)) //any
                 .isNull();
     }
 
@@ -75,7 +77,8 @@ class ReplicateWorkflowTests {
     void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(ReplicateStatus.ABORTED, //unknown
-                        ReplicateStatusCause.ABORTED_BY_WORKER)) //any
+                        ReplicateStatusCause.ABORTED_BY_WORKER,
+                        null)) //any
                 .isNull();
     }
 
@@ -85,6 +88,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
+                        null,
                         null))
                 .isEqualTo(PLEASE_ABORT);
     }
@@ -93,7 +97,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE))
+                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
+                        null))
                 .isEqualTo(PLEASE_ABORT);
     }
 
@@ -101,7 +106,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -111,6 +117,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                        null,
                         null))
                 .isEqualTo(PLEASE_ABORT);
     }
@@ -119,7 +126,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE))
+                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
+                        null))
                 .isEqualTo(PLEASE_ABORT);
     }
 
@@ -127,7 +135,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -135,7 +144,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM))
+                        ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -143,10 +153,41 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
+    // region computed
+
+    @Test
+    void shouldGetNextActionOnComputedWithTeeTaskShouldBePleaseContributeAndFinalize(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(true).build()))
+                .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
+    }
+
+    @Test
+    void shouldGetNextActionOnComputedWithStandardTaskShouldBePleaseContribute(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(false).build()))
+                .isEqualTo(PLEASE_CONTRIBUTE);
+    }
+
+    @Test
+    void shouldGetNextActionOnComputedWithoutTaskDescriptionShouldBePleaseAbort(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        null))
+                .isEqualTo(PLEASE_ABORT);
+    }
+
+    // endregion
 
     /*
      * This updates the json files when transitions
