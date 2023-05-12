@@ -96,12 +96,16 @@ public abstract class UnnotifiedAbstractDetector {
 
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
+                final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
                 if (lastRelevantStatus != offchainCompleting) {
                     continue;
                 }
 
-                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
+                final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
+                        task.getChainTaskId(),
+                        replicate.getWalletAddress(),
+                        onchainCompleted
+                );
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
@@ -123,13 +127,17 @@ public abstract class UnnotifiedAbstractDetector {
         log.debug("Detect onchain {} [retryIn:{}]", onchainCompleted, this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
+                final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
 
                 if (lastRelevantStatus == offchainCompleted) {
                     continue;
                 }
 
-                boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(task.getChainTaskId(), replicate.getWalletAddress(), onchainCompleted);
+                final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
+                        task.getChainTaskId(),
+                        replicate.getWalletAddress(),
+                        onchainCompleted
+                );
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
@@ -150,7 +158,7 @@ public abstract class UnnotifiedAbstractDetector {
      */
     private void updateReplicateStatuses(Task task, Replicate replicate) {
         final String chainTaskId = task.getChainTaskId();
-        long initBlockNumber = task.getInitializationBlockNumber();
+        final long initBlockNumber = task.getInitializationBlockNumber();
 
         final ReplicateStatus retrieveFrom = replicate.getCurrentStatus().equals(WORKER_LOST)
                 ? replicate.getLastButOneStatus()
@@ -164,17 +172,17 @@ public abstract class UnnotifiedAbstractDetector {
             switch (statusToUpdate) {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
-                    ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
+                    final ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
                             wallet, initBlockNumber);
-                    long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
+                    final long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
                     break;
                 case REVEALED:
                     // retrieve the reveal block for that wallet
-                    ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
+                    final ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
                             initBlockNumber);
-                    long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
+                    final long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
                     replicatesService.updateReplicateStatus(chainTaskId, wallet,
                             statusToUpdate, new ReplicateStatusDetails(revealedBlockNumber));
                     break;
