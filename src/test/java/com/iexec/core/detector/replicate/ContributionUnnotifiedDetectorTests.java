@@ -114,7 +114,7 @@ class ContributionUnnotifiedDetectorTests {
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong()))
                 .thenReturn(ChainReceipt.builder().blockNumber(10L).txHash("0xabcef").build());
 
-        contributionDetector.detectOnchainContributedWhenOffchainContributing();
+        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(1)) // Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -133,7 +133,7 @@ class ContributionUnnotifiedDetectorTests {
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
 
-        contributionDetector.detectOnchainContributedWhenOffchainContributing();
+        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -151,7 +151,7 @@ class ContributionUnnotifiedDetectorTests {
         // when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
-        contributionDetector.detectOnchainContributedWhenOffchainContributing();
+        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -178,7 +178,7 @@ class ContributionUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        contributionDetector.detectOnchainContributed();
+        contributionDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -202,7 +202,7 @@ class ContributionUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        contributionDetector.detectOnchainContributed();
+        contributionDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -220,7 +220,7 @@ class ContributionUnnotifiedDetectorTests {
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectOnchainContributed();
+        contributionDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
