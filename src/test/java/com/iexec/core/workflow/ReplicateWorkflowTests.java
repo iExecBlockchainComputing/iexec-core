@@ -187,6 +187,15 @@ class ReplicateWorkflowTests {
                 .isEqualTo(PLEASE_ABORT);
     }
 
+    @Test
+    void shouldGetNextActionOnComputedWithTeeTaskAndCallBackShouldBePlease(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(true).callback("callback").build()))
+                .isEqualTo(PLEASE_CONTRIBUTE);
+    }
+
     // endregion
 
     /*
