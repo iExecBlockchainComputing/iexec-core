@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Remove unused methods in `IexecHubService`. (#572)
 - Clean unused Replicate methods and update tests. (#573)
 - Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
+- Refactor unnotified detectors to avoid code duplication. (#580)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0-NEXT-SNAPSHOT. (#571 #575)
 - Add new `iexec-commons-poco` 1.0.2-NEXT-SNAPSHOT dependency. (#571 #574)

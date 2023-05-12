@@ -19,7 +19,6 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
-import com.iexec.core.task.TaskService;
 import com.iexec.core.task.listener.ReplicateListeners;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
@@ -46,8 +45,6 @@ class ReplicateListenersTests {
     private final static String CHAIN_TASK_ID = "chainTaskId";
     private final static String WORKER_WALLET = "0xwallet1";
 
-    @Mock
-    private TaskService taskService;
     @Mock
     private WorkerService workerService;
     @Mock
@@ -121,7 +118,7 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(1)).detectOnchainContributed();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(1)).detectOnchainCompleted();
     }
 
     @Test
@@ -135,7 +132,7 @@ class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainContributed();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainCompleted();
     }
 
     @Test
@@ -148,7 +145,7 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainContributed();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainCompleted();
     }
 
     static Stream<ReplicateStatus> getUncompletableStatuses() {

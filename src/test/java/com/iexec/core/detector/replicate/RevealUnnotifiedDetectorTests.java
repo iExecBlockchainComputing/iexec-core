@@ -115,7 +115,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
+        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -133,7 +133,7 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
+        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -150,7 +150,7 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
-        revealDetector.detectOnchainRevealedWhenOffchainRevealed();
+        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -177,7 +177,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainRevealed();
+        revealDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -206,7 +206,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainRevealed();
+        revealDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALING & REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -224,7 +224,7 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        revealDetector.detectOnchainRevealed();
+        revealDetector.detectOnchainCompleted();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
