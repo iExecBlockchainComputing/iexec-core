@@ -21,7 +21,6 @@ import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -197,7 +196,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 return PLEASE_ABORT;
             }
             // We must check CallBack is empty because there is an issue in poco (transaction is revert)
-            if (taskDescription.isTeeTask() && StringUtils.isEmpty(taskDescription.getCallback())) {
+            if (taskDescription.isTeeTask() && !taskDescription.containsCallback()) {
                 return PLEASE_CONTRIBUTE_AND_FINALIZE;
             }
         }

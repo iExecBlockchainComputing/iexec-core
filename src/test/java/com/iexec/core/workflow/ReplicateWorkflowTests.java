@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.utils.BytesUtils;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,7 +166,7 @@ class ReplicateWorkflowTests {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
-                        TaskDescription.builder().isTeeTask(true).build()))
+                        TaskDescription.builder().isTeeTask(true).callback(BytesUtils.EMPTY_ADDRESS).build()))
                 .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
     }
 

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 - Add ContributeAndFinalize to `ReplicateWorkflow`. (#574)
 - Add check for ContributeAndFinalize in `ReplicatesService`. (#576)
 - Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577 #578)
-- Disable `contributeAndFinalize` with CallBack. (#579)
+- Disable `contributeAndFinalize` with CallBack. (#579 #581)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality
