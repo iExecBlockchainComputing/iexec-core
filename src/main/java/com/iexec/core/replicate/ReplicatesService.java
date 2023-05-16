@@ -548,6 +548,7 @@ public class ReplicatesService {
                 return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case CONTRIBUTE_AND_FINALIZE_DONE:
                 return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress)
+                        && isResultUploaded(chainTaskId)
                         && iexecHubService.isTaskInCompletedStatusOnChain(chainTaskId);
             default:
                 return true;
