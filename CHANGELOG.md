@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
 - Refactor unnotified detectors to avoid code duplication. (#580)
 - Use `==` or `!=` operators to test the equality of enums. (#584)
+- Rearrange checks order to avoid call to database. (#585)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.1.0-NEXT-SNAPSHOT. (#571 #575 #586)
 - Add new `iexec-commons-poco` 2.0.0 dependency. (#571 #574 #586)

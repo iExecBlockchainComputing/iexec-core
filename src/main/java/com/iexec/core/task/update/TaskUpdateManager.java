@@ -330,7 +330,12 @@ class TaskUpdateManager {
     void running2Finalized2Completed(Task task) {
         boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
-        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+
+        if (!task.isTeeTask()) {
+            log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
+                    + " [chainTaskId:{}]", chainTaskId);
+            return;
+        }
 
         if (!isTaskInRunningStatus) {
             log.error("Can't transition task to `Finalized` or `Completed` when task is not `Running` " +
@@ -338,17 +343,13 @@ class TaskUpdateManager {
             return;
         }
 
+        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
         if (oReplicatesList.isEmpty()) {
             log.error("Can't transition task to `Finalized` or `Completed` when no replicatesList exists" +
                     " [chainTaskId:{}]", chainTaskId);
             return;
         }
 
-        if (!task.isTeeTask()) {
-            log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
-                    + " [chainTaskId:{}]", chainTaskId);
-            return;
-        }
         final ReplicatesList replicates = oReplicatesList.get();
         final int nbReplicatesWithContributeAndFinalizeStatus = replicates.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE);
 
