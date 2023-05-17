@@ -183,7 +183,7 @@ class TaskUpdateManager {
     }
 
     void received2Initializing(Task task) {
-        boolean isCurrentStatusReceived = task.getCurrentStatus().equals(RECEIVED);
+        boolean isCurrentStatusReceived = task.getCurrentStatus() == RECEIVED;
 
         if (!isCurrentStatusReceived) {
             log.error("Cannot initialize task [chainTaskId:{}, currentStatus:{}]",
@@ -242,7 +242,7 @@ class TaskUpdateManager {
     }
 
     void initializing2Initialized(Task task) {
-        if (!INITIALIZING.equals(task.getCurrentStatus())) {
+        if (INITIALIZING != task.getCurrentStatus()) {
             return;
         }
         // TODO: the block where initialization happened can be found
@@ -289,7 +289,7 @@ class TaskUpdateManager {
         };
         final int nbReplicatesContainingStartingStatus = replicatesService.getNbReplicatesWithLastRelevantStatus(chainTaskId, acceptableStatus);
         boolean condition1 = nbReplicatesContainingStartingStatus > 0;
-        boolean condition2 = task.getCurrentStatus().equals(INITIALIZED);
+        boolean condition2 = task.getCurrentStatus() == INITIALIZED;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RUNNING);
@@ -297,7 +297,7 @@ class TaskUpdateManager {
     }
 
     void running2ConsensusReached(Task task) {
-        boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
+        boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
         final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
         if (oReplicatesList.isEmpty()) {
@@ -328,7 +328,7 @@ class TaskUpdateManager {
     }
 
     void running2Finalized2Completed(Task task) {
-        boolean isTaskInRunningStatus = task.getCurrentStatus().equals(RUNNING);
+        boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
         final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
 
@@ -368,8 +368,8 @@ class TaskUpdateManager {
     }
 
     void initializedOrRunning2ContributionTimeout(Task task) {
-        boolean isInitializedOrRunningTask = task.getCurrentStatus().equals(INITIALIZED) ||
-                task.getCurrentStatus().equals(RUNNING);
+        boolean isInitializedOrRunningTask = task.getCurrentStatus() == INITIALIZED ||
+                task.getCurrentStatus() == RUNNING;
         boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
 
         if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
@@ -391,7 +391,7 @@ class TaskUpdateManager {
      * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
      */
     void running2RunningFailed(Task task) {
-        boolean isRunningTask = task.getCurrentStatus().equals(RUNNING);
+        boolean isRunningTask = task.getCurrentStatus() == RUNNING;
         if (!isRunningTask || !task.isTeeTask()) {
             return;
         }
@@ -435,7 +435,7 @@ class TaskUpdateManager {
     }
 
     void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
-        boolean condition1 = task.getCurrentStatus().equals(CONSENSUS_REACHED);
+        boolean condition1 = task.getCurrentStatus() == CONSENSUS_REACHED;
         boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (condition1 && condition2) {
@@ -447,7 +447,7 @@ class TaskUpdateManager {
     void consensusReached2Reopening(Task task) {
         Date now = new Date();
 
-        boolean isConsensusReachedStatus = task.getCurrentStatus().equals(CONSENSUS_REACHED);
+        boolean isConsensusReachedStatus = task.getCurrentStatus() == CONSENSUS_REACHED;
         boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
         boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
@@ -488,7 +488,7 @@ class TaskUpdateManager {
         ChainTask chainTask = oChainTask.get();
 
         // re-initialize the task if it has been reopened
-        if (chainTask.getStatus().equals(ChainTaskStatus.ACTIVE)) {
+        if (chainTask.getStatus() == ChainTaskStatus.ACTIVE) {
 
             // set replicates to REVEAL_TIMEOUT
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
@@ -504,7 +504,7 @@ class TaskUpdateManager {
     }
 
     void resultUploading2Uploaded(Task task) {
-        boolean isTaskInResultUploading = task.getCurrentStatus().equals(RESULT_UPLOADING);
+        boolean isTaskInResultUploading = task.getCurrentStatus() == RESULT_UPLOADING;
         Optional<Replicate> oUploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
         boolean didReplicateUpload = oUploadedReplicate.isPresent();
 
@@ -546,7 +546,7 @@ class TaskUpdateManager {
     }
 
     void resultUploading2UploadTimeout(Task task) {
-        boolean isTaskInResultUploading = task.getCurrentStatus().equals(RESULT_UPLOADING);
+        boolean isTaskInResultUploading = task.getCurrentStatus() == RESULT_UPLOADING;
         boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
                 && new Date().after(task.getFinalDeadline());
 
@@ -585,7 +585,7 @@ class TaskUpdateManager {
     }
 
     void resultUploaded2Finalizing(Task task) {
-        boolean isTaskInResultUploaded = task.getCurrentStatus().equals(RESULT_UPLOADED);
+        boolean isTaskInResultUploaded = task.getCurrentStatus() == RESULT_UPLOADED;
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
@@ -644,7 +644,7 @@ class TaskUpdateManager {
     }
 
     void finalizedToCompleted(Task task) {
-        if (!task.getCurrentStatus().equals(FINALIZED)) {
+        if (task.getCurrentStatus() != FINALIZED) {
             return;
         }
         updateTaskStatusAndSave(task, COMPLETED);
