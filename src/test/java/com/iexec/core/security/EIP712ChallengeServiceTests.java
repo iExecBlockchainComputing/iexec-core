@@ -16,7 +16,7 @@
 
 package com.iexec.core.security;
 
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.web3j.crypto.Keys;

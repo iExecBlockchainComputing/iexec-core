@@ -16,9 +16,9 @@
 
 package com.iexec.core.security;
 
-import com.iexec.common.chain.eip712.EIP712Domain;
-import com.iexec.common.chain.eip712.entity.Challenge;
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
+import com.iexec.commons.poco.eip712.EIP712Domain;
+import com.iexec.commons.poco.eip712.entity.Challenge;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Service;

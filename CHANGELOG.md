@@ -19,8 +19,8 @@ All notable changes to this project will be documented in this file.
 - Use `==` or `!=` operators to test the equality of enums. (#584)
 - Rearrange checks order to avoid call to database. (#585)
 ### Dependency Upgrades
-- Upgrade to `iexec-common` 8.0.0-NEXT-SNAPSHOT. (#571 #575)
-- Add new `iexec-commons-poco` 1.0.2-NEXT-SNAPSHOT dependency. (#571 #574)
+- Upgrade to `iexec-common` 8.1.0-NEXT-SNAPSHOT. (#571 #575 #586)
+- Add new `iexec-commons-poco` 2.0.0 dependency. (#571 #574 #586)
 
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
