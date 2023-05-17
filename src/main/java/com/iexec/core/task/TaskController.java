@@ -16,9 +16,9 @@
 
 package com.iexec.core.task;
 
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.security.SignedChallenge;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.SignatureUtils;
