@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
 - Refactor unnotified detectors to avoid code duplication. (#580)
 - Use `==` or `!=` operators to test the equality of enums. (#584)
+- Make `task.isTeeTask()` the first test in `TaskUpdateManager#running2Finalized2Completed` to avoid unnecessary calls to the database. (#585)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.0.0-NEXT-SNAPSHOT. (#571 #575)
 - Add new `iexec-commons-poco` 1.0.2-NEXT-SNAPSHOT dependency. (#571 #574)

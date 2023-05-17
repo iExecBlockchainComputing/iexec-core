@@ -688,6 +688,7 @@ class TaskUpdateManagerTest {
     void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -697,6 +698,7 @@ class TaskUpdateManagerTest {
     void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicates() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
