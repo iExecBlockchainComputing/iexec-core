@@ -1284,13 +1284,16 @@ class ReplicateServiceTests {
                 .modifier(WORKER)
                 .status(CONTRIBUTE_AND_FINALIZE_DONE)
                 .build();
-        final TaskDescription task = TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final TaskDescription task = TaskDescription
+                .builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .build();
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(task);
         when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, null))
