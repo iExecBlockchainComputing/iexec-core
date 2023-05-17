@@ -16,8 +16,8 @@
 
 package com.iexec.core.result;
 
-import com.iexec.common.chain.eip712.EIP712Domain;
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
+import com.iexec.commons.poco.eip712.EIP712Domain;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
 import com.iexec.resultproxy.api.ResultProxyClient;

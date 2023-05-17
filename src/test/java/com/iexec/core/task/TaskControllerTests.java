@@ -16,10 +16,10 @@
 
 package com.iexec.core.task;
 
-import com.iexec.common.chain.eip712.EIP712Domain;
-import com.iexec.common.chain.eip712.entity.Challenge;
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
+import com.iexec.commons.poco.eip712.EIP712Domain;
+import com.iexec.commons.poco.eip712.entity.Challenge;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.logs.TaskLogs;
