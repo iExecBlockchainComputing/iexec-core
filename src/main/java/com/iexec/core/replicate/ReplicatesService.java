@@ -257,11 +257,11 @@ public class ReplicatesService {
                     resultLink = details.getResultLink();
                     chainCallbackData = details.getChainCallbackData();
                 }
-                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                taskDescription = iexecHubService.getTaskDescription(chainTaskId);
                 break;
             case COMPUTED:
             case RESULT_UPLOAD_FAILED:
-                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                taskDescription = iexecHubService.getTaskDescription(chainTaskId);
                 break;
             default:
                 break;
@@ -594,13 +594,13 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(String chainTaskId) {
-        Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+        TaskDescription task = iexecHubService.getTaskDescription(chainTaskId);
 
-        if (task.isEmpty()) {
+        if (task == null) {
             return false;
         }
 
-        return isResultUploaded(task.get());
+        return isResultUploaded(task);
     }
 
     public boolean isResultUploaded(TaskDescription task) {

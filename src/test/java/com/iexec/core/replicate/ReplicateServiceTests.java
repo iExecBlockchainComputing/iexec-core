@@ -441,8 +441,8 @@ class ReplicateServiceTests {
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesRepository.save(replicatesList)).thenReturn(replicatesList);
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(TaskDescription.builder().isTeeTask(true).build()));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(TaskDescription.builder().isTeeTask(true).build());
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
@@ -797,8 +797,8 @@ class ReplicateServiceTests {
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(false)
                 .build();
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(taskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(taskDescription);
         when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
@@ -813,8 +813,8 @@ class ReplicateServiceTests {
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(false)
                 .build();
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(taskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(taskDescription);
         when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
@@ -824,8 +824,8 @@ class ReplicateServiceTests {
 
     @Test
     void shouldReturnFalseSinceTaskNotFound() {
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.empty());
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(null);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isFalse();
@@ -839,8 +839,8 @@ class ReplicateServiceTests {
                 .callback("callback")
                 .isTeeTask(false)
                 .build();
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(taskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(taskDescription);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
@@ -854,8 +854,8 @@ class ReplicateServiceTests {
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(true)
                 .build();
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(taskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(taskDescription);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
@@ -1284,13 +1284,16 @@ class ReplicateServiceTests {
                 .modifier(WORKER)
                 .status(CONTRIBUTE_AND_FINALIZE_DONE)
                 .build();
-        final TaskDescription task = TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final TaskDescription task = TaskDescription
+                .builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .build();
 
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(true);
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(task);
         when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, null))
@@ -1453,8 +1456,8 @@ class ReplicateServiceTests {
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(unexpectedChainContribution));
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(expectedTaskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(expectedTaskDescription);
 
         final UpdateReplicateStatusArgs actualResult =
                 replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
@@ -1487,8 +1490,8 @@ class ReplicateServiceTests {
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(unexpectedChainContribution));
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(expectedTaskDescription));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(expectedTaskDescription);
 
         final UpdateReplicateStatusArgs actualResult =
                 replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
