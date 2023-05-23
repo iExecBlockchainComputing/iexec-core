@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Add check for ContributeAndFinalize in `ReplicatesService`. (#576 #582)
 - Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577 #578)
 - Disable `contributeAndFinalize` with CallBack. (#579 #581)
+- Add purge cached task descriptions ability. (#587)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 ### Quality
@@ -20,7 +21,7 @@ All notable changes to this project will be documented in this file.
 - Rearrange checks order to avoid call to database. (#585)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.1.0-NEXT-SNAPSHOT. (#571 #575 #586)
-- Add new `iexec-commons-poco` 2.0.0 dependency. (#571 #574 #586)
+- Add new `iexec-commons-poco` 2.0.1 dependency. (#571 #574 #586 #587)
 
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 

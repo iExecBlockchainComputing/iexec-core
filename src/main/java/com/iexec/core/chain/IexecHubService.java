@@ -16,6 +16,7 @@
 
 package com.iexec.core.chain;
 
+import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.commons.poco.chain.*;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
 import io.reactivex.Flowable;
@@ -37,7 +38,7 @@ import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
 @Service
-public class IexecHubService extends IexecHubAbstractService {
+public class IexecHubService extends IexecHubAbstractService implements Purgeable {
 
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
@@ -247,4 +248,13 @@ public class IexecHubService extends IexecHubAbstractService {
                 .build();
     }
 
+    @Override
+    public boolean purgeTask(String chainTaskId) {
+        return super.purgeTask(chainTaskId);
+    }
+
+    @Override
+    public void purgeAllTasksData() {
+        super.purgeAllTasksData();
+    }
 }
