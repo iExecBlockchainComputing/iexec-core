@@ -149,7 +149,7 @@ public abstract class UnnotifiedAbstractDetector {
     }
 
     /*
-     * This method should stay private. We need to insure that
+     * This method should stay private. We need to ensure that
      * it is only called by the POOL_MANAGER.
      * The POOL_MANAGER has already verified the status onchain
      * in the caller method so this update can happen even if
@@ -169,30 +169,33 @@ public abstract class UnnotifiedAbstractDetector {
 
         for (ReplicateStatus statusToUpdate : statusesToUpdate) {
             // add details to the update if needed
+            ReplicateStatusDetails details = null;
             switch (statusToUpdate) {
                 case CONTRIBUTED:
                     // retrieve the contribution block for that wallet
                     final ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
                             wallet, initBlockNumber);
                     final long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
-                    replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, new ReplicateStatusDetails(contributedBlockNumber));
+                    details = new ReplicateStatusDetails(contributedBlockNumber);
                     break;
                 case REVEALED:
                     // retrieve the reveal block for that wallet
                     final ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
                             initBlockNumber);
                     final long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
-                    replicatesService.updateReplicateStatus(chainTaskId, wallet,
-                            statusToUpdate, new ReplicateStatusDetails(revealedBlockNumber));
+                    details = new ReplicateStatusDetails(revealedBlockNumber);
+                    break;
+                case CONTRIBUTE_AND_FINALIZE_DONE:
+                    // retrieve the finalize block
+                    final ChainReceipt finalizeBlock = iexecHubService.getFinalizeBlock(chainTaskId, initBlockNumber);
+                    final long finalizeBlockNumber = finalizeBlock != null ? finalizeBlock.getBlockNumber() : 0;
+                    details = new ReplicateStatusDetails(finalizeBlockNumber);
                     break;
                 default:
                     // by default, no need to retrieve anything
-                    replicatesService.updateReplicateStatus(chainTaskId, wallet, statusToUpdate);
-
+                    break;
             }
-
-
+            replicatesService.updateReplicateStatus(chainTaskId, wallet, statusToUpdate, details);
         }
     }
 }
