@@ -101,7 +101,6 @@ class IexecHubServiceTests {
         final ChainReceipt chainReceipt = iexecHubService.getContributionBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock);
 
         assertThat(chainReceipt)
-                .usingRecursiveComparison()
                 .isEqualTo(ChainReceipt.builder()
                         .blockNumber(latestBlock)
                         .txHash(TRANSACTION_HASH)
@@ -135,7 +134,6 @@ class IexecHubServiceTests {
         final ChainReceipt chainReceipt = iexecHubService.getConsensusBlock(CHAIN_TASK_ID, fromBlock);
 
         assertThat(chainReceipt)
-                .usingRecursiveComparison()
                 .isEqualTo(ChainReceipt.builder()
                         .blockNumber(latestBlock)
                         .txHash(TRANSACTION_HASH)
@@ -168,7 +166,6 @@ class IexecHubServiceTests {
         final ChainReceipt chainReceipt = iexecHubService.getRevealBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock);
 
         assertThat(chainReceipt)
-                .usingRecursiveComparison()
                 .isEqualTo(ChainReceipt.builder()
                         .blockNumber(latestBlock)
                         .txHash(TRANSACTION_HASH)
@@ -202,7 +199,6 @@ class IexecHubServiceTests {
         final ChainReceipt chainReceipt = iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, fromBlock);
 
         assertThat(chainReceipt)
-                .usingRecursiveComparison()
                 .isEqualTo(ChainReceipt.builder()
                         .blockNumber(latestBlock)
                         .txHash(TRANSACTION_HASH)
@@ -237,7 +233,6 @@ class IexecHubServiceTests {
 
         final ChainReceipt chainReceipt = eventBlockGetter.apply(iexecHubService, fromBlock);
         assertThat(chainReceipt)
-                .usingRecursiveComparison()
                 .isEqualTo(ChainReceipt.builder().build());
     }
     // endregion
