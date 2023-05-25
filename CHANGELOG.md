@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Refactor unnotified detectors to avoid code duplication. (#580)
 - Use `==` or `!=` operators to test the equality of enums. (#584)
 - Rearrange checks order to avoid call to database. (#585)
+- Move methods to get event blocks from `iexec-commons-poco`. (#588)
 ### Dependency Upgrades
 - Upgrade to `iexec-common` 8.1.0-NEXT-SNAPSHOT. (#571 #575 #586)
 - Add new `iexec-commons-poco` 2.0.1 dependency. (#571 #574 #586 #587)
