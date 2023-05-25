@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Add purge cached task descriptions ability. (#587)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
+- Ue builders in test classes. (#589)
 ### Quality
 - Remove unused methods in `IexecHubService`. (#572)
 - Clean unused Replicate methods and update tests. (#573)
