@@ -256,7 +256,8 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     // region Get event blocks
-    public ChainReceipt getContributionBlock(String chainTaskId, String workerWallet,
+    public ChainReceipt getContributionBlock(String chainTaskId,
+                                             String workerWallet,
                                              long fromBlock) {
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
@@ -299,7 +300,8 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
                 .blockingFirst();
     }
 
-    public ChainReceipt getRevealBlock(String chainTaskId, String workerWallet,
+    public ChainReceipt getRevealBlock(String chainTaskId,
+                                       String workerWallet,
                                        long fromBlock) {
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
