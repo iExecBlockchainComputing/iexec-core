@@ -1410,7 +1410,7 @@ class ReplicateServiceTests {
     @Test
     void computeUpdateReplicateStatusArgsContributed() {
         final int expectedWorkerWeight = 1;
-        final ChainContribution expectedChainContribution = new ChainContribution();
+        final ChainContribution expectedChainContribution = ChainContribution.builder().build();
         final String unexpectedResultLink = "resultLink";
         final String unexpectedChainCallbackData = "chainCallbackData";
 
@@ -1426,7 +1426,7 @@ class ReplicateServiceTests {
 
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(expectedWorkerWeight);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
-                .thenReturn(Optional.of(new ChainContribution()));
+                .thenReturn(Optional.of(ChainContribution.builder().build()));
 
         assertThat(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
                 .isEqualTo(UpdateReplicateStatusArgs.builder()
@@ -1438,7 +1438,7 @@ class ReplicateServiceTests {
     @Test
     void computeUpdateReplicateStatusArgsResultUploaded() {
         final int unexpectedWorkerWeight = 1;
-        final ChainContribution unexpectedChainContribution = new ChainContribution();
+        final ChainContribution unexpectedChainContribution = ChainContribution.builder().build();
         final String expectedResultLink = "resultLink";
         final String expectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
@@ -1472,7 +1472,7 @@ class ReplicateServiceTests {
     @Test
     void computeUpdateReplicateStatusArgsResultUploadFailed() {
         final int unexpectedWorkerWeight = 1;
-        final ChainContribution unexpectedChainContribution = new ChainContribution();
+        final ChainContribution unexpectedChainContribution = ChainContribution.builder().build();
         final String unexpectedResultLink = "resultLink";
         final String unexpectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();

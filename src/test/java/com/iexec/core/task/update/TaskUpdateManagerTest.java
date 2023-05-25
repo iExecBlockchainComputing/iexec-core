@@ -119,7 +119,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -136,7 +136,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -153,7 +153,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -170,7 +170,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -187,7 +187,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -224,7 +224,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
                 .build()));
