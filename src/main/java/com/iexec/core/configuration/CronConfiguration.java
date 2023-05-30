@@ -26,6 +26,9 @@ public class CronConfiguration {
     @Value("${cron.detector.chain.reveal}")
     private int reveal;
 
+    @Value("${cron.detector.chain.contribute-and-finalize}")
+    private int contributeAndFinalize;
+
     @Value("${cron.detector.chain.finalize}")
     private int finalize;
 
