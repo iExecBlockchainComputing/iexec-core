@@ -86,7 +86,7 @@ public abstract class UnnotifiedAbstractDetector {
     }
 
     /**
-     * Detecting onchain `offchainDone` status only if replicates are offchain `offchainOngoing`
+     * Detecting `onchainDone` status only if replicates are `offchainOngoing`
      * (worker didn't notify last offchain `offchainDone` status)
      * We want to detect them very often since it's highly probable
      */
