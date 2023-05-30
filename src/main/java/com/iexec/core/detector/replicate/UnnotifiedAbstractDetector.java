@@ -44,7 +44,7 @@ public abstract class UnnotifiedAbstractDetector {
     private final List<TaskStatus> detectWhenOffChainTaskStatuses;
     private final ReplicateStatus offchainOngoing;
     private final ReplicateStatus offchainDone;
-    private final ChainContributionStatus onchainOngoing;
+    private final ChainContributionStatus onchainDone;
     private final int detectorRate;
 
     private int detectorOccurrence = 0;
@@ -55,7 +55,7 @@ public abstract class UnnotifiedAbstractDetector {
                                          List<TaskStatus> detectWhenOffChainTaskStatuses,
                                          ReplicateStatus offchainOngoing,
                                          ReplicateStatus offchainDone,
-                                         ChainContributionStatus onchainOngoing,
+                                         ChainContributionStatus onchainDone,
                                          int detectorRate) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
@@ -64,7 +64,7 @@ public abstract class UnnotifiedAbstractDetector {
         this.detectWhenOffChainTaskStatuses = detectWhenOffChainTaskStatuses;
         this.offchainOngoing = offchainOngoing;
         this.offchainDone = offchainDone;
-        this.onchainOngoing = onchainOngoing;
+        this.onchainDone = onchainDone;
         this.detectorRate = detectorRate;
     }
 
@@ -92,7 +92,7 @@ public abstract class UnnotifiedAbstractDetector {
      */
     void detectOnchainDoneWhenOffchainOngoing() {
         log.debug("Detect onchain {} (when offchain {}) [retryIn:{}]",
-                this.offchainDone, this.offchainOngoing, this.detectorRate);
+                this.onchainDone, this.offchainOngoing, this.detectorRate);
 
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
@@ -104,12 +104,12 @@ public abstract class UnnotifiedAbstractDetector {
                 final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
                         task.getChainTaskId(),
                         replicate.getWalletAddress(),
-                        onchainOngoing
+                        onchainDone
                 );
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus, onchainOngoing, task.getChainTaskId());
+                            lastRelevantStatus, onchainDone, task.getChainTaskId());
                     updateReplicateStatuses(task, replicate);
                 }
             }
@@ -124,7 +124,7 @@ public abstract class UnnotifiedAbstractDetector {
      * - When we receive a "can't do <action>" relative to the `onchainDone` status (e.g.: `CANNOT_REVEAL`)
      */
     public void detectOnchainDone() {
-        log.debug("Detect onchain {} [retryIn:{}]", onchainOngoing, this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
+        log.debug("Detect onchain {} [retryIn:{}]", onchainDone, this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
             for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
                 final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
@@ -136,12 +136,12 @@ public abstract class UnnotifiedAbstractDetector {
                 final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
                         task.getChainTaskId(),
                         replicate.getWalletAddress(),
-                        onchainOngoing
+                        onchainDone
                 );
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus, onchainOngoing, task.getChainTaskId());
+                            lastRelevantStatus, onchainDone, task.getChainTaskId());
                     updateReplicateStatuses(task, replicate);
                 }
             }
