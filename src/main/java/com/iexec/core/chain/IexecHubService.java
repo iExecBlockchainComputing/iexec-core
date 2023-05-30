@@ -217,13 +217,13 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(stringToBytes(chainTaskId)).send();
+            receipt = iexecHubContract.reopen(stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubContract.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
+        List<IexecHubContract.TaskReopenEventResponse> eventsList = IexecHubContract.getTaskReopenEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -240,7 +240,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
-        return getHubContract().schedulerNoticeEventFlowable(filter);
+        return iexecHubContract.schedulerNoticeEventFlowable(filter);
     }
 
     public boolean hasEnoughGas() {
@@ -264,12 +264,11 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
             return ChainReceipt.builder().build();
         }
 
-        IexecHubContract iexecHub = getHubContract();
         EthFilter ethFilter = createContributeEthFilter(fromBlock, latestBlock);
 
         // filter only taskContribute events for the chainTaskId and the worker's wallet
         // and retrieve the block number of the event
-        return iexecHub.taskContributeEventFlowable(ethFilter)
+        return iexecHubContract.taskContributeEventFlowable(ethFilter)
                 .filter(eventResponse ->
                         chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
                                 workerWallet.equals(eventResponse.worker)
@@ -286,12 +285,12 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
-        IexecHubContract iexecHub = getHubContract();
+
         EthFilter ethFilter = createConsensusEthFilter(fromBlock, latestBlock);
 
         // filter only taskConsensus events for the chainTaskId (there should be only one)
         // and retrieve the block number of the event
-        return iexecHub.taskConsensusEventFlowable(ethFilter)
+        return iexecHubContract.taskConsensusEventFlowable(ethFilter)
                 .filter(eventResponse -> chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)))
                 .map(eventResponse -> ChainReceipt.builder()
                         .blockNumber(eventResponse.log.getBlockNumber().longValue())
@@ -308,12 +307,11 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
             return ChainReceipt.builder().build();
         }
 
-        IexecHubContract iexecHub = getHubContract();
         EthFilter ethFilter = createRevealEthFilter(fromBlock, latestBlock);
 
         // filter only taskReveal events for the chainTaskId and the worker's wallet
         // and retrieve the block number of the event
-        return iexecHub.taskRevealEventFlowable(ethFilter)
+        return iexecHubContract.taskRevealEventFlowable(ethFilter)
                 .filter(eventResponse ->
                         chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
                                 workerWallet.equals(eventResponse.worker)
@@ -331,12 +329,11 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
             return ChainReceipt.builder().build();
         }
 
-        IexecHubContract iexecHub = getHubContract();
         EthFilter ethFilter = createFinalizeEthFilter(fromBlock, latestBlock);
 
         // filter only taskFinalize events for the chainTaskId (there should be only one)
         // and retrieve the block number of the event
-        return iexecHub.taskFinalizeEventFlowable(ethFilter)
+        return iexecHubContract.taskFinalizeEventFlowable(ethFilter)
                 .filter(eventResponse ->
                         chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid))
                 )
