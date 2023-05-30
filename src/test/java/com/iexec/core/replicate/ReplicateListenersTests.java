@@ -118,7 +118,7 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(1)).detectOnchainCompleted();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(1)).detectOnchainDone();
     }
 
     @Test
@@ -132,7 +132,7 @@ class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainCompleted();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainDone();
     }
 
     @Test
@@ -145,7 +145,7 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainCompleted();
+        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainDone();
     }
 
     static Stream<ReplicateStatus> getUncompletableStatuses() {

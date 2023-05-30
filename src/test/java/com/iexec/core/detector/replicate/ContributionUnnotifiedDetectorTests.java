@@ -16,6 +16,7 @@
 
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
@@ -69,7 +70,15 @@ class ContributionUnnotifiedDetectorTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    // Detector aggregator
+    // region Detector aggregator
+    /**
+     * When running {@link ContributionUnnotifiedDetector#detectOnChainChanges} 10 times,
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
+     * <ol>
+     *     <li>10 times from {@link ContributionUnnotifiedDetector#detectOnchainDoneWhenOffchainOngoing()};</li>
+     *     <li>1 time from {@link ContributionUnnotifiedDetector#detectOnchainDone()}</li>
+     * </ol>
+     */
     @Test
     void shouldDetectBothChangesOnChain() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -91,13 +100,12 @@ class ContributionUnnotifiedDetectorTests {
             contributionDetector.detectOnChainChanges();
         }
 
-        Mockito.verify(replicatesService, Mockito.times(11))    // 10 detectors #1 & 1 detector #2
+        Mockito.verify(replicatesService, Mockito.times(11))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
-
-    //Detector#1 after contributing
-
+    //region detectOnchainDoneWhenOffchainOngoing (CONTRIBUTING)
     @Test
     void shouldDetectUnNotifiedContributedAfterContributing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -114,7 +122,7 @@ class ContributionUnnotifiedDetectorTests {
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong()))
                 .thenReturn(ChainReceipt.builder().blockNumber(10L).txHash("0xabcef").build());
 
-        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
+        contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(1)) // Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -133,7 +141,7 @@ class ContributionUnnotifiedDetectorTests {
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
 
-        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
+        contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -151,15 +159,14 @@ class ContributionUnnotifiedDetectorTests {
         // when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
-        contributionDetector.detectOnchainCompletedWhenOffchainCompleting();
+        contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
-
-    //Detector#2
-
+    // region detectOnchainDone (CONTRIBUTED)
     @Test
     void shouldDetectUnNotifiedContributed1() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -178,7 +185,7 @@ class ContributionUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        contributionDetector.detectOnchainCompleted();
+        contributionDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -202,7 +209,7 @@ class ContributionUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        contributionDetector.detectOnchainCompleted();
+        contributionDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTING & CONTRIBUTED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -220,10 +227,10 @@ class ContributionUnnotifiedDetectorTests {
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectOnchainCompleted();
+        contributionDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
-
+    // endregion
 }

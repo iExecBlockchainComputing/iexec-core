@@ -16,6 +16,7 @@
 
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
@@ -68,7 +69,15 @@ class RevealUnnotifiedDetectorTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    // Detector aggregator
+    // region Detector aggregator
+    /**
+     * When running {@link RevealUnnotifiedDetector#detectOnChainChanges} 10 times,
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
+     * <ol>
+     *     <li>10 times from {@link RevealUnnotifiedDetector#detectOnchainDoneWhenOffchainOngoing()};</li>
+     *     <li>1 time from {@link RevealUnnotifiedDetector#detectOnchainDone()}</li>
+     * </ol>
+     */
     @Test
     void shouldDetectBothChangesOnChain() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -90,13 +99,12 @@ class RevealUnnotifiedDetectorTests {
             revealDetector.detectOnChainChanges();
         }
 
-        Mockito.verify(replicatesService, Mockito.times(11))    // 10 detectors #1 & 1 detector #2
+        Mockito.verify(replicatesService, Mockito.times(11))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
-
-    //Detector#1 after contributing
-
+    //region detectOnchainDoneWhenOffchainOngoing (REVEALING)
     @Test
     void shouldDetectUnNotifiedRevealedAfterRevealing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -115,7 +123,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
+        revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -133,7 +141,7 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
+        revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -150,15 +158,14 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
-        revealDetector.detectOnchainCompletedWhenOffchainCompleting();
+        revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
-
-    //Detector#2
-
+    // region detectOnchainDone (REVEALED)
     @Test
     void shouldDetectUnNotifiedRevealed1() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -177,7 +184,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainCompleted();
+        revealDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -206,7 +213,7 @@ class RevealUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        revealDetector.detectOnchainCompleted();
+        revealDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALING & REVEALED
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -224,9 +231,10 @@ class RevealUnnotifiedDetectorTests {
         when(cronConfiguration.getReveal()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        revealDetector.detectOnchainCompleted();
+        revealDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 }

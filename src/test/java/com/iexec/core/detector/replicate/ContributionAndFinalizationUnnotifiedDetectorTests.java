@@ -1,5 +1,6 @@
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainContributionStatus;
@@ -53,7 +54,15 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    // Detector aggregator
+    // region Detector aggregator
+    /**
+     * When running {@link ContributionAndFinalizationUnnotifiedDetector#detectOnChainChanges} 10 times,
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
+     * <ol>
+     *     <li>10 times from {@link ContributionAndFinalizationUnnotifiedDetector#detectOnchainDoneWhenOffchainOngoing()};</li>
+     *     <li>1 time from {@link ContributionAndFinalizationUnnotifiedDetector#detectOnchainDone()}</li>
+     * </ol>
+     */
     @Test
     void shouldDetectBothChangesOnChain() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -77,7 +86,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
             detector.detectOnChainChanges();
         }
 
-        Mockito.verify(replicatesService, Mockito.times(11))    // 10 detectors #1 & 1 detector #2
+        Mockito.verify(replicatesService, Mockito.times(11))
                 .updateReplicateStatus(
                         eq(CHAIN_TASK_ID),
                         eq(WALLET_ADDRESS),
@@ -85,10 +94,9 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                         any(ReplicateStatusDetails.class)
                 );
     }
+    // endregion
 
-
-    //Detector#1 after ContributeAndFinalize ongoing
-
+    //region detectOnchainDoneWhenOffchainOngoing (ContributeAndFinalizeOngoing)
     @Test
     void shouldDetectUnNotifiedContributeAndFinalizeDoneAfterContributeAndFinalizeOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -108,7 +116,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                         .build()
                 );
 
-        detector.detectOnchainCompletedWhenOffchainCompleting();
+        detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(1)) // Missed CONTRIBUTE_AND_FINALIZE_DONE
                 .updateReplicateStatus(
@@ -131,7 +139,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
 
-        detector.detectOnchainCompletedWhenOffchainCompleting();
+        detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
@@ -148,15 +156,14 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(false);
-        detector.detectOnchainCompletedWhenOffchainCompleting();
+        detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
-
-    //Detector#2
-
+    //region detectOnchainDone (REVEALED)
     @Test
     void shouldDetectUnNotifiedContributeAndFinalizeOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -174,7 +181,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 .txHash("0xabcef")
                 .build());
 
-        detector.detectOnchainCompleted();
+        detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(1)) // Missed CONTRIBUTE_AND_FINALIZE_DONE
                 .updateReplicateStatus(
@@ -196,10 +203,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
-        detector.detectOnchainCompleted();
+        detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+    // endregion
 
 }
