@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.RemoteFunctionCall;
@@ -92,7 +93,7 @@ class IexecHubServiceTests {
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);
 
         final IexecHubContract hubContract = mock(IexecHubContract.class);
-        doReturn(hubContract).when(iexecHubService).getHubContract();
+        ReflectionTestUtils.setField(iexecHubService, "iexecHubContract", hubContract);
 
         final IexecHubContract.TaskContributeEventResponse taskContributeEventResponse = getTaskContributeEventResponse(latestBlock);
         when(hubContract.taskContributeEventFlowable(any()))
@@ -125,7 +126,7 @@ class IexecHubServiceTests {
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);
 
         final IexecHubContract hubContract = mock(IexecHubContract.class);
-        doReturn(hubContract).when(iexecHubService).getHubContract();
+        ReflectionTestUtils.setField(iexecHubService, "iexecHubContract", hubContract);
 
         final IexecHubContract.TaskConsensusEventResponse taskConsensusEventResponse = getTaskConsensusEventResponse(latestBlock);
         when(hubContract.taskConsensusEventFlowable(any()))
@@ -157,7 +158,7 @@ class IexecHubServiceTests {
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);
 
         final IexecHubContract hubContract = mock(IexecHubContract.class);
-        doReturn(hubContract).when(iexecHubService).getHubContract();
+        ReflectionTestUtils.setField(iexecHubService, "iexecHubContract", hubContract);
 
         final IexecHubContract.TaskRevealEventResponse taskRevealEventResponse = getTaskRevealEventResponse(latestBlock);
         when(hubContract.taskRevealEventFlowable(any()))
@@ -190,7 +191,7 @@ class IexecHubServiceTests {
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);
 
         final IexecHubContract hubContract = mock(IexecHubContract.class);
-        doReturn(hubContract).when(iexecHubService).getHubContract();
+        ReflectionTestUtils.setField(iexecHubService, "iexecHubContract", hubContract);
 
         final IexecHubContract.TaskFinalizeEventResponse taskFinalizeEventResponse = getTaskFinalizeEventResponse(latestBlock);
         when(hubContract.taskFinalizeEventFlowable(any()))
