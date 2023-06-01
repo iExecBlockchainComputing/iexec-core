@@ -212,7 +212,7 @@ class FinalizedTaskDetectorTests {
                 .tag(TEE_TAG)
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE, ReplicateStatusModifier.WORKER);
         final ChainTask chainTask = ChainTask.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .status(ChainTaskStatus.REVEALING)
