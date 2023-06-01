@@ -45,9 +45,9 @@ class FinalizedTaskDetectorTests {
     // region detect
     @Test
     void shouldDetectTasks() {
-//        final String completedChainTaskId = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
-//        final Task completedTask = getOnchainCompletedTask(completedChainTaskId).build();
-//        when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(completedTask));
+        final String completedChainTaskId = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
+        final Task completedTask = getOnchainCompletedTask(completedChainTaskId).build();
+        when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(completedTask));
 
         final String contributedAndFinalizedChainTaskId = "0x75bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
         final Task contributeAndFinalizeTask = getContributeAndFinalizeDoneTask(contributedAndFinalizedChainTaskId).build();
@@ -55,7 +55,7 @@ class FinalizedTaskDetectorTests {
 
         detector.detect();
 
-//        verify(taskUpdateRequestManager).publishRequest(completedChainTaskId);
+        verify(taskUpdateRequestManager).publishRequest(completedChainTaskId);
         verify(taskUpdateRequestManager).publishRequest(contributedAndFinalizedChainTaskId);
     }
     // endregion
