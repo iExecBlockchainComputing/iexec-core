@@ -73,7 +73,7 @@ class FinalizedTaskDetectorTests {
     }
 
     @Test
-    void shouldDetectNoFinalizedTassAsTaskIsRevealing() {
+    void shouldDetectNoFinalizedTaskAsTaskIsRevealing() {
         final Task task = getOnchainRevealingTask(CHAIN_TASK_ID).build();
 
         when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(task));
