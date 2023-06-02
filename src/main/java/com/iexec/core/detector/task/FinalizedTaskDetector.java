@@ -85,7 +85,7 @@ public class FinalizedTaskDetector implements Detector {
 
     boolean isChainTaskCompleted(Task task) {
         final Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
-        return chainTask.isPresent() && chainTask.get().getStatus().equals(ChainTaskStatus.COMPLETED);
+        return chainTask.isPresent() && chainTask.get().getStatus() == ChainTaskStatus.COMPLETED;
     }
 
     boolean isTaskContributeAndFinalizeDone(Task task) {
