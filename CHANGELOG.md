@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577 #578)
 - Disable `contributeAndFinalize` with CallBack. (#579 #581)
 - Add purge cached task descriptions ability. (#587)
-- Add detectors for ContributionAndFinalizeFlow. (#590 #593)
+- Add detectors for `ContributeAndFinalize` flow. (#590 #593)
 ### Bug Fixes
 - Prevent race condition on replicate update. (#568)
 - Use builders in test classes. (#589)
