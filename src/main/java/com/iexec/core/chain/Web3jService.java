@@ -19,6 +19,8 @@ package com.iexec.core.chain;
 import com.iexec.commons.poco.chain.Web3jAbstractService;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+
 @Service
 public class Web3jService extends Web3jAbstractService {
 
@@ -26,6 +28,7 @@ public class Web3jService extends Web3jAbstractService {
         super(
                 chainConfig.getChainId(),
                 chainConfig.getPrivateChainAddress(),
+                chainConfig.getBlockTime(),
                 chainConfig.getGasPriceMultiplier(),
                 chainConfig.getGasPriceCap(),
                 chainConfig.isSidechain()

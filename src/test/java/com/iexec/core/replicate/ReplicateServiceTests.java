@@ -1030,7 +1030,7 @@ class ReplicateServiceTests {
                 .build();
         UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
                 .builder()
-                .taskDescription(new TaskDescription())
+                .taskDescription(TaskDescription.builder().build())
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateReplicateStatusArgs))
