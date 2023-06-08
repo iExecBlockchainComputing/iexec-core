@@ -24,8 +24,11 @@ All notable changes to this project will be documented in this file.
 - Move methods to get event blocks from `iexec-commons-poco`. (#588)
 - Rename detectors' methods and fields to match Ongoing/Done standard. (#591)
 ### Dependency Upgrades
-- Upgrade to `iexec-common` 8.1.0-NEXT-SNAPSHOT. (#571 #575 #586)
-- Add new `iexec-commons-poco` 2.0.1-NEXT-SNAPSHOT dependency. (#571 #574 #586 #587 #588 #592)
+- Upgrade to `iexec-common` 8.2.0. (#571 #575 #586 #594)
+- Add new `iexec-commons-poco` 3.0.2 dependency. (#571 #574 #586 #587 #588 #592 #594)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.1.0. (#594)
+- Upgrade to `iexec-result-proxy-library` 8.1.0. (#594)
+- Upgrade to `iexec-sms-library` 8.1.0. (#594)
 
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
