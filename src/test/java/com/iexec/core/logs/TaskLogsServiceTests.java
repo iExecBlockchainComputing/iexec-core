@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.common.utils.TestUtils.CHAIN_TASK_ID;
-import static com.iexec.common.utils.TestUtils.WORKER_ADDRESS;
+import static com.iexec.commons.poco.utils.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.commons.poco.utils.TestUtils.WORKER_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

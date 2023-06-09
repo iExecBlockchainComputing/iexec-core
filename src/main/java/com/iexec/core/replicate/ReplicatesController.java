@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.notification.TaskNotification;
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
+import com.iexec.commons.poco.notification.TaskNotification;
+import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import feign.FeignException;
+import io.vavr.control.Either;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ import java.util.List;
 
 import static org.springframework.http.ResponseEntity.status;
 
+@Slf4j
 @RestController
 public class ReplicatesController {
 
@@ -127,23 +130,23 @@ public class ReplicatesController {
                 chainTaskId,
                 walletAddress,
                 statusUpdate);
-        final ReplicateStatusUpdateError replicateStatusUpdateError = replicatesService.canUpdateReplicateStatus(
-                chainTaskId,
-                walletAddress,
-                statusUpdate,
-                updateReplicateStatusArgs);
 
-        switch (replicateStatusUpdateError) {
-            case NO_ERROR:
-                return replicatesService
-                        .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)
-                        .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.status(HttpStatus.ACCEPTED)
-                                .body(TaskNotificationType.PLEASE_ABORT));
+        final Either<ReplicateStatusUpdateError, TaskNotificationType> updateResult = replicatesService
+                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs);
+        if (updateResult.isRight()) {
+            return ResponseEntity.ok(updateResult.get());
+        }
+
+        switch (updateResult.getLeft()) {
             case ALREADY_REPORTED:
                 return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
                         .body(TaskNotificationType.PLEASE_WAIT);
+            case NO_ERROR:
+                log.warn("An error has been detected on replicate update but no error is returned" +
+                                " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
+                return ResponseEntity.internalServerError().build();
             case UNKNOWN_REPLICATE:
+            case UNKNOWN_TASK:
             case BAD_WORKFLOW_TRANSITION:
             case GENERIC_CANT_UPDATE:
             default:

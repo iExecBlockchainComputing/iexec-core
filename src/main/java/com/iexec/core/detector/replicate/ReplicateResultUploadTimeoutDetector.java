@@ -31,7 +31,6 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
-import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
@@ -71,8 +70,7 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             Replicate uploadingReplicate = oUploadingReplicate.get();
 
             boolean startedUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
-            boolean hasReplicateAlreadyFailedToUpload = uploadingReplicate.containsStatus(RESULT_UPLOAD_REQUEST_FAILED) ||
-                                                        uploadingReplicate.containsStatus(RESULT_UPLOAD_FAILED);
+            boolean hasReplicateAlreadyFailedToUpload = uploadingReplicate.containsStatus(RESULT_UPLOAD_FAILED);
 
             if (!startedUploadLongAgo) {
                 return;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package com.iexec.core.worker;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
-import com.iexec.common.security.Signature;
-import com.iexec.common.utils.BytesUtils;
-import com.iexec.common.utils.SignatureUtils;
+import com.iexec.commons.poco.security.Signature;
+import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.commons.poco.utils.SignatureUtils;
 import com.iexec.core.configuration.PublicConfigurationService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;

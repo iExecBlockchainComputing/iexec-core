@@ -136,7 +136,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         // we suppose that the status has already been set in a previous detect
-        replicate.updateStatus(ReplicateStatus.RESULT_UPLOAD_REQUEST_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+        replicate.updateStatus(ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
         TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.INITIALIZED);
         TaskStatusChange change2 = new TaskStatusChange(threeMinutesAgo, TaskStatus.RUNNING);
@@ -152,6 +152,6 @@ class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_REQUEST_FAILED);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
     }
 }

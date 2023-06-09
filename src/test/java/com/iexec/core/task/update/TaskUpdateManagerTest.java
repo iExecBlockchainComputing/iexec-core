@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
 
 package com.iexec.core.task.update;
 
-import com.iexec.common.chain.ChainReceipt;
-import com.iexec.common.chain.ChainTask;
-import com.iexec.common.chain.ChainTaskStatus;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.tee.TeeUtils;
-import com.iexec.common.utils.BytesUtils;
 import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.commons.poco.chain.ChainReceipt;
+import com.iexec.commons.poco.chain.ChainTask;
+import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.tee.TeeUtils;
+import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
@@ -119,7 +119,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -136,7 +136,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -153,7 +153,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -170,7 +170,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -187,7 +187,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(false);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -224,7 +224,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(taskService.updateTask(task)).thenReturn(Optional.of(task));
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(new ChainReceipt()));
+        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
                 .build()));
@@ -682,6 +682,72 @@ class TaskUpdateManagerTest {
         assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
 
+    // Tests on running2Finalized2Completed transition
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(INITIALIZED);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicates() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskIsNotTee() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(NO_TEE_TAG);
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicatesOnContributeAndFinalizeStatus() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(0);
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateRunning2Finalized2CompletedWhenMoreThanOneReplicatesOnContributeAndFinalizeStatus() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(2);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        taskUpdateManager.running2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
 
     // Tests on running2ConsensusReached transition
 
@@ -1629,6 +1695,26 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
     }
 
+    @Test
+    void shouldUpdateTaskRunning2Finalized2Completed() {
+        Task task = getStubTask(maxExecutionTime);
+        task.changeStatus(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+
+        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(RUNNING);
+    }
 
     @Test
     void shouldUpdateFromAnyInProgressStatus2FinalDeadlineReached() {

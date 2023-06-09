@@ -29,25 +29,25 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
+public class ContributionAndFinalizationUnnotifiedDetector extends UnnotifiedAbstractDetector {
 
-    public ContributionUnnotifiedDetector(TaskService taskService,
-                                          ReplicatesService replicatesService,
-                                          IexecHubService iexecHubService,
-                                          CronConfiguration cronConfiguration) {
+    public ContributionAndFinalizationUnnotifiedDetector(TaskService taskService,
+                                                         ReplicatesService replicatesService,
+                                                         IexecHubService iexecHubService,
+                                                         CronConfiguration cronConfiguration) {
         super(
                 taskService,
                 replicatesService,
                 iexecHubService,
                 TaskStatus.getWaitingContributionStatuses(),
-                ReplicateStatus.CONTRIBUTING,
-                ReplicateStatus.CONTRIBUTED,
-                ChainContributionStatus.CONTRIBUTED,
-                cronConfiguration.getContribute());
+                ReplicateStatus.CONTRIBUTE_AND_FINALIZE_ONGOING,
+                ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE,
+                ChainContributionStatus.REVEALED,
+                cronConfiguration.getContributeAndFinalize());
     }
 
     @Override
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
+    @Scheduled(fixedRateString = "#{@cronConfiguration.getContributeAndFinalize()}")
     public void detectOnChainChanges() {
         super.detectOnChainChanges();
     }

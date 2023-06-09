@@ -78,7 +78,7 @@ public class ReplicateListeners {
          * task to consensus_reached
          */
         if (cause != null && cause.equals(TASK_NOT_ACTIVE)) {
-            contributionUnnotifiedDetector.detectOnchainContributed();
+            contributionUnnotifiedDetector.detectOnchainDone();
         }
 
         /*

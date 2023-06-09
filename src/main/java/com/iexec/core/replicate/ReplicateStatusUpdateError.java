@@ -18,6 +18,7 @@ package com.iexec.core.replicate;
 
 public enum ReplicateStatusUpdateError {
     UNKNOWN_REPLICATE,
+    UNKNOWN_TASK,
     BAD_WORKFLOW_TRANSITION,
     ALREADY_REPORTED,
     GENERIC_CANT_UPDATE,

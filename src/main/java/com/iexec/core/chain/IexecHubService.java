@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,20 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.*;
-import com.iexec.common.contract.generated.IexecHubContract;
-import com.iexec.common.utils.BytesUtils;
+import com.iexec.common.lifecycle.purge.Purgeable;
+import com.iexec.commons.poco.chain.*;
+import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.utils.BytesUtils;
 import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.web3j.protocol.core.RemoteCall;
+import org.web3j.abi.EventEncoder;
+import org.web3j.abi.datatypes.Event;
+import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -39,20 +38,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.chain.ChainTaskStatus.ACTIVE;
-import static com.iexec.common.chain.ChainTaskStatus.COMPLETED;
-import static com.iexec.common.utils.BytesUtils.stringToBytes;
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
+import static com.iexec.commons.poco.contract.generated.IexecHubContract.TASKFINALIZE_EVENT;
+import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
 @Service
-public class IexecHubService extends IexecHubAbstractService {
+public class IexecHubService extends IexecHubAbstractService implements Purgeable {
 
     private final ThreadPoolExecutor executor;
     private final CredentialsService credentialsService;
     private final Web3jService web3jService;
 
-    @Autowired
     public IexecHubService(CredentialsService credentialsService,
                            Web3jService web3jService,
                            ChainConfig chainConfig) {
@@ -69,25 +67,9 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     /**
-     * Check if a deal's task can be initialized.
-     * An initializable task should have the status
-     * UNSET onchain and have a contribution deadline
-     * that is still in the future.
-     * 
-     * @param chainDealId
-     * @param taskIndex
-     * @return true if the task is initializable, false otherwise.
-     */
-    public boolean isInitializableOnchain(String chainDealId, int taskIndex) {
-        boolean isTaskUnsetOnChain = isTaskInUnsetStatusOnChain(chainDealId, taskIndex);
-        boolean isBeforeContributionDeadline = isBeforeContributionDeadline(chainDealId);
-        return isBeforeContributionDeadline && isTaskUnsetOnChain;
-    }
-
-    /**
      * Check if the task is defined onchain and
      * has the status {@link ChainTaskStatus#UNSET}.
-     * 
+     *
      * @param chainDealId
      * @param taskIndex
      * @return true if the task is found with the status UNSET, false otherwise.
@@ -100,10 +82,17 @@ public class IexecHubService extends IexecHubAbstractService {
                 || ChainTaskStatus.UNSET.equals(chainTask.get().getStatus());
     }
 
+
+    public boolean isTaskInCompletedStatusOnChain(String chainTaskId) {
+        return getChainTask(chainTaskId)
+                .filter(chainTask -> ChainTaskStatus.COMPLETED == chainTask.getStatus())
+                .isPresent();
+    }
+
     /**
      * Check if a deal's contribution deadline
      * is still not reached.
-     * 
+     *
      * @param chainDealId
      * @return true if deadline is not reached, false otherwise.
      */
@@ -116,7 +105,7 @@ public class IexecHubService extends IexecHubAbstractService {
     /**
      * Check if a deal's contribution deadline
      * is still not reached.
-     * 
+     *
      * @param chainDeal
      * @return true if deadline is not reached, false otherwise.
      */
@@ -129,13 +118,13 @@ public class IexecHubService extends IexecHubAbstractService {
      * <p> Get deal's contribution deadline date. The deadline
      * is calculated as follow:
      * start + maxCategoryTime * maxNbOfPeriods.
-     * 
+     *
      * <ul>
      * <li> start: the start time of the deal.
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> nbOfCategoryUnits: number of category units dedicated
      *      for the contribution phase.
-     * 
+     *
      * @param chainDeal
      * @return
      */
@@ -151,13 +140,13 @@ public class IexecHubService extends IexecHubAbstractService {
      * <p> Get deal's final deadline date. The deadline
      * is calculated as follow:
      * start + maxCategoryTime * 10.
-     * 
+     *
      * <ul>
      * <li> start: the start time of the deal.
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> 10: number of category units dedicated
      *      for the hole execution.
-     * 
+     *
      * @param chainDeal
      * @return
      */
@@ -165,52 +154,6 @@ public class IexecHubService extends IexecHubAbstractService {
         long startTime = chainDeal.getStartTime().longValue() * 1000;
         long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         return new Date(startTime + maxTime * 10);
-    }
-
-    @Deprecated
-    public Optional<Pair<String, ChainReceipt>> initialize(String chainDealId, int taskIndex) {
-        log.info("Requested  initialize [chainDealId:{}, taskIndex:{}, waitingTxCount:{}]", chainDealId, taskIndex, getWaitingTransactionCount());
-        try {
-            return CompletableFuture.supplyAsync(() -> sendInitializeTransaction(chainDealId, taskIndex), executor).get();
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("initialize asynchronous execution did not complete", e);
-        }
-        return Optional.empty();
-    }
-
-    private Optional<Pair<String, ChainReceipt>> sendInitializeTransaction(String chainDealId, int taskIndex) {
-        byte[] chainDealIdBytes = stringToBytes(chainDealId);
-        String computedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
-        RemoteCall<TransactionReceipt> initializeCall =
-                getHubContract(web3jService.getWritingContractGasProvider())
-                .initialize(chainDealIdBytes, BigInteger.valueOf(taskIndex));
-
-        TransactionReceipt initializeReceipt;
-        try {
-            initializeReceipt = initializeCall.send();
-        } catch (Exception e) {
-            log.error("Failed to send initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex, e);
-            return Optional.empty();
-        }
-
-        List<IexecHubContract.TaskInitializeEventResponse> initializeEvents = getHubContract().getTaskInitializeEvents(initializeReceipt);
-
-        IexecHubContract.TaskInitializeEventResponse initializeEvent = null;
-        if (initializeEvents != null && !initializeEvents.isEmpty()) {
-            initializeEvent = initializeEvents.get(0);
-        }
-
-        if (isSuccessTx(computedChainTaskId, initializeEvent, ACTIVE)) {
-            String chainTaskId = BytesUtils.bytesToString(initializeEvent.taskid);
-            ChainReceipt chainReceipt = buildChainReceipt(initializeReceipt);
-            log.info("Initialized [chainTaskId:{}, chainDealId:{}, taskIndex:{}, gasUsed:{}, block:{}]",
-                    computedChainTaskId, chainDealId, taskIndex,
-                    initializeReceipt.getGasUsed(), chainReceipt.getBlockNumber());
-            return Optional.of(Pair.of(chainTaskId, chainReceipt));
-        }
-
-        log.error("Failed to initialize [chainDealId:{}, taskIndex:{}]", chainDealId, taskIndex);
-        return Optional.empty();
     }
 
     public boolean canFinalize(String chainTaskId) {
@@ -234,73 +177,6 @@ public class IexecHubService extends IexecHubAbstractService {
                     isChainTaskStatusRevealing, isFinalDeadlineInFuture, hasEnoughRevealors);
         }
         return ret;
-    }
-
-    public Optional<ChainReceipt> finalizeTask(String chainTaskId, String resultLink, String callbackData) {
-        log.info("Requested  finalize [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
-        try {
-            return CompletableFuture.supplyAsync(() -> sendFinalizeTransaction(chainTaskId, resultLink, callbackData), executor).get();
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("finalizeTask asynchronous execution did not complete", e);
-        }
-        return Optional.empty();
-    }
-
-    private Optional<ChainReceipt> sendFinalizeTransaction(String chainTaskId, String resultLink, String callbackData) {
-        byte[] chainTaskIdBytes = stringToBytes(chainTaskId);
-        byte[] results = new byte[0];
-        byte[] resultsCallback = new byte[0];
-
-        boolean shouldSendCallback = callbackData != null && !callbackData.isEmpty();
-        if (!shouldSendCallback) {
-            results = resultLink.getBytes(StandardCharsets.UTF_8);
-        } else {
-            resultsCallback = stringToBytes(callbackData);
-        }
-
-        TransactionReceipt finalizeReceipt;
-
-        RemoteCall<TransactionReceipt> finalizeCall = getHubContract(web3jService.getWritingContractGasProvider())
-                .finalize(chainTaskIdBytes, results, resultsCallback);
-
-        try {
-            finalizeReceipt = finalizeCall.send();
-        } catch (Exception e) {
-            log.error("Failed to send finalize [chainTaskId:{}, resultLink:{}, callbackData:{}, shouldSendCallback:{}]",
-                    chainTaskId, resultLink, callbackData, shouldSendCallback, e);
-            return Optional.empty();
-        }
-
-        List<IexecHubContract.TaskFinalizeEventResponse> finalizeEvents = getHubContract().getTaskFinalizeEvents(finalizeReceipt);
-
-        IexecHubContract.TaskFinalizeEventResponse finalizeEvent = null;
-        if (finalizeEvents != null && !finalizeEvents.isEmpty()) {
-            finalizeEvent = finalizeEvents.get(0);
-        }
-
-        if (isSuccessTx(chainTaskId, finalizeEvent, COMPLETED)) {
-            ChainReceipt chainReceipt = buildChainReceipt(finalizeReceipt);
-            log.info("Finalized [chainTaskId:{}, resultLink:{}, callbackData:{}, " +
-                            "shouldSendCallback:{}, gasUsed:{}, block:{}]",
-                    chainTaskId, resultLink, callbackData, shouldSendCallback,
-                    finalizeReceipt.getGasUsed(), chainReceipt.getBlockNumber());
-            return Optional.of(chainReceipt);
-        }
-
-        log.error("Failed to finalize [chainTaskId:{}]", chainTaskId);
-        return Optional.empty();
-    }
-
-    private boolean isSuccessTx(String chainTaskId, BaseEventResponse txEvent, ChainTaskStatus pretendedStatus) {
-        if (txEvent == null || txEvent.log == null) {
-            return false;
-        }
-
-        if (txEvent.log.getType() == null || txEvent.log.getType().equals(PENDING_RECEIPT_STATUS)) {
-            return isStatusValidOnChainAfterPendingReceipt(chainTaskId, pretendedStatus, this::isTaskStatusValidOnChain);
-        }
-
-        return true;
     }
 
     public boolean canReopen(String chainTaskId) {
@@ -341,13 +217,13 @@ public class IexecHubService extends IexecHubAbstractService {
     private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
         TransactionReceipt receipt;
         try {
-            receipt = getHubContract(web3jService.getWritingContractGasProvider()).reopen(stringToBytes(chainTaskId)).send();
+            receipt = iexecHubContract.reopen(stringToBytes(chainTaskId)).send();
         } catch (Exception e) {
             log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
             return Optional.empty();
         }
 
-        List<IexecHubContract.TaskReopenEventResponse> eventsList = getHubContract().getTaskReopenEvents(receipt);
+        List<IexecHubContract.TaskReopenEventResponse> eventsList = IexecHubContract.getTaskReopenEvents(receipt);
         if (eventsList.isEmpty()) {
             log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
@@ -364,27 +240,152 @@ public class IexecHubService extends IexecHubAbstractService {
     }
 
     Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
-        return getHubContract().schedulerNoticeEventFlowable(filter);
+        return iexecHubContract.schedulerNoticeEventFlowable(filter);
     }
 
     public boolean hasEnoughGas() {
         return hasEnoughGas(credentialsService.getCredentials().getAddress());
     }
 
-    private Boolean isTaskStatusValidOnChain(String chainTaskId, ChainStatus chainTaskStatus) {
-        if (chainTaskStatus instanceof ChainTaskStatus) {
-            Optional<ChainTask> optionalChainTask = getChainTask(chainTaskId);
-            return optionalChainTask.isPresent() && optionalChainTask.get().getStatus().equals(chainTaskStatus);
-        }
-        return false;
-    }
-
     private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {
         return ChainReceipt.builder()
                 .txHash(receipt.getTransactionHash())
-                .blockNumber(receipt.getBlockNumber() != null?
+                .blockNumber(receipt.getBlockNumber() != null ?
                         receipt.getBlockNumber().longValue() : 0)
                 .build();
     }
 
+    // region Get event blocks
+    public ChainReceipt getContributionBlock(String chainTaskId,
+                                             String workerWallet,
+                                             long fromBlock) {
+        long latestBlock = web3jService.getLatestBlockNumber();
+        if (fromBlock > latestBlock) {
+            return ChainReceipt.builder().build();
+        }
+
+        EthFilter ethFilter = createContributeEthFilter(fromBlock, latestBlock);
+
+        // filter only taskContribute events for the chainTaskId and the worker's wallet
+        // and retrieve the block number of the event
+        return iexecHubContract.taskContributeEventFlowable(ethFilter)
+                .filter(eventResponse ->
+                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
+                                workerWallet.equals(eventResponse.worker)
+                )
+                .map(eventResponse -> ChainReceipt.builder()
+                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
+                        .txHash(eventResponse.log.getTransactionHash())
+                        .build())
+                .blockingFirst();
+    }
+
+    public ChainReceipt getConsensusBlock(String chainTaskId, long fromBlock) {
+        long latestBlock = web3jService.getLatestBlockNumber();
+        if (fromBlock > latestBlock) {
+            return ChainReceipt.builder().build();
+        }
+
+        EthFilter ethFilter = createConsensusEthFilter(fromBlock, latestBlock);
+
+        // filter only taskConsensus events for the chainTaskId (there should be only one)
+        // and retrieve the block number of the event
+        return iexecHubContract.taskConsensusEventFlowable(ethFilter)
+                .filter(eventResponse -> chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)))
+                .map(eventResponse -> ChainReceipt.builder()
+                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
+                        .txHash(eventResponse.log.getTransactionHash())
+                        .build())
+                .blockingFirst();
+    }
+
+    public ChainReceipt getRevealBlock(String chainTaskId,
+                                       String workerWallet,
+                                       long fromBlock) {
+        long latestBlock = web3jService.getLatestBlockNumber();
+        if (fromBlock > latestBlock) {
+            return ChainReceipt.builder().build();
+        }
+
+        EthFilter ethFilter = createRevealEthFilter(fromBlock, latestBlock);
+
+        // filter only taskReveal events for the chainTaskId and the worker's wallet
+        // and retrieve the block number of the event
+        return iexecHubContract.taskRevealEventFlowable(ethFilter)
+                .filter(eventResponse ->
+                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
+                                workerWallet.equals(eventResponse.worker)
+                )
+                .map(eventResponse -> ChainReceipt.builder()
+                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
+                        .txHash(eventResponse.log.getTransactionHash())
+                        .build())
+                .blockingFirst();
+    }
+
+    public ChainReceipt getFinalizeBlock(String chainTaskId, long fromBlock) {
+        long latestBlock = web3jService.getLatestBlockNumber();
+        if (fromBlock > latestBlock) {
+            return ChainReceipt.builder().build();
+        }
+
+        EthFilter ethFilter = createFinalizeEthFilter(fromBlock, latestBlock);
+
+        // filter only taskFinalize events for the chainTaskId (there should be only one)
+        // and retrieve the block number of the event
+        return iexecHubContract.taskFinalizeEventFlowable(ethFilter)
+                .filter(eventResponse ->
+                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid))
+                )
+                .map(eventResponse -> ChainReceipt.builder()
+                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
+                        .txHash(eventResponse.log.getTransactionHash())
+                        .build())
+                .blockingFirst();
+    }
+
+    private EthFilter createContributeEthFilter(long fromBlock, long toBlock) {
+        return createEthFilter(fromBlock, toBlock, TASKCONTRIBUTE_EVENT);
+    }
+
+    private EthFilter createConsensusEthFilter(long fromBlock, long toBlock) {
+        return createEthFilter(fromBlock, toBlock, TASKCONSENSUS_EVENT);
+    }
+
+    private EthFilter createRevealEthFilter(long fromBlock, long toBlock) {
+        return createEthFilter(fromBlock, toBlock, TASKREVEAL_EVENT);
+    }
+
+    private EthFilter createFinalizeEthFilter(long fromBlock, long toBlock) {
+        return createEthFilter(fromBlock, toBlock, TASKFINALIZE_EVENT);
+    }
+
+    private EthFilter createEthFilter(long fromBlock, long toBlock, Event event) {
+        IexecHubContract iexecHub = getHubContract();
+        DefaultBlockParameter startBlock =
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock));
+        DefaultBlockParameter endBlock =
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock));
+
+        // define the filter
+        EthFilter ethFilter = new EthFilter(
+                startBlock,
+                endBlock,
+                iexecHub.getContractAddress()
+        );
+        ethFilter.addSingleTopic(EventEncoder.encode(event));
+
+        return ethFilter;
+    }
+    // endregion
+
+    @Override
+    public boolean purgeTask(String chainTaskId) {
+        return super.purgeTask(chainTaskId);
+    }
+
+    @Override
+    public void purgeAllTasksData() {
+        super.purgeAllTasksData();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.ChainContribution;
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
-import com.iexec.common.task.TaskDescription;
 import com.iexec.common.utils.ContextualLockRunner;
+import com.iexec.commons.poco.chain.ChainContribution;
+import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.result.ResultService;
 import com.iexec.core.logs.TaskLogsService;
+import com.iexec.core.result.ResultService;
 import com.iexec.core.workflow.ReplicateWorkflow;
+import io.vavr.control.Either;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -195,6 +196,12 @@ public class ReplicatesService {
             return ReplicateStatusUpdateError.BAD_WORKFLOW_TRANSITION;
         }
 
+        if (newStatus == COMPUTED && updateReplicateStatusArgs.getTaskDescription() == null) {
+            log.warn("TaskDescription is null with a COMPUTED status, this case shouldn't happen {}",
+                    getStatusUpdateLogs(chainTaskId, replicate, statusUpdate));
+            return ReplicateStatusUpdateError.UNKNOWN_TASK;
+        }
+
         boolean canUpdate = true;
 
         switch (newStatus) {
@@ -202,6 +209,7 @@ public class ReplicatesService {
             case REVEAL_FAILED:
                 canUpdate = false;
                 break;
+            case CONTRIBUTE_AND_FINALIZE_DONE:
             case RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
                 break;
@@ -249,10 +257,11 @@ public class ReplicatesService {
                     resultLink = details.getResultLink();
                     chainCallbackData = details.getChainCallbackData();
                 }
-                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                taskDescription = iexecHubService.getTaskDescription(chainTaskId);
                 break;
+            case COMPUTED:
             case RESULT_UPLOAD_FAILED:
-                taskDescription = iexecHubService.getTaskDescriptionFromChain(chainTaskId).orElse(null);
+                taskDescription = iexecHubService.getTaskDescription(chainTaskId);
                 break;
             default:
                 break;
@@ -312,9 +321,10 @@ public class ReplicatesService {
     }
 
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         final UpdateReplicateStatusArgs updateReplicateStatusArgs = computeUpdateReplicateStatusArgs(
                 chainTaskId,
                 walletAddress,
@@ -328,12 +338,13 @@ public class ReplicatesService {
     }
 
     @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatusUpdate statusUpdate) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            OptimisticLockingFailureException exception,
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate) {
         logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
+        return null;
     }
 
     /*
@@ -346,23 +357,26 @@ public class ReplicatesService {
      *   3) if worker did succeed onChain when CONTRIBUTED/REVEALED.
      *   4) if worker did upload when RESULT_UPLOADING.
      */
+
     /**
      * This method updates a replicate while caring about thread safety.
      * A single replicate can then NOT be updated twice at the same time.
      * This method should be preferred to
      * {@link ReplicatesService#updateReplicateStatusWithoutThreadSafety(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}!
      *
-     * @param chainTaskId Chain task id of the task whose replicate should be updated.
-     * @param walletAddress Wallet address of the worker whose replicate should be updated.
-     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param chainTaskId               Chain task id of the task whose replicate should be updated.
+     * @param walletAddress             Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate              Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
-     * @return An optional next action for the worker.
+     * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
+     * or a next action for the worker.
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Optional<TaskNotificationType> updateReplicateStatus(String chainTaskId,
-                                                                String walletAddress,
-                                                                ReplicateStatusUpdate statusUpdate,
-                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         // Synchronization is mandatory there to avoid race conditions.
         // Lock key should be unique, e.g. `chainTaskId + walletAddress`.
         final String lockKey = chainTaskId + walletAddress;
@@ -373,14 +387,14 @@ public class ReplicatesService {
     }
 
     @Recover
-    public Optional<TaskNotificationType> updateReplicateStatus(
+    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
             OptimisticLockingFailureException exception,
             String chainTaskId,
             String walletAddress,
             ReplicateStatusUpdate statusUpdate,
             UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         logUpdateReplicateStatusRecover(exception);
-        return Optional.empty();
+        return null;
     }
 
     /**
@@ -390,22 +404,24 @@ public class ReplicatesService {
      * This method has to be used with a synchronization mechanism, e.g.
      * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)}
      *
-     * @param chainTaskId Chain task id of the task whose replicate should be updated.
-     * @param walletAddress Wallet address of the worker whose replicate should be updated.
-     * @param statusUpdate Info about the status update - new status, date of update, ...
+     * @param chainTaskId               Chain task id of the task whose replicate should be updated.
+     * @param walletAddress             Wallet address of the worker whose replicate should be updated.
+     * @param statusUpdate              Info about the status update - new status, date of update, ...
      * @param updateReplicateStatusArgs Optional args used to update the status.
-     * @return An optional next action for the worker.
+     * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
+     * or a next action for the worker.
      */
-    Optional<TaskNotificationType> updateReplicateStatusWithoutThreadSafety(String chainTaskId,
-                                                                                    String walletAddress,
-                                                                                    ReplicateStatusUpdate statusUpdate,
-                                                                                    UpdateReplicateStatusArgs updateReplicateStatusArgs) {
+    Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatusWithoutThreadSafety(
+            String chainTaskId,
+            String walletAddress,
+            ReplicateStatusUpdate statusUpdate,
+            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
-        if (ReplicateStatusUpdateError.NO_ERROR
-                != canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs)) {
-            return Optional.empty();
+        final ReplicateStatusUpdateError error = canUpdateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs);
+        if (ReplicateStatusUpdateError.NO_ERROR != error) {
+            return Either.left(error);
         }
 
         ReplicatesList replicatesList = getReplicatesList(chainTaskId).orElseThrow();           // "get" could be used there but triggers a warning
@@ -436,13 +452,13 @@ public class ReplicatesService {
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         ReplicateStatusCause newStatusCause = statusUpdate.getDetails() != null ?
                 statusUpdate.getDetails().getCause() : null;
-        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus, newStatusCause);
+        TaskNotificationType nextAction = ReplicateWorkflow.getInstance().getNextAction(newStatus, newStatusCause, updateReplicateStatusArgs.getTaskDescription());
 
         log.info("Replicate updated successfully [newStatus:{}, newStatusCause:{} " +
                         "nextAction:{}, chainTaskId:{}, walletAddress:{}]",
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
-        return Optional.ofNullable(nextAction);
+        return Either.right(nextAction);
     }
 
     private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
@@ -530,6 +546,10 @@ public class ReplicatesService {
                 return isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
             case RESULT_UPLOAD_FAILED:
                 return !isResultUploaded(updateReplicateStatusArgs.getTaskDescription());
+            case CONTRIBUTE_AND_FINALIZE_DONE:
+                return iexecHubService.repeatIsRevealedTrue(chainTaskId, walletAddress)
+                        && isResultUploaded(chainTaskId)
+                        && iexecHubService.isTaskInCompletedStatusOnChain(chainTaskId);
             default:
                 return true;
         }
@@ -574,18 +594,18 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(String chainTaskId) {
-        Optional<TaskDescription> task = iexecHubService.getTaskDescriptionFromChain(chainTaskId);
+        TaskDescription task = iexecHubService.getTaskDescription(chainTaskId);
 
-        if (task.isEmpty()){
+        if (task == null) {
             return false;
         }
 
-        return isResultUploaded(task.get());
+        return isResultUploaded(task);
     }
 
     public boolean isResultUploaded(TaskDescription task) {
         // Offchain computing - basic & tee
-        if (task.containsCallback()){
+        if (task.containsCallback()) {
             return true;
         }
 

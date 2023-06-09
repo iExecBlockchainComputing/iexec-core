@@ -48,6 +48,7 @@ dependencyManagement {
 
 dependencies {
     // iexec
+    implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
     implementation "com.iexec.blockchain:iexec-blockchain-adapter-api-library:$iexecBlockchainAdapterVersion"
     implementation "com.iexec.result-proxy:iexec-result-proxy-library:$iexecResultVersion"
@@ -99,6 +100,9 @@ dependencies {
     // mongock
     implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
     implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
+
+    // vavr
+    implementation 'io.vavr:vavr:0.10.4'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ChainApp;
-import com.iexec.common.chain.ChainCategory;
-import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.chain.DealParams;
-import com.iexec.common.contract.generated.IexecHubContract;
-import com.iexec.common.utils.BytesUtils;
+import com.iexec.commons.poco.chain.ChainApp;
+import com.iexec.commons.poco.chain.ChainCategory;
+import com.iexec.commons.poco.chain.ChainDeal;
+import com.iexec.commons.poco.chain.DealParams;
+import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -29,7 +29,10 @@ import com.iexec.core.task.event.TaskCreatedEvent;
 import io.reactivex.Flowable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.protocol.core.methods.response.Log;
 
@@ -100,10 +103,10 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
-        ChainApp chainApp = new ChainApp();
-        chainApp.setUri("0x00");
+        ChainApp chainApp = ChainApp.builder()
+                .uri("0x00").build();
 
-        ChainCategory chainCategory = new ChainCategory();
+        ChainCategory chainCategory = ChainCategory.builder().build();
 
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
@@ -143,7 +146,7 @@ class DealWatcherServiceTests {
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
                 .chainApp(ChainApp.builder().uri("0x00").build())
-                .chainCategory(new ChainCategory())
+                .chainCategory(ChainCategory.builder().build())
                 .params(DealParams.builder().iexecArgs("args").build())
                 .trust(BigInteger.valueOf(3))
                 .build();

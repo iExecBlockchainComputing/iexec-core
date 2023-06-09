@@ -1,13 +1,32 @@
+/*
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.iexec.core.replicate;
 
-import com.iexec.common.chain.WorkerpoolAuthorization;
-import com.iexec.common.notification.TaskNotification;
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.*;
+import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
+import com.iexec.commons.poco.notification.TaskNotification;
+import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
+import io.vavr.control.Either;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -178,7 +197,7 @@ class ReplicateControllerTests {
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
+                .thenReturn(Either.right(TaskNotificationType.PLEASE_DOWNLOAD_APP));
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -203,7 +222,7 @@ class ReplicateControllerTests {
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
-                .thenReturn(Optional.of(TaskNotificationType.PLEASE_DOWNLOAD_APP));
+                .thenReturn(Either.right((TaskNotificationType.PLEASE_DOWNLOAD_APP)));
 
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, updateWithLogs);
@@ -227,14 +246,20 @@ class ReplicateControllerTests {
         assertThat(response.getBody()).isNull();
     }
 
-    @Test
-    void shouldReturnPleaseAbortSinceCantUpdate() {
+    @ParameterizedTest
+    @EnumSource(value = ReplicateStatusUpdateError.class, names = {
+            "UNKNOWN_REPLICATE",
+            "UNKNOWN_TASK",
+            "BAD_WORKFLOW_TRANSITION",
+            "GENERIC_CANT_UPDATE"
+    })
+    void shouldReturnPleaseAbortSinceCantUpdate(ReplicateStatusUpdateError error) {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(error));
         
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -249,8 +274,8 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.ALREADY_REPORTED);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.ALREADY_REPORTED));
 
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
@@ -258,6 +283,21 @@ class ReplicateControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ALREADY_REPORTED);
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_WAIT);
+    }
+
+    @Test
+    void shouldReply500WhenErrorNotExpected() {
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
+                .thenReturn(UPDATE_ARGS);
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+                .thenReturn(Either.left(ReplicateStatusUpdateError.NO_ERROR));
+
+        ResponseEntity<TaskNotificationType> response =
+                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
     //endregion
 }

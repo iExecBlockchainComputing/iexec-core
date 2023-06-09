@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.ChainDeal;
-import com.iexec.common.contract.generated.IexecHubContract;
-import com.iexec.common.utils.BytesUtils;
+import com.iexec.commons.poco.chain.ChainDeal;
+import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -41,7 +41,7 @@ import org.web3j.utils.Numeric;
 import java.math.BigInteger;
 import java.util.Optional;
 
-import static com.iexec.common.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
+import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
 
 @Slf4j
 @Service

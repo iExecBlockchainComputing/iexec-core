@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.0) 2023-06-09
+
+### New Features
+- Add ContributeAndFinalize to `ReplicateWorkflow`. (#574)
+- Add check for ContributeAndFinalize in `ReplicatesService`. (#576 #582)
+- Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577 #578)
+- Disable `contributeAndFinalize` with CallBack. (#579 #581)
+- Add purge cached task descriptions ability. (#587)
+- Add detectors for `ContributeAndFinalize` flow. (#590 #593)
+### Bug Fixes
+- Prevent race condition on replicate update. (#568)
+- Use builders in test classes. (#589)
+### Quality
+- Remove unused methods in `IexecHubService`. (#572)
+- Clean unused Replicate methods and update tests. (#573)
+- Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
+- Refactor unnotified detectors to avoid code duplication. (#580)
+- Use `==` or `!=` operators to test the equality of enums. (#584)
+- Rearrange checks order to avoid call to database. (#585)
+- Move methods to get event blocks from `iexec-commons-poco`. (#588)
+- Rename detectors' methods and fields to match Ongoing/Done standard. (#591)
+### Dependency Upgrades
+- Upgrade to `iexec-common` 8.2.0. (#571 #575 #586 #594)
+- Add new `iexec-commons-poco` 3.0.2 dependency. (#571 #574 #586 #587 #588 #592 #594)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.1.0. (#594)
+- Upgrade to `iexec-result-proxy-library` 8.1.0. (#594)
+- Upgrade to `iexec-sms-library` 8.1.0. (#594)
+
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
 ### Bug Fixes

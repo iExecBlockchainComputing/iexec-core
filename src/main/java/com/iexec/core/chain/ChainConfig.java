@@ -22,6 +22,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 @Getter
 @AllArgsConstructor
@@ -36,6 +38,9 @@ public class ChainConfig {
 
     @Value("#{blockchainAdapterService.publicChainConfig.iexecHubContractAddress}")
     private String hubAddress;
+
+    @Value("#{blockchainAdapterService.publicChainConfig.blockTime}")
+    private Duration blockTime;
 
     @Value("${chain.privateAddress}")
     private String privateChainAddress;

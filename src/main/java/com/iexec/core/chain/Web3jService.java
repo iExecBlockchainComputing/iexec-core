@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,23 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.Web3jAbstractService;
+import com.iexec.commons.poco.chain.Web3jAbstractService;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 
 @Service
 public class Web3jService extends Web3jAbstractService {
 
     public Web3jService(ChainConfig chainConfig) {
-        super(chainConfig.getPrivateChainAddress(), chainConfig.getGasPriceMultiplier(), chainConfig.getGasPriceCap(),
-                chainConfig.isSidechain());
+        super(
+                chainConfig.getChainId(),
+                chainConfig.getPrivateChainAddress(),
+                chainConfig.getBlockTime(),
+                chainConfig.getGasPriceMultiplier(),
+                chainConfig.getGasPriceCap(),
+                chainConfig.isSidechain()
+        );
     }
 
 }

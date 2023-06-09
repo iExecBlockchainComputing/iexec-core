@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package com.iexec.core.workflow;
 
-import com.iexec.common.notification.TaskNotificationType;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
+import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.utils.BytesUtils;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,8 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.iexec.common.notification.TaskNotificationType.*;
 import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.commons.poco.notification.TaskNotificationType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReplicateWorkflowTests {
@@ -67,7 +69,8 @@ class ReplicateWorkflowTests {
     void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(null,
-                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) //any
+                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
+                        null)) //any
                 .isNull();
     }
 
@@ -75,7 +78,8 @@ class ReplicateWorkflowTests {
     void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(ReplicateStatus.ABORTED, //unknown
-                        ReplicateStatusCause.ABORTED_BY_WORKER)) //any
+                        ReplicateStatusCause.ABORTED_BY_WORKER,
+                        null)) //any
                 .isNull();
     }
 
@@ -85,6 +89,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
+                        null,
                         null))
                 .isEqualTo(PLEASE_ABORT);
     }
@@ -93,7 +98,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE))
+                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
+                        null))
                 .isEqualTo(PLEASE_ABORT);
     }
 
@@ -101,7 +107,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -111,6 +118,7 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
+                        null,
                         null))
                 .isEqualTo(PLEASE_ABORT);
     }
@@ -119,7 +127,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE))
+                        ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
+                        null))
                 .isEqualTo(PLEASE_ABORT);
     }
 
@@ -127,7 +136,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -135,7 +145,8 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM))
+                        ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
@@ -143,10 +154,50 @@ class ReplicateWorkflowTests {
     void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED))
+                        ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
+                        null))
                 .isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
     }
 
+    // region computed
+
+    @Test
+    void shouldGetNextActionOnComputedWithTeeTaskShouldBePleaseContributeAndFinalize(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(true).callback(BytesUtils.EMPTY_ADDRESS).build()))
+                .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
+    }
+
+    @Test
+    void shouldGetNextActionOnComputedWithStandardTaskShouldBePleaseContribute(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(false).build()))
+                .isEqualTo(PLEASE_CONTRIBUTE);
+    }
+
+    @Test
+    void shouldGetNextActionOnComputedWithoutTaskDescriptionShouldBePleaseAbort(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        null))
+                .isEqualTo(PLEASE_ABORT);
+    }
+
+    @Test
+    void shouldGetNextActionOnComputedWithTeeTaskAndCallBackShouldBePlease(){
+        assertThat(replicateWorkflow
+                .getNextAction(COMPUTED,
+                        null,
+                        TaskDescription.builder().isTeeTask(true).callback("callback").build()))
+                .isEqualTo(PLEASE_CONTRIBUTE);
+    }
+
+    // endregion
 
     /*
      * This updates the json files when transitions
@@ -188,24 +239,26 @@ class ReplicateWorkflowTests {
             expectedTransitions.put(DATA_DOWNLOAD_FAILED, List.of(CONTRIBUTING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(DATA_DOWNLOADED, List.of(COMPUTING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(COMPUTING, List.of(COMPUTED, COMPUTE_FAILED, FAILED, WORKER_LOST, RECOVERING, ABORTED));
-            expectedTransitions.put(COMPUTED, List.of(CONTRIBUTING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
+            expectedTransitions.put(COMPUTED, List.of(CONTRIBUTING, CONTRIBUTE_AND_FINALIZE_ONGOING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(CONTRIBUTING, List.of(CONTRIBUTED, CONTRIBUTE_FAILED, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(CONTRIBUTED, List.of(REVEALING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(REVEALING, List.of(REVEALED, REVEAL_FAILED, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(REVEALED, List.of(RESULT_UPLOAD_REQUESTED, COMPLETING, WORKER_LOST, RECOVERING, ABORTED));
-            expectedTransitions.put(RESULT_UPLOAD_REQUESTED, List.of(RESULT_UPLOADING, RESULT_UPLOAD_REQUEST_FAILED, WORKER_LOST, RECOVERING, ABORTED));
-            expectedTransitions.put(RESULT_UPLOAD_REQUEST_FAILED, List.of(COMPLETING, WORKER_LOST, RECOVERING, ABORTED));
+            expectedTransitions.put(RESULT_UPLOAD_REQUESTED, List.of(RESULT_UPLOADING, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(RESULT_UPLOADING, List.of(RESULT_UPLOADED, RESULT_UPLOAD_FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(RESULT_UPLOAD_FAILED, List.of(COMPLETING, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(RESULT_UPLOADED, List.of(COMPLETING, WORKER_LOST, RECOVERING, ABORTED));
+            expectedTransitions.put(CONTRIBUTE_AND_FINALIZE_ONGOING, List.of(CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTE_AND_FINALIZE_FAILED, FAILED, WORKER_LOST, RECOVERING, ABORTED));
+            expectedTransitions.put(CONTRIBUTE_AND_FINALIZE_DONE, List.of(COMPLETING, WORKER_LOST, RECOVERING, ABORTED));
+            expectedTransitions.put(CONTRIBUTE_AND_FINALIZE_FAILED, List.of(FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(COMPLETING, List.of(COMPLETED, COMPLETE_FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(START_FAILED, List.of(FAILED, WORKER_LOST, ABORTED));
             expectedTransitions.put(COMPUTE_FAILED, List.of(FAILED, WORKER_LOST, ABORTED));
             expectedTransitions.put(CONTRIBUTE_FAILED, List.of(FAILED, WORKER_LOST, ABORTED));
             expectedTransitions.put(REVEAL_FAILED, List.of(FAILED, WORKER_LOST, ABORTED));
             expectedTransitions.put(ABORTED, List.of(FAILED, WORKER_LOST, COMPLETED, FAILED));
-            expectedTransitions.put(WORKER_LOST, List.of(FAILED, CREATED, STARTING, START_FAILED, STARTED, APP_DOWNLOADING, APP_DOWNLOAD_FAILED, APP_DOWNLOADED, DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED, DATA_DOWNLOADED, COMPUTING, COMPUTE_FAILED, COMPUTED, CONTRIBUTING, CONTRIBUTE_FAILED, CONTRIBUTED, REVEALING, REVEAL_FAILED, REVEALED, RESULT_UPLOAD_REQUESTED, RESULT_UPLOAD_REQUEST_FAILED, RESULT_UPLOADING, RESULT_UPLOAD_FAILED, RESULT_UPLOADED, COMPLETING, COMPLETE_FAILED, COMPLETED, FAILED, RECOVERING, ABORTED, RECOVERING, ABORTED, ABORTED));
-            expectedTransitions.put(RECOVERING, List.of(FAILED, WORKER_LOST, RECOVERING, START_FAILED, STARTED, APP_DOWNLOADING, APP_DOWNLOAD_FAILED, APP_DOWNLOADED, DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED, DATA_DOWNLOADED, COMPUTING, COMPUTE_FAILED, COMPUTED, CONTRIBUTING, CONTRIBUTE_FAILED, CONTRIBUTED, REVEALING, REVEAL_FAILED, REVEALED, RESULT_UPLOAD_REQUESTED, RESULT_UPLOAD_REQUEST_FAILED, RESULT_UPLOADING, RESULT_UPLOAD_FAILED, RESULT_UPLOADED, COMPLETING, COMPLETE_FAILED, COMPLETED, FAILED, ABORTED, RECOVERING, WORKER_LOST));
+            expectedTransitions.put(WORKER_LOST, List.of(FAILED, CREATED, STARTING, START_FAILED, STARTED, APP_DOWNLOADING, APP_DOWNLOAD_FAILED, APP_DOWNLOADED, DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED, DATA_DOWNLOADED, COMPUTING, COMPUTE_FAILED, COMPUTED, CONTRIBUTING, CONTRIBUTE_FAILED, CONTRIBUTED, REVEALING, REVEAL_FAILED, REVEALED, RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING, RESULT_UPLOAD_FAILED, RESULT_UPLOADED, CONTRIBUTE_AND_FINALIZE_ONGOING, CONTRIBUTE_AND_FINALIZE_FAILED, CONTRIBUTE_AND_FINALIZE_DONE, COMPLETING, COMPLETE_FAILED, COMPLETED, FAILED, RECOVERING, ABORTED, RECOVERING, ABORTED, ABORTED));
+            expectedTransitions.put(RECOVERING, List.of(FAILED, WORKER_LOST, RECOVERING, START_FAILED, STARTED, APP_DOWNLOADING, APP_DOWNLOAD_FAILED, APP_DOWNLOADED, DATA_DOWNLOADING, DATA_DOWNLOAD_FAILED, DATA_DOWNLOADED, COMPUTING, COMPUTE_FAILED, COMPUTED, CONTRIBUTING, CONTRIBUTE_FAILED, CONTRIBUTED, REVEALING, REVEAL_FAILED, REVEALED, RESULT_UPLOAD_REQUESTED, RESULT_UPLOADING, RESULT_UPLOAD_FAILED, RESULT_UPLOADED, CONTRIBUTE_AND_FINALIZE_ONGOING, CONTRIBUTE_AND_FINALIZE_FAILED, CONTRIBUTE_AND_FINALIZE_DONE, COMPLETING, COMPLETE_FAILED, COMPLETED, FAILED, ABORTED, RECOVERING, WORKER_LOST));
             expectedTransitions.put(COMPLETE_FAILED, List.of(WORKER_LOST, ABORTED));
 
             assertThat(actualTransitions).isEqualTo(expectedTransitions);
@@ -236,6 +289,9 @@ class ReplicateWorkflowTests {
             expectedActions.put(RESULT_UPLOADING, PLEASE_CONTINUE);
             expectedActions.put(RESULT_UPLOADED, PLEASE_WAIT);
             expectedActions.put(RESULT_UPLOAD_FAILED, PLEASE_ABORT);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_ONGOING, PLEASE_CONTINUE);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_DONE, PLEASE_WAIT);
+            expectedActions.put(CONTRIBUTE_AND_FINALIZE_FAILED, PLEASE_ABORT);
             expectedActions.put(COMPLETING, PLEASE_CONTINUE);
             expectedActions.put(COMPLETED, PLEASE_WAIT);
             expectedActions.put(COMPLETE_FAILED, PLEASE_ABORT);

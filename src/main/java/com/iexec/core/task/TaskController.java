@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.iexec.core.task;
 
-import com.iexec.common.chain.eip712.entity.EIP712Challenge;
 import com.iexec.common.replicate.ComputeLogs;
-import com.iexec.common.security.Signature;
 import com.iexec.common.security.SignedChallenge;
-import com.iexec.common.task.TaskDescription;
-import com.iexec.common.utils.SignatureUtils;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
+import com.iexec.commons.poco.security.Signature;
+import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.logs.TaskLogs;
 import com.iexec.core.logs.TaskLogsService;
