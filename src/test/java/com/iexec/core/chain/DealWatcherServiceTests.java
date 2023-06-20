@@ -32,10 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.protocol.core.methods.response.Log;
 
@@ -294,6 +291,9 @@ class DealWatcherServiceTests {
 
         final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
         assertThat(shouldProcess).isTrue();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService, never()).getChainDealContributionDeadline(chainDeal);
     }
 
     static Stream<Arguments> invalidDeals() {
@@ -315,6 +315,9 @@ class DealWatcherServiceTests {
 
         final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
         assertThat(shouldProcess).isFalse();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService, never()).getChainDealContributionDeadline(chainDeal);
     }
 
     @Test
@@ -328,6 +331,9 @@ class DealWatcherServiceTests {
 
         final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
         assertThat(shouldProcess).isFalse();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService).getChainDealContributionDeadline(chainDeal);
     }
     // endregion
 }
