@@ -18,6 +18,7 @@ package com.iexec.core.chain;
 
 import com.iexec.commons.poco.chain.ChainDeal;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
@@ -39,6 +40,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
@@ -145,10 +147,7 @@ public class DealWatcherService {
             return;
         }
         ChainDeal chainDeal = oChainDeal.get();
-        // do not process deals after deadline
-        if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
-            log.error("Deal has expired [chainDealId:{}, deadline:{}]",
-                    chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
+        if (!shouldProcessDeal(chainDeal)) {
             return;
         }
         int startBag = chainDeal.getBotFirst().intValue();
@@ -168,6 +167,40 @@ public class DealWatcherService {
             optional.ifPresent(task -> applicationEventPublisher
                     .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
         }
+    }
+
+    /**
+     * Check whether a deal should be processed or skipped.
+     * A deal can be skipped for the following reasons:
+     * <ul>
+     *     <li>Its contribution deadline has already been met;</li>
+     *     <li>It has a TEE tag but its trust is not in {0,1}.</li>
+     * </ul>
+     *
+     * @param chainDeal Deal to check
+     * @return {@literal true} if deal should be processed, {@literal false} otherwise.
+     */
+    boolean shouldProcessDeal(ChainDeal chainDeal) {
+        final String chainDealId = chainDeal.getChainDealId();
+
+        // do not process deals after deadline
+        if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
+            log.error("Deal has expired [chainDealId:{}, deadline:{}]",
+                    chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
+            return false;
+        }
+
+        // do not process deals with TEE tag but trust not in {0,1}.
+        final String tag = chainDeal.getTag();
+        final BigInteger trust = chainDeal.getTrust();
+        if (TeeUtils.isTeeTag(tag)
+                && !List.of(BigInteger.ZERO, BigInteger.ONE).contains(trust)) {
+            log.error("Deal with TEE tag and trust not zero nor one [chainDealId:{}, tag:{}, trust:{}]",
+                    chainDealId, tag, trust);
+            return false;
+        }
+
+        return true;
     }
 
     /*
