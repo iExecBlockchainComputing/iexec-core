@@ -1335,7 +1335,7 @@ class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(iexecHubService.getTaskDescriptionFromChain(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(task);
         when(resultService.isResultUploaded(CHAIN_TASK_ID)).thenReturn(false);
 
         assertThat(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, null))
