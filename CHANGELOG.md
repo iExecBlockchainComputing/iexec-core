@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
+- Reject deal if TEE tag but trust not in {0,1}. (#598)
 
 ## [[8.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.0) 2023-06-09
 
