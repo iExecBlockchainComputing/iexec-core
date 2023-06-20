@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
 
+### Bug Fixes
+- Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
+
 ## [[8.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.0) 2023-06-09
 
 ### New Features
