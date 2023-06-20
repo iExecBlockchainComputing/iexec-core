@@ -49,6 +49,8 @@ import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDUL
 @Service
 public class DealWatcherService {
 
+    private static final List<BigInteger> CORRECT_TEE_TRUSTS = List.of(BigInteger.ZERO, BigInteger.ONE);
+
     private final ChainConfig chainConfig;
     private final IexecHubService iexecHubService;
     private final ConfigurationService configurationService;
@@ -194,7 +196,7 @@ public class DealWatcherService {
         final String tag = chainDeal.getTag();
         final BigInteger trust = chainDeal.getTrust();
         if (TeeUtils.isTeeTag(tag)
-                && !List.of(BigInteger.ZERO, BigInteger.ONE).contains(trust)) {
+                && !CORRECT_TEE_TRUSTS.contains(trust)) {
             log.error("Deal with TEE tag and trust not zero nor one [chainDealId:{}, tag:{}, trust:{}]",
                     chainDealId, tag, trust);
             return false;
