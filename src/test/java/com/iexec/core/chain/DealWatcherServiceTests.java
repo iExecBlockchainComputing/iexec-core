@@ -29,16 +29,20 @@ import com.iexec.core.task.event.TaskCreatedEvent;
 import io.reactivex.Flowable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.protocol.core.methods.response.Log;
 
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+import static com.iexec.commons.poco.tee.TeeUtils.TEE_GRAMINE_ONLY_TAG;
+import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
+import static com.iexec.core.task.TaskTestsUtils.NO_TEE_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -261,4 +265,75 @@ class DealWatcherServiceTests {
         dealWatcherService.replayDealEvent();
         verifyNoInteractions(iexecHubService);
     }
+
+    // region shouldProcessDeal
+    static Stream<Arguments> validDeals() {
+        return Stream.of(
+                Arguments.of(NO_TEE_TAG, BigInteger.ZERO),
+                Arguments.of(NO_TEE_TAG, BigInteger.ONE),
+                Arguments.of(NO_TEE_TAG, BigInteger.TEN),
+                Arguments.of(TEE_SCONE_ONLY_TAG, BigInteger.ZERO),
+                Arguments.of(TEE_SCONE_ONLY_TAG, BigInteger.ONE),
+                Arguments.of(TEE_GRAMINE_ONLY_TAG, BigInteger.ZERO),
+                Arguments.of(TEE_GRAMINE_ONLY_TAG, BigInteger.ONE)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validDeals")
+    void shouldProcessDeal(String tag, BigInteger trust) {
+        final ChainDeal chainDeal = ChainDeal.builder()
+                .tag(tag)
+                .trust(trust)
+                .build();
+
+        when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
+
+        final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
+        assertThat(shouldProcess).isTrue();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService, never()).getChainDealContributionDeadline(chainDeal);
+    }
+
+    static Stream<Arguments> invalidDeals() {
+        return Stream.of(
+                Arguments.of(TEE_SCONE_ONLY_TAG, BigInteger.TEN),
+                Arguments.of(TEE_GRAMINE_ONLY_TAG, BigInteger.TEN)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDeals")
+    void shouldNotProcessDealSinceWrongTagTrustCouple(String tag, BigInteger trust) {
+        final ChainDeal chainDeal = ChainDeal.builder()
+                .tag(tag)
+                .trust(trust)
+                .build();
+
+        when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
+
+        final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
+        assertThat(shouldProcess).isFalse();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService, never()).getChainDealContributionDeadline(chainDeal);
+    }
+
+    @Test
+    void shouldNotProcessDealsSinceAfterContributionDeadline() {
+        final ChainDeal chainDeal = ChainDeal.builder()
+                .tag(NO_TEE_TAG)
+                .trust(BigInteger.ONE)
+                .build();
+
+        when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(false);
+
+        final boolean shouldProcess = dealWatcherService.shouldProcessDeal(chainDeal);
+        assertThat(shouldProcess).isFalse();
+
+        verify(iexecHubService).isBeforeContributionDeadline(chainDeal);
+        verify(iexecHubService).getChainDealContributionDeadline(chainDeal);
+    }
+    // endregion
 }
