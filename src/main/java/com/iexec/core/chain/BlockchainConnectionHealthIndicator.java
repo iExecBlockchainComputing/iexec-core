@@ -1,6 +1,8 @@
 package com.iexec.core.chain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
@@ -15,20 +17,38 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class BlockchainConnectionHealthIndicator implements HealthIndicator {
-    private final int pollingIntervalInBlocks = 3;
-    private final int maxConsecutiveFailures = 4;
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     private final Web3jService web3jService;
     private final Duration pollingInterval;
+    private final int maxConsecutiveFailures;
+    private final ScheduledExecutorService executor;
 
     private int consecutiveFailures = 0;
     private boolean outOfService = false;
 
+    @Autowired
     public BlockchainConnectionHealthIndicator(Web3jService web3jService,
-                                               ChainConfig chainConfig) {
+                                               ChainConfig chainConfig,
+                                               @Value("${chain.health.pollingIntervalInBlocks}") int pollingIntervalInBlocks,
+                                               @Value("${chain.health.maxConsecutiveFailures}") int maxConsecutiveFailures) {
+        this(
+                web3jService,
+                chainConfig,
+                pollingIntervalInBlocks,
+                maxConsecutiveFailures,
+                Executors.newSingleThreadScheduledExecutor()
+        );
+    }
+
+    public BlockchainConnectionHealthIndicator(Web3jService web3jService,
+                                               ChainConfig chainConfig,
+                                               int pollingIntervalInBlocks,
+                                               int maxConsecutiveFailures,
+                                               ScheduledExecutorService executor) {
         this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime().multipliedBy(pollingIntervalInBlocks);
+        this.maxConsecutiveFailures = maxConsecutiveFailures;
+        this.executor = executor;
     }
 
     @PostConstruct
