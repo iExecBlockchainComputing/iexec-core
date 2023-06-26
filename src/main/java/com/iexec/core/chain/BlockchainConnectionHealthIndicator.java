@@ -45,7 +45,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         );
     }
 
-    public BlockchainConnectionHealthIndicator(Web3jService web3jService,
+    BlockchainConnectionHealthIndicator(Web3jService web3jService,
                                                ChainConfig chainConfig,
                                                int pollingIntervalInBlocks,
                                                int maxConsecutiveFailures,
