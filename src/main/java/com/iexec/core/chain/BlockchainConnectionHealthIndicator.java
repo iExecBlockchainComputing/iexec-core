@@ -27,7 +27,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * Number of consecutive failures before declaring this Scheduler is out-of-service.
      */
     private final int outOfServiceThreshold;
-    private final ScheduledExecutorService executor;
+    private final ScheduledExecutorService monitoringExecutor;
 
     /**
      * Current number of consecutive failures.
@@ -58,16 +58,16 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                                                ChainConfig chainConfig,
                                                int pollingIntervalInBlocks,
                                                int outOfServiceThreshold,
-                                               ScheduledExecutorService executor) {
+                                               ScheduledExecutorService monitoringExecutor) {
         this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime().multipliedBy(pollingIntervalInBlocks);
         this.outOfServiceThreshold = outOfServiceThreshold;
-        this.executor = executor;
+        this.monitoringExecutor = monitoringExecutor;
     }
 
     @PostConstruct
     void scheduleMonitoring() {
-        executor.scheduleAtFixedRate(checkConnectionRunnable, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
+        monitoringExecutor.scheduleAtFixedRate(checkConnectionRunnable, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
     }
 
     /**
