@@ -9,7 +9,9 @@ import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,12 +35,17 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * Current number of consecutive failures.
      */
     private int consecutiveFailures = 0;
+    private LocalDateTime firstFailure = null;
     private boolean outOfService = false;
 
     /**
      * Required for test purposes, can't test lambdas equality.
      */
     final Runnable checkConnectionRunnable = this::checkConnection;
+    /**
+     * Required for test purposes.
+     */
+    private final Clock clock;
 
     @Autowired
     public BlockchainConnectionHealthIndicator(Web3jService web3jService,
@@ -50,19 +57,22 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                 chainConfig,
                 pollingIntervalInBlocks,
                 outOfServiceThreshold,
-                Executors.newSingleThreadScheduledExecutor()
+                Executors.newSingleThreadScheduledExecutor(),
+                Clock.systemDefaultZone()
         );
     }
 
     BlockchainConnectionHealthIndicator(Web3jService web3jService,
-                                               ChainConfig chainConfig,
-                                               int pollingIntervalInBlocks,
-                                               int outOfServiceThreshold,
-                                               ScheduledExecutorService monitoringExecutor) {
+                                        ChainConfig chainConfig,
+                                        int pollingIntervalInBlocks,
+                                        int outOfServiceThreshold,
+                                        ScheduledExecutorService monitoringExecutor,
+                                        Clock clock) {
         this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime().multipliedBy(pollingIntervalInBlocks);
         this.outOfServiceThreshold = outOfServiceThreshold;
         this.monitoringExecutor = monitoringExecutor;
+        this.clock = clock;
     }
 
     @PostConstruct
@@ -85,36 +95,65 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     void checkConnection() {
         final long latestBlockNumber = web3jService.getLatestBlockNumber();
         if (latestBlockNumber == 0) {
-            ++consecutiveFailures;
-            if (consecutiveFailures >= outOfServiceThreshold) {
-                outOfService = true;
-                log.error("Blockchain hasn't been accessed for a long period. " +
-                        "This Scheduler is now OUT-OF-SERVICE until it is restarted." +
-                        "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
-            } else {
-                log.warn("Blockchain is unavailable. Will retry connection." +
-                        "[unavailabilityPeriod:{}, nextRetry:{}]",
-                        pollingInterval.multipliedBy(consecutiveFailures), pollingInterval);
-            }
+            connectionFailed();
         } else {
-            if (!outOfService) {
-                log.info("Blockchain connection is now restored after a period of unavailability." +
-                        "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
-            }
-            consecutiveFailures = 0;
+            connectionSucceeded();
         }
+    }
+
+    /**
+     * Increment the {@link BlockchainConnectionHealthIndicator#consecutiveFailures} counter.
+     * <p>
+     * If {@link BlockchainConnectionHealthIndicator#outOfServiceThreshold} has been reached,
+     * then set {@link BlockchainConnectionHealthIndicator#outOfService} to {@code true}.
+     * <p>
+     * If first failure, set the {@link BlockchainConnectionHealthIndicator#firstFailure} to current time.
+     */
+    private void connectionFailed() {
+        ++consecutiveFailures;
+        if (consecutiveFailures >= outOfServiceThreshold) {
+            outOfService = true;
+            log.error("Blockchain hasn't been accessed for a long period. " +
+                    "This Scheduler is now OUT-OF-SERVICE until it is restarted." +
+                    "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
+        } else {
+            if (consecutiveFailures == 1) {
+                firstFailure = LocalDateTime.now(clock);
+            }
+            log.warn("Blockchain is unavailable. Will retry connection." +
+                            "[unavailabilityPeriod:{}, nextRetry:{}]",
+                    pollingInterval.multipliedBy(consecutiveFailures), pollingInterval);
+        }
+    }
+
+    /**
+     * Reset {@link BlockchainConnectionHealthIndicator#consecutiveFailures} to {@code 0}.
+     * <p>
+     * If never been OUT-OF-SERVICE, then:
+     * <ul>
+     *     <li>Reset the {@link BlockchainConnectionHealthIndicator#firstFailure} var to {@code null};</li>
+     *     <li>Log a "connection restored" message.</li>
+     * </ul>
+     */
+    private void connectionSucceeded() {
+        if (!outOfService) {
+            firstFailure = null;
+            log.info("Blockchain connection is now restored after a period of unavailability." +
+                    "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
+        }
+        consecutiveFailures = 0;
     }
 
     @Override
     public Health health() {
         final Health.Builder healthBuilder = outOfService
-                ? Health.outOfService()
+                ? Health.outOfService().withDetail("firstFailure", firstFailure)
                 : Health.up();
 
         return healthBuilder
                 .withDetail("consecutiveFailures", consecutiveFailures)
                 .withDetail("pollingInterval", pollingInterval)
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", outOfServiceThreshold)
+                .withDetail("outOfServiceThreshold", outOfServiceThreshold)
                 .build();
     }
 }

@@ -12,7 +12,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Duration;
+import java.time.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -24,6 +24,7 @@ class BlockchainConnectionHealthIndicatorTests {
     private static final int POLLING_INTERVAL_IN_BLOCKS = 3;
     private static final int OUT_OF_SERVICE_THRESHOLD = 4;
     private static final Duration BLOCK_TIME = Duration.ofSeconds(5);
+    private static final Clock CLOCK = Clock.fixed(Instant.ofEpochSecond(1), ZoneId.systemDefault());
 
     @Mock
     private Web3jService web3jService;
@@ -44,7 +45,8 @@ class BlockchainConnectionHealthIndicatorTests {
                 chainConfig,
                 POLLING_INTERVAL_IN_BLOCKS,
                 OUT_OF_SERVICE_THRESHOLD,
-                executor
+                executor,
+                CLOCK
         );
     }
 
@@ -70,33 +72,36 @@ class BlockchainConnectionHealthIndicatorTests {
      * <ol>
      *     <li>consecutiveFailures (initial state)</li>
      *     <li>outOfService (initial state)</li>
+     *     <li>firstFailure (initial state)</li>
      *     <li>latestBlockNumber (input)</li>
      *     <li>consecutiveFailures (output)</li>
      *     <li>outOfService (output)</li>
+     *     <li>firstFailure (output)</li>
      * </ol>
      */
     static Stream<Arguments> checkConnectionParameters() {
         return Stream.of(
-                // Should get latest block number and do nothing more
-                Arguments.of(0, false, 1L    , 0, false),
-                Arguments.of(0, false, 5L    , 0, false),
-                Arguments.of(0, false, 100L  , 0, false),
-                Arguments.of(0, false, 5_000L, 0, false),
+                // Should get latest block number and reset `firstFailure`
+                Arguments.of(0, false, null                    , 1L    , 0, false, null),
+                Arguments.of(0, false, null                    , 5L    , 0, false, null),
+                Arguments.of(0, false, null                    , 100L  , 0, false, null),
+                Arguments.of(0, false, null                    , 5_000L, 0, false, null),
+                Arguments.of(0, false, LocalDateTime.now(CLOCK), 1L    , 0, false, null),
 
                 // Should not get latest block number and increment consecutive failures (but stays UP)
-                Arguments.of(0, false, 0L, 1, false),
-                Arguments.of(1, false, 0L, 2, false),
-                Arguments.of(2, false, 0L, 3, false),
+                Arguments.of(0, false, null                    , 0L, 1, false, LocalDateTime.now(CLOCK)),
+                Arguments.of(1, false, LocalDateTime.now(CLOCK), 0L, 2, false, LocalDateTime.now(CLOCK)),
+                Arguments.of(2, false, LocalDateTime.now(CLOCK), 0L, 3, false, LocalDateTime.now(CLOCK)),
 
                 // Should not get latest block number and become OUT-OF-SERVICE
-                Arguments.of(3 , false, 0L, 4 , true),
-                Arguments.of(4 , true , 0L, 5 , true),
-                Arguments.of(50, true , 0L, 51, true),
+                Arguments.of(3 , false, LocalDateTime.now(CLOCK), 0L, 4 , true, LocalDateTime.now(CLOCK)),
+                Arguments.of(4 , true , LocalDateTime.now(CLOCK), 0L, 5 , true, LocalDateTime.now(CLOCK)),
+                Arguments.of(50, true , LocalDateTime.now(CLOCK), 0L, 51, true, LocalDateTime.now(CLOCK)),
 
                 // Should get latest block number but stay OUT-OF-SERVICE
-                Arguments.of(4 , true, 1L, 0, true),
-                Arguments.of(5 , true, 1L, 0, true),
-                Arguments.of(50, true, 1L, 0, true)
+                Arguments.of(4 , true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK)),
+                Arguments.of(5 , true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK)),
+                Arguments.of(50, true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK))
         );
     }
 
@@ -104,11 +109,14 @@ class BlockchainConnectionHealthIndicatorTests {
     @MethodSource("checkConnectionParameters")
     void checkConnection(int previousConsecutiveFailures,
                          boolean previousOutOfService,
+                         LocalDateTime previousFirstFailure,
                          long latestBlockNumber,
                          int expectedConsecutiveFailures,
-                         boolean expectedOutOfService) {
+                         boolean expectedOutOfService,
+                         LocalDateTime expectedFirstFailure) {
         setConsecutiveFailures(previousConsecutiveFailures);
         setOufOService(previousOutOfService);
+        setFirstFailure(previousFirstFailure);
 
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlockNumber);
 
@@ -116,9 +124,11 @@ class BlockchainConnectionHealthIndicatorTests {
 
         final Integer consecutiveFailures = getConsecutiveFailures();
         final Boolean outOfService = isOutOfService();
+        final LocalDateTime firstFailure = getFirstFailure();
 
         Assertions.assertThat(consecutiveFailures).isEqualTo(expectedConsecutiveFailures);
         Assertions.assertThat(outOfService).isEqualTo(expectedOutOfService);
+        Assertions.assertThat(firstFailure).isEqualTo(expectedFirstFailure);
 
         verify(web3jService).getLatestBlockNumber();
     }
@@ -127,14 +137,15 @@ class BlockchainConnectionHealthIndicatorTests {
     // region health
     @Test
     void shouldReturnOutOfService() {
-
         setOufOService(true);
         setConsecutiveFailures(OUT_OF_SERVICE_THRESHOLD);
+        setFirstFailure(LocalDateTime.now(CLOCK));
 
         final Health expectedHealth = Health.outOfService()
                 .withDetail("consecutiveFailures", OUT_OF_SERVICE_THRESHOLD)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
                 .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
+                .withDetail("firstFailure", LocalDateTime.now(CLOCK))
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
@@ -171,6 +182,14 @@ class BlockchainConnectionHealthIndicatorTests {
 
     private void setConsecutiveFailures(int consecutiveFailures) {
         ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "consecutiveFailures", consecutiveFailures);
+    }
+
+    private LocalDateTime getFirstFailure() {
+        return (LocalDateTime) ReflectionTestUtils.getField(blockchainConnectionHealthIndicator, "firstFailure");
+    }
+
+    private void setFirstFailure(LocalDateTime firstFailure) {
+        ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "firstFailure", firstFailure);
     }
     // endregion
 }
