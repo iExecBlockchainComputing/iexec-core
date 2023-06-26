@@ -56,7 +56,7 @@ chain:
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
   health:
     pollingIntervalInBlocks: ${IEXEC_CHAIN_HEALTH_POLLING_INTERVAL_IN_BLOCKS:3}
-    maxConsecutiveFailures: ${IEXEC_CHAIN_HEALTH_MAX_CONSECUTIVE_FAILURES:4}
+    outOfServiceThreshold: ${IEXEC_CHAIN_HEALTH_OUT_OF_SERVICE_THRESHOLD:4}
 
 blockchain-adapter:
   protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}

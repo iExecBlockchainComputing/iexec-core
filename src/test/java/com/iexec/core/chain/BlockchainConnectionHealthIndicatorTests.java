@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 class BlockchainConnectionHealthIndicatorTests {
     private static final int POLLING_INTERVAL_IN_BLOCKS = 3;
-    private static final int MAX_CONSECUTIVE_FAILURES = 4;
+    private static final int OUT_OF_SERVICE_THRESHOLD = 4;
     private static final Duration BLOCK_TIME = Duration.ofSeconds(5);
 
     @Mock
@@ -43,7 +43,7 @@ class BlockchainConnectionHealthIndicatorTests {
                 web3jService,
                 chainConfig,
                 POLLING_INTERVAL_IN_BLOCKS,
-                MAX_CONSECUTIVE_FAILURES,
+                OUT_OF_SERVICE_THRESHOLD,
                 executor
         );
     }
@@ -129,12 +129,12 @@ class BlockchainConnectionHealthIndicatorTests {
     void shouldReturnOutOfService() {
 
         setOufOService(true);
-        setConsecutiveFailures(MAX_CONSECUTIVE_FAILURES);
+        setConsecutiveFailures(OUT_OF_SERVICE_THRESHOLD);
 
         final Health expectedHealth = Health.outOfService()
-                .withDetail("consecutiveFailures", MAX_CONSECUTIVE_FAILURES)
+                .withDetail("consecutiveFailures", OUT_OF_SERVICE_THRESHOLD)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", MAX_CONSECUTIVE_FAILURES)
+                .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
@@ -148,7 +148,7 @@ class BlockchainConnectionHealthIndicatorTests {
         final Health expectedHealth = Health.up()
                 .withDetail("consecutiveFailures", 0)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", MAX_CONSECUTIVE_FAILURES)
+                .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();

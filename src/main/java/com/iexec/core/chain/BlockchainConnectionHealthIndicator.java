@@ -19,10 +19,19 @@ import java.util.concurrent.TimeUnit;
 public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     private final Web3jService web3jService;
+    /**
+     * Interval between 2 requests onto the chain.
+     */
     private final Duration pollingInterval;
-    private final int maxConsecutiveFailures;
+    /**
+     * Number of consecutive failures before declaring this Scheduler is out-of-service.
+     */
+    private final int outOfServiceThreshold;
     private final ScheduledExecutorService executor;
 
+    /**
+     * Current number of consecutive failures.
+     */
     private int consecutiveFailures = 0;
     private boolean outOfService = false;
 
@@ -35,12 +44,12 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     public BlockchainConnectionHealthIndicator(Web3jService web3jService,
                                                ChainConfig chainConfig,
                                                @Value("${chain.health.pollingIntervalInBlocks}") int pollingIntervalInBlocks,
-                                               @Value("${chain.health.maxConsecutiveFailures}") int maxConsecutiveFailures) {
+                                               @Value("${chain.health.outOfServiceThreshold}") int outOfServiceThreshold) {
         this(
                 web3jService,
                 chainConfig,
                 pollingIntervalInBlocks,
-                maxConsecutiveFailures,
+                outOfServiceThreshold,
                 Executors.newSingleThreadScheduledExecutor()
         );
     }
@@ -48,11 +57,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     BlockchainConnectionHealthIndicator(Web3jService web3jService,
                                                ChainConfig chainConfig,
                                                int pollingIntervalInBlocks,
-                                               int maxConsecutiveFailures,
+                                               int outOfServiceThreshold,
                                                ScheduledExecutorService executor) {
         this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime().multipliedBy(pollingIntervalInBlocks);
-        this.maxConsecutiveFailures = maxConsecutiveFailures;
+        this.outOfServiceThreshold = outOfServiceThreshold;
         this.executor = executor;
     }
 
@@ -65,7 +74,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * Check blockchain is reachable by retrieving the latest block number.
      * <p>
      * If it isn't, then increment {@link BlockchainConnectionHealthIndicator#consecutiveFailures} counter.
-     * If counter reaches {@link BlockchainConnectionHealthIndicator#maxConsecutiveFailures},
+     * If counter reaches {@link BlockchainConnectionHealthIndicator#outOfServiceThreshold},
      * then this Health Indicator becomes {@link Status#OUT_OF_SERVICE}.
      * <p>
      * If blockchain is reachable, then reset the counter.
@@ -77,11 +86,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         final long latestBlockNumber = web3jService.getLatestBlockNumber();
         if (latestBlockNumber == 0) {
             ++consecutiveFailures;
-            if (consecutiveFailures >= maxConsecutiveFailures) {
+            if (consecutiveFailures >= outOfServiceThreshold) {
                 outOfService = true;
                 log.error("Blockchain hasn't been accessed for a long period. " +
                         "This Scheduler is now OUT-OF-SERVICE until it is restarted." +
-                        "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(maxConsecutiveFailures));
+                        "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
             } else {
                 log.warn("Blockchain is unavailable. Will retry connection." +
                         "[unavailabilityPeriod:{}, nextRetry:{}]",
@@ -106,7 +115,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         return healthBuilder
                 .withDetail("consecutiveFailures", consecutiveFailures)
                 .withDetail("pollingInterval", pollingInterval)
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", maxConsecutiveFailures)
+                .withDetail("maxConsecutiveFailuresBeforeOutOfService", outOfServiceThreshold)
                 .build();
     }
 }
