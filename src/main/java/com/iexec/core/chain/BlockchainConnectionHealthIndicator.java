@@ -26,6 +26,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private int consecutiveFailures = 0;
     private boolean outOfService = false;
 
+    /**
+     * Required for test purposes, can't test lambdas equality.
+     */
+    final Runnable checkConnectionRunnable = this::checkConnection;
+
     @Autowired
     public BlockchainConnectionHealthIndicator(Web3jService web3jService,
                                                ChainConfig chainConfig,
@@ -53,7 +58,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     @PostConstruct
     void scheduleMonitoring() {
-        executor.scheduleAtFixedRate(this::checkConnection, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(checkConnectionRunnable, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
     }
 
     /**
@@ -99,8 +104,8 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                 : Health.up();
 
         return healthBuilder
-                .withDetail("pollingInterval", pollingInterval)
                 .withDetail("consecutiveFailures", consecutiveFailures)
+                .withDetail("pollingInterval", pollingInterval)
                 .withDetail("maxConsecutiveFailuresBeforeOutOfService", maxConsecutiveFailures)
                 .build();
     }
