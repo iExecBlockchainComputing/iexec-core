@@ -21,28 +21,29 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BlockchainConnectionHealthIndicatorTests {
+    private static final int POLLING_INTERVAL_IN_BLOCKS = 3;
+    private static final int MAX_CONSECUTIVE_FAILURES = 4;
+    private static final Duration BLOCK_TIME = Duration.ofSeconds(5);
+
     @Mock
     private Web3jService web3jService;
     @Mock
     private ChainConfig chainConfig;
     @Mock
     private ScheduledExecutorService executor;
-    private final int pollingIntervalInBlocks = 3;
-    private final int maxConsecutiveFailures = 4;
-    private final Duration blockTime = Duration.ofSeconds(5);
 
     private BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        when(chainConfig.getBlockTime()).thenReturn(blockTime);
+        when(chainConfig.getBlockTime()).thenReturn(BLOCK_TIME);
 
         this.blockchainConnectionHealthIndicator = new BlockchainConnectionHealthIndicator(
                 web3jService,
                 chainConfig,
-                pollingIntervalInBlocks,
-                maxConsecutiveFailures,
+                POLLING_INTERVAL_IN_BLOCKS,
+                MAX_CONSECUTIVE_FAILURES,
                 executor
         );
     }
@@ -128,12 +129,12 @@ class BlockchainConnectionHealthIndicatorTests {
     void shouldReturnOutOfService() {
 
         setOufOService(true);
-        setConsecutiveFailures(maxConsecutiveFailures);
+        setConsecutiveFailures(MAX_CONSECUTIVE_FAILURES);
 
         final Health expectedHealth = Health.outOfService()
-                .withDetail("consecutiveFailures", maxConsecutiveFailures)
+                .withDetail("consecutiveFailures", MAX_CONSECUTIVE_FAILURES)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", maxConsecutiveFailures)
+                .withDetail("maxConsecutiveFailuresBeforeOutOfService", MAX_CONSECUTIVE_FAILURES)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
@@ -147,7 +148,7 @@ class BlockchainConnectionHealthIndicatorTests {
         final Health expectedHealth = Health.up()
                 .withDetail("consecutiveFailures", 0)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
-                .withDetail("maxConsecutiveFailuresBeforeOutOfService", maxConsecutiveFailures)
+                .withDetail("maxConsecutiveFailuresBeforeOutOfService", MAX_CONSECUTIVE_FAILURES)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
