@@ -105,7 +105,6 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         }
     }
 
-
     @Override
     public Health health() {
         final Health.Builder healthBuilder = outOfService
