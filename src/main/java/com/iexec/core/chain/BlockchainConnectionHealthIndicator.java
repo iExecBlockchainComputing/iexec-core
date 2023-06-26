@@ -115,13 +115,13 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
             outOfService = true;
             log.error("Blockchain hasn't been accessed for a long period. " +
                     "This Scheduler is now OUT-OF-SERVICE until it is restarted." +
-                    "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
+                    " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
         } else {
             if (consecutiveFailures == 1) {
                 firstFailure = LocalDateTime.now(clock);
             }
             log.warn("Blockchain is unavailable. Will retry connection." +
-                            "[unavailabilityPeriod:{}, nextRetry:{}]",
+                            " [unavailabilityPeriod:{}, nextRetry:{}]",
                     pollingInterval.multipliedBy(consecutiveFailures), pollingInterval);
         }
     }
@@ -137,9 +137,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      */
     private void connectionSucceeded() {
         if (!outOfService) {
+            if (consecutiveFailures > 0) {
+                log.info("Blockchain connection is now restored after a period of unavailability." +
+                        " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
+            }
             firstFailure = null;
-            log.info("Blockchain connection is now restored after a period of unavailability." +
-                    "[unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
         }
         consecutiveFailures = 0;
     }
@@ -147,8 +149,12 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         final Health.Builder healthBuilder = outOfService
-                ? Health.outOfService().withDetail("firstFailure", firstFailure)
+                ? Health.outOfService()
                 : Health.up();
+
+        if (firstFailure != null) {
+            healthBuilder.withDetail("firstFailure", firstFailure);
+        }
 
         return healthBuilder
                 .withDetail("consecutiveFailures", consecutiveFailures)

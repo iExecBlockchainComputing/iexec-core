@@ -137,15 +137,17 @@ class BlockchainConnectionHealthIndicatorTests {
     // region health
     @Test
     void shouldReturnOutOfService() {
+        final LocalDateTime firstFailure = LocalDateTime.now(CLOCK);
+
         setOufOService(true);
         setConsecutiveFailures(OUT_OF_SERVICE_THRESHOLD);
-        setFirstFailure(LocalDateTime.now(CLOCK));
+        setFirstFailure(firstFailure);
 
         final Health expectedHealth = Health.outOfService()
                 .withDetail("consecutiveFailures", OUT_OF_SERVICE_THRESHOLD)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
                 .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
-                .withDetail("firstFailure", LocalDateTime.now(CLOCK))
+                .withDetail("firstFailure", firstFailure)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
@@ -153,13 +155,34 @@ class BlockchainConnectionHealthIndicatorTests {
     }
 
     @Test
-    void shouldReturnUp() {
+    void shouldReturnUpAndNoFirstFailure() {
         setOufOService(false);
+        setConsecutiveFailures(0);
+        setFirstFailure(null);
 
         final Health expectedHealth = Health.up()
                 .withDetail("consecutiveFailures", 0)
                 .withDetail("pollingInterval", Duration.ofSeconds(15))
                 .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
+                .build();
+
+        final Health health = blockchainConnectionHealthIndicator.health();
+        Assertions.assertThat(health).isEqualTo(expectedHealth);
+    }
+
+    @Test
+    void shouldReturnUpButWithFirstFailure() {
+        final LocalDateTime firstFailure = LocalDateTime.now(CLOCK);
+
+        setOufOService(false);
+        setConsecutiveFailures(1);
+        setFirstFailure(firstFailure);
+
+        final Health expectedHealth = Health.up()
+                .withDetail("consecutiveFailures", 1)
+                .withDetail("pollingInterval", Duration.ofSeconds(15))
+                .withDetail("outOfServiceThreshold", OUT_OF_SERVICE_THRESHOLD)
+                .withDetail("firstFailure", firstFailure)
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
