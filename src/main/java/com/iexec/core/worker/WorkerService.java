@@ -31,7 +31,7 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 /**
  * Manage {@link Worker} objects.
  * <p>
- * /!\ Private read-and-write methods  are not thread-safe.
+ * /!\ Private read-and-write methods are not thread-safe.
  * They can sometime lead to race conditions.
  * Please use the public, thread-safe, versions of these methods instead.
  */
