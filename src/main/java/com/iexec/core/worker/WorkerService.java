@@ -43,24 +43,9 @@ public class WorkerService {
         this.contextualLockRunner = new ContextualLockRunner<>();
     }
 
+    // region Methods that don't modify the DB
     public Optional<Worker> getWorker(String walletAddress) {
         return workerRepository.findByWalletAddress(walletAddress);
-    }
-
-    public Worker addWorker(Worker worker) {
-        Optional<Worker> oWorker = workerRepository.findByWalletAddress(worker.getWalletAddress());
-
-        if (oWorker.isPresent()) {
-            Worker existingWorker = oWorker.get();
-            log.info("The worker is already registered [workerId:{}]", existingWorker.getId());
-            worker.setId(existingWorker.getId());
-            worker.setParticipatingChainTaskIds(existingWorker.getParticipatingChainTaskIds());
-            worker.setComputingChainTaskIds(existingWorker.getComputingChainTaskIds());
-        } else {
-            log.info("Registering new worker");
-        }
-
-        return workerRepository.save(worker);
     }
 
     public boolean isAllowedToJoin(String workerAddress){
@@ -70,18 +55,6 @@ public class WorkerService {
             return true;
         }
         return whitelist.contains(workerAddress);
-    }
-
-    public Optional<Worker> updateLastAlive(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.setLastAliveDate(new Date());
-            workerRepository.save(worker);
-            return Optional.of(worker);
-        }
-
-        return Optional.empty();
     }
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
@@ -108,36 +81,6 @@ public class WorkerService {
         return Optional.ofNullable(worker.getLastReplicateDemandDate());
     }
 
-    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.setLastReplicateDemandDate(new Date());
-            workerRepository.save(worker);
-            return Optional.of(worker);
-        }
-
-        return Optional.empty();
-    }
-
-    public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
-        return contextualLockRunner.applyWithLock(
-                walletAddress,
-                address -> addChainTaskIdToWorkerWithoutThreadSafety(chainTaskId, address)
-        );
-    }
-
-    private Optional<Worker> addChainTaskIdToWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.addChainTaskId(chainTaskId);
-            log.info("Added chainTaskId to worker [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
-        }
-        return Optional.empty();
-    }
-
     public List<String> getChainTaskIds(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
@@ -154,28 +97,6 @@ public class WorkerService {
             return worker.getComputingChainTaskIds();
         }
         return Collections.emptyList();
-    }
-
-    public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.removeChainTaskId(chainTaskId);
-            log.info("Removed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
-        }
-        return Optional.empty();
-    }
-
-    public Optional<Worker> removeComputedChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.removeComputedChainTaskId(chainTaskId);
-            log.info("Removed computed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
-        }
-        return Optional.empty();
     }
 
 
@@ -259,4 +180,87 @@ public class WorkerService {
         }
         return availableGpus;
     }
+    // endregion
+
+    // region Methods that modify the DB
+    public Worker addWorker(Worker worker) {
+        Optional<Worker> oWorker = workerRepository.findByWalletAddress(worker.getWalletAddress());
+
+        if (oWorker.isPresent()) {
+            Worker existingWorker = oWorker.get();
+            log.info("The worker is already registered [workerId:{}]", existingWorker.getId());
+            worker.setId(existingWorker.getId());
+            worker.setParticipatingChainTaskIds(existingWorker.getParticipatingChainTaskIds());
+            worker.setComputingChainTaskIds(existingWorker.getComputingChainTaskIds());
+        } else {
+            log.info("Registering new worker");
+        }
+
+        return workerRepository.save(worker);
+    }
+
+    public Optional<Worker> updateLastAlive(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.setLastAliveDate(new Date());
+            workerRepository.save(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.setLastReplicateDemandDate(new Date());
+            workerRepository.save(worker);
+            return Optional.of(worker);
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                address -> addChainTaskIdToWorkerWithoutThreadSafety(chainTaskId, address)
+        );
+    }
+
+    private Optional<Worker> addChainTaskIdToWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.addChainTaskId(chainTaskId);
+            log.info("Added chainTaskId to worker [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.removeChainTaskId(chainTaskId);
+            log.info("Removed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Worker> removeComputedChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
+        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        if (optional.isPresent()) {
+            Worker worker = optional.get();
+            worker.removeComputedChainTaskId(chainTaskId);
+            log.info("Removed computed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            return Optional.of(workerRepository.save(worker));
+        }
+        return Optional.empty();
+    }
+    // endregion
 }
