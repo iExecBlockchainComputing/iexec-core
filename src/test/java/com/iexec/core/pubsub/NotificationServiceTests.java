@@ -16,23 +16,19 @@
 
 package com.iexec.core.pubsub;
 
+import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
-import org.springframework.boot.actuate.health.Health;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-
-import com.iexec.commons.poco.notification.TaskNotification;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.when;
 
 class NotificationServiceTests {
 
