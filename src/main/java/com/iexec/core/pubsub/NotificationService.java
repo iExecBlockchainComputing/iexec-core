@@ -17,7 +17,9 @@
 package com.iexec.core.pubsub;
 
 import com.iexec.commons.poco.notification.TaskNotification;
+import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.actuate.health.Status;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -25,13 +27,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class NotificationService {
 
-    private SimpMessagingTemplate sender;
+    private final SimpMessagingTemplate sender;
+    private final BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator;
 
-    public NotificationService(SimpMessagingTemplate sender) {
+    public NotificationService(SimpMessagingTemplate sender,
+                               BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator) {
         this.sender = sender;
+        this.blockchainConnectionHealthIndicator = blockchainConnectionHealthIndicator;
     }
 
     public void sendTaskNotification(TaskNotification taskNotification) {
+        if (!blockchainConnectionHealthIndicator.isUp()) {
+            log.debug("Blockchain is down. Task notification not sent [chainTaskId:{}, type:{}, workers:{}]",
+                    taskNotification.getChainTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkersAddress());
+            return;
+        }
+
         sender.convertAndSend("/topic/task/" + taskNotification.getChainTaskId(), taskNotification);
         log.info("Sent TaskNotification [chainTaskId:{}, type:{}, workers:{}]",
                 taskNotification.getChainTaskId(), taskNotification.getTaskNotificationType(), taskNotification.getWorkersAddress());
