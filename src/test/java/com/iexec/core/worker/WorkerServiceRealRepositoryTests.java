@@ -76,7 +76,7 @@ class WorkerServiceRealRepositoryTests {
             future.get();
         }
 
-        Assertions.assertThat(workerService.getWorker(WALLET_WORKER_1).get().getComputingChainTaskIds().size())
-                .isEqualTo(nThreads);
+        Assertions.assertThat(workerService.getWorker(WALLET_WORKER_1).get().getComputingChainTaskIds())
+                .hasSize(nThreads);
     }
 }
