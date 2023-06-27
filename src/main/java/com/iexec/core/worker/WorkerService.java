@@ -123,7 +123,7 @@ public class WorkerService {
     public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
         return contextualLockRunner.applyWithLock(
                 walletAddress,
-                address -> addChainTaskIdToWorkerWithoutThreadSafety(chainTaskId, walletAddress)
+                address -> addChainTaskIdToWorkerWithoutThreadSafety(chainTaskId, address)
         );
     }
 
