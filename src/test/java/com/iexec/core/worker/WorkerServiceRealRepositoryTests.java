@@ -53,6 +53,10 @@ class WorkerServiceRealRepositoryTests {
         workerService = new WorkerService(workerRepository, workerConfiguration);
     }
 
+    /**
+     * Try and add N tasks to a single worker at the same time.
+     * If everything goes right, the Worker should finally have been assigned N tasks.
+     */
     @Test
     void addMultipleTaskIds() throws ExecutionException, InterruptedException {
         workerService.addWorker(

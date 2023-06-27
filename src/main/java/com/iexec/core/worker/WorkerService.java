@@ -16,6 +16,7 @@
 
 package com.iexec.core.worker;
 
+import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,11 +34,13 @@ public class WorkerService {
 
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
+    private final ContextualLockRunner<String> contextualLockRunner;
 
     public WorkerService(WorkerRepository workerRepository,
                          WorkerConfiguration workerConfiguration) {
         this.workerRepository = workerRepository;
         this.workerConfiguration = workerConfiguration;
+        this.contextualLockRunner = new ContextualLockRunner<>();
     }
 
     public Optional<Worker> getWorker(String walletAddress) {
@@ -118,6 +121,13 @@ public class WorkerService {
     }
 
     public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                address -> addChainTaskIdToWorkerWithoutThreadSafety(chainTaskId, walletAddress)
+        );
+    }
+
+    private Optional<Worker> addChainTaskIdToWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
