@@ -28,6 +28,13 @@ import java.util.Optional;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
+/**
+ * Manage {@link Worker} objects.
+ * <p>
+ * /!\ Private read-and-write methods  are not thread-safe.
+ * They can sometime lead to race conditions.
+ * Please use the public, thread-safe, versions of these methods instead.
+ */
 @Slf4j
 @Service
 public class WorkerService {
@@ -43,7 +50,7 @@ public class WorkerService {
         this.contextualLockRunner = new ContextualLockRunner<>();
     }
 
-    // region Methods that don't modify the DB
+    // region Read methods
     public Optional<Worker> getWorker(String walletAddress) {
         return workerRepository.findByWalletAddress(walletAddress);
     }
@@ -182,8 +189,15 @@ public class WorkerService {
     }
     // endregion
 
-    // region Methods that modify the DB
+    // region Read-and-write methods
     public Worker addWorker(Worker worker) {
+        return contextualLockRunner.applyWithLock(
+                worker.getWalletAddress(),
+                address -> addWorkerWithoutThreadSafety(worker)
+        );
+    }
+
+    private Worker addWorkerWithoutThreadSafety(Worker worker) {
         Optional<Worker> oWorker = workerRepository.findByWalletAddress(worker.getWalletAddress());
 
         if (oWorker.isPresent()) {
@@ -200,6 +214,13 @@ public class WorkerService {
     }
 
     public Optional<Worker> updateLastAlive(String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                this::updateLastAliveWithoutThreadSafety
+        );
+    }
+
+    private Optional<Worker> updateLastAliveWithoutThreadSafety(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
@@ -212,6 +233,13 @@ public class WorkerService {
     }
 
     public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                this::updateLastReplicateDemandDateWithoutThreadSafety
+        );
+    }
+
+    private Optional<Worker> updateLastReplicateDemandDateWithoutThreadSafety(String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
@@ -242,6 +270,13 @@ public class WorkerService {
     }
 
     public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                address -> removeChainTaskIdFromWorkerWithoutThreadSafety(chainTaskId, address)
+        );
+    }
+
+    private Optional<Worker> removeChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
@@ -253,6 +288,13 @@ public class WorkerService {
     }
 
     public Optional<Worker> removeComputedChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
+        return contextualLockRunner.applyWithLock(
+                walletAddress,
+                address -> removeComputedChainTaskIdFromWorkerWithoutThreadSafety(chainTaskId, address)
+        );
+    }
+
+    private Optional<Worker> removeComputedChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
         Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
             Worker worker = optional.get();
