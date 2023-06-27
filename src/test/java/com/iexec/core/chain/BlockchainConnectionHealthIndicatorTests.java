@@ -86,7 +86,7 @@ class BlockchainConnectionHealthIndicatorTests {
                 Arguments.of(0, false, null                    , 5L    , 0, false, null),
                 Arguments.of(0, false, null                    , 100L  , 0, false, null),
                 Arguments.of(0, false, null                    , 5_000L, 0, false, null),
-                Arguments.of(0, false, LocalDateTime.now(CLOCK), 1L    , 0, false, null),
+                Arguments.of(1, false, LocalDateTime.now(CLOCK), 1L    , 0, false, null),
 
                 // Should not get latest block number and increment consecutive failures (but stays UP)
                 Arguments.of(0, false, null                    , 0L, 1, false, LocalDateTime.now(CLOCK)),
