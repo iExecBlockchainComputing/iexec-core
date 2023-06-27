@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-27
+
+## Bug fixes
+- Prevent race conditions in `WorkerService`. (#602)
+
 ## [[8.1.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.1) 2023-06-23
 
 ### Dependency Upgrades
