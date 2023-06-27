@@ -124,6 +124,12 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        if (!blockchainConnectionHealthIndicator.isUp()) {
+            log.debug("Blockchain is down. Won't update replicate status" +
+                    " [workerAddress: {}]", walletAddress);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
 
