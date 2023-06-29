@@ -86,13 +86,13 @@ class BlockchainConnectionHealthIndicatorTests {
      * Returns a list of inputs, initial states and expected outputs for the `checkConnection` method
      * in the following order:
      * <ol>
-     *     <li>consecutiveFailures (initial state)</li>
-     *     <li>outOfService (initial state)</li>
-     *     <li>firstFailure (initial state)</li>
-     *     <li>latestBlockNumber (input)</li>
-     *     <li>consecutiveFailures (output)</li>
-     *     <li>outOfService (output)</li>
-     *     <li>firstFailure (output)</li>
+     * <li>consecutiveFailures (initial state)
+     * <li>outOfService (initial state)
+     * <li>firstFailure (initial state)
+     * <li>latestBlockNumber (input)
+     * <li>consecutiveFailures (output)
+     * <li>outOfService (output)
+     * <li>firstFailure (output)
      * </ol>
      */
     static Stream<Arguments> checkConnectionParameters() {
