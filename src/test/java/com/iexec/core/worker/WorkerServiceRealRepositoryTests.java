@@ -19,6 +19,7 @@ package com.iexec.core.worker;
 import com.iexec.core.configuration.WorkerConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -32,13 +33,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -74,7 +73,7 @@ class WorkerServiceRealRepositoryTests {
      * If everything goes right, the Worker should finally have been assigned N tasks.
      */
     @Test
-    void addMultipleTaskIds() throws ExecutionException, InterruptedException {
+    void addMultipleTaskIds() {
         workerService.addWorker(
                 Worker.builder()
                         .walletAddress(WALLET_WORKER_1)
@@ -88,9 +87,9 @@ class WorkerServiceRealRepositoryTests {
                 .mapToObj(i -> executor.submit(() -> workerService.addChainTaskIdToWorker(new Date().getTime() + "", WALLET_WORKER_1)))
                 .collect(Collectors.toList());
 
-        for (Future<Optional<Worker>> future : futures) {
-            future.get();
-        }
+        Awaitility.await()
+                .atMost(Duration.ofMinutes(1))
+                .until(() -> futures.stream().map(Future::isDone).reduce(Boolean::logicalAnd).orElse(false));
 
         Assertions.assertThat(workerService.getWorker(WALLET_WORKER_1).get().getComputingChainTaskIds())
                 .hasSize(nThreads);
