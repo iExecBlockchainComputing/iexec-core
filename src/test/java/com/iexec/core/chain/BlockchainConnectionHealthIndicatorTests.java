@@ -138,9 +138,9 @@ class BlockchainConnectionHealthIndicatorTests {
 
         blockchainConnectionHealthIndicator.checkConnection();
 
-        final Integer consecutiveFailures = getConsecutiveFailures();
-        final Boolean outOfService = isOutOfService();
-        final LocalDateTime firstFailure = getFirstFailure();
+        final Integer consecutiveFailures = blockchainConnectionHealthIndicator.getConsecutiveFailures();
+        final Boolean outOfService = blockchainConnectionHealthIndicator.isOutOfService();
+        final LocalDateTime firstFailure = blockchainConnectionHealthIndicator.getFirstFailure();
 
         Assertions.assertThat(consecutiveFailures).isEqualTo(expectedConsecutiveFailures);
         Assertions.assertThat(outOfService).isEqualTo(expectedOutOfService);
@@ -207,24 +207,12 @@ class BlockchainConnectionHealthIndicatorTests {
     // endregion
 
     // region utils
-    private Boolean isOutOfService() {
-        return (Boolean) ReflectionTestUtils.getField(blockchainConnectionHealthIndicator, "outOfService");
-    }
-
     private void setOufOService(boolean isOutOfService) {
         ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "outOfService", isOutOfService);
     }
 
-    private Integer getConsecutiveFailures() {
-        return (Integer) ReflectionTestUtils.getField(blockchainConnectionHealthIndicator, "consecutiveFailures");
-    }
-
     private void setConsecutiveFailures(int consecutiveFailures) {
         ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "consecutiveFailures", consecutiveFailures);
-    }
-
-    private LocalDateTime getFirstFailure() {
-        return (LocalDateTime) ReflectionTestUtils.getField(blockchainConnectionHealthIndicator, "firstFailure");
     }
 
     private void setFirstFailure(LocalDateTime firstFailure) {

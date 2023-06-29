@@ -16,6 +16,7 @@
 
 package com.iexec.core.chain;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,8 +51,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     /**
      * Current number of consecutive failures.
      */
+    @Getter
     private int consecutiveFailures = 0;
+    @Getter
     private LocalDateTime firstFailure = null;
+    @Getter
     private boolean outOfService = false;
 
     /**
