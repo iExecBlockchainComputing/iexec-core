@@ -152,11 +152,9 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * </ul>
      */
     private void connectionSucceeded() {
-        if (!outOfService) {
-            if (consecutiveFailures > 0) {
-                log.info("Blockchain connection is now restored after a period of unavailability." +
-                        " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
-            }
+        if (!outOfService && consecutiveFailures > 0) {
+            log.info("Blockchain connection is now restored after a period of unavailability." +
+                    " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
             firstFailure = null;
         }
         consecutiveFailures = 0;
