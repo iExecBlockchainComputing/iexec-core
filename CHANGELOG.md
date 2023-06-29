@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
 
+## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
+
+## Bug fixes
+- Prevent race conditions in `WorkerService`. (#602)
+### Dependency Upgrades
+- Upgrade to `iexec-commons-poco` 3.0.5. (#602)
+
 ## [[8.1.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.1) 2023-06-23
 
 ### Dependency Upgrades
