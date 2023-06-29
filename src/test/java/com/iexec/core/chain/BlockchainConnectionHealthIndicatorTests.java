@@ -33,6 +33,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,10 +74,10 @@ class BlockchainConnectionHealthIndicatorTests {
         blockchainConnectionHealthIndicator.scheduleMonitoring();
 
         Mockito.verify(executor).scheduleAtFixedRate(
-                blockchainConnectionHealthIndicator.checkConnectionRunnable,
-                0L,
-                15L,
-                TimeUnit.SECONDS
+                any(),
+                eq(0L),
+                eq(15L),
+                eq(TimeUnit.SECONDS)
         );
     }
     // endregion

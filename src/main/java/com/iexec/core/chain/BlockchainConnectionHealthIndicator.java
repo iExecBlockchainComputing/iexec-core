@@ -59,10 +59,6 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private boolean outOfService = false;
 
     /**
-     * Required for test purposes, can't test lambdas equality.
-     */
-    final Runnable checkConnectionRunnable = this::checkConnection;
-    /**
      * Required for test purposes.
      */
     private final Clock clock;
@@ -97,7 +93,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     @PostConstruct
     void scheduleMonitoring() {
-        monitoringExecutor.scheduleAtFixedRate(checkConnectionRunnable, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
+        monitoringExecutor.scheduleAtFixedRate(this::checkConnection, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
     }
 
     /**
