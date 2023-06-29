@@ -54,6 +54,9 @@ chain:
   startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
   gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
   gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
+  health:
+    pollingIntervalInBlocks: ${IEXEC_CHAIN_HEALTH_POLLING_INTERVAL_IN_BLOCKS:3}
+    outOfServiceThreshold: ${IEXEC_CHAIN_HEALTH_OUT_OF_SERVICE_THRESHOLD:4}
 
 blockchain-adapter:
   protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
@@ -77,6 +80,9 @@ management:
         # or:
         # *
         include: ${IEXEC_CORE_MANAGEMENT_ACTUATORS:health, info}
+  endpoint:
+    health:
+      show-details: always  # Show all details of HealthIndicators
 
 graylog:
   host: ${IEXEC_CORE_GRAYLOG_HOST:localhost}

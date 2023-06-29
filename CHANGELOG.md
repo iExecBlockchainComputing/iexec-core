@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
 
+### New Features
+- Add blockchain connection health indicator. (#601)
 ### Bug Fixes
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
