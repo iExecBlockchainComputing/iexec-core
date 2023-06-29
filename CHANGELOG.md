@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## Bug fixes
 - Prevent race conditions in `WorkerService`. (#602)
+### Dependency Upgrades
+- Upgrade to `iexec-commons-poco` 3.0.5. (#602)
 
 ## [[8.1.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.1) 2023-06-23
 
