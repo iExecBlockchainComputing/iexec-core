@@ -16,27 +16,21 @@
 
 package com.iexec.core.pubsub;
 
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import com.iexec.commons.poco.notification.TaskNotification;
 
 class NotificationServiceTests {
 
     @Mock
     private SimpMessagingTemplate sender;
-
-    @Mock
-    private BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator;
 
     @Spy
     @InjectMocks
@@ -47,34 +41,16 @@ class NotificationServiceTests {
 
     @Test
     void shouldSendTaskNotification() {
-        when(blockchainConnectionHealthIndicator.isUp()).thenReturn(true);
-
-        final String chainTaskId = "chainTaskId";
-        final TaskNotification taskNotification = TaskNotification.builder()
+        String chainTaskId = "chainTaskId";
+        TaskNotification taskNotification = TaskNotification.builder()
             .chainTaskId(chainTaskId)
             .build();
 
         notificationService.sendTaskNotification(taskNotification);
 
-        final String destination = "/topic/task/" + taskNotification.getChainTaskId();
+        String destination = "/topic/task/" + taskNotification.getChainTaskId();
 
-        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
-        verify(sender, times(1)).convertAndSend(destination, taskNotification);
+        Mockito.verify(sender, Mockito.times(1))
+            .convertAndSend(destination, taskNotification);
     }
-
-    @Test
-    void shouldNotSendTaskNotificationSinceChainConnexionDown() {
-        when(blockchainConnectionHealthIndicator.isUp()).thenReturn(false);
-
-        final String chainTaskId = "chainTaskId";
-        final TaskNotification taskNotification = TaskNotification.builder()
-                .chainTaskId(chainTaskId)
-                .build();
-
-        notificationService.sendTaskNotification(taskNotification);
-
-        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
-        verify(sender, never()).convertAndSend(anyString(), any(TaskNotification.class));
-    }
-
 }
