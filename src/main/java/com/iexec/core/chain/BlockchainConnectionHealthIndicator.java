@@ -176,4 +176,8 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                 .withDetail("outOfServiceThreshold", outOfServiceThreshold)
                 .build();
     }
+
+    public boolean isUp() {
+        return health().getStatus() == Status.UP;
+    }
 }

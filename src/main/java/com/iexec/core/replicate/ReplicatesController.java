@@ -19,6 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import feign.FeignException;
@@ -41,15 +42,18 @@ public class ReplicatesController {
     private final ReplicateSupplyService replicateSupplyService;
     private final JwtTokenProvider jwtTokenProvider;
     private final WorkerService workerService;
+    private final BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator;
 
     public ReplicatesController(ReplicatesService replicatesService,
                                 ReplicateSupplyService replicateSupplyService,
                                 JwtTokenProvider jwtTokenProvider,
-                                WorkerService workerService) {
+                                WorkerService workerService,
+                                BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator) {
         this.replicatesService = replicatesService;
         this.replicateSupplyService = replicateSupplyService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.workerService = workerService;
+        this.blockchainConnectionHealthIndicator = blockchainConnectionHealthIndicator;
     }
 
     @GetMapping("/replicates/available")
@@ -59,6 +63,12 @@ public class ReplicatesController {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!blockchainConnectionHealthIndicator.isUp()) {
+            log.debug("Blockchain is down. Can't get available replicate task summary" +
+                    " [workerAddress: {}]", workerWalletAddress);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
 
         if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)) {
@@ -111,6 +121,12 @@ public class ReplicatesController {
 
         if (walletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!blockchainConnectionHealthIndicator.isUp()) {
+            log.debug("Blockchain is down. Won't update replicate status" +
+                    " [workerAddress: {}]", walletAddress);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
 
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
