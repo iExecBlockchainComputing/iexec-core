@@ -34,9 +34,6 @@ repositories {
             password nexusPassword
         }
     }
-    maven {
-        url "https://nexus.intra.iex.ec/repository/maven-public/"
-    }
     maven { url "https://jitpack.io" }
 }
 
