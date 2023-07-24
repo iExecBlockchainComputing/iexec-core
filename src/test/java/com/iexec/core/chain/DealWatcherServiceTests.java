@@ -84,12 +84,17 @@ class DealWatcherServiceTests {
     }
 
     @Test
-    void shouldRun() {
+    void shouldRunAndStop() {
         BigInteger blockNumber = BigInteger.TEN;
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
         when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.empty());
         dealWatcherService.run();
         verify(iexecHubService).getDealEventObservable(any());
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, "outOfService"))
+                .isEqualTo(false);
+        dealWatcherService.stop();
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, "outOfService"))
+                .isEqualTo(true);
     }
 
     // region subscribeToDealEventFromOneBlockToLatest
