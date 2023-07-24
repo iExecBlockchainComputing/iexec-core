@@ -95,10 +95,7 @@ public class DealWatcherService {
     @EventListener(ApplicationReadyEvent.class)
     public void run() {
         outOfService = false;
-        if (dealEventsSubscription != null && !dealEventsSubscription.isDisposed()) {
-            log.warn("Deal events subscription should have been disposed, it will be disposed now");
-            dealEventsSubscription.dispose();
-        }
+        disposeSubscription(dealEventsSubscription);
         dealEventsSubscription = subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
     }
 
@@ -118,8 +115,16 @@ public class DealWatcherService {
     @EventListener(ChainDisconnectedEvent.class)
     public void stop() {
         outOfService = true;
-        if (dealEventsSubscription != null && !dealEventsSubscription.isDisposed()) {
-            dealEventsSubscription.dispose();
+        disposeSubscription(dealEventsSubscription);
+    }
+
+    /**
+     * Dispose of a {@link Disposable} subscription if it exists and is not already disposed.
+     * @param subscription Deal event subscription to dispose of.
+     */
+    private void disposeSubscription(Disposable subscription) {
+        if (subscription != null && !subscription.isDisposed()) {
+            subscription.dispose();
         }
     }
 
@@ -246,9 +251,7 @@ public class DealWatcherService {
         if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
             return;
         }
-        if (dealEventSubscriptionReplay != null && !dealEventSubscriptionReplay.isDisposed()) {
-            dealEventSubscriptionReplay.dispose();
-        }
+        disposeSubscription(dealEventSubscriptionReplay);
         if (outOfService) {
             log.info("OUT-OF-SERVICE do not create replay subscription");
             return;
