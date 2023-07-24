@@ -16,5 +16,10 @@
 
 package com.iexec.core.chain.event;
 
-public class ChainConnectedEvent {
+import org.springframework.context.ApplicationEvent;
+
+public class ChainConnectedEvent extends ApplicationEvent {
+    public ChainConnectedEvent(Object source) {
+        super(source);
+    }
 }

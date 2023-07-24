@@ -146,7 +146,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                     " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
             if (!outOfService) {
                 outOfService = true;
-                applicationEventPublisher.publishEvent(new ChainDisconnectedEvent());
+                applicationEventPublisher.publishEvent(new ChainDisconnectedEvent(this));
             }
         } else {
             if (consecutiveFailures == 1) {
@@ -175,7 +175,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
             firstFailure = null;
             consecutiveFailures = 0;
             if (outOfService) {
-                applicationEventPublisher.publishEvent(new ChainConnectedEvent());
+                applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
                 outOfService = false;
             }
         }
