@@ -26,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.*;
@@ -45,6 +46,8 @@ class BlockchainConnectionHealthIndicatorTests {
     private static final Clock CLOCK = Clock.fixed(Instant.ofEpochSecond(1), ZoneId.systemDefault());
 
     @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+    @Mock
     private Web3jService web3jService;
     @Mock
     private ChainConfig chainConfig;
@@ -59,6 +62,7 @@ class BlockchainConnectionHealthIndicatorTests {
         when(chainConfig.getBlockTime()).thenReturn(BLOCK_TIME);
 
         this.blockchainConnectionHealthIndicator = new BlockchainConnectionHealthIndicator(
+                applicationEventPublisher,
                 web3jService,
                 chainConfig,
                 POLLING_INTERVAL_IN_BLOCKS,
@@ -116,10 +120,10 @@ class BlockchainConnectionHealthIndicatorTests {
                 Arguments.of(4 , true , LocalDateTime.now(CLOCK), 0L, 5 , true, LocalDateTime.now(CLOCK)),
                 Arguments.of(50, true , LocalDateTime.now(CLOCK), 0L, 51, true, LocalDateTime.now(CLOCK)),
 
-                // Should get latest block number but stay OUT-OF-SERVICE
-                Arguments.of(4 , true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK)),
-                Arguments.of(5 , true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK)),
-                Arguments.of(50, true, LocalDateTime.now(CLOCK), 1L, 0, true, LocalDateTime.now(CLOCK))
+                // Should get latest block number and exit OUT-OF-SERVICE
+                Arguments.of(4 , true, LocalDateTime.now(CLOCK), 1L, 0, false, null),
+                Arguments.of(5 , true, LocalDateTime.now(CLOCK), 1L, 0, false, null),
+                Arguments.of(50, true, LocalDateTime.now(CLOCK), 1L, 0, false, null)
         );
     }
 

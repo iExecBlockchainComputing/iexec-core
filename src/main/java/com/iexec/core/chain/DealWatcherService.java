@@ -20,6 +20,8 @@ import com.iexec.commons.poco.chain.ChainDeal;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.event.ChainConnectedEvent;
+import com.iexec.core.chain.event.ChainDisconnectedEvent;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -58,6 +60,8 @@ public class DealWatcherService {
     private final TaskService taskService;
     private final Web3jService web3jService;
     // internal variables
+    private boolean outOfService;
+    private Disposable dealEventsSubscription;
     private Disposable dealEventSubscriptionReplay;
     @Getter
     private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
@@ -90,7 +94,33 @@ public class DealWatcherService {
     @Async
     @EventListener(ApplicationReadyEvent.class)
     public void run() {
-        subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
+        outOfService = false;
+        if (dealEventsSubscription != null && !dealEventsSubscription.isDisposed()) {
+            log.warn("Deal events subscription should have been disposed, it will be disposed now");
+            dealEventsSubscription.dispose();
+        }
+        dealEventsSubscription = subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
+    }
+
+    /**
+     * Create new deal watching subscription.
+     */
+    @Async
+    @EventListener(ChainConnectedEvent.class)
+    public void reconnect() {
+        run();
+    }
+
+    /**
+     * Dispose of deal watching subscription.
+     */
+    @Async
+    @EventListener(ChainDisconnectedEvent.class)
+    public void stop() {
+        outOfService = true;
+        if (dealEventsSubscription != null && !dealEventsSubscription.isDisposed()) {
+            dealEventsSubscription.dispose();
+        }
     }
 
     /**
@@ -216,10 +246,14 @@ public class DealWatcherService {
         if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
             return;
         }
-        if (this.dealEventSubscriptionReplay != null && !this.dealEventSubscriptionReplay.isDisposed()) {
-            this.dealEventSubscriptionReplay.dispose();
+        if (dealEventSubscriptionReplay != null && !dealEventSubscriptionReplay.isDisposed()) {
+            dealEventSubscriptionReplay.dispose();
         }
-        this.dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
+        if (outOfService) {
+            log.info("OUT-OF-SERVICE do not create replay subscription");
+            return;
+        }
+        dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
         configurationService.setFromReplay(lastSeenBlockWithDeal);
     }
 
