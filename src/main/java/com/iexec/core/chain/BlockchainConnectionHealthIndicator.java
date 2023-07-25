@@ -115,12 +115,12 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <p>
      * If blockchain is reachable, then reset the counter.
      * <p>
-     * /!\ If the indicator becomes {@code OUT_OF_SERVICE}, then it stays as is until the Scheduler is restarted
-     * even if the blockchain is later available again.
+     * If the indicator becomes {@link Status#OUT_OF_SERVICE}, then it stays as is until the communication to the
+     * blockchain node is restored.
      */
     void checkConnection() {
         final long latestBlockNumber = web3jService.getLatestBlockNumber();
-        log.debug("blockNumber {}", latestBlockNumber);
+        log.debug("Latest on-chain block number [block:{}]", latestBlockNumber);
         if (latestBlockNumber == 0) {
             connectionFailed();
         } else {
@@ -137,6 +137,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <ul>
      * <li> Set {@link BlockchainConnectionHealthIndicator#outOfService} to {@literal true}
      * <li> Publish a {@link ChainDisconnectedEvent} event.
+     * </ul>
      */
     private void connectionFailed() {
         ++consecutiveFailures;
@@ -165,7 +166,8 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <ul>
      * <li>Log a "connection restored" message.
      * <li>Reset the {@link BlockchainConnectionHealthIndicator#firstFailure} var to {@code null}
-     * <li>If OUT-OF-SERVICE, publish a {@link ChainConnectedEvent} event and reset the OUT-OF-SERVICE state
+     * <li>If {@link Status#OUT_OF_SERVICE}, publish a {@link ChainConnectedEvent} event and reset the
+     * {@link BlockchainConnectionHealthIndicator#outOfService} state
      * </ul>
      */
     private void connectionSucceeded(long latestBlockNumber) {
