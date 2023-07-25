@@ -92,20 +92,11 @@ public class DealWatcherService {
      * a large number of tasks (BoT).
      */
     @Async
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener({ApplicationReadyEvent.class, ChainConnectedEvent.class})
     public void run() {
         outOfService = false;
         disposeSubscription(dealEventsSubscription);
         dealEventsSubscription = subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
-    }
-
-    /**
-     * Create new deal watching subscription.
-     */
-    @Async
-    @EventListener(ChainConnectedEvent.class)
-    public void reconnect() {
-        run();
     }
 
     /**
