@@ -166,6 +166,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <li>Log a "connection restored" message.
      * <li>Reset the {@link BlockchainConnectionHealthIndicator#firstFailure} var to {@code null}
      * <li>If OUT-OF-SERVICE, publish a {@link ChainConnectedEvent} event and reset the OUT-OF-SERVICE state
+     * </ul>
      */
     private void connectionSucceeded(long latestBlockNumber) {
         if (consecutiveFailures > 0) {
