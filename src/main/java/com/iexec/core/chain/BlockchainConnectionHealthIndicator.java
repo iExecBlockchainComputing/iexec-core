@@ -176,8 +176,8 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
             firstFailure = null;
             consecutiveFailures = 0;
             if (outOfService) {
-                applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
                 outOfService = false;
+                applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
             }
         }
     }
