@@ -49,6 +49,7 @@ import static org.mockito.Mockito.*;
 
 class DealWatcherServiceTests {
 
+    private static final String OUT_OF_SERVICE_FIELD_NAME = "outOfService";
     @Mock
     private ChainConfig chainConfig;
     @Mock
@@ -90,10 +91,10 @@ class DealWatcherServiceTests {
         when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.empty());
         dealWatcherService.run();
         verify(iexecHubService).getDealEventObservable(any());
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, "outOfService"))
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
                 .isEqualTo(false);
         dealWatcherService.stop();
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, "outOfService"))
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
                 .isEqualTo(true);
     }
 
@@ -277,7 +278,7 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldNotReplayIfOutOfService() {
-        ReflectionTestUtils.setField(dealWatcherService, "outOfService", true);
+        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, true);
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
         dealWatcherService.replayDealEvent();
