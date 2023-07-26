@@ -16,6 +16,8 @@
 
 package com.iexec.core.chain;
 
+import com.iexec.core.chain.event.ChainConnectedEvent;
+import com.iexec.core.chain.event.ChainDisconnectedEvent;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -37,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final Web3jService web3jService;
     /**
      * Interval between 2 requests onto the chain.
@@ -64,11 +68,14 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private final Clock clock;
 
     @Autowired
-    public BlockchainConnectionHealthIndicator(Web3jService web3jService,
-                                               ChainConfig chainConfig,
-                                               @Value("${chain.health.pollingIntervalInBlocks}") int pollingIntervalInBlocks,
-                                               @Value("${chain.health.outOfServiceThreshold}") int outOfServiceThreshold) {
+    public BlockchainConnectionHealthIndicator(
+            ApplicationEventPublisher applicationEventPublisher,
+            Web3jService web3jService,
+            ChainConfig chainConfig,
+            @Value("${chain.health.pollingIntervalInBlocks}") int pollingIntervalInBlocks,
+            @Value("${chain.health.outOfServiceThreshold}") int outOfServiceThreshold) {
         this(
+                applicationEventPublisher,
                 web3jService,
                 chainConfig,
                 pollingIntervalInBlocks,
@@ -78,12 +85,15 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         );
     }
 
-    BlockchainConnectionHealthIndicator(Web3jService web3jService,
-                                        ChainConfig chainConfig,
-                                        int pollingIntervalInBlocks,
-                                        int outOfServiceThreshold,
-                                        ScheduledExecutorService monitoringExecutor,
-                                        Clock clock) {
+    BlockchainConnectionHealthIndicator(
+            ApplicationEventPublisher applicationEventPublisher,
+            Web3jService web3jService,
+            ChainConfig chainConfig,
+            int pollingIntervalInBlocks,
+            int outOfServiceThreshold,
+            ScheduledExecutorService monitoringExecutor,
+            Clock clock) {
+        this.applicationEventPublisher = applicationEventPublisher;
         this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime().multipliedBy(pollingIntervalInBlocks);
         this.outOfServiceThreshold = outOfServiceThreshold;
@@ -105,33 +115,40 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <p>
      * If blockchain is reachable, then reset the counter.
      * <p>
-     * /!\ If the indicator becomes {@code OUT_OF_SERVICE}, then it stays as is until the Scheduler is restarted
-     * even if the blockchain is later available again.
+     * If the indicator becomes {@link Status#OUT_OF_SERVICE}, then it stays as is until the communication to the
+     * blockchain node is restored.
      */
     void checkConnection() {
         final long latestBlockNumber = web3jService.getLatestBlockNumber();
+        log.debug("Latest on-chain block number [block:{}]", latestBlockNumber);
         if (latestBlockNumber == 0) {
             connectionFailed();
         } else {
-            connectionSucceeded();
+            connectionSucceeded(latestBlockNumber);
         }
     }
 
     /**
      * Increment the {@link BlockchainConnectionHealthIndicator#consecutiveFailures} counter.
      * <p>
-     * If {@link BlockchainConnectionHealthIndicator#outOfServiceThreshold} has been reached,
-     * then set {@link BlockchainConnectionHealthIndicator#outOfService} to {@code true}.
-     * <p>
      * If first failure, set the {@link BlockchainConnectionHealthIndicator#firstFailure} to current time.
+     * <p>
+     * If {@link BlockchainConnectionHealthIndicator#outOfServiceThreshold} has been reached for the first time:
+     * <ul>
+     * <li> Set {@link BlockchainConnectionHealthIndicator#outOfService} to {@literal true}
+     * <li> Publish a {@link ChainDisconnectedEvent} event.
+     * </ul>
      */
     private void connectionFailed() {
         ++consecutiveFailures;
         if (consecutiveFailures >= outOfServiceThreshold) {
-            outOfService = true;
             log.error("Blockchain hasn't been accessed for a long period. " +
-                    "This Scheduler is now OUT-OF-SERVICE until it is restarted." +
+                    "This Scheduler is now OUT-OF-SERVICE until communication is restored." +
                     " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
+            if (!outOfService) {
+                outOfService = true;
+                applicationEventPublisher.publishEvent(new ChainDisconnectedEvent(this));
+            }
         } else {
             if (consecutiveFailures == 1) {
                 firstFailure = LocalDateTime.now(clock);
@@ -145,19 +162,26 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     /**
      * Reset {@link BlockchainConnectionHealthIndicator#consecutiveFailures} to {@code 0}.
      * <p>
-     * If never been OUT-OF-SERVICE, then:
+     * If previous failures occurred, then:
      * <ul>
-     *     <li>Reset the {@link BlockchainConnectionHealthIndicator#firstFailure} var to {@code null};</li>
-     *     <li>Log a "connection restored" message.</li>
+     * <li>Log a "connection restored" message.
+     * <li>Reset the {@link BlockchainConnectionHealthIndicator#firstFailure} var to {@code null}
+     * <li>If {@link Status#OUT_OF_SERVICE}, publish a {@link ChainConnectedEvent} event and reset the
+     * {@link BlockchainConnectionHealthIndicator#outOfService} state
      * </ul>
      */
-    private void connectionSucceeded() {
-        if (!outOfService && consecutiveFailures > 0) {
+    private void connectionSucceeded(long latestBlockNumber) {
+        if (consecutiveFailures > 0) {
             log.info("Blockchain connection is now restored after a period of unavailability." +
-                    " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(consecutiveFailures));
+                    " [block:{}, unavailabilityPeriod:{}]",
+                    latestBlockNumber, pollingInterval.multipliedBy(consecutiveFailures));
             firstFailure = null;
+            consecutiveFailures = 0;
+            if (outOfService) {
+                outOfService = false;
+                applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
+            }
         }
-        consecutiveFailures = 0;
     }
 
     @Override

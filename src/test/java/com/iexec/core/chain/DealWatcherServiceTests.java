@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.protocol.core.methods.response.Log;
 
 import java.math.BigInteger;
@@ -48,6 +49,7 @@ import static org.mockito.Mockito.*;
 
 class DealWatcherServiceTests {
 
+    private static final String OUT_OF_SERVICE_FIELD_NAME = "outOfService";
     @Mock
     private ChainConfig chainConfig;
     @Mock
@@ -83,14 +85,20 @@ class DealWatcherServiceTests {
     }
 
     @Test
-    void shouldRun() {
+    void shouldRunAndStop() {
         BigInteger blockNumber = BigInteger.TEN;
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
         when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.empty());
         dealWatcherService.run();
         verify(iexecHubService).getDealEventObservable(any());
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
+                .isEqualTo(false);
+        dealWatcherService.stop();
+        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
+                .isEqualTo(true);
     }
 
+    // region subscribeToDealEventFromOneBlockToLatest
     @Test
     void shouldUpdateLastSeenBlockWhenOneDeal() {
         BigInteger from = BigInteger.valueOf(0);
@@ -243,7 +251,9 @@ class DealWatcherServiceTests {
         verify(configurationService).getLastSeenBlockWithDeal();
         verify(configurationService, never()).setLastSeenBlockWithDeal(blockOfDeal);
     }
+    // endregion
 
+    // region replayDealEvent
     @Test
     void shouldReplayAllEventInRange() {
         BigInteger blockOfDeal = BigInteger.valueOf(3);
@@ -265,6 +275,16 @@ class DealWatcherServiceTests {
         dealWatcherService.replayDealEvent();
         verifyNoInteractions(iexecHubService);
     }
+
+    @Test
+    void shouldNotReplayIfOutOfService() {
+        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, true);
+        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
+        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
+        dealWatcherService.replayDealEvent();
+        verifyNoInteractions(iexecHubService);
+    }
+    // endregion
 
     // region shouldProcessDeal
     static Stream<Arguments> validDeals() {

@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Add blockchain connection health indicator. (#601)
 - Block some connections and messages when blockchain connection is down. (#604)
 - Remove `nexus.intra.iex.ec` repository. (#605)
+- Block deal watching mechanisms when communication with the blockchain node is lost. (#606)
 ### Bug Fixes
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
