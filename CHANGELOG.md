@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
 ### Quality
-- Remove `Graylog` support. (#607)
+- Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
 ### Dependency Upgrades
 - Remove `logstash-gelf` dependency. (#607)
 
