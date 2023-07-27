@@ -49,8 +49,6 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_RESULT_REPOSITORY_HOST` | _iExec Result Proxy_ server host. | String | `localhost` |
 | `IEXEC_RESULT_REPOSITORY_PORT` | _iExec Result Proxy_ server port. | Positive integer | `13200` |
 | `IEXEC_CORE_MANAGEMENT_ACTUATORS` | Endpoint IDs that should be included or `*` for all. | String | `health, info` |
-| `IEXEC_CORE_GRAYLOG_HOST` | _Graylog_ server host. | String | `localhost` |
-| `IEXEC_CORE_GRAYLOG_PORT` | _Graylog_ server port. | Positive integer | `12201` |
 | `IEXEC_LOGS_PURGE_RATE_IN_DAYS` | Interval in days between 2 executions of the purge mechanism. | Positive integer | `1` |
 | `IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS` | Number of days to keep logs of past tasks. | Positive integer | `3` |
 

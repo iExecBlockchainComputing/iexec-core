@@ -52,9 +52,7 @@ dependencies {
     implementation "com.iexec.sms:iexec-sms-library:$iexecSmsVersion"
 
     // spring
-    implementation ("org.springframework.boot:spring-boot-starter") {
-        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging' //required for Graylog
-    }
+    implementation "org.springframework.boot:spring-boot-starter"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-aop"
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
@@ -87,9 +85,6 @@ dependencies {
 
     // ipfs
     implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
-
-    // graylog
-    implementation 'biz.paluch.logging:logstash-gelf:1.5.1'
 
     // observability
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'

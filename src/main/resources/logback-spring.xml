@@ -22,16 +22,4 @@
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
     <logger name="org.springframework.web" level="${LOG_LEVEL}"/>
 
-    <!-- Graylog -->
-    <springProperty name="graylogHost" source="graylog.host"/>
-    <springProperty name="graylogPort" source="graylog.port"/>
-    <appender name="gelf" class="com.iexec.core.log.IexecGelfLogbackAppender">
-        <host>${graylogHost}</host>
-        <port>${graylogPort}</port>
-    </appender>
-
-    <root level="${LOG_LEVEL}">
-        <appender-ref ref="gelf"/>
-    </root>
-
 </configuration>
