@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
+### Quality
+- Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
+### Dependency Upgrades
+- Remove `logstash-gelf` dependency. (#607)
 
 ## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
 
