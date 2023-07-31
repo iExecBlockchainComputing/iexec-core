@@ -7,13 +7,15 @@ All notable changes to this project will be documented in this file.
 ### New Features
 - Add blockchain connection health indicator. (#601)
 - Block some connections and messages when blockchain connection is down. (#604)
-- Remove `nexus.intra.iex.ec` repository. (#605)
 - Block deal watching mechanisms when communication with the blockchain node is lost. (#606)
 ### Bug Fixes
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
 ### Quality
+- Remove `nexus.intra.iex.ec` repository. (#605)
 - Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
+- Events are now immutable with `@Value` lombok annotation. (#608)
+- Fix several code smells. (#609)
 ### Dependency Upgrades
 - Remove `logstash-gelf` dependency. (#607)
 

@@ -44,7 +44,7 @@ class ReplicateTests {
     @Test
     void shouldSerializeAndDeserializeReplicate() throws JsonProcessingException {
         Replicate replicate = new Replicate("walletAddress", "chainTaskId");
-        assertThat(replicate.getStatusUpdateList().size()).isEqualTo(1);
+        assertThat(replicate.getStatusUpdateList()).hasSize(1);
         String jsonString = mapper.writeValueAsString(replicate);
         long date = replicate.getStatusUpdateList().get(0).getDate().getTime();
         String expectedString = "{"
@@ -76,7 +76,7 @@ class ReplicateTests {
         Date now = new Date();
         long duration = now.getTime() - statusChange.getDate().getTime();
         long diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
-        assertThat(diffInSeconds).isLessThan(1);
+        assertThat(diffInSeconds).isNotPositive();
     }
 
     @Test
@@ -97,7 +97,7 @@ class ReplicateTests {
         Date now = new Date();
         long duration = now.getTime() - updatedStatus.getDate().getTime();
         long diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
-        assertThat(diffInSeconds).isLessThan(1);
+        assertThat(diffInSeconds).isNotPositive();
     }
 
     @Test
