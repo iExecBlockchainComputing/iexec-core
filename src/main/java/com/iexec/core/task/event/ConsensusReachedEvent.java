@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,13 @@
 
 package com.iexec.core.task.event;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Value;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
+@Value
 @Builder
 public class ConsensusReachedEvent {
-
-    private String chainTaskId;
-    private String consensus;
-    private long blockNumber;
+    String chainTaskId;
+    String consensus;
+    long blockNumber;
 }

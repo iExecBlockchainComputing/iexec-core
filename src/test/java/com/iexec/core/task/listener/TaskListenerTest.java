@@ -70,16 +70,14 @@ class TaskListenerTest {
 
     @Test
     void shouldUpdateTaskOnTasCreatedEvent() {
-        TaskCreatedEvent event = new TaskCreatedEvent();
-        event.setChainTaskId(CHAIN_TASK_ID);
+        TaskCreatedEvent event = new TaskCreatedEvent(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
         verify(taskUpdateRequestManager).publishRequest(anyString());
     }
 
     @Test
     void shouldProcessContributionTimeoutEvent() {
-        ContributionTimeoutEvent event = new ContributionTimeoutEvent();
-        event.setChainTaskId(CHAIN_TASK_ID);
+        ContributionTimeoutEvent event = new ContributionTimeoutEvent(CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET1, CHAIN_TASK_ID);
         Replicate replicate2 = new Replicate(WALLET2, CHAIN_TASK_ID);
         List<Replicate> replicates = List.of(replicate1, replicate2);
@@ -102,9 +100,11 @@ class TaskListenerTest {
     void shouldNotifyWinnersAndLosersOnTaskConsensusReached() {
         String winningHash = "hash";
         String badHash = "bad";
-        ConsensusReachedEvent event = new ConsensusReachedEvent();
-        event.setChainTaskId(CHAIN_TASK_ID);
-        event.setConsensus(winningHash);
+        ConsensusReachedEvent event = ConsensusReachedEvent.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .consensus(winningHash)
+                .blockNumber(0L)
+                .build();
         Replicate replicate1 = new Replicate(WALLET1, CHAIN_TASK_ID);
         replicate1.setContributionHash(winningHash);
         Replicate replicate2 = new Replicate(WALLET2, CHAIN_TASK_ID);

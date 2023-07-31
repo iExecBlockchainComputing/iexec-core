@@ -312,7 +312,7 @@ class TaskUpdateManager {
             if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
 
-            // change the the revealDeadline and consensus of the task from the chainTask info
+            // change the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
             long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
@@ -376,9 +376,7 @@ class TaskUpdateManager {
         if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
             updateTaskStatusAndSave(task, FAILED);
-            applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
+            applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(task.getChainTaskId()));
         }
     }
 
@@ -430,9 +428,7 @@ class TaskUpdateManager {
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
         updateTaskStatusAndSave(task, RUNNING_FAILED);
         updateTaskStatusAndSave(task, FAILED);
-        applicationEventPublisher.publishEvent(TaskRunningFailedEvent.builder()
-                .chainTaskId(task.getChainTaskId())
-                .build());
+        applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
     }
 
     void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
@@ -553,9 +549,7 @@ class TaskUpdateManager {
 
         if (isTaskInResultUploading && isNowAfterFinalDeadline) {
             updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
-            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
+            applicationEventPublisher.publishEvent(new ResultUploadTimeoutEvent(task.getChainTaskId()));
             updateTaskStatusAndSave(task, FAILED);
         }
     }
