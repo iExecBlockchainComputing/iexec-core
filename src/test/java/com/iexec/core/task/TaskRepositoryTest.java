@@ -68,7 +68,8 @@ class TaskRepositoryTest {
     void shouldFailWithDuplicateUniqueDealIdx() {
         Task task1 = getStubTask(maxExecutionTime);
         Task task2 = getStubTask(maxExecutionTime);
-        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
+        final List<Task> tasks = Arrays.asList(task1, task2);
+        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(tasks))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
                 .hasMessageContainingAll("E11000", "duplicate key error collection", "unique_deal_idx dup key");
@@ -80,7 +81,8 @@ class TaskRepositoryTest {
         task1.setTaskIndex(0);
         Task task2 = getStubTask(maxExecutionTime);
         task2.setTaskIndex(1);
-        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(Arrays.asList(task1, task2)))
+        final List<Task> tasks = Arrays.asList(task1, task2);
+        Assertions.assertThatThrownBy(() -> taskRepository.saveAll(tasks))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasCauseExactlyInstanceOf(com.mongodb.MongoBulkWriteException.class)
                 .hasMessageContainingAll("E11000", "duplicate key error collection", "chainTaskId dup key");
@@ -115,7 +117,7 @@ class TaskRepositoryTest {
         taskRepository.saveAll(Arrays.asList(task1, task2, task3, task4));
 
         List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
-        Assertions.assertThat(foundTasks.size()).isEqualTo(4);
+        Assertions.assertThat(foundTasks).hasSize(4);
         Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task4);
         Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task1);
         Assertions.assertThat(foundTasks.remove(0)).usingRecursiveComparison().isEqualTo(task3);
@@ -139,7 +141,7 @@ class TaskRepositoryTest {
                 .thenComparing(Task::getContributionDeadline));
 
         List<Task> foundTasks = queryTasksOrderedByStatusThenContributionDeadline();
-        Assertions.assertThat(foundTasks.size()).isEqualTo(taskRepository.count());
+        Assertions.assertThat(foundTasks).hasSize((int) taskRepository.count());
         for (Task task : tasks) {
             Assertions.assertThat(task).usingRecursiveComparison().isEqualTo(foundTasks.remove(0));
         }
