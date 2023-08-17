@@ -8,7 +8,7 @@ spring:
       host: ${MONGO_HOST:localhost}
       port: ${MONGO_PORT:13002}
       auto-index-creation: true # Auto-index creation is disabled by default starting with Spring Data MongoDB 3.x.
-  config.import: "configserver:${IEXEC_PLATFORM_REGISTRY}" # configserver:http://platform-registry:8888
+  config.import: "configserver:${IEXEC_PLATFORM_REGISTRY:http://localhost:8888}" # configserver:http://platform-registry:8888
   cloud.config:
     profile: ${IEXEC_PLATFORM_REGISTRY_STACK:} # mainnet, bellecour3, 1234, ..
     label: ${IEXEC_PLATFORM_REGISTRY_LABEL:} # main, develop, v10, 07998be
@@ -60,7 +60,7 @@ chain:
 
 blockchain-adapter:
   protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
-  host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:blockchain-adapter}
+  host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:localhost}
   port: ${IEXEC_CORE_CHAIN_ADAPTER_PORT:13010}
   user:
     name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
