@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.
 ### Dependency Upgrades
 - Remove `logstash-gelf` dependency. (#607)
 - Upgrade to `eclipse-temurin` 11.0.20. (#610)
+- Upgrade to Spring Boot 2.7.14. (#611)
+- Upgrade to Spring Dependency Management Plugin 1.1.3. (#611)
 
 ## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
 
