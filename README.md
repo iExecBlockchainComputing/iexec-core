@@ -24,7 +24,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CORE_PORT` | Server port of the _iExec Core Scheduler_. | Positive integer | `13000` |
 | `MONGO_HOST` | _MongoDB_ server host. Cannot be set with URI. | String | `localhost` |
 | `MONGO_PORT` | _MongoDB_ server port. Cannot be set with URI. | Positive integer | `13002` |
-| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | |
+| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | `http://localhost:8888` |
 | `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific stack configuration exposed by the _iExec Platform Registry_. | String | |
 | `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files exposed by the _iExec Platform Registry_. It might be a Git label such as `main`, `v10` or `07998be`. | String | |
 | `REVEAL_TIMEOUT_PERIOD` | Detector period to track reveal timeouts for tasks. | Positive integer | `120000` |
@@ -39,7 +39,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_GAS_PRICE_MULTIPLIER` | Transactions will be sent with `networkGasPrice * gasPriceMultiplier`. | Float | `1.0` |
 | `IEXEC_GAS_PRICE_CAP` | In Wei, will be used for transactions if `networkGasPrice * gasPriceMultiplier > gasPriceCap` | Integer | `22000000000` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL` | _iExec Blockchain Adapter_ communication protocol. | String | `http` |
-| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `blockchain-adapter` |
+| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `localhost` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PORT` | _iExec Blockchain Adapter_ server port. | Positive integer | `13010` |
 | `IEXEC_CORE_CHAIN_ADAPTER_USERNAME` | Username to connect to the _iExec Blockchain Adapter_ server. | String | `admin` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PASSWORD` | Password to connect to the _iExec Blockchain Adapter_ server. | String | `whatever` |
