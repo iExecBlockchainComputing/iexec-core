@@ -91,7 +91,9 @@ dependencies {
     // vavr
     implementation 'io.vavr:vavr:0.10.4'
 
+    // tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // awaitility
     testImplementation 'org.awaitility:awaitility'
