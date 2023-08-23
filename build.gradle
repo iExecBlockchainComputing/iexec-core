@@ -135,9 +135,6 @@ tasks.register('itest') {
     description 'Runs the integration tests.'
 }
 
-jacoco {
-    toolVersion = "0.8.7"
-}
 // sonarqube code coverage requires jacoco XML report
 jacocoTestReport {
     reports {
