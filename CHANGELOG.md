@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
 - Events are now immutable with `@Value` lombok annotation. (#608)
 - Fix several code smells. (#609)
+- Upgrade to Gradle 8.2.1 with up-to-date plugins. (#612)
 ### Dependency Upgrades
 - Remove `logstash-gelf` dependency. (#607)
 - Upgrade to `eclipse-temurin` 11.0.20. (#610)
