@@ -14,6 +14,7 @@ ext {
     springCloudVersion = '2021.0.8'
     jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
+    testContainersVersion = '1.19.0'
 }
 
 if (!project.hasProperty('gitBranch')) {
@@ -99,9 +100,8 @@ dependencies {
     testImplementation 'org.awaitility:awaitility'
 
     // mongo
-    testImplementation 'org.testcontainers:testcontainers:1.16.2'
-    testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
-    testImplementation 'org.testcontainers:mongodb:1.16.2'
+    testImplementation "org.testcontainers:junit-jupiter:$testContainersVersion"
+    testImplementation "org.testcontainers:mongodb:$testContainersVersion"
 }
 
 java {
