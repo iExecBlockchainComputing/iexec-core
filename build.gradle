@@ -100,7 +100,6 @@ dependencies {
     testImplementation 'org.awaitility:awaitility'
 
     // mongo
-    testImplementation "org.testcontainers:testcontainers:$testContainersVersion"
     testImplementation "org.testcontainers:junit-jupiter:$testContainersVersion"
     testImplementation "org.testcontainers:mongodb:$testContainersVersion"
 }
