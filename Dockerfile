@@ -10,4 +10,4 @@ RUN apt-get update \
 
 COPY $jar iexec-core.jar
 
-ENTRYPOINT ["java", "-jar", "/iexec-core.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/iexec-core.jar"]
