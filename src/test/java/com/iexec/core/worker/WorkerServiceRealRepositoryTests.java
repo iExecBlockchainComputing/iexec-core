@@ -48,11 +48,11 @@ import static com.iexec.commons.poco.utils.TestUtils.WALLET_WORKER_1;
 @Testcontainers
 class WorkerServiceRealRepositoryTests {
     @Container
-    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.2"));
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.4"));
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.host", mongoDBContainer::getContainerIpAddress);
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
         registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
     }
 
