@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,6 +71,14 @@ class FinalizedTaskDetectorTests {
         final Task contributeAndFinalizeTask = getContributeAndFinalizeDoneTask(contributedAndFinalizedChainTaskId).build();
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(contributeAndFinalizeTask));
 
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(contributedAndFinalizedChainTaskId)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(contributedAndFinalizedChainTaskId)).thenReturn(taskDescription);
+
         detector.detect();
 
         verify(taskUpdateRequestManager).publishRequest(completedChainTaskId);
@@ -104,8 +114,15 @@ class FinalizedTaskDetectorTests {
     @Test
     void shouldDetectContributeAndFinalizeDoneTask() {
         final Task task = getContributeAndFinalizeDoneTask(CHAIN_TASK_ID).build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
 
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(task));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         detector.detectContributeAndFinalizeDoneTasks();
 
@@ -115,8 +132,15 @@ class FinalizedTaskDetectorTests {
     @Test
     void shouldDetectNoContributeAndFinalizeDoneTaskAsTaskIsRevealing() {
         final Task task = getOnchainRevealingTask(CHAIN_DEAL_ID).build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
 
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(task));
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         detector.detectContributeAndFinalizeDoneTasks();
 
@@ -162,6 +186,13 @@ class FinalizedTaskDetectorTests {
     @Test
     void shouldTaskBeContributeAndFinalizeDone() {
         final Task task = getContributeAndFinalizeDoneTask(CHAIN_TASK_ID).build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
 
@@ -175,6 +206,13 @@ class FinalizedTaskDetectorTests {
                 .currentStatus(TaskStatus.FINALIZING)
                 .tag(NO_TEE_TAG)
                 .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(false)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
 
@@ -194,9 +232,16 @@ class FinalizedTaskDetectorTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .status(ChainTaskStatus.COMPLETED)
                 .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate1, replicate2));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
 
@@ -212,8 +257,15 @@ class FinalizedTaskDetectorTests {
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
 
@@ -233,9 +285,16 @@ class FinalizedTaskDetectorTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .status(ChainTaskStatus.REVEALING)
                 .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .isTeeTask(true)
+                .trust(BigInteger.ONE)
+                .callback("")
+                .build();
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(taskDescription);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
 

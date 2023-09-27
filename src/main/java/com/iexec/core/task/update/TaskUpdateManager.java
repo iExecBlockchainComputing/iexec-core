@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
@@ -331,7 +332,8 @@ class TaskUpdateManager {
         boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
 
-        if (!task.isEligibleToContributeAndFinalize()) {
+        final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
+        if (!taskDescription.isEligibleToContributeAndFinalize()) {
             log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
                     + " [chainTaskId:{}]", chainTaskId);
             return;

@@ -23,6 +23,7 @@ import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
@@ -48,6 +49,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -689,6 +691,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -699,6 +708,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
@@ -712,6 +728,13 @@ class TaskUpdateManagerTest {
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         taskUpdateManager.running2Finalized2Completed(task);
@@ -723,6 +746,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
@@ -738,6 +768,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
@@ -755,6 +792,13 @@ class TaskUpdateManagerTest {
     void shouldUpdateRunning2ConsensusReached() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
@@ -837,6 +881,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -868,6 +919,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -904,6 +962,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -934,6 +999,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -969,6 +1041,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1004,6 +1083,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1038,6 +1124,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicates have tried to run the task and 1 is still to be run:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1700,6 +1793,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
