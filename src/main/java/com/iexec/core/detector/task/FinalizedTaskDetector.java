@@ -89,8 +89,7 @@ public class FinalizedTaskDetector implements Detector {
     }
 
     boolean isTaskContributeAndFinalizeDone(Task task) {
-        // Only TEE tasks can follow ContributeAndFinalize workflow
-        if (!task.isTeeTask()) {
+        if (!task.isEligibleToContributeAndFinalize()) {
             return false;
         }
 

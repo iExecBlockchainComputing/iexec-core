@@ -196,7 +196,7 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 return PLEASE_ABORT;
             }
             // We must check CallBack is empty because there is an issue in poco (transaction is revert)
-            if (taskDescription.isTeeTask() && !taskDescription.containsCallback()) {
+            if (taskDescription.isEligibleToContributeAndFinalize()) {
                 return PLEASE_CONTRIBUTE_AND_FINALIZE;
             }
         }

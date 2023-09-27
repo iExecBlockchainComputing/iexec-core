@@ -291,7 +291,8 @@ class FinalizedTaskDetectorTests {
         when(replicatesService.getReplicates(chainTaskId)).thenReturn(List.of(replicate));
 
         return getOnchainCompletedTask(chainTaskId)
-                .tag(TEE_TAG);
+                .tag(TEE_TAG)
+                .trust(1);
     }
     // endregion
 }

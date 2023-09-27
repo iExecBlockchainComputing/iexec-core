@@ -178,4 +178,19 @@ public class Task {
     public boolean isTeeTask() {
         return TeeUtils.isTeeTag(getTag());
     }
+
+    /**
+     * A task is eligible to the Contribute And Finalize flow
+     * if it matches the following conditions:
+     * <ul>
+     *     <li>It is a TEE task
+     *     <li>Its trust is 1
+     * </ul>
+     *
+     * @return {@literal true} if eligible, {@literal false} otherwise.
+     */
+    public boolean isEligibleToContributeAndFinalize() {
+        return isTeeTask()
+                && trust == 1;
+    }
 }

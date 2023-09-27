@@ -331,7 +331,7 @@ class TaskUpdateManager {
         boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
 
-        if (!task.isTeeTask()) {
+        if (!task.isEligibleToContributeAndFinalize()) {
             log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
                     + " [chainTaskId:{}]", chainTaskId);
             return;

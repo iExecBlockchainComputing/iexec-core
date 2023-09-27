@@ -19,13 +19,20 @@ package com.iexec.core.task;
 
 import com.iexec.common.utils.DateTimeUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
-import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.commons.poco.tee.TeeUtils.TEE_GRAMINE_ONLY_TAG;
+import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
+import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
+import static com.iexec.core.task.TaskTestsUtils.NO_TEE_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TaskTests {
@@ -121,4 +128,32 @@ class TaskTests {
         task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         assertThat(task.isContributionDeadlineReached()).isFalse();
     }
+
+    // region isEligibleToContributeAndFinalize
+    static Stream<Arguments> taskEligibilityToContributeAndFinalizeParameters() {
+        return Stream.of(
+                Arguments.of(TEE_SCONE_ONLY_TAG, 1, true),
+                Arguments.of(TEE_SCONE_ONLY_TAG, 0, false),
+
+                Arguments.of(TEE_GRAMINE_ONLY_TAG, 1, true),
+                Arguments.of(TEE_GRAMINE_ONLY_TAG, 0, false),
+
+                Arguments.of(NO_TEE_TAG, 1, false),
+                Arguments.of(NO_TEE_TAG, 0, false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("taskEligibilityToContributeAndFinalizeParameters")
+    void testTaskEligibilityToContributeAndFinalize(String tag, int trust, boolean expectedEligibility) {
+        final Task task = Task.builder()
+                .tag(tag)
+                .trust(trust)
+                .build();
+
+        final boolean eligible = task.isEligibleToContributeAndFinalize();
+
+        assertThat(eligible).isEqualTo(expectedEligibility);
+    }
+    // endregion
 }
