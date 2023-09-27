@@ -178,5 +178,4 @@ public class Task {
     public boolean isTeeTask() {
         return TeeUtils.isTeeTag(getTag());
     }
-
 }
