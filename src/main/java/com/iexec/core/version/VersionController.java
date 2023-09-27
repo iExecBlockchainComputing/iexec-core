@@ -14,27 +14,24 @@
  * limitations under the License.
  */
 
-package com.iexec.core.utils.version;
+package com.iexec.core.version;
 
-import com.iexec.common.utils.VersionUtils;
-import org.springframework.boot.info.BuildProperties;
-import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Service
-public class VersionService {
 
-    private final BuildProperties buildProperties;
+@RestController
+public class VersionController {
 
-    VersionService (BuildProperties buildProperties) {
-        this.buildProperties = buildProperties;
+    private final VersionService versionService;
+
+    public VersionController(VersionService versionService) {
+        this.versionService = versionService;
     }
 
-    public String getVersion() {
-        return buildProperties.getVersion();
+    @GetMapping("/version")
+    public ResponseEntity<String> getVersion() {
+        return ResponseEntity.ok(versionService.getVersion());
     }
-
-    public boolean isSnapshot() {
-        return VersionUtils.isSnapshot(buildProperties.getVersion());
-    }
-
 }
