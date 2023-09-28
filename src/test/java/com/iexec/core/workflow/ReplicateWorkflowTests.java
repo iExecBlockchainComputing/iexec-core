@@ -32,6 +32,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.type.TypeFactory
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,7 +167,7 @@ class ReplicateWorkflowTests {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
-                        TaskDescription.builder().isTeeTask(true).callback(BytesUtils.EMPTY_ADDRESS).build()))
+                        TaskDescription.builder().isTeeTask(true).trust(BigInteger.ONE).callback(BytesUtils.EMPTY_ADDRESS).build()))
                 .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
     }
 

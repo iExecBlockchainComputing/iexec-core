@@ -19,6 +19,7 @@ package com.iexec.core.detector.task;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
@@ -89,8 +90,8 @@ public class FinalizedTaskDetector implements Detector {
     }
 
     boolean isTaskContributeAndFinalizeDone(Task task) {
-        // Only TEE tasks can follow ContributeAndFinalize workflow
-        if (!task.isTeeTask()) {
+        final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
+        if (!taskDescription.isEligibleToContributeAndFinalize()) {
             return false;
         }
 
