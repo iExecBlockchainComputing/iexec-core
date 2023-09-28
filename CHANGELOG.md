@@ -30,6 +30,9 @@ All notable changes to this project will be documented in this file.
 - Upgrade to `jenkins-library` 2.7.3. (#615)
 - Upgrade to `iexec-commons-poco` 3.1.0. (#617)
 - Upgrade to `iexec-common` 8.3.0. (#617)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.2.0. (#620)
+- Upgrade to `iexec-result-proxy-library` 8.2.0. (#620)
+- Upgrade to `iexec-sms-library` 8.3.0. (#620)
 
 ## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
 
