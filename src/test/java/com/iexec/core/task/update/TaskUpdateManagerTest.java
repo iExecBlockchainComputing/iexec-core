@@ -691,13 +691,7 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
@@ -708,15 +702,9 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
@@ -728,15 +716,9 @@ class TaskUpdateManagerTest {
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        mockTaskDescriptionFromTask(task);
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
@@ -746,18 +728,12 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(0);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
@@ -768,19 +744,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(2);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.running2Finalized2Completed(task);
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
@@ -792,13 +762,6 @@ class TaskUpdateManagerTest {
     void shouldUpdateRunning2ConsensusReached() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
@@ -814,6 +777,7 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(replicatesList.getNbValidContributedWinners(any())).thenReturn(2);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
@@ -881,13 +845,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -908,6 +865,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isPresent();
@@ -919,13 +877,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -951,6 +902,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isPresent();
@@ -962,13 +914,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicate has tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -989,6 +934,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING)).isPresent();
@@ -999,13 +945,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(NO_TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1031,6 +970,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING)).isPresent();
@@ -1041,13 +981,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1073,6 +1006,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
@@ -1083,13 +1017,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 2 replicates have tried to run the task:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1114,6 +1041,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
@@ -1124,13 +1052,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TEE_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         // 1 replicates have tried to run the task and 1 is still to be run:
         // - R1 is in `COMPUTE_FAILED` status;
@@ -1151,6 +1072,7 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
@@ -1793,13 +1715,6 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        final TaskDescription taskDescription = TaskDescription.builder()
-                .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
-                .trust(BigInteger.valueOf(task.getTrust()))
-                .callback("")
-                .build();
-        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
 
@@ -1809,6 +1724,7 @@ class TaskUpdateManagerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
@@ -1975,4 +1891,16 @@ class TaskUpdateManagerTest {
         taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
+
+    // region utils
+    private void mockTaskDescriptionFromTask(Task task) {
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(task.getChainTaskId())
+                .isTeeTask(task.isTeeTask())
+                .trust(BigInteger.valueOf(task.getTrust()))
+                .callback("")
+                .build();
+        when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
+    }
+    // endregion
 }
