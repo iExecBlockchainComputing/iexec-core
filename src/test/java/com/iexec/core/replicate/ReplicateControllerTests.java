@@ -20,6 +20,7 @@ import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import io.vavr.control.Either;
@@ -37,7 +38,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class ReplicateControllerTests {
 
@@ -69,6 +70,8 @@ class ReplicateControllerTests {
     private JwtTokenProvider jwtTokenProvider;
     @Mock
     private WorkerService workerService;
+    @Mock
+    private BlockchainConnectionHealthIndicator blockchainConnectionHealthIndicator;
 
     @InjectMocks
     private ReplicatesController replicatesController;
@@ -84,6 +87,8 @@ class ReplicateControllerTests {
     void shouldGetAvailableReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(true);
         when(replicateSupplyService
@@ -96,6 +101,8 @@ class ReplicateControllerTests {
         assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         ReplicateTaskSummary replicateTaskSummary = replicateTaskSummaryResponse.getBody();
         assertThat(replicateTaskSummary.getWorkerpoolAuthorization().getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
@@ -107,12 +114,32 @@ class ReplicateControllerTests {
                 replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
         assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        verify(blockchainConnectionHealthIndicator, never()).isUp();
     }
+
+    @Test
+    void shouldNotGetAvailableReplicateSinceChainIsDown() {
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(false);
+
+        ResponseEntity<ReplicateTaskSummary> replicateTaskSummaryResponse =
+                replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
+
+        assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
+    }
+
 
     @Test
     void shouldNotGetAvailableReplicateSinceNotAllowed() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(false);
 
@@ -120,12 +147,16 @@ class ReplicateControllerTests {
                 replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
         assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
     void shouldNotGetAvailableReplicateSinceNoReplicateAvailable() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(workerService.isWorkerAllowedToAskReplicate(WALLET_ADDRESS))
                 .thenReturn(true);
         when(replicateSupplyService
@@ -136,6 +167,8 @@ class ReplicateControllerTests {
                 replicatesController.getAvailableReplicateTaskSummary(BLOCK_NUMBER, TOKEN);
 
         assertThat(replicateTaskSummaryResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
     //endregion
 
@@ -192,6 +225,8 @@ class ReplicateControllerTests {
     void shouldUpdateReplicate() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
@@ -206,6 +241,8 @@ class ReplicateControllerTests {
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_DOWNLOAD_APP);
         assertThat(UPDATE.getModifier()).isEqualTo(ReplicateStatusModifier.WORKER);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
@@ -217,6 +254,8 @@ class ReplicateControllerTests {
 
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
@@ -232,6 +271,8 @@ class ReplicateControllerTests {
                 .isEqualTo(TaskNotificationType.PLEASE_DOWNLOAD_APP);
         assertThat(updateWithLogs.getModifier()).isEqualTo(ReplicateStatusModifier.WORKER);
         assertThat(updateWithLogs.getDetails().getComputeLogs().getWalletAddress()).isEqualTo(WALLET_ADDRESS);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
@@ -244,7 +285,25 @@ class ReplicateControllerTests {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isNull();
+
+        verify(blockchainConnectionHealthIndicator, never()).isUp();
     }
+
+    @Test
+    void shouldReturnServiceUnavailableSinceChainIsDown() {
+        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
+                .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(false);
+
+        ResponseEntity<TaskNotificationType> response =
+                replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
+    }
+
 
     @ParameterizedTest
     @EnumSource(value = ReplicateStatusUpdateError.class, names = {
@@ -256,6 +315,8 @@ class ReplicateControllerTests {
     void shouldReturnPleaseAbortSinceCantUpdate(ReplicateStatusUpdateError error) {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
@@ -266,12 +327,16 @@ class ReplicateControllerTests {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(response.getBody()).isEqualTo(TaskNotificationType.PLEASE_ABORT);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
     void shouldReply208AlreadyReported() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
@@ -283,12 +348,16 @@ class ReplicateControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ALREADY_REPORTED);
         assertThat(response.getBody())
                 .isEqualTo(TaskNotificationType.PLEASE_WAIT);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
 
     @Test
     void shouldReply500WhenErrorNotExpected() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn(WALLET_ADDRESS);
+        when(blockchainConnectionHealthIndicator.isUp())
+                .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
@@ -298,6 +367,8 @@ class ReplicateControllerTests {
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+
+        verify(blockchainConnectionHealthIndicator, times(1)).isUp();
     }
     //endregion
 }

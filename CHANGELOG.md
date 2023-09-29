@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
+
+### New Features
+- Add blockchain connection health indicator. (#601)
+- Block some connections and messages when blockchain connection is down. (#604)
+- Block deal watching mechanisms when communication with the blockchain node is lost. (#606)
+- Use `isEligibleToContributeAndFinalize` method from `TaskDescription`. (#619)
+### Bug Fixes
+- Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
+- Reject deal if TEE tag but trust not in {0,1}. (#598)
+- Fix and harmonize `Dockerfile entrypoint` in all Spring Boot applications. (#614)
+- Use `mongo:4.4` in tests with `MongoDBContainer`. Replace `getContainerIpAddress` with `getHost`. (#616)
+### Quality
+- Remove `nexus.intra.iex.ec` repository. (#605)
+- Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
+- Events are now immutable with `@Value` lombok annotation. (#608)
+- Fix several code smells. (#609)
+- Upgrade to Gradle 8.2.1 with up-to-date plugins. (#612)
+- Remove `VersionService#isSnapshot`. (#618)
+### Dependency Upgrades
+- Remove `logstash-gelf` dependency. (#607)
+- Upgrade to `eclipse-temurin` 11.0.20. (#610)
+- Upgrade to Spring Boot 2.7.14. (#611)
+- Upgrade to Spring Dependency Management Plugin 1.1.3. (#611)
+- Upgrade to `testcontainers` 1.19.0. (#613)
+- Upgrade to `jenkins-library` 2.7.3. (#615)
+- Upgrade to `iexec-commons-poco` 3.1.0. (#617)
+- Upgrade to `iexec-common` 8.3.0. (#617)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.2.0. (#620)
+- Upgrade to `iexec-result-proxy-library` 8.2.0. (#620)
+- Upgrade to `iexec-sms-library` 8.3.0. (#620)
+
 ## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
 
 ## Bug fixes

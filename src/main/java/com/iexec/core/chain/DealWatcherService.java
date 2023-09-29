@@ -18,7 +18,10 @@ package com.iexec.core.chain;
 
 import com.iexec.commons.poco.chain.ChainDeal;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
+import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.event.ChainConnectedEvent;
+import com.iexec.core.chain.event.ChainDisconnectedEvent;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -39,6 +42,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDULERNOTICE_EVENT;
@@ -47,6 +51,8 @@ import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDUL
 @Service
 public class DealWatcherService {
 
+    private static final List<BigInteger> CORRECT_TEE_TRUSTS = List.of(BigInteger.ZERO, BigInteger.ONE);
+
     private final ChainConfig chainConfig;
     private final IexecHubService iexecHubService;
     private final ConfigurationService configurationService;
@@ -54,6 +60,8 @@ public class DealWatcherService {
     private final TaskService taskService;
     private final Web3jService web3jService;
     // internal variables
+    private boolean outOfService;
+    private Disposable dealEventsSubscription;
     private Disposable dealEventSubscriptionReplay;
     @Getter
     private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
@@ -84,9 +92,31 @@ public class DealWatcherService {
      * a large number of tasks (BoT).
      */
     @Async
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener({ApplicationReadyEvent.class, ChainConnectedEvent.class})
     public void run() {
-        subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
+        outOfService = false;
+        disposeSubscription(dealEventsSubscription);
+        dealEventsSubscription = subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
+    }
+
+    /**
+     * Dispose of deal watching subscription.
+     */
+    @Async
+    @EventListener(ChainDisconnectedEvent.class)
+    public void stop() {
+        outOfService = true;
+        disposeSubscription(dealEventsSubscription);
+    }
+
+    /**
+     * Dispose of a {@link Disposable} subscription if it exists and is not already disposed.
+     * @param subscription Deal event subscription to dispose of.
+     */
+    private void disposeSubscription(Disposable subscription) {
+        if (subscription != null && !subscription.isDisposed()) {
+            subscription.dispose();
+        }
     }
 
     /**
@@ -145,10 +175,7 @@ public class DealWatcherService {
             return;
         }
         ChainDeal chainDeal = oChainDeal.get();
-        // do not process deals after deadline
-        if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
-            log.error("Deal has expired [chainDealId:{}, deadline:{}]",
-                    chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
+        if (!shouldProcessDeal(chainDeal)) {
             return;
         }
         int startBag = chainDeal.getBotFirst().intValue();
@@ -170,6 +197,40 @@ public class DealWatcherService {
         }
     }
 
+    /**
+     * Check whether a deal should be processed or skipped.
+     * A deal can be skipped for the following reasons:
+     * <ul>
+     *     <li>Its contribution deadline has already been met;</li>
+     *     <li>It has a TEE tag but its trust is not in {0,1}.</li>
+     * </ul>
+     *
+     * @param chainDeal Deal to check
+     * @return {@literal true} if deal should be processed, {@literal false} otherwise.
+     */
+    boolean shouldProcessDeal(ChainDeal chainDeal) {
+        final String chainDealId = chainDeal.getChainDealId();
+
+        // do not process deals after deadline
+        if (!iexecHubService.isBeforeContributionDeadline(chainDeal)) {
+            log.error("Deal has expired [chainDealId:{}, deadline:{}]",
+                    chainDealId, iexecHubService.getChainDealContributionDeadline(chainDeal));
+            return false;
+        }
+
+        // do not process deals with TEE tag but trust not in {0,1}.
+        final String tag = chainDeal.getTag();
+        final BigInteger trust = chainDeal.getTrust();
+        if (TeeUtils.isTeeTag(tag)
+                && !CORRECT_TEE_TRUSTS.contains(trust)) {
+            log.error("Deal with TEE tag and trust not zero nor one [chainDealId:{}, tag:{}, trust:{}]",
+                    chainDealId, tag, trust);
+            return false;
+        }
+
+        return true;
+    }
+
     /*
      * Some deal events are sometimes missed by #schedulerNoticeEventObservable method
      * so we decide to replay events from times to times (already saved events will be ignored)
@@ -181,10 +242,12 @@ public class DealWatcherService {
         if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
             return;
         }
-        if (this.dealEventSubscriptionReplay != null && !this.dealEventSubscriptionReplay.isDisposed()) {
-            this.dealEventSubscriptionReplay.dispose();
+        disposeSubscription(dealEventSubscriptionReplay);
+        if (outOfService) {
+            log.info("OUT-OF-SERVICE do not create replay subscription");
+            return;
         }
-        this.dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
+        dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
         configurationService.setFromReplay(lastSeenBlockWithDeal);
     }
 

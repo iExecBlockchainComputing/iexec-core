@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 import java.util.Date;
 import java.util.List;
 
-import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TaskTests {

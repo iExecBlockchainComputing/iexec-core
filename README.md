@@ -24,7 +24,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CORE_PORT` | Server port of the _iExec Core Scheduler_. | Positive integer | `13000` |
 | `MONGO_HOST` | _MongoDB_ server host. Cannot be set with URI. | String | `localhost` |
 | `MONGO_PORT` | _MongoDB_ server port. Cannot be set with URI. | Positive integer | `13002` |
-| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | |
+| `IEXEC_PLATFORM_REGISTRY` | _iExec Platform Registry_ server URL. | URL | `http://localhost:8888` |
 | `IEXEC_PLATFORM_REGISTRY_STACK` | [optional] Use a specific stack configuration exposed by the _iExec Platform Registry_. | String | |
 | `IEXEC_PLATFORM_REGISTRY_LABEL` | [optional] Use a labeled version of configuration files exposed by the _iExec Platform Registry_. It might be a Git label such as `main`, `v10` or `07998be`. | String | |
 | `REVEAL_TIMEOUT_PERIOD` | Detector period to track reveal timeouts for tasks. | Positive integer | `120000` |
@@ -39,16 +39,16 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_GAS_PRICE_MULTIPLIER` | Transactions will be sent with `networkGasPrice * gasPriceMultiplier`. | Float | `1.0` |
 | `IEXEC_GAS_PRICE_CAP` | In Wei, will be used for transactions if `networkGasPrice * gasPriceMultiplier > gasPriceCap` | Integer | `22000000000` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL` | _iExec Blockchain Adapter_ communication protocol. | String | `http` |
-| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `blockchain-adapter` |
+| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `localhost` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PORT` | _iExec Blockchain Adapter_ server port. | Positive integer | `13010` |
 | `IEXEC_CORE_CHAIN_ADAPTER_USERNAME` | Username to connect to the _iExec Blockchain Adapter_ server. | String | `admin` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PASSWORD` | Password to connect to the _iExec Blockchain Adapter_ server. | String | `whatever` |
+| `IEXEC_CHAIN_HEALTH_POLLING_INTERVAL_IN_BLOCKS` | Polling interval (in blocks) on the blockchain to check this _Scheduler_ can communicate with it. | Positive integer | 3 |
+| `IEXEC_CHAIN_HEALTH_OUT_OF_SERVICE_THRESHOLD` | Max number of consecutive failures of blockchain connection attempts before this _Scheduler_ is declared as OUT-OF-SERVICE. | Positive integer | 4 |
 | `IEXEC_RESULT_REPOSITORY_PROTOCOL` | _iExec Result Proxy_ server communication protocol. | String | `http` |
 | `IEXEC_RESULT_REPOSITORY_HOST` | _iExec Result Proxy_ server host. | String | `localhost` |
 | `IEXEC_RESULT_REPOSITORY_PORT` | _iExec Result Proxy_ server port. | Positive integer | `13200` |
 | `IEXEC_CORE_MANAGEMENT_ACTUATORS` | Endpoint IDs that should be included or `*` for all. | String | `health, info` |
-| `IEXEC_CORE_GRAYLOG_HOST` | _Graylog_ server host. | String | `localhost` |
-| `IEXEC_CORE_GRAYLOG_PORT` | _Graylog_ server port. | Positive integer | `12201` |
 | `IEXEC_LOGS_PURGE_RATE_IN_DAYS` | Interval in days between 2 executions of the purge mechanism. | Positive integer | `1` |
 | `IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS` | Number of days to keep logs of past tasks. | Positive integer | `3` |
 

@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task.event;
+package com.iexec.core.version;
 
-import lombok.Builder;
-import lombok.Value;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.stereotype.Service;
 
-@Value
-@Builder
-public class ConsensusReachedEvent {
-    String chainTaskId;
-    String consensus;
-    long blockNumber;
+@Service
+public class VersionService {
+
+    private final BuildProperties buildProperties;
+
+    VersionService (BuildProperties buildProperties) {
+        this.buildProperties = buildProperties;
+    }
+
+    public String getVersion() {
+        return buildProperties.getVersion();
+    }
+
 }

@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
@@ -312,7 +313,7 @@ class TaskUpdateManager {
             if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
 
-            // change the the revealDeadline and consensus of the task from the chainTask info
+            // change the revealDeadline and consensus of the task from the chainTask info
             task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
             task.setConsensus(chainTask.getConsensusValue());
             long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
@@ -331,7 +332,8 @@ class TaskUpdateManager {
         boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
         final String chainTaskId = task.getChainTaskId();
 
-        if (!task.isTeeTask()) {
+        final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
+        if (!taskDescription.isEligibleToContributeAndFinalize()) {
             log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
                     + " [chainTaskId:{}]", chainTaskId);
             return;
@@ -376,9 +378,7 @@ class TaskUpdateManager {
         if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
             updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
             updateTaskStatusAndSave(task, FAILED);
-            applicationEventPublisher.publishEvent(ContributionTimeoutEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
+            applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(task.getChainTaskId()));
         }
     }
 
@@ -430,9 +430,7 @@ class TaskUpdateManager {
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
         updateTaskStatusAndSave(task, RUNNING_FAILED);
         updateTaskStatusAndSave(task, FAILED);
-        applicationEventPublisher.publishEvent(TaskRunningFailedEvent.builder()
-                .chainTaskId(task.getChainTaskId())
-                .build());
+        applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
     }
 
     void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
@@ -553,9 +551,7 @@ class TaskUpdateManager {
 
         if (isTaskInResultUploading && isNowAfterFinalDeadline) {
             updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
-            applicationEventPublisher.publishEvent(ResultUploadTimeoutEvent.builder()
-                    .chainTaskId(task.getChainTaskId())
-                    .build());
+            applicationEventPublisher.publishEvent(new ResultUploadTimeoutEvent(task.getChainTaskId()));
             updateTaskStatusAndSave(task, FAILED);
         }
     }

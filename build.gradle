@@ -1,19 +1,20 @@
 plugins {
     id 'java'
-    id 'io.freefair.lombok' version '6.6.1'
-    id 'org.springframework.boot' version '2.6.14'
-    id 'io.spring.dependency-management' version '1.1.0'
+    id 'io.freefair.lombok' version '8.2.2'
+    id 'org.springframework.boot' version '2.7.14'
+    id 'io.spring.dependency-management' version '1.1.3'
     id 'jacoco'
-    id 'org.sonarqube' version '3.3'
+    id 'org.sonarqube' version '4.2.1.3168'
     id 'maven-publish'
 }
 
 group = 'com.iexec.core'
 
 ext {
-    springCloudVersion = '2021.0.5'
+    springCloudVersion = '2021.0.8'
     jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
+    testContainersVersion = '1.19.0'
 }
 
 if (!project.hasProperty('gitBranch')) {
@@ -34,9 +35,6 @@ repositories {
             password nexusPassword
         }
     }
-    maven {
-        url "https://nexus.intra.iex.ec/repository/maven-public/"
-    }
     maven { url "https://jitpack.io" }
 }
 
@@ -55,9 +53,7 @@ dependencies {
     implementation "com.iexec.sms:iexec-sms-library:$iexecSmsVersion"
 
     // spring
-    implementation ("org.springframework.boot:spring-boot-starter") {
-        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging' //required for Graylog
-    }
+    implementation "org.springframework.boot:spring-boot-starter"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-aop"
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
@@ -69,18 +65,13 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation "org.springframework.retry:spring-retry"
 
-    // apache commons.lang3
-    implementation 'org.apache.commons:commons-lang3'
-
-    // NoSuchMethodError: 'okhttp3.RequestBody okhttp3.RequestBody.create(java.lang.String, okhttp3.MediaType)'
-    // Spring Boot dependencies BOM enforces okhttp3 3.14.9 in 2.6.X
-    // It is required to define the dependency version required by web3j until migration to at least Spring Boot 2.7.X
-    implementation 'com.squareup.okhttp3:okhttp:4.9.0' // Web3j issue: https://github.com/web3j/web3j/issues/1180
-
     // Spring Doc
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
 
-    // jason web token
+    // apache commons.lang3
+    implementation 'org.apache.commons:commons-lang3'
+
+    // json web token
     implementation "io.jsonwebtoken:jjwt-api:$jjwtVersion"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:$jjwtVersion"
@@ -90,9 +81,6 @@ dependencies {
 
     // ipfs
     implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
-
-    // graylog
-    implementation 'biz.paluch.logging:logstash-gelf:1.5.1'
 
     // observability
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
@@ -104,15 +92,16 @@ dependencies {
     // vavr
     implementation 'io.vavr:vavr:0.10.4'
 
+    // tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // awaitility
     testImplementation 'org.awaitility:awaitility'
 
     // mongo
-    testImplementation 'org.testcontainers:testcontainers:1.16.2'
-    testImplementation 'org.testcontainers:junit-jupiter:1.16.2'
-    testImplementation 'org.testcontainers:mongodb:1.16.2'
+    testImplementation "org.testcontainers:junit-jupiter:$testContainersVersion"
+    testImplementation "org.testcontainers:mongodb:$testContainersVersion"
 }
 
 java {
@@ -141,14 +130,11 @@ test {
     useJUnitPlatform()
 }
 
-task itest {
+tasks.register('itest') {
     group 'Verification'
     description 'Runs the integration tests.'
 }
 
-jacoco {
-    toolVersion = "0.8.7"
-}
 // sonarqube code coverage requires jacoco XML report
 jacocoTestReport {
     reports {
@@ -180,7 +166,7 @@ ext.jarPathForOCI  = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
 ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
-task buildImage(type: Exec) {
+tasks.register('buildImage', Exec) {
     group 'Build'
     description 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar

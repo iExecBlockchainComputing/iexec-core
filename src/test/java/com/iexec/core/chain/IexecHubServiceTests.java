@@ -11,17 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
-import org.web3j.protocol.core.RemoteFunctionCall;
 import org.web3j.protocol.core.methods.response.Log;
-import org.web3j.tx.TransactionManager;
 
-import java.math.BigInteger;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
@@ -57,15 +52,7 @@ class IexecHubServiceTests {
         when(web3jService.hasEnoughGas(any())).thenReturn(true);
         when(chainConfig.getHubAddress()).thenReturn("0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860");
 
-        try (MockedStatic<IexecHubContract> iexecHubContract = Mockito.mockStatic(IexecHubContract.class)) {
-            final IexecHubContract mockIexecContract = mock(IexecHubContract.class);
-            final RemoteFunctionCall<BigInteger> mockRemoteFunctionCall = mock(RemoteFunctionCall.class);
-            iexecHubContract.when(() -> IexecHubContract.load(any(), any(), (TransactionManager) any(), any()))
-                    .thenReturn(mockIexecContract);
-            when(mockIexecContract.contribution_deadline_ratio()).thenReturn(mockRemoteFunctionCall);
-            when(mockRemoteFunctionCall.send()).thenReturn(BigInteger.ONE);
-            iexecHubService = spy(new IexecHubService(credentialsService, web3jService, chainConfig));
-        }
+        iexecHubService = spy(new IexecHubService(credentialsService, web3jService, chainConfig));
     }
 
 

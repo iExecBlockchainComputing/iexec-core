@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task.event;
+package com.iexec.core.chain.event;
 
-import lombok.Builder;
-import lombok.Value;
+import org.springframework.context.ApplicationEvent;
 
-@Value
-@Builder
-public class ConsensusReachedEvent {
-    String chainTaskId;
-    String consensus;
-    long blockNumber;
+public class ChainDisconnectedEvent extends ApplicationEvent {
+    public ChainDisconnectedEvent(Object source) {
+        super(source);
+    }
 }
