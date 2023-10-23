@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
+### Bug Fixes
+- Fix web security depreciation warning. (#624)
 
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
