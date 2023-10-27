@@ -17,11 +17,13 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
+import com.iexec.commons.poco.chain.ChainReceipt;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
-
-import com.iexec.commons.poco.chain.ChainReceipt;
 
 @Data
 @NoArgsConstructor
@@ -29,22 +31,9 @@ import com.iexec.commons.poco.chain.ChainReceipt;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskStatusChange {
-
-    private Date date;
+    @Builder.Default
+    private Date date = new Date();
     private TaskStatus status;
-    private ChainReceipt chainReceipt;
-
-    public TaskStatusChange(TaskStatus status){
-        this(status, null);
-    }
-
-    public TaskStatusChange(TaskStatus status, ChainReceipt chainReceipt){
-        this.date = new Date();
-        this.status = status;
-        this.chainReceipt = chainReceipt;
-    }
-
-    public TaskStatusChange(Date date, TaskStatus status) {
-        this(date, status, null);
-    }
+    @Builder.Default
+    private ChainReceipt chainReceipt = null;
 }

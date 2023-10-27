@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### New Features
 
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
+- Move first DTO classes to `iexec-core-library` sub-project. (#626)
 
 ### Bug Fixes
 

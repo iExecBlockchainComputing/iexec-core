@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
+import static com.iexec.core.task.TaskStatus.RECEIVED;
 
 @Document
 @Getter
@@ -54,7 +55,7 @@ import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
         unique = true)
 public class Task {
 
-    public static final String CURRENT_STATUS_FIELD_NAME        = "currentStatus";
+    public static final String CURRENT_STATUS_FIELD_NAME = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
 
     @Id
@@ -98,7 +99,10 @@ public class Task {
         this.commandLine = commandLine;
         this.trust = trust;
         this.dateStatusList = new ArrayList<>();
-        this.dateStatusList.add(new TaskStatusChange(TaskStatus.RECEIVED));
+        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
+                .status(RECEIVED)
+                .build();
+        this.dateStatusList.add(taskStatusChange);
         this.currentStatus = TaskStatus.RECEIVED;
     }
 
@@ -122,7 +126,11 @@ public class Task {
 
     public void changeStatus(TaskStatus status, ChainReceipt chainReceipt) {
         setCurrentStatus(status);
-        this.getDateStatusList().add(new TaskStatusChange(status, chainReceipt));
+        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
+                .status(status)
+                .chainReceipt(chainReceipt)
+                .build();
+        this.getDateStatusList().add(taskStatusChange);
     }
 
     @JsonIgnore
