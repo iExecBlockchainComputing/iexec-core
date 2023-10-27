@@ -70,7 +70,7 @@ public class TaskController {
     @GetMapping("/tasks/{chainTaskId}")
     public ResponseEntity<TaskModel> getTask(@PathVariable("chainTaskId") String chainTaskId) {
         return taskService.getTaskByChainTaskId(chainTaskId).map(task -> {
-            TaskModel taskModel = TaskModel.fromEntity(task);
+            TaskModel taskModel = task.generateModel();
             if (replicatesService.hasReplicatesList(chainTaskId)) {
                 taskModel.setReplicates(replicatesService.getReplicates(chainTaskId)
                         .stream()
@@ -99,7 +99,7 @@ public class TaskController {
      * @return replicate model
      */
     ReplicateModel buildReplicateModel(Replicate replicate) {
-        ReplicateModel replicateModel = ReplicateModel.fromEntity(replicate);
+        ReplicateModel replicateModel = replicate.generateModel();
         if (replicate.isAppComputeLogsPresent()) {
             String logs = linkTo(methodOn(TaskController.class)
                     .getComputeLogs(

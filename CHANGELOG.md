@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
 
 ### New Features
+
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
+
 ### Bug Fixes
+
 - Fix web security depreciation warning. (#624)
+- Move `TaskModel` and `ReplicateModel` instances creation methods to `Task` and `Replicate` classes. (#625)
 
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
