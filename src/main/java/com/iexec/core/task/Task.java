@@ -178,4 +178,26 @@ public class Task {
     public boolean isTeeTask() {
         return TeeUtils.isTeeTag(getTag());
     }
+
+    TaskModel generateModel() {
+        return TaskModel.builder()
+                .chainTaskId(chainTaskId)
+                .maxExecutionTime(maxExecutionTime)
+                .tag(tag)
+                .dappType(dappType)
+                .dappName(dappName)
+                .commandLine(commandLine)
+                .initializationBlockNumber(initializationBlockNumber)
+                .currentStatus(currentStatus)
+                .trust(trust)
+                .uploadingWorkerWalletAddress(uploadingWorkerWalletAddress)
+                .consensus(consensus)
+                .contributionDeadline(contributionDeadline)
+                .revealDeadline(revealDeadline)
+                .finalDeadline(finalDeadline)
+                .resultLink(resultLink)
+                .chainCallbackData(chainCallbackData)
+                .dateStatusList(dateStatusList)
+                .build();
+    }
 }

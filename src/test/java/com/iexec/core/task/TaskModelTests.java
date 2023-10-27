@@ -66,7 +66,7 @@ class TaskModelTests {
                 .dateStatusList(DATE_STATUS_LIST)
                 .build();
 
-        TaskModel dto = TaskModel.fromEntity(entity);
+        TaskModel dto = entity.generateModel();
         Assertions.assertEquals(entity.getChainTaskId(), dto.getChainTaskId());
         Assertions.assertEquals(entity.getMaxExecutionTime(), dto.getMaxExecutionTime());
         Assertions.assertEquals(entity.getTag(), dto.getTag());

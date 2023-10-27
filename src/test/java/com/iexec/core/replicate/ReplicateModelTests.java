@@ -26,10 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-class ReplicateModelTest {
+class ReplicateModelTests {
 
     public static final String CHAIN_TASK_ID = "task";
     public static final String WALLET_ADDRESS = "wallet";
@@ -40,6 +37,7 @@ class ReplicateModelTest {
             .build();
     public static final ReplicateStatusUpdate STATUS_UPDATE = ReplicateStatusUpdate.builder()
             .details(STATUS_UPDATE_DETAILS)
+            .status(CURRENT_STATUS)
             .build();
     public static final List<ReplicateStatusUpdate> STATUS_UPDATE_LIST = Collections.singletonList(STATUS_UPDATE);
     public static final String RESULT_LINK = "link";
@@ -48,16 +46,10 @@ class ReplicateModelTest {
 
     @Test
     void shouldConvertFromEntityToDto() {
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(CHAIN_TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WALLET_ADDRESS);
-        when(entity.getCurrentStatus()).thenReturn(CURRENT_STATUS);
-        when(entity.getStatusUpdateList()).thenReturn(STATUS_UPDATE_LIST);
-        when(entity.getResultLink()).thenReturn(RESULT_LINK);
-        when(entity.getChainCallbackData()).thenReturn(CHAIN_CALLBACK_DATA);
-        when(entity.getContributionHash()).thenReturn(CONTRIBUTION_HASH);
+        Replicate entity = createReplicate();
+        entity.setStatusUpdateList(STATUS_UPDATE_LIST);
 
-        ReplicateModel dto = ReplicateModel.fromEntity(entity);
+        ReplicateModel dto = entity.generateModel();
         Assertions.assertEquals(entity.getChainTaskId(), dto.getChainTaskId());
         Assertions.assertEquals(entity.getWalletAddress(), dto.getWalletAddress());
         Assertions.assertEquals(entity.getCurrentStatus(), dto.getCurrentStatus());
@@ -81,21 +73,16 @@ class ReplicateModelTest {
 
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .details(statusUpdateDetails)
+                .status(CURRENT_STATUS)
                 .build();
 
         final List<ReplicateStatusUpdate> statusUpdateList = List.of(statusUpdate, statusUpdate);
 
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(CHAIN_TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WALLET_ADDRESS);
-        when(entity.getCurrentStatus()).thenReturn(CURRENT_STATUS);
-        when(entity.getStatusUpdateList()).thenReturn(statusUpdateList);
-        when(entity.getResultLink()).thenReturn(RESULT_LINK);
-        when(entity.getChainCallbackData()).thenReturn(CHAIN_CALLBACK_DATA);
-        when(entity.getContributionHash()).thenReturn(CONTRIBUTION_HASH);
+        Replicate entity = createReplicate();
+        entity.setStatusUpdateList(statusUpdateList);
 
         final MultipleOccurrencesOfFieldNotAllowed exception = Assertions
-                .assertThrows(MultipleOccurrencesOfFieldNotAllowed.class, () -> ReplicateModel.fromEntity(entity));
+                .assertThrows(MultipleOccurrencesOfFieldNotAllowed.class, entity::generateModel);
         Assertions.assertEquals("exitCode", exception.getFieldName());
     }
 
@@ -107,21 +94,26 @@ class ReplicateModelTest {
 
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .details(statusUpdateDetails)
+                .status(CURRENT_STATUS)
                 .build();
 
         final List<ReplicateStatusUpdate> statusUpdateList = List.of(statusUpdate, statusUpdate);
 
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(CHAIN_TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WALLET_ADDRESS);
-        when(entity.getCurrentStatus()).thenReturn(CURRENT_STATUS);
-        when(entity.getStatusUpdateList()).thenReturn(statusUpdateList);
-        when(entity.getResultLink()).thenReturn(RESULT_LINK);
-        when(entity.getChainCallbackData()).thenReturn(CHAIN_CALLBACK_DATA);
-        when(entity.getContributionHash()).thenReturn(CONTRIBUTION_HASH);
+        Replicate entity = createReplicate();
+        entity.setStatusUpdateList(statusUpdateList);
 
         final MultipleOccurrencesOfFieldNotAllowed exception = Assertions
-                .assertThrows(MultipleOccurrencesOfFieldNotAllowed.class, () -> ReplicateModel.fromEntity(entity));
+                .assertThrows(MultipleOccurrencesOfFieldNotAllowed.class, entity::generateModel);
         Assertions.assertEquals("teeSessionGenerationError", exception.getFieldName());
+    }
+
+    private Replicate createReplicate() {
+        Replicate replicate = new Replicate();
+        replicate.setChainTaskId(CHAIN_TASK_ID);
+        replicate.setWalletAddress(WALLET_ADDRESS);
+        replicate.setResultLink(RESULT_LINK);
+        replicate.setChainCallbackData(CHAIN_CALLBACK_DATA);
+        replicate.setContributionHash(CONTRIBUTION_HASH);
+        return replicate;
     }
 }

@@ -98,8 +98,8 @@ class TaskControllerTests {
     //region getTask
     @Test
     void shouldGetTaskModel() {
-        Task taskEntity = mock(Task.class);
-        when(taskEntity.getChainTaskId()).thenReturn(TASK_ID);
+        Task taskEntity = new Task();
+        taskEntity.setChainTaskId(TASK_ID);
         when(taskService.getTaskByChainTaskId(TASK_ID))
                 .thenReturn(Optional.of(taskEntity));
 
@@ -113,8 +113,8 @@ class TaskControllerTests {
 
     @Test
     void shouldGetTaskModelWithReplicates() {
-        Task taskEntity = mock(Task.class);
-        when(taskEntity.getChainTaskId()).thenReturn(TASK_ID);
+        Task taskEntity = new Task();
+        taskEntity.setChainTaskId(TASK_ID);
         when(taskService.getTaskByChainTaskId(TASK_ID))
                 .thenReturn(Optional.of(taskEntity));
         when(replicatesService.hasReplicatesList(TASK_ID))
@@ -165,10 +165,10 @@ class TaskControllerTests {
     //region buildReplicateModel
     @Test
     void shouldBuildReplicateModel() {
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeLogsPresent()).thenReturn(false);
+        Replicate entity = new Replicate();
+        entity.setChainTaskId(TASK_ID);
+        entity.setWalletAddress(WORKER_ADDRESS);
+        entity.setAppComputeLogsPresent(false);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
@@ -178,10 +178,10 @@ class TaskControllerTests {
 
     @Test
     void shouldBuildReplicateModelWithComputeLogs() {
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeLogsPresent()).thenReturn(true);
+        Replicate entity = new Replicate();
+        entity.setChainTaskId(TASK_ID);
+        entity.setWalletAddress(WORKER_ADDRESS);
+        entity.setAppComputeLogsPresent(true);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
