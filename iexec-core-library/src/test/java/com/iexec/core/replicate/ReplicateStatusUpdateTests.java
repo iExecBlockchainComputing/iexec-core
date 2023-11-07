@@ -16,13 +16,32 @@
 
 package com.iexec.core.replicate;
 
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import org.junit.jupiter.api.Test;
+
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ReplicateStatusUpdateTests {
     @Test
     void shouldGenerateModelFromNull() {
-        assertEquals(new ReplicateStatusUpdateModel(), ReplicateStatusUpdateModel.fromEntity(null));
+        assertEquals(ReplicateStatusUpdateModel.builder().build(), ReplicateStatusUpdateModel.fromEntity(null));
+    }
+
+    @Test
+    void shouldGenerateModeFromNonNull() {
+        final Date now = new Date();
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .status(ReplicateStatus.COMPLETED)
+                .date(now)
+                .build();
+        final ReplicateStatusUpdateModel expectedStatusUpdateModel = ReplicateStatusUpdateModel
+                .builder()
+                .status(ReplicateStatus.COMPLETED)
+                .date(now)
+                .build();
+        assertEquals(expectedStatusUpdateModel, ReplicateStatusUpdateModel.fromEntity(statusUpdate));
     }
 }

@@ -40,7 +40,7 @@ public class ReplicateStatusUpdateModel {
 
     public static ReplicateStatusUpdateModel fromEntity(ReplicateStatusUpdate update) {
         if (update == null) {
-            return new ReplicateStatusUpdateModel();
+            return ReplicateStatusUpdateModel.builder().build();
         }
 
         final ReplicateStatusDetails details = update.getDetails();
