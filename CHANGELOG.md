@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
 
+### Quality
+
+- Add and use a non-root user in the dockerfile. (#627)
+
 ### Bug Fixes
 
 - Fix web security depreciation warning. (#624)
@@ -16,23 +20,30 @@ All notable changes to this project will be documented in this file.
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
 ### New Features
+
 - Add blockchain connection health indicator. (#601)
 - Block some connections and messages when blockchain connection is down. (#604)
 - Block deal watching mechanisms when communication with the blockchain node is lost. (#606)
 - Use `isEligibleToContributeAndFinalize` method from `TaskDescription`. (#619)
+
 ### Bug Fixes
+
 - Clean call to `iexecHubService#getTaskDescriptionFromChain` in test. (#597)
 - Reject deal if TEE tag but trust not in {0,1}. (#598)
 - Fix and harmonize `Dockerfile entrypoint` in all Spring Boot applications. (#614)
 - Use `mongo:4.4` in tests with `MongoDBContainer`. Replace `getContainerIpAddress` with `getHost`. (#616)
+
 ### Quality
+
 - Remove `nexus.intra.iex.ec` repository. (#605)
 - Remove `Graylog` support. Fetch logs with a sidecar to push them to your log infrastructure. (#607)
 - Events are now immutable with `@Value` lombok annotation. (#608)
 - Fix several code smells. (#609)
 - Upgrade to Gradle 8.2.1 with up-to-date plugins. (#612)
 - Remove `VersionService#isSnapshot`. (#618)
+
 ### Dependency Upgrades
+
 - Remove `logstash-gelf` dependency. (#607)
 - Upgrade to `eclipse-temurin` 11.0.20. (#610)
 - Upgrade to Spring Boot 2.7.14. (#611)
@@ -48,13 +59,17 @@ All notable changes to this project will be documented in this file.
 ## [[8.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.2) 2023-06-29
 
 ## Bug fixes
+
 - Prevent race conditions in `WorkerService`. (#602)
+
 ### Dependency Upgrades
+
 - Upgrade to `iexec-commons-poco` 3.0.5. (#602)
 
 ## [[8.1.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.1) 2023-06-23
 
 ### Dependency Upgrades
+
 - Upgrade to `iexec-common` 8.2.1. (#599)
 - Upgrade to `iexec-commons-poco` 3.0.4. (#599)
 - Upgrade to `iexec-blockchain-adapter-api-library` 8.1.1. (#599)
@@ -64,16 +79,21 @@ All notable changes to this project will be documented in this file.
 ## [[8.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.1.0) 2023-06-09
 
 ### New Features
+
 - Add ContributeAndFinalize to `ReplicateWorkflow`. (#574)
 - Add check for ContributeAndFinalize in `ReplicatesService`. (#576 #582)
 - Add `running2Finalized2Completed` in `TaskUpdateManager`. (#577 #578)
 - Disable `contributeAndFinalize` with CallBack. (#579 #581)
 - Add purge cached task descriptions ability. (#587)
 - Add detectors for `ContributeAndFinalize` flow. (#590 #593)
+
 ### Bug Fixes
+
 - Prevent race condition on replicate update. (#568)
 - Use builders in test classes. (#589)
+
 ### Quality
+
 - Remove unused methods in `IexecHubService`. (#572)
 - Clean unused Replicate methods and update tests. (#573)
 - Clean unused `ReplicateStatus#RESULT_UPLOAD_REQUEST_FAILED`. (#575)
@@ -82,7 +102,9 @@ All notable changes to this project will be documented in this file.
 - Rearrange checks order to avoid call to database. (#585)
 - Move methods to get event blocks from `iexec-commons-poco`. (#588)
 - Rename detectors' methods and fields to match Ongoing/Done standard. (#591)
+
 ### Dependency Upgrades
+
 - Upgrade to `iexec-common` 8.2.0. (#571 #575 #586 #594)
 - Add new `iexec-commons-poco` 3.0.2 dependency. (#571 #574 #586 #587 #588 #592 #594)
 - Upgrade to `iexec-blockchain-adapter-api-library` 8.1.0. (#594)
@@ -92,6 +114,7 @@ All notable changes to this project will be documented in this file.
 ## [[8.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.1) 2023-03-20
 
 ### Bug Fixes
+
 - Remove explicit version on `micrometer-registry-prometheus` dependency. (#563)
 - Send a `TaskNotificationType` to worker with a 2XX HTTP status code. (#564)
 - Remove `com.iexec.core.dataset` package. (#565)
@@ -100,24 +123,31 @@ All notable changes to this project will be documented in this file.
 ## [[8.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.0.0) 2023-03-08
 
 ### New Features
+
 * Support Gramine framework for TEE tasks.
 * Retrieve location of SMS services through an _iExec Platform Registry_.
 * Improve authentication on scheduler.
-  * burn challenge after login.
-  * handle JWT expiration through the expiration claim.
-  * cache JWT until expiration.
-  * better claims usage.
+    * burn challenge after login.
+    * handle JWT expiration through the expiration claim.
+    * cache JWT until expiration.
+    * better claims usage.
 * Show application version on banner.
+
 ### Bug Fixes
+
 * Always return a `TaskNotificationType` on replicate status update when it has been authorized.
 * Handle task added twice.
+
 ### Quality
+
 * Improve code quality and tests.
 * Removed unused variables in configuration.
 * Use existing `toString()` method to serialize and hash scheduler public configuration.
 * Use recommended annotation in `MetricController`.
 * Remove `spring-cloud-starter-openfeign` dependency.
+
 ### Dependency Upgrades
+
 * Replace the deprecated `openjdk` Docker base image with `eclipse-temurin` and upgrade to Java 11.0.18 patch.
 * Upgrade to Spring Boot 2.6.14.
 * Upgrade to Gradle 7.6.
@@ -141,12 +171,15 @@ All notable changes to this project will be documented in this file.
 
 ## [[7.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.1) 2022-12-13
 
-* Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant hash received from the `POST /ping` response indicates that the scheduler configuration has not changed. With such constant hash, either the scheduler has restarted or not, the consumer does not need to reboot.
+* Replace `sessionId` implementation with a hash of the public configuration. From a consumer point of view, a constant
+  hash received from the `POST /ping` response indicates that the scheduler configuration has not changed. With such
+  constant hash, either the scheduler has restarted or not, the consumer does not need to reboot.
 
 ## [[7.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.2.0) 2022-12-09
 
 * Increments of jenkins-library up to version 2.2.3. Enable SonarCloud analyses on branches and Pull Requests.
-* Update `iexec-common` version to [6.1.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.1.0).
+* Update `iexec-common` version
+  to [6.1.0](https://github.com/iExecBlockchainComputing/iexec-common/releases/tag/v6.1.0).
 
 ## [[7.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v7.1.3) 2022-12-07
 
@@ -180,6 +213,7 @@ All notable changes to this project will be documented in this file.
 Highly improved throughput of the iExec protocol.
 
 What has changed since v6.0.0?
+
 * Fix task status deadlock. Chances to reach RUNNING task status for given states of replicates are now increased.
 * Fix race condition on replicate attribution.
 * Upgrade Jacoco/Sonarqube reporting and plugins.
@@ -198,10 +232,12 @@ What has changed since v6.0.0?
 * Fix Recovering for the Retryable updateReplicateStatus(..) method.
 * Add checks before locally upgrading to the INITIALIZED status
 * Remove 2-blocks waiting time before supplying a new replicate
-* Fix OptimisticLockingFailureException happening when 2 detectors detect the same change at the same time, leading to race updates on a same task
+* Fix OptimisticLockingFailureException happening when 2 detectors detect the same change at the same time, leading to
+  race updates on a same task
 * Reuse socket when sending multiple requests to a blockchain node.
 * Replay fromBlockNumber now lives in a dedicated configuration:
-  A configuration document did store two different states. Updates on different states at the same time might lead to race conditions when saving to database. Now each state has its own document to avoid race conditions when saving.
+  A configuration document did store two different states. Updates on different states at the same time might lead to
+  race conditions when saving to database. Now each state has its own document to avoid race conditions when saving.
 * Fix TaskRepositoy.findByChainDealIdAndTaskIndex() to return unique result.
 
 ## [[6.4.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.4.2) 2021-12-14
@@ -245,16 +281,20 @@ What has changed since v6.0.0?
 
 ## [[6.1.4]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.4) 2021-10-14
 
-* Fixed OptimisticLockingFailureException happening when 2 detectors detect the same change at the same time, leading to race updates on a same task.
+* Fixed OptimisticLockingFailureException happening when 2 detectors detect the same change at the same time, leading to
+  race updates on a same task.
 
 ## [[6.1.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.3) 2021-10-05
 
-* Bump iexec-common dependency (iexec-common@5.5.1) featuring socket reuse when sending multiple requests to a blockchain node.
+* Bump iexec-common dependency (iexec-common@5.5.1) featuring socket reuse when sending multiple requests to a
+  blockchain node.
 
 ## [[6.1.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.1.2) 2021-10-01
 
 Bugfix - Replay fromBlockNumber now lives in a dedicated configuration:
-* A configuration document did store two different states. Updates on different states at the same time might lead to race conditions when saving to database. Now each state has its own document to avoid race conditions when saving.
+
+* A configuration document did store two different states. Updates on different states at the same time might lead to
+  race conditions when saving to database. Now each state has its own document to avoid race conditions when saving.
 
 ## [[6.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/6.0.1) 2021-09-28
 
@@ -263,12 +303,14 @@ Bugfix - Replay fromBlockNumber now lives in a dedicated configuration:
 ## [[6.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v6.0.0) 2021-07-29
 
 What's new?
+
 * Added Prometheus actuators
 * Moved TEE workflow configuration to dedicated service
 
 ## [[5.1.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.1) 2021-04-12
 
 What is patched?
+
 * Updated management port and actuator endpoints.
 
 ## [[5.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.1.0) 2021-03-26
@@ -276,6 +318,7 @@ What is patched?
 What's new?
 
 Fix WebSockets problem:
+
 * Enhance different task stages detection. When detecting unnotified contribute/reveal,
   we use the initialization block instead of the current block to lookup for the contribute/reveal metadata.
 * Use a dedicated TaskScheduler for STOMP WebSocket heartbeats.
@@ -285,6 +328,7 @@ Fix WebSockets problem:
 * feature/task-replay.
 
 Also:
+
 * Use the deal block as a landmark for a task.
 * Keep the computing task list consistent.
 * Worker should be instructed to contribute whenever it is possible (e.g. app/data download failure).
@@ -294,25 +338,30 @@ Also:
 ## [[5.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/5.0.0) 2020-07-22
 
 What's new?
+
 * Dapp developers can browse worker computing logs over iexec-core API.
 * Task result link is standardized and generic. It supports Ethereum, IPFS & Dropbox "storage" providers.
-* Result storage feature is moved to new [iExec Result Proxy](https://github.com/iExecBlockchainComputing/iexec-result-proxy).
+* Result storage feature is moved to
+  new [iExec Result Proxy](https://github.com/iExecBlockchainComputing/iexec-result-proxy).
 * Full compatibility with new [iExec Secret Management Service](https://github.com/iExecBlockchainComputing/iexec-sms).
 * Compatibility with latest PoCo 5.1.0 smart contracts.
 
 ## [[4.0.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/4.0.1) 2020-02-25
 
 What's fixed?
+
 * More resistance to unsync Ethereum nodes.
 
 ## [[4.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/4.0.0) 2019-12-13
 
 What's new?
+
 * Native-token sidechain compatibility.
 * GPU workers support.
 * Log aggregation.
 
 What's fixed?
+
 * Database indexes.
 * JWT/challenge validity duration.
 * Worker freed after contribution timeout.
@@ -320,12 +369,15 @@ What's fixed?
 ## [[3.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/3.2.0) 2019-09-17
 
 What is new?
+
 * Bag Of Tasks (BoT): Bag Of Tasks Deals can now be processed by the middleware.
-* Use of iexec input files: Sometimes external resources are needed to run a computation without using a dataset, that is what input files are for.
+* Use of iexec input files: Sometimes external resources are needed to run a computation without using a dataset, that
+  is what input files are for.
 * Whitelisting: Now the core can define a whitelist of workers that are allowed to connect to the pool.
 * Https: Workers can connect to the core using https.
 
 What is patched?
+
 * The project has been updated to java 11 and web3j 4.3.0.
 * Internal refactoring to handle replicates update better.
 * Limit workers that ask for replicates too often.
@@ -334,10 +386,12 @@ What is patched?
 ## [[3.1.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/3.1.0) 2019-07-11
 
 What's new?
+
 * Full end-to-end encryption inside a Trusted Execution Environment (TEE) powered by Intel(R) SGX.
 * Implemented the Proof-of-Contribution (PoCo) Sarmenta's formula for a greater task dispatching.
 
 What's patched?
+
 * Reopen task worflow is back.
 * A single FAILED replicate status when a completion is impossible.
 * WORKER_LOST is not set for replicates which are already FAILED.
@@ -348,18 +402,22 @@ What's patched?
 This release is a patch to fix an issue following the release of version 3.0.0.
 
 When asking for a replicate, a worker sends the latest available block number from the node it is is connected to.
-If that node is a little bit behind the node the core is connected to, the worker will have a disadvantage compare to workers connected to more up-to-date nodes.
+If that node is a little bit behind the node the core is connected to, the worker will have a disadvantage compare to
+workers connected to more up-to-date nodes.
 To avoid this disadvantage, now the core waits for a few blocks before sending replicates to workers.
 
 ## [[3.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/3.0.0) 2019-05-15
 
 This release contains the core set of changes in the 3.0.0-alpha-X releases and some other features/fixes.
 In summary this version introduces:
+
 * A new architecture: the core has been completely re-architectured from the version 2.
 * Latest PoCo use.
 * Better management of transaction with the ethereum blockchain.
-* Failover mechanisms: in case some workers are lost or restarted when working on a specific task, internal mechanisms will redistribute the task or use as much as possible the work performed by the lost / restarted workers.
-* iExec End-To-End Encryption with Secret Management Service (SMS): from this version, inputs and outputs of the job can be fully encrypted using the Secret Management Service.
+* Failover mechanisms: in case some workers are lost or restarted when working on a specific task, internal mechanisms
+  will redistribute the task or use as much as possible the work performed by the lost / restarted workers.
+* iExec End-To-End Encryption with Secret Management Service (SMS): from this version, inputs and outputs of the job can
+  be fully encrypted using the Secret Management Service.
 * Decentralized oracle: If the result is needed by a smart contract, it is available directly on the blockchain.
 * IPFS: data can be retrieved from IPFS and public results can be published on IPFS.
 
@@ -379,8 +437,8 @@ For further information on this version, please read our documentation.
 * Some general refactoring on the detectors.
 * Bug fix regarding the new PoCo version.
 * The core now also checks the errors on the blockchain sent by the workers.
-Enhancement regarding the result repo.
-Updated PoCo chain version 3.0.21.
+  Enhancement regarding the result repo.
+  Updated PoCo chain version 3.0.21.
 
 ## [[3.0.0-alpha1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/3.0.0-alpha1) 2019-01-25
 
