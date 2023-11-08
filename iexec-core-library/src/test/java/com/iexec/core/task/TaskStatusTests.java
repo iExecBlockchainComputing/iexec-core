@@ -26,13 +26,13 @@ class TaskStatusTests {
 
     // region contribution phase
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"INITIALIZED", "RUNNING"})
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"INITIALIZED", "RUNNING"})
     void isInContributionPhase(TaskStatus taskStatus) {
         assertTrue(TaskStatus.isInContributionPhase(taskStatus));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"INITIALIZED", "RUNNING"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"INITIALIZED", "RUNNING"})
     void isNotInContributionPhase(TaskStatus taskStatus) {
         assertFalse(TaskStatus.isInContributionPhase(taskStatus));
     }
@@ -40,13 +40,13 @@ class TaskStatusTests {
 
     // region reveal phase
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"CONSENSUS_REACHED", "AT_LEAST_ONE_REVEALED", "RESULT_UPLOADING", "RESULT_UPLOADED"})
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"CONSENSUS_REACHED", "AT_LEAST_ONE_REVEALED", "RESULT_UPLOADING", "RESULT_UPLOADED"})
     void isInRevealPhase(TaskStatus taskStatus) {
         assertTrue(TaskStatus.isInRevealPhase(taskStatus));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"CONSENSUS_REACHED", "AT_LEAST_ONE_REVEALED", "RESULT_UPLOADING", "RESULT_UPLOADED"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"CONSENSUS_REACHED", "AT_LEAST_ONE_REVEALED", "RESULT_UPLOADING", "RESULT_UPLOADED"})
     void isNotInRevealPhase(TaskStatus taskStatus) {
         assertFalse(TaskStatus.isInRevealPhase(taskStatus));
     }
@@ -54,13 +54,13 @@ class TaskStatusTests {
 
     // region result upload phase
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"RESULT_UPLOADING"})
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"RESULT_UPLOADING"})
     void isInResultUploadPhase(TaskStatus taskStatus) {
         assertTrue(TaskStatus.isInResultUploadPhase(taskStatus));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"RESULT_UPLOADING"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"RESULT_UPLOADING"})
     void isNotInResultUploadPhase(TaskStatus taskStatus) {
         assertFalse(TaskStatus.isInResultUploadPhase(taskStatus));
     }
@@ -68,13 +68,13 @@ class TaskStatusTests {
 
     // region completion phase
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"FINALIZING", "FINALIZED", "COMPLETED"})
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"FINALIZING", "FINALIZED", "COMPLETED"})
     void isInCompletionPhase(TaskStatus taskStatus) {
         assertTrue(TaskStatus.isInCompletionPhase(taskStatus));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"FINALIZING", "FINALIZED", "COMPLETED"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"FINALIZING", "FINALIZED", "COMPLETED"})
     void isNotInCompletionPhase(TaskStatus taskStatus) {
         assertFalse(TaskStatus.isInCompletionPhase(taskStatus));
     }
@@ -82,13 +82,13 @@ class TaskStatusTests {
 
     // region
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"COMPLETED", "FAILED"})
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"COMPLETED", "FAILED"})
     void isFinalStatus(TaskStatus taskStatus) {
         assertTrue(TaskStatus.isFinalStatus(taskStatus));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TaskStatus.class, names = {"COMPLETED", "FAILED"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = TaskStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"COMPLETED", "FAILED"})
     void isNotFinalStatus(TaskStatus taskStatus) {
         assertFalse(TaskStatus.isFinalStatus(taskStatus));
     }
