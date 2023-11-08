@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,29 @@
 
 package com.iexec.core.metric;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.math.BigInteger;
 
-@Data
-@AllArgsConstructor
+@Value
 @Builder
+@JsonDeserialize(builder = PlatformMetric.PlatformMetricBuilder.class)
 public class PlatformMetric {
+    int aliveWorkers;
+    int aliveTotalCpu;
+    int aliveAvailableCpu;
+    int aliveTotalGpu;
+    int aliveAvailableGpu;
+    int completedTasks;
+    long dealEventsCount;
+    long dealsCount;
+    long replayDealsCount;
+    BigInteger latestBlockNumberWithDeal;
 
-    private int aliveWorkers;
-    private int aliveTotalCpu;
-    private int aliveAvailableCpu;
-    private int aliveTotalGpu;
-    private int aliveAvailableGpu;
-    private int completedTasks;
-    private long dealEventsCount;
-    private long dealsCount;
-    private long replayDealsCount;
-    private BigInteger latestBlockNumberWithDeal;
-
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class PlatformMetricBuilder {
+    }
 }
