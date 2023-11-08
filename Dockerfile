@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system appuser \
-    && useradd -g appuser -s /sbin/nologin -c "Docker image user" appuser \
+    && useradd -g appuser -s /sbin/nologin -c "Docker image user" appuser
 
 WORKDIR /app
 COPY $jar iexec-core.jar
