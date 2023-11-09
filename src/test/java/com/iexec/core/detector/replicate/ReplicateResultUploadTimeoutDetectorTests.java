@@ -20,7 +20,9 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.*;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +37,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +49,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
 
     @Mock
     private TaskService taskService;
-    
+
     @Mock
     private ReplicatesService replicatesService;
 
@@ -103,9 +105,9 @@ class ReplicateResultUploadTimeoutDetectorTests {
         replicate1.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(ReplicateStatus.RESULT_UPLOADING, ReplicateStatusModifier.POOL_MANAGER);
 
-        TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.INITIALIZED);
-        TaskStatusChange change2 = new TaskStatusChange(threeMinutesAgo, TaskStatus.RUNNING);
-        TaskStatusChange change3 = new TaskStatusChange(twoMinutesAgo, TaskStatus.RESULT_UPLOADING);
+        TaskStatusChange change1 = TaskStatusChange.builder().date(fourMinutesAgo).status(TaskStatus.INITIALIZED).build();
+        TaskStatusChange change2 = TaskStatusChange.builder().date(threeMinutesAgo).status(TaskStatus.RUNNING).build();
+        TaskStatusChange change3 = TaskStatusChange.builder().date(twoMinutesAgo).status(TaskStatus.RESULT_UPLOADING).build();
 
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
         task.setDateStatusList(Arrays.asList(change1, change2, change3));
@@ -138,9 +140,9 @@ class ReplicateResultUploadTimeoutDetectorTests {
         // we suppose that the status has already been set in a previous detect
         replicate.updateStatus(ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
-        TaskStatusChange change1 = new TaskStatusChange(fourMinutesAgo, TaskStatus.INITIALIZED);
-        TaskStatusChange change2 = new TaskStatusChange(threeMinutesAgo, TaskStatus.RUNNING);
-        TaskStatusChange change3 = new TaskStatusChange(twoMinutesAgo, TaskStatus.RESULT_UPLOADING);
+        TaskStatusChange change1 = TaskStatusChange.builder().date(fourMinutesAgo).status(TaskStatus.INITIALIZED).build();
+        TaskStatusChange change2 = TaskStatusChange.builder().date(threeMinutesAgo).status(TaskStatus.RUNNING).build();
+        TaskStatusChange change3 = TaskStatusChange.builder().date(twoMinutesAgo).status(TaskStatus.RESULT_UPLOADING).build();
 
         task.setUploadingWorkerWalletAddress(WALLET_WORKER_1);
         task.setDateStatusList(Arrays.asList(change1, change2, change3));

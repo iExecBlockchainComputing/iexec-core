@@ -16,21 +16,19 @@
 
 package com.iexec.core.logs;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import com.iexec.common.replicate.ComputeLogs;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document
 @Data
@@ -64,7 +62,14 @@ public class TaskLogs {
 
     public boolean containsWalletAddress(String walletAddress) {
         return computeLogsList.stream().anyMatch(
-            computeLog -> computeLog.getWalletAddress().equals(walletAddress)
+                computeLog -> computeLog.getWalletAddress().equals(walletAddress)
         );
+    }
+
+    public TaskLogsModel generateModel() {
+        return TaskLogsModel.builder()
+                .chainTaskId(chainTaskId)
+                .computeLogsList(computeLogsList)
+                .build();
     }
 }
