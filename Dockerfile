@@ -16,4 +16,4 @@ COPY $jar iexec-core.jar
 RUN chown -R appuser:appuser /app
 
 USER appuser
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/iexec-core.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "iexec-core.jar"]
