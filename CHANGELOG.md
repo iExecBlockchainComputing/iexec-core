@@ -19,6 +19,10 @@ All notable changes to this project will be documented in this file.
 - Fix web security depreciation warning. (#624)
 - Move `TaskModel` and `ReplicateModel` instances creation methods to `Task` and `Replicate` classes. (#625)
 
+### Dependency Upgrades
+
+- Upgrade to `jenkins-library` 2.7.4. (#630)
+
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
 ### New Features
