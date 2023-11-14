@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package com.iexec.core.logs;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface TaskLogsRepository extends MongoRepository<TaskLogs, String> {
 
