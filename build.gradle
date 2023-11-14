@@ -38,8 +38,10 @@ allprojects {
     }
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(11))
+            languageVersion.set(JavaLanguageVersion.of(17))
         }
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
     }
 }
 
@@ -162,14 +164,13 @@ publishing {
     }
 }
 
-ext.jarPathForOCI  = relativePath(tasks.bootJar.outputs.files.singleFile)
+ext.jarPathForOCI = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
-ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
+ext.ociImageName = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
 tasks.register('buildImage', Exec) {
     group 'Build'
     description 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar
-    commandLine("sh", "-c", "docker build --build-arg jar=$jarPathForOCI -t $ociImageName:$gitShortCommit . &&" +
-            "docker tag $ociImageName:$gitShortCommit $ociImageName:dev")
+    commandLine 'docker', 'build', '--build-arg', 'jar=' + jarPathForOCI, '-t', ociImageName + ':dev', '.'
 }
