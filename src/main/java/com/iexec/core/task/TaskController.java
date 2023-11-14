@@ -24,6 +24,7 @@ import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.SignatureUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.logs.TaskLogs;
+import com.iexec.core.logs.TaskLogsModel;
 import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
@@ -123,7 +124,7 @@ public class TaskController {
             "/tasks/{chainTaskId}/stdout",  // @Deprecated
             "/tasks/{chainTaskId}/logs"
     })
-    public ResponseEntity<TaskLogs> getTaskLogs(
+    public ResponseEntity<TaskLogsModel> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String authorization) {
         SignedChallenge signedChallenge = SignedChallenge.createFromString(authorization);
@@ -131,7 +132,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         String taskLogsRequester = signedChallenge.getWalletAddress();
-        if(!isTaskRequester(taskLogsRequester, chainTaskId)) {
+        if (!isTaskRequester(taskLogsRequester, chainTaskId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Signature signature = new Signature(Numeric.cleanHexPrefix(signedChallenge.getChallengeSignature()));
@@ -141,6 +142,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return taskLogsService.getTaskLogs(chainTaskId)
+                .map(TaskLogs::generateModel)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -174,8 +176,9 @@ public class TaskController {
 
     /**
      * Checks if requester address from bearer token is the same as the address used to buy the task execution.
+     *
      * @param logsRequester Wallet address of requester asking task or compute logs
-     * @param chainTaskId Task for which outputs are requested
+     * @param chainTaskId   Task for which outputs are requested
      * @return true if the user requesting computation outputs was the one to buy the task, false otherwise
      */
     private boolean isTaskRequester(String logsRequester, String chainTaskId) {
