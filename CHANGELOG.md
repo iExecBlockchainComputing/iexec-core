@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
 - Move first DTO classes to `iexec-core-library` subproject. (#626)
 - Move `PlatformMetric` to `iexec-core-library` subproject, modify it to become immutable. (#628 #629)
+- Add prometheus endpoint with custom metrics. (#632)
 
 ### Quality
 

@@ -21,13 +21,15 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,18 +43,17 @@ class MetricServiceTests {
     private WorkerService workerService;
     @Mock
     private TaskService taskService;
-
-    @InjectMocks
     private MetricService metricService;
+
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-    }
-
-    @Test
-    void shouldGetPlatformMetrics() {
-        List<Worker> aliveWorkers = List.of(new Worker());
+        List<Worker> aliveWorkers = List.of(new Worker(), new Worker(), new Worker());
         when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
         when(workerService.getAliveTotalCpu()).thenReturn(1);
         when(workerService.getAliveAvailableCpu()).thenReturn(1);
@@ -65,8 +66,20 @@ class MetricServiceTests {
         when(dealWatcherService.getReplayDealsCount()).thenReturn(2L);
         when(dealWatcherService.getLatestBlockNumberWithDeal()).thenReturn(BigInteger.valueOf(255L));
 
+        metricService = new MetricService(dealWatcherService, workerService, taskService);
+        metricService.initializeMetrics();
+    }
+
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
+    @Test
+    void shouldGetPlatformMetrics() {
+
         PlatformMetric metric = metricService.getPlatformMetrics();
-        assertThat(metric.getAliveWorkers()).isEqualTo(aliveWorkers.size());
+        assertThat(metric.getAliveWorkers()).isEqualTo(3);
         assertThat(metric.getAliveTotalCpu()).isEqualTo(1);
         assertThat(metric.getAliveAvailableCpu()).isEqualTo(1);
         assertThat(metric.getAliveTotalGpu()).isEqualTo(1);
@@ -78,4 +91,46 @@ class MetricServiceTests {
         assertThat(metric.getLatestBlockNumberWithDeal()).isEqualTo(255);
     }
 
+    @Test
+    void shouldInitializeMetrics() {
+        verifyGaugeMetric("iexec.core.workers", 3);
+        verifyGaugeMetric("iexec.core.cpu.total", 1);
+        verifyGaugeMetric("iexec.core.cpu.available", 1);
+        verifyGaugeMetric("iexec.core.tasks.completed", 0);
+        verifyGaugeMetric("iexec.core.deals.events", 10L);
+        verifyGaugeMetric("iexec.core.deals", 8);
+        verifyGaugeMetric("iexec.core.deals.replay", 2L);
+        verifyGaugeMetric("iexec.core.deals.last.block", 255L);
+    }
+
+    @Test
+    void shouldUpdateMetrics() {
+
+        List<Worker> aliveWorkers = List.of(new Worker(), new Worker());
+
+        when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
+        when(workerService.getAliveAvailableCpu()).thenReturn(7);
+        when(workerService.getAliveTotalCpu()).thenReturn(15);
+        when(taskService.findByCurrentStatus(TaskStatus.COMPLETED)).thenReturn(Collections.emptyList());
+        when(dealWatcherService.getDealEventsCount()).thenReturn(120L);
+        when(dealWatcherService.getDealsCount()).thenReturn(60L);
+        when(dealWatcherService.getReplayDealsCount()).thenReturn(25L);
+        when(dealWatcherService.getLatestBlockNumberWithDeal()).thenReturn(BigInteger.valueOf(255L));
+
+        metricService.updateMetrics();
+
+        verifyGaugeMetric("iexec.core.workers", aliveWorkers.size());
+        verifyGaugeMetric("iexec.core.cpu.total", 15);
+        verifyGaugeMetric("iexec.core.cpu.available", 7);
+        verifyGaugeMetric("iexec.core.tasks.completed", 0);
+        verifyGaugeMetric("iexec.core.deals.events", 120L);
+        verifyGaugeMetric("iexec.core.deals", 60L);
+        verifyGaugeMetric("iexec.core.deals.replay", 25L);
+        verifyGaugeMetric("iexec.core.deals.last.block", 255L);
+    }
+
+    private void verifyGaugeMetric(String metricName, long expectedValue) {
+        Gauge gauge = Metrics.globalRegistry.find(metricName).gauge();
+        Assertions.assertEquals(expectedValue, gauge.value());
+    }
 }
