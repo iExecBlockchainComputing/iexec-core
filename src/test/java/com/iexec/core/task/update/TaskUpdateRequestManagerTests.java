@@ -41,18 +41,16 @@ class TaskUpdateRequestManagerTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
 
-        CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
-        booleanCompletableFuture.join();
+        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture.get()).isTrue();
+        Assertions.assertThat(booleanCompletableFuture).isTrue();
     }
 
     @Test
     void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
-        CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest("");
-        booleanCompletableFuture.join();
+        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest("");
 
-        Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
+        Assertions.assertThat(booleanCompletableFuture).isFalse();
     }
 
     @Test
@@ -63,10 +61,9 @@ class TaskUpdateRequestManagerTests {
                 buildTaskUpdate(CHAIN_TASK_ID, null, null, null)
         );
 
-        CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
-        booleanCompletableFuture.join();
+        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
+        Assertions.assertThat(booleanCompletableFuture).isFalse();
     }
 
     @Test
@@ -74,10 +71,9 @@ class TaskUpdateRequestManagerTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
 
-        CompletableFuture<Boolean> booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
-        booleanCompletableFuture.join();
+        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture.get()).isFalse();
+        Assertions.assertThat(booleanCompletableFuture).isFalse();
     }
     // endregion
 
@@ -232,7 +228,7 @@ class TaskUpdateRequestManagerTests {
                 );
     }
     // endregion
-    
+
     private TaskUpdate buildTaskUpdate(String chainTaskId,
                                        TaskStatus status,
                                        Date contributionDeadline,
