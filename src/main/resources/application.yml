@@ -80,7 +80,7 @@ management:
         # health, info, httptrace
         # or:
         # *
-        include: ${IEXEC_CORE_MANAGEMENT_ACTUATORS:health, info, metrics}
+        include: ${IEXEC_CORE_MANAGEMENT_ACTUATORS:health, info}
   endpoint:
     health:
       show-details: always  # Show all details of HealthIndicators
