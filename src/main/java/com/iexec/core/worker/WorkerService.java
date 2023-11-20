@@ -18,13 +18,17 @@ package com.iexec.core.worker;
 
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
+import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
@@ -39,9 +43,15 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 @Service
 public class WorkerService {
 
+    public static final String METRIC_WORKERS_GAUGE = "iexec.core.workers";
+    public static final String METRIC_CPU_TOTAL_GAUGE = "iexec.core.cpu.total";
+    public static final String METRIC_CPU_AVAILABLE_GAUGE = "iexec.core.cpu.available";
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
     private final ContextualLockRunner<String> contextualLockRunner;
+    private AtomicInteger aliveWorkersGauge;
+    private AtomicInteger aliveTotalCpuGauge;
+    private AtomicInteger aliveAvailableCpuGauge;
 
     public WorkerService(WorkerRepository workerRepository,
                          WorkerConfiguration workerConfiguration) {
@@ -50,15 +60,47 @@ public class WorkerService {
         this.contextualLockRunner = new ContextualLockRunner<>();
     }
 
+    @PostConstruct
+    void init() {
+        aliveWorkersGauge = Metrics.gauge(METRIC_WORKERS_GAUGE, new AtomicInteger(getAliveWorkers().size()));
+        aliveTotalCpuGauge = Metrics.gauge(METRIC_CPU_TOTAL_GAUGE, new AtomicInteger(getAliveTotalCpu()));
+        aliveAvailableCpuGauge = Metrics.gauge(METRIC_CPU_AVAILABLE_GAUGE, new AtomicInteger(getAliveAvailableCpu()));
+    }
+
+    /**
+     * updateMetrics is used to update all workers metrics
+     */
+    @Scheduled(fixedDelayString = "${cron.metrics.refresh.period}", initialDelayString = "${cron.metrics.refresh.period}")
+    void updateMetrics() {
+        // Fusion of methods getAliveTotalCpu and getAliveAvailableCpu to prevent making 3 calls to getAliveWorkers
+        int availableCpus = 0;
+        int totalCpus = 0;
+        List<Worker> workers = getAliveWorkers();
+        for (Worker worker : workers) {
+            if (worker.isGpuEnabled()) {
+                continue;
+            }
+            int workerCpuNb = worker.getCpuNb();
+            int computingReplicateNb = worker.getComputingChainTaskIds().size();
+            int availableCpu = workerCpuNb - computingReplicateNb;
+            totalCpus += workerCpuNb;
+            availableCpus += availableCpu;
+        }
+
+        aliveWorkersGauge.set(workers.size());
+        aliveTotalCpuGauge.set(totalCpus);
+        aliveAvailableCpuGauge.set(availableCpus);
+    }
+
     // region Read methods
     public Optional<Worker> getWorker(String walletAddress) {
         return workerRepository.findByWalletAddress(walletAddress);
     }
 
-    public boolean isAllowedToJoin(String workerAddress){
+    public boolean isAllowedToJoin(String workerAddress) {
         List<String> whitelist = workerConfiguration.getWhitelist();
         // if the whitelist is empty, there is no restriction on the workers
-        if (whitelist.isEmpty()){
+        if (whitelist.isEmpty()) {
             return true;
         }
         return whitelist.contains(workerAddress);
@@ -121,7 +163,7 @@ public class WorkerService {
 
     public boolean canAcceptMoreWorks(String walletAddress) {
         Optional<Worker> optionalWorker = getWorker(walletAddress);
-        if (optionalWorker.isEmpty()){
+        if (optionalWorker.isEmpty()) {
             return false;
         }
 
@@ -140,7 +182,7 @@ public class WorkerService {
 
     public int getAliveAvailableCpu() {
         int availableCpus = 0;
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 continue;
             }
@@ -148,18 +190,18 @@ public class WorkerService {
             int workerCpuNb = worker.getCpuNb();
             int computingReplicateNb = worker.getComputingChainTaskIds().size();
             int availableCpu = workerCpuNb - computingReplicateNb;
-            availableCpus+= availableCpu;
+            availableCpus += availableCpu;
         }
         return availableCpus;
     }
 
     public int getAliveTotalCpu() {
         int totalCpus = 0;
-        for (Worker worker: getAliveWorkers()){
-            if(worker.isGpuEnabled()) {
+        for (Worker worker : getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
                 continue;
             }
-            totalCpus+= worker.getCpuNb();
+            totalCpus += worker.getCpuNb();
         }
         return totalCpus;
     }
@@ -167,7 +209,7 @@ public class WorkerService {
     // We suppose for now that 1 Gpu enabled worker has only one GPU
     public int getAliveTotalGpu() {
         int totalGpus = 0;
-        for(Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 totalGpus++;
             }
@@ -175,9 +217,9 @@ public class WorkerService {
         return totalGpus;
     }
 
-    public int getAliveAvailableGpu () {
+    public int getAliveAvailableGpu() {
         int availableGpus = getAliveTotalGpu();
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 boolean isWorking = !worker.getComputingChainTaskIds().isEmpty();
                 if (isWorking) {

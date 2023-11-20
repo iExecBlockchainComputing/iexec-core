@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MetricService {
-
     private final DealWatcherService dealWatcherService;
     private final WorkerService workerService;
     private final TaskService taskService;
@@ -51,5 +50,4 @@ public class MetricService {
                 .latestBlockNumberWithDeal(dealWatcherService.getLatestBlockNumberWithDeal())
                 .build();
     }
-
 }

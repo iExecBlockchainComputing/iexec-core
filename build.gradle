@@ -124,7 +124,7 @@ springBoot {
 tasks.named("bootJar") {
     manifest {
         attributes("Implementation-Title": "iExec Core Scheduler",
-                   "Implementation-Version": project.version)
+                "Implementation-Version": project.version)
     }
 }
 
@@ -143,7 +143,7 @@ jacocoTestReport {
         xml.required = true
     }
 }
-tasks.test.finalizedBy    tasks.jacocoTestReport
+tasks.test.finalizedBy tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
 publishing {
