@@ -20,11 +20,9 @@ import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.WorkerService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
-@Slf4j
 public class MetricService {
     private final DealWatcherService dealWatcherService;
     private final WorkerService workerService;
