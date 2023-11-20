@@ -57,7 +57,6 @@ class WorkerServiceTests {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        workerService.init();
     }
 
     @AfterEach
@@ -69,6 +68,7 @@ class WorkerServiceTests {
 
     @Test
     void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
+        workerService.init();
         Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
         Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
         Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
@@ -688,6 +688,7 @@ class WorkerServiceTests {
                 .build();
         List<Worker> list = List.of(worker1, worker2);
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+        workerService.init();
         workerService.updateMetrics();
 
         assertThat(workerService.getAliveTotalCpu())
