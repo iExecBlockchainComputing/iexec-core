@@ -26,13 +26,22 @@ import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.reactivex.Flowable;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.protocol.core.methods.response.Log;
@@ -77,11 +86,39 @@ class DealWatcherServiceTests {
         return schedulerNotice;
     }
 
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
         when(chainConfig.getHubAddress()).thenReturn("hubAddress");
         when(chainConfig.getPoolAddress()).thenReturn("0x1");
+    }
+
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
+    @Test
+    void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
+        Counter dealsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_COUNT).counter();
+        Counter dealsEventsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_EVENTS_COUNT).counter();
+        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
+        Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
+
+        Assertions.assertThat(dealsCounter).isNotNull();
+        Assertions.assertThat(dealsEventsCounter).isNotNull();
+        Assertions.assertThat(dealsReplayCounter).isNotNull();
+        Assertions.assertThat(lastBlockCounter).isNotNull();
+
+        Assertions.assertThat(dealsCounter.count()).isZero();
+        Assertions.assertThat(dealsEventsCounter.count()).isZero();
+        Assertions.assertThat(dealsReplayCounter.count()).isZero();
+        Assertions.assertThat(lastBlockCounter.count()).isZero();
     }
 
     @Test
@@ -111,6 +148,16 @@ class DealWatcherServiceTests {
         dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
+        Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
+        Counter dealsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_COUNT).counter();
+        Counter dealsEventsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_EVENTS_COUNT).counter();
+        Assertions.assertThat(lastBlockCounter).isNotNull();
+        Assertions.assertThat(dealsCounter).isNotNull();
+        Assertions.assertThat(dealsEventsCounter).isNotNull();
+        Assertions.assertThat(lastBlockCounter.count()).isEqualTo(blockOfDeal.doubleValue());
+        Assertions.assertThat(dealsCounter.count()).isEqualTo(1);
+        Assertions.assertThat(dealsEventsCounter.count()).isEqualTo(1);
+
     }
 
     @Test
@@ -139,7 +186,7 @@ class DealWatcherServiceTests {
         when(iexecHubService.getChainDeal(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
         when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
         when(taskService.addTask(any(), anyInt(), anyLong(), any(), any(), anyInt(), anyLong(), any(), any(), any()))
-                        .thenReturn(Optional.of(task));
+                .thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
         ArgumentCaptor<TaskCreatedEvent> argumentCaptor = ArgumentCaptor.forClass(TaskCreatedEvent.class);
@@ -185,9 +232,9 @@ class DealWatcherServiceTests {
         IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
 
         ChainDeal chainDeal = ChainDeal.builder()
-            .botFirst(BigInteger.valueOf(0))
-            .botSize(BigInteger.valueOf(0))
-            .build();
+                .botFirst(BigInteger.valueOf(0))
+                .botSize(BigInteger.valueOf(0))
+                .build();
 
         when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
         when(iexecHubService.getChainDeal(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
@@ -206,9 +253,9 @@ class DealWatcherServiceTests {
         IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
 
         ChainDeal chainDeal = ChainDeal.builder()
-            .botFirst(BigInteger.valueOf(0))
-            .botSize(BigInteger.valueOf(1))
-            .build();
+                .botFirst(BigInteger.valueOf(0))
+                .botSize(BigInteger.valueOf(1))
+                .build();
 
         when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
         when(iexecHubService.getChainDeal(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
@@ -266,6 +313,12 @@ class DealWatcherServiceTests {
         dealWatcherService.replayDealEvent();
 
         verify(iexecHubService).getChainDeal(any());
+        Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
+        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
+        Assertions.assertThat(lastBlockCounter).isNotNull();
+        Assertions.assertThat(dealsReplayCounter).isNotNull();
+        Assertions.assertThat(lastBlockCounter.count()).isEqualTo(blockOfDeal.doubleValue());
+        Assertions.assertThat(dealsReplayCounter.count()).isEqualTo(1);
     }
 
     @Test

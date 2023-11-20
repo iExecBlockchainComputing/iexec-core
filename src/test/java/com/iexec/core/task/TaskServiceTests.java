@@ -21,10 +21,18 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 
@@ -58,9 +66,20 @@ class TaskServiceTests {
     @InjectMocks
     private TaskService taskService;
 
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        taskService.init();
+    }
+
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
     }
 
     @Test
@@ -217,7 +236,32 @@ class TaskServiceTests {
 
     // region updateTask()
     @Test
-    void shouldUpdateTask() {
+    void shouldUpdateTaskAndMetrics() {
+        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
+        Assertions.assertThat(counter).isNotNull();
+        Assertions.assertThat(counter.count()).isZero();
+
+        Task task = getStubTask(maxExecutionTime);
+        task.setCurrentStatus(TaskStatus.COMPLETED);
+        when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(task);
+
+        Optional<Task> optional = taskService.updateTask(task);
+
+        assertThat(optional)
+                .isPresent()
+                .isEqualTo(Optional.of(task));
+        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
+        Assertions.assertThat(counter).isNotNull();
+        Assertions.assertThat(counter.count()).isOne();
+    }
+
+    @Test
+    void shouldUpdateTaskButNotMetricsWhenTaskIsNotCompleted() {
+        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
+        Assertions.assertThat(counter).isNotNull();
+        Assertions.assertThat(counter.count()).isZero();
+
         Task task = getStubTask(maxExecutionTime);
         when(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(task);
@@ -227,6 +271,9 @@ class TaskServiceTests {
         assertThat(optional)
                 .isPresent()
                 .isEqualTo(Optional.of(task));
+        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
+        Assertions.assertThat(counter).isNotNull();
+        Assertions.assertThat(counter.count()).isZero();
     }
 
     @Test

@@ -17,6 +17,12 @@
 package com.iexec.core.worker;
 
 import com.iexec.core.configuration.WorkerConfiguration;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -42,12 +48,40 @@ class WorkerServiceTests {
     @InjectMocks
     private WorkerService workerService;
 
+
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        workerService.init();
+    }
+
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
     }
 
     // getWorker
+
+    @Test
+    void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
+        Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
+        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
+        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+
+        Assertions.assertThat(aliveWorkersGauge).isNotNull();
+        Assertions.assertThat(aliveTotalCpuGauge).isNotNull();
+        Assertions.assertThat(aliveAvailableCpuGauge).isNotNull();
+
+        Assertions.assertThat(aliveWorkersGauge.value()).isZero();
+        Assertions.assertThat(aliveTotalCpuGauge.value()).isZero();
+        Assertions.assertThat(aliveAvailableCpuGauge.value()).isZero();
+
+    }
 
     @Test
     void shouldGetWorker() {
@@ -97,7 +131,6 @@ class WorkerServiceTests {
         when(workerRepository.save(Mockito.any())).thenReturn(newWorker);
 
         Worker addedWorker = workerService.addWorker(newWorker);
-
         assertThat(addedWorker).isNotEqualTo(existingWorker);
         assertThat(addedWorker.getId()).isEqualTo(existingWorker.getId());
     }
@@ -250,7 +283,7 @@ class WorkerServiceTests {
     // addChainTaskIdToWorker
 
     @Test
-    void shouldAddTaskIdToWorker(){
+    void shouldAddTaskIdToWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -278,7 +311,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotAddTaskIdToWorker(){
+    void shouldNotAddTaskIdToWorker() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker).isEmpty();
@@ -326,11 +359,11 @@ class WorkerServiceTests {
 
         assertThat(workerService.getComputingTaskIds(wallet)).isEmpty();
     }
-    
+
     // removeChainTaskIdFromWorker
 
     @Test
-    void shouldRemoveTaskIdFromWorker(){
+    void shouldRemoveTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -358,14 +391,14 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveTaskIdWorkerNotFound(){
+    void shouldNotRemoveTaskIdWorkerNotFound() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker).isEmpty();
     }
 
     @Test
-    void shouldNotRemoveAnythingSinceTaskIdNotFound(){
+    void shouldNotRemoveAnythingSinceTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -396,7 +429,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldRemoveComputedChainTaskIdFromWorker(){
+    void shouldRemoveComputedChainTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -427,7 +460,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -452,7 +485,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -582,7 +615,7 @@ class WorkerServiceTests {
 
         List<Worker> dummyWorkers = new ArrayList<>();
 
-        for (int i=0; i<n; i++) {
+        for (int i = 0; i < n; i++) {
             dummyWorkers.add(Worker.builder().id(Integer.toString(i)).build());
         }
         return dummyWorkers;
@@ -647,15 +680,30 @@ class WorkerServiceTests {
     void shouldGetTotalAliveCpu() {
         Worker worker1 = Worker.builder()
                 .cpuNb(4)
+                .computingChainTaskIds(List.of("T1", "T2", "T3"))
                 .build();
         Worker worker2 = Worker.builder()
                 .cpuNb(2)
+                .computingChainTaskIds(List.of("T4"))
                 .build();
         List<Worker> list = List.of(worker1, worker2);
         when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+        workerService.updateMetrics();
 
         assertThat(workerService.getAliveTotalCpu())
                 .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
+
+        Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
+        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
+        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+
+        Assertions.assertThat(aliveWorkersGauge).isNotNull();
+        Assertions.assertThat(aliveTotalCpuGauge).isNotNull();
+        Assertions.assertThat(aliveAvailableCpuGauge).isNotNull();
+
+        Assertions.assertThat(aliveWorkersGauge.value()).isEqualTo(list.size());
+        Assertions.assertThat(aliveTotalCpuGauge.value()).isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
+        Assertions.assertThat(aliveAvailableCpuGauge.value()).isEqualTo(2);
     }
 
     // getAliveTotalGpu
