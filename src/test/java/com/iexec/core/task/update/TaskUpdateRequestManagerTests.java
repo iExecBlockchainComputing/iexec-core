@@ -41,16 +41,16 @@ class TaskUpdateRequestManagerTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
 
-        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        boolean completableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture).isTrue();
+        Assertions.assertThat(completableFuture).isTrue();
     }
 
     @Test
     void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
-        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest("");
+        boolean completableFuture = taskUpdateRequestManager.publishRequest("");
 
-        Assertions.assertThat(booleanCompletableFuture).isFalse();
+        Assertions.assertThat(completableFuture).isFalse();
     }
 
     @Test
@@ -61,9 +61,9 @@ class TaskUpdateRequestManagerTests {
                 buildTaskUpdate(CHAIN_TASK_ID, null, null, null)
         );
 
-        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        boolean completableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture).isFalse();
+        Assertions.assertThat(completableFuture).isFalse();
     }
 
     @Test
@@ -71,9 +71,9 @@ class TaskUpdateRequestManagerTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
 
-        boolean booleanCompletableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        boolean completableFuture = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(booleanCompletableFuture).isFalse();
+        Assertions.assertThat(completableFuture).isFalse();
     }
     // endregion
 
