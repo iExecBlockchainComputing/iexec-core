@@ -592,7 +592,6 @@ class ReplicateSupplyServiceTests {
     private void assertTaskAccessForNewReplicateLockNeverUsed(String chainTaskId) {
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.get(chainTaskId);
         assertThat(lock).isNull();
-        ;
     }
 
     // Tests on getMissedTaskNotifications()
