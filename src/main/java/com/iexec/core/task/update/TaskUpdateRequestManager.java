@@ -68,12 +68,15 @@ public class TaskUpdateRequestManager {
     }
 
     /**
-     * Publish TaskUpdateRequest async
+     * Publish a TaskUpdateRequest if no request is already waiting for this task.
+     * This request will be dealt with asynchronously.
+     * <p>
      * As of now, we do sequential requests to the DB which can cause a big load.
      * We should aim to have some batch requests to unload the scheduler.
      *
-     * @param chainTaskId
-     * @return
+     * @param chainTaskId ID of the task to publish the request for.
+     * @return {@literal true} if request has been published,
+     * {@literal false} otherwise.
      */
     public synchronized boolean publishRequest(String chainTaskId) {
         if (chainTaskId.isEmpty()) {
@@ -93,7 +96,7 @@ public class TaskUpdateRequestManager {
         taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
         log.debug("Published task update request" +
                         " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
-                chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
+                chainTaskId, task.getCurrentStatus(), task.getContributionDeadline(), queue.size());
         return true;
     }
 
