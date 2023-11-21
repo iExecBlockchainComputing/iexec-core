@@ -632,33 +632,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
-
+    /**
+     * CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
+     */
     @Test
-        // CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
-    void shouldTellReplicateToContributeWhenComputing() {
-        List<String> ids = List.of(CHAIN_TASK_ID);
-        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
-        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.COMPUTING);
-
-        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
-        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
-        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
-        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(getStubAuth());
-
-        List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
-
-        assertThat(missedTaskNotifications).isNotEmpty();
-        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
-        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
-
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-    }
-
-    @Test
-        // CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
     void shouldTellReplicateToContributeSinceNotDoneOnchain() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
@@ -684,9 +661,37 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
+     */
     @Test
-        // CONTRIBUTING + done onChain   => updateStatus to CONTRIBUTED
-        // Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
+    void shouldTellReplicateToContributeWhenComputing() {
+        List<String> ids = List.of(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
+        Optional<Replicate> replicate = getStubReplicate(ReplicateStatus.COMPUTING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(any(), any())).thenReturn(replicate);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
+                .thenReturn(getStubAuth());
+
+        List<TaskNotification> missedTaskNotifications =
+                replicateSupplyService.getMissedTaskNotifications(3L, WALLET_WORKER_1);
+
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_CONTRIBUTE);
+
+        Mockito.verify(replicatesService, times(1))
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
+    }
+
+    /**
+     * CONTRIBUTING + done onChain   => updateStatus to CONTRIBUTED
+     * Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
+     */
+    @Test
     void shouldTellReplicateToWaitSinceContributedOnchain() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -723,9 +728,40 @@ class ReplicateSupplyServiceTests {
                         any(ReplicateStatusDetails.class));
     }
 
+    /**
+     * any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
+     */
     @Test
-        // CONTRIBUTING + done onChain => updateStatus to CONTRIBUTED
-        // Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
+    void shouldTellReplicateToAbortSinceContributionTimeout() {
+        long blockNumber = 3;
+        List<String> ids = List.of(CHAIN_TASK_ID);
+        List<Task> taskList = getStubTaskList(TaskStatus.CONTRIBUTION_TIMEOUT);
+        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
+
+        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
+        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
+        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(replicate1);
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
+                .thenReturn(getStubAuth());
+
+        List<TaskNotification> missedTaskNotifications =
+                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
+
+        assertThat(missedTaskNotifications).isNotEmpty();
+        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
+        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT);
+        TaskNotificationExtra notificationExtra = missedTaskNotifications.get(0).getTaskNotificationExtra();
+        assertThat(notificationExtra.getTaskAbortCause()).isEqualTo(TaskAbortCause.CONTRIBUTION_TIMEOUT);
+
+        Mockito.verify(replicatesService, times(1))
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
+    }
+
+    /**
+     * CONTRIBUTING + done onChain => updateStatus to CONTRIBUTED
+     * Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
+     */
+    @Test
     void shouldTellReplicateToRevealSinceConsensusReached() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -762,35 +798,10 @@ class ReplicateSupplyServiceTests {
                         any(ReplicateStatusDetails.class));
     }
 
+    /**
+     * !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
+     */
     @Test
-        // any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
-    void shouldTellReplicateToAbortSinceContributionTimeout() {
-        long blockNumber = 3;
-        List<String> ids = List.of(CHAIN_TASK_ID);
-        List<Task> taskList = getStubTaskList(TaskStatus.CONTRIBUTION_TIMEOUT);
-        Optional<Replicate> replicate1 = getStubReplicate(ReplicateStatus.CONTRIBUTING);
-
-        when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
-        when(taskService.getTasksByChainTaskIds(ids)).thenReturn(taskList);
-        when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(replicate1);
-        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(getStubAuth());
-
-        List<TaskNotification> missedTaskNotifications =
-                replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
-
-        assertThat(missedTaskNotifications).isNotEmpty();
-        TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
-        assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_ABORT);
-        TaskNotificationExtra notificationExtra = missedTaskNotifications.get(0).getTaskNotificationExtra();
-        assertThat(notificationExtra.getTaskAbortCause()).isEqualTo(TaskAbortCause.CONTRIBUTION_TIMEOUT);
-
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-    }
-
-    @Test
-        // !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
     void shouldTellReplicateToWaitSinceConsensusReachedAndItDidNotContribute() {
         long blockNumber = 3;
         List<String> ids = List.of(CHAIN_TASK_ID);
@@ -817,8 +828,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
+     */
     @Test
-        // CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceContributed() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
@@ -841,8 +854,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * REVEALING + !onChain => RecoveryAction.REVEAL
+     */
     @Test
-        // REVEALING + !onChain => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceNotDoneOnchain() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
@@ -868,9 +883,11 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * REVEALING + done onChain     => updateStatus to REVEALED
+     * no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
+     */
     @Test
-        // REVEALING + done onChain     => updateStatus to REVEALED
-        // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceRevealed() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -904,9 +921,11 @@ class ReplicateSupplyServiceTests {
                         any(ReplicateStatusDetails.class));
     }
 
+    /**
+     * REVEALING + done onChain     => updateStatus to REVEALED
+     * RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
+     */
     @Test
-        // REVEALING + done onChain     => updateStatus to REVEALED
-        // RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceRequestedAfterRevealing() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -940,8 +959,10 @@ class ReplicateSupplyServiceTests {
                         any(ReplicateStatusDetails.class));
     }
 
+    /**
+     * RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
+     */
     @Test
-        // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceRequested() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -964,8 +985,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
+     */
     @Test
-        // RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceNotDoneYet() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -990,9 +1013,11 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
+     * RecoveryAction.WAIT
+     */
     @Test
-        // RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
-        //                            RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceDetectedResultUpload() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -1020,8 +1045,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
     }
 
+    /**
+     * RESULT_UPLOADED => RecoveryAction.WAIT
+     */
     @Test
-        // RESULT_UPLOADED => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceItUploadedResult() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -1049,8 +1076,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
     }
 
+    /**
+     * REVEALED + Task in completion phase => RecoveryAction.WAIT
+     */
     @Test
-        // REVEALED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealed() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
@@ -1075,8 +1104,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
+     */
     @Test
-        // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealedAndUploaded() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
@@ -1133,8 +1164,10 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
+    /**
+     * !REVEALED + Task in completion phase => null / nothing
+     */
     @Test
-        // !REVEALED + Task in completion phase => null / nothing
     void shouldNotTellReplicateToWaitForCompletionSinceItDidNotReveal() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
