@@ -1,14 +1,13 @@
 package com.iexec.core.chain;
 
-import com.iexec.commons.poco.chain.ChainReceipt;
-import com.iexec.commons.poco.chain.ChainTask;
-import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.chain.*;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
 import com.iexec.commons.poco.utils.BytesUtils;
 import io.reactivex.Flowable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -29,7 +28,7 @@ import static org.mockito.Mockito.*;
 
 class IexecHubServiceTests {
 
-    private  static final String TRANSACTION_HASH = "transactionHash";
+    private static final String TRANSACTION_HASH = "transactionHash";
 
     @Mock
     private CredentialsService credentialsService;
@@ -72,7 +71,41 @@ class IexecHubServiceTests {
         assertThat(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).isFalse();
     }
 
-    // region Get event blocks
+    // region check contribution status
+    @ParameterizedTest
+    @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"CONTRIBUTED", "REVEALED"})
+    void shouldBeContributed(ChainContributionStatus status) {
+        final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
+        when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
+        assertThat(iexecHubService.isContributedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"CONTRIBUTED", "REVEALED"})
+    void shouldNotBeContributed(ChainContributionStatus status) {
+        final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
+        when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
+        assertThat(iexecHubService.isContributedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"REVEALED"})
+    void shouldBeRevealed(ChainContributionStatus status) {
+        final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
+        when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
+        assertThat(iexecHubService.isRevealedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"REVEALED"})
+    void shouldNotBeRevealed(ChainContributionStatus status) {
+        final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
+        when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
+        assertThat(iexecHubService.isRevealedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
+    }
+    // endregion
+
+    // region get event blocks
     @Test
     void shouldGetContributionBlock() {
         final int fromBlock = 0;
