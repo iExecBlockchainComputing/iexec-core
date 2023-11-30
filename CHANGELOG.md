@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - Add and use a non-root user in the dockerfile. (#627)
 - Replace single thread executor with synchronized keyword. (#633)
+- Move contribution status checks from `iexec-commons-poco`. (#636)
 
 ### Bug Fixes
 
