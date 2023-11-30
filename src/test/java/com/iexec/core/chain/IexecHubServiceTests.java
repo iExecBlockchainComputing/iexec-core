@@ -77,7 +77,7 @@ class IexecHubServiceTests {
     void shouldBeContributed(ChainContributionStatus status) {
         final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
-        assertThat(iexecHubService.isContributedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
+        assertThat(iexecHubService.isContributed(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
     }
 
     @ParameterizedTest
@@ -85,7 +85,7 @@ class IexecHubServiceTests {
     void shouldNotBeContributed(ChainContributionStatus status) {
         final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
-        assertThat(iexecHubService.isContributedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
+        assertThat(iexecHubService.isContributed(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
     }
 
     @ParameterizedTest
@@ -93,7 +93,7 @@ class IexecHubServiceTests {
     void shouldBeRevealed(ChainContributionStatus status) {
         final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
-        assertThat(iexecHubService.isRevealedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
+        assertThat(iexecHubService.isRevealed(CHAIN_TASK_ID, WORKER_ADDRESS)).isTrue();
     }
 
     @ParameterizedTest
@@ -101,7 +101,7 @@ class IexecHubServiceTests {
     void shouldNotBeRevealed(ChainContributionStatus status) {
         final ChainContribution chainContribution = ChainContribution.builder().status(status).build();
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
-        assertThat(iexecHubService.isRevealedTrue(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
+        assertThat(iexecHubService.isRevealed(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
     }
     // endregion
 

@@ -257,28 +257,24 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     // region check contribution status
-    @Override
     public boolean repeatIsContributedTrue(String chainTaskId, String walletAddress) {
         return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_RETRY, MAX_RETRIES,
-                "isContributedTrue", this::isContributedTrue, chainTaskId, walletAddress);
+                "isContributedTrue", this::isContributed, chainTaskId, walletAddress);
     }
 
-    @Override
     public boolean repeatIsRevealedTrue(String chainTaskId, String walletAddress) {
         return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_RETRY, MAX_RETRIES,
-                "isRevealedTrue", this::isRevealedTrue, chainTaskId, walletAddress);
+                "isRevealedTrue", this::isRevealed, chainTaskId, walletAddress);
     }
 
-    @Override
-    boolean isContributedTrue(String... args) {
+    boolean isContributed(String... args) {
         return getChainContribution(args[0], args[1])
                 .map(ChainContribution::getStatus)
                 .filter(chainStatus -> chainStatus == CONTRIBUTED || chainStatus == REVEALED)
                 .isPresent();
     }
 
-    @Override
-    boolean isRevealedTrue(String... args) {
+    boolean isRevealed(String... args) {
         return getChainContribution(args[0], args[1])
                 .map(ChainContribution::getStatus)
                 .filter(chainStatus -> chainStatus == REVEALED)
