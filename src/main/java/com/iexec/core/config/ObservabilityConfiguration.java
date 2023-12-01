@@ -25,15 +25,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ObservabilityConfiguration {
 
-    public static final String METRIC_INFO_GAUGE_NAME = "iexec.app.info";
+    public static final String METRIC_INFO_GAUGE_NAME = "iexec.version.info";
     public static final String METRIC_INFO_GAUGE_DESC = "A metric to expose version and application name.";
-    public static final String METRIC_INFO_LABEL_APP_NAME = "app_name";
-    public static final String METRIC_INFO_LABEL_APP_VERSION = "app_version";
+    public static final String METRIC_INFO_LABEL_APP_NAME = "iexecAppName";
+    public static final String METRIC_INFO_LABEL_APP_VERSION = "iexecAppVersion";
 
     ObservabilityConfiguration(@Autowired BuildProperties buildProperties) {
 
         Gauge.builder(METRIC_INFO_GAUGE_NAME, 1.0, n -> n)
-                .strongReference(true)
                 .description(METRIC_INFO_GAUGE_DESC)
                 .tags(METRIC_INFO_LABEL_APP_VERSION, buildProperties.getVersion(),
                         METRIC_INFO_LABEL_APP_NAME, buildProperties.getName())

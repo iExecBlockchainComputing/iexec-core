@@ -19,19 +19,23 @@ package com.iexec.core.config;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+@ExtendWith(SpringExtension.class)
+@Import(ProjectInfoAutoConfiguration.class)
 class ObservabilityConfigurationTest {
 
-    @Mock
+    @Autowired
     private BuildProperties buildProperties;
 
     @BeforeAll
@@ -44,25 +48,21 @@ class ObservabilityConfigurationTest {
         Metrics.globalRegistry.clear();
     }
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void shouldReturnInfoGauge() {
-        final String version = "1.1.0";
-        final String name = "iexec-core";
-        Mockito.when(buildProperties.getVersion()).thenReturn(version);
-        Mockito.when(buildProperties.getName()).thenReturn(name);
 
         final ObservabilityConfiguration observabilityConfiguration = new ObservabilityConfiguration(buildProperties);
-        Assertions.assertThat(observabilityConfiguration).isNotNull();
         final Gauge info = Metrics.globalRegistry.find(ObservabilityConfiguration.METRIC_INFO_GAUGE_NAME).gauge();
-        Assertions.assertThat(info).isNotNull();
-        Assertions.assertThat(info.getId()).isNotNull();
-        Assertions.assertThat(info.getId().getTag(ObservabilityConfiguration.METRIC_INFO_LABEL_APP_NAME)).isEqualTo(name);
-        Assertions.assertThat(info.getId().getTag(ObservabilityConfiguration.METRIC_INFO_LABEL_APP_VERSION)).isEqualTo(version);
+        assertThat(observabilityConfiguration).isNotNull();
+        assertThat(info)
+                .isNotNull()
+                .extracting(Gauge::getId)
+                .isNotNull()
+                .extracting(
+                        id -> id.getTag(ObservabilityConfiguration.METRIC_INFO_LABEL_APP_NAME),
+                        id -> id.getTag(ObservabilityConfiguration.METRIC_INFO_LABEL_APP_VERSION)
+                )
+                .containsExactly(buildProperties.getName(), buildProperties.getVersion());
     }
 }
 
