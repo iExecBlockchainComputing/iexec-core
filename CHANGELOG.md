@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
+- Expose version through prometheus endpoint. (#637)
 - Create `iexec-core-library` sub-project to split shared code/apis from specific scheduler application code. (#623)
 - Move first DTO classes to `iexec-core-library` subproject. (#626)
 - Move `PlatformMetric` to `iexec-core-library` subproject, modify it to become immutable. (#628 #629)
