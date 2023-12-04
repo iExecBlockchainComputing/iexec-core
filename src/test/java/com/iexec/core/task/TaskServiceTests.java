@@ -368,12 +368,9 @@ class TaskServiceTests {
     @Test
     void shouldGet3CompletedTasksCount() {
         final TaskService taskService = new TaskService(taskRepository, iexecHubService);
-        when(taskRepository.findByCurrentStatus(COMPLETED)).thenReturn(List.of(
-                        Task.builder().currentStatus(COMPLETED).build(),
-                        Task.builder().currentStatus(COMPLETED).build(),
-                        Task.builder().currentStatus(COMPLETED).build()
-                )
-        );
+        final Task task = Task.builder().currentStatus(COMPLETED).build();
+        when(taskRepository.findByCurrentStatus(COMPLETED))
+                .thenReturn(List.of(task, task, task));
         taskService.init();
 
         final long completedTasksCount = taskService.getCompletedTasksCount();
