@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
+    public static final String TITLE = "iExec Core Scheduler";
     private final BuildProperties buildProperties;
 
     public OpenApiConfig(BuildProperties buildProperties) {
@@ -38,7 +39,7 @@ public class OpenApiConfig {
     public OpenAPI api() {
         return new OpenAPI().info(
                 new Info()
-                        .title("iExec Core Scheduler")
+                        .title(TITLE)
                         .version(buildProperties.getVersion())
         );
     }
