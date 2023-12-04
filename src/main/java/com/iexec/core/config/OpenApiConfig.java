@@ -16,19 +16,19 @@
 
 package com.iexec.core.config;
 
-import com.iexec.core.version.VersionService;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
 
-    private final VersionService versionService;
+    private final BuildProperties buildProperties;
 
-    public OpenApiConfig(VersionService versionService) {
-        this.versionService = versionService;
+    public OpenApiConfig(BuildProperties buildProperties) {
+        this.buildProperties = buildProperties;
     }
 
     /*
@@ -39,7 +39,7 @@ public class OpenApiConfig {
         return new OpenAPI().info(
                 new Info()
                         .title("iExec Core Scheduler")
-                        .version(versionService.getVersion())
+                        .version(buildProperties.getVersion())
         );
     }
 }

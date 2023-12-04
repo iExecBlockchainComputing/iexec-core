@@ -16,22 +16,41 @@
 
 package com.iexec.core.version;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.PostConstruct;
 
 
 @RestController
 public class VersionController {
 
-    private final VersionService versionService;
+    public static final String METRIC_INFO_GAUGE_NAME = "iexec.version.info";
+    public static final String METRIC_INFO_GAUGE_DESC = "A metric to expose version and application name.";
+    public static final String METRIC_INFO_LABEL_APP_NAME = "iexecAppName";
+    public static final String METRIC_INFO_LABEL_APP_VERSION = "iexecAppVersion";
 
-    public VersionController(VersionService versionService) {
-        this.versionService = versionService;
+    private final BuildProperties buildProperties;
+
+    public VersionController(BuildProperties buildProperties) {
+        this.buildProperties = buildProperties;
+    }
+
+    @PostConstruct
+    void initializeGaugeVersion() {
+        Gauge.builder(METRIC_INFO_GAUGE_NAME, 1.0, n -> n)
+                .description(METRIC_INFO_GAUGE_DESC)
+                .tags(METRIC_INFO_LABEL_APP_VERSION, buildProperties.getVersion(),
+                        METRIC_INFO_LABEL_APP_NAME, buildProperties.getName())
+                .register(Metrics.globalRegistry);
     }
 
     @GetMapping("/version")
     public ResponseEntity<String> getVersion() {
-        return ResponseEntity.ok(versionService.getVersion());
+        return ResponseEntity.ok(buildProperties.getVersion());
     }
 }
