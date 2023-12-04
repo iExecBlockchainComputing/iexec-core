@@ -74,7 +74,7 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
 
     // Spring Doc
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 
     // apache commons.lang3
     implementation 'org.apache.commons:commons-lang3'
