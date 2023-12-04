@@ -362,7 +362,7 @@ class TaskServiceTests {
     @Test
     void shouldGet0CompletedTasksCountWhenNoTaskCompleted() {
         final long completedTasksCount = taskService.getCompletedTasksCount();
-        assertThat(completedTasksCount).isEqualTo(0L);
+        assertThat(completedTasksCount).isZero();
     }
 
     @Test
