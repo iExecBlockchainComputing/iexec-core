@@ -32,7 +32,7 @@ public class PlatformMetric {
     int aliveAvailableCpu;
     int aliveTotalGpu;
     int aliveAvailableGpu;
-    int completedTasks;
+    long completedTasks;
     long dealEventsCount;
     long dealsCount;
     long replayDealsCount;

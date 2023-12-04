@@ -18,7 +18,6 @@ package com.iexec.core.metric;
 
 import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.WorkerService;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +42,7 @@ public class MetricService {
                 .aliveAvailableCpu(workerService.getAliveAvailableCpu())
                 .aliveTotalGpu(workerService.getAliveTotalGpu())
                 .aliveAvailableGpu(workerService.getAliveAvailableGpu())
-                .completedTasks(taskService.findByCurrentStatus(TaskStatus.COMPLETED).size())
+                .completedTasks(taskService.getCompletedTasksCount())
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
                 .dealsCount(dealWatcherService.getDealsCount())
                 .replayDealsCount(dealWatcherService.getReplayDealsCount())
