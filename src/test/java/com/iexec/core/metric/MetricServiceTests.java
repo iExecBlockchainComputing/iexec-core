@@ -18,7 +18,6 @@ package com.iexec.core.metric;
 
 import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskStatus;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,8 +57,8 @@ class MetricServiceTests {
         when(workerService.getAliveAvailableCpu()).thenReturn(1);
         when(workerService.getAliveTotalGpu()).thenReturn(1);
         when(workerService.getAliveAvailableGpu()).thenReturn(1);
-        when(taskService.findByCurrentStatus(TaskStatus.COMPLETED))
-                .thenReturn(List.of());
+        when(taskService.getCompletedTasksCount())
+                .thenReturn(10L);
         when(dealWatcherService.getDealEventsCount()).thenReturn(10L);
         when(dealWatcherService.getDealsCount()).thenReturn(8L);
         when(dealWatcherService.getReplayDealsCount()).thenReturn(2L);
@@ -71,7 +70,7 @@ class MetricServiceTests {
         assertThat(metric.getAliveAvailableCpu()).isEqualTo(1);
         assertThat(metric.getAliveTotalGpu()).isEqualTo(1);
         assertThat(metric.getAliveAvailableGpu()).isEqualTo(1);
-        assertThat(metric.getCompletedTasks()).isZero();
+        assertThat(metric.getCompletedTasks()).isEqualTo(10L);
         assertThat(metric.getDealEventsCount()).isEqualTo(10);
         assertThat(metric.getDealsCount()).isEqualTo(8);
         assertThat(metric.getReplayDealsCount()).isEqualTo(2);

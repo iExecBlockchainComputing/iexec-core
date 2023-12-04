@@ -260,4 +260,8 @@ public class TaskService {
         int offChainWinners = replicatesList.getNbValidContributedWinners(chainTask.getConsensusValue());
         return offChainWinners >= onChainWinners;
     }
+
+    public long getCompletedTasksCount() {
+        return (long) completedTasksCounter.count();
+    }
 }

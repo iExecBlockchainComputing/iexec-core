@@ -40,8 +40,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static com.iexec.core.task.TaskStatus.INITIALIZED;
-import static com.iexec.core.task.TaskStatus.RUNNING;
+import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -356,6 +355,26 @@ class TaskServiceTests {
                 .isTrue();
 
         Mockito.verify(iexecHubService).getChainTask(any());
+    }
+    // endregion
+
+    // region getCompletedTasksCount
+    @Test
+    void shouldGet0CompletedTasksCountWhenNoTaskCompleted() {
+        final long completedTasksCount = taskService.getCompletedTasksCount();
+        assertThat(completedTasksCount).isZero();
+    }
+
+    @Test
+    void shouldGet3CompletedTasksCount() {
+        final TaskService taskService = new TaskService(taskRepository, iexecHubService);
+        final Task task = Task.builder().currentStatus(COMPLETED).build();
+        when(taskRepository.findByCurrentStatus(COMPLETED))
+                .thenReturn(List.of(task, task, task));
+        taskService.init();
+
+        final long completedTasksCount = taskService.getCompletedTasksCount();
+        assertThat(completedTasksCount).isEqualTo(3);
     }
     // endregion
 }
