@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Move first DTO classes to `iexec-core-library` subproject. (#626)
 - Move `PlatformMetric` to `iexec-core-library` subproject, modify it to become immutable. (#628 #629)
 - Add prometheus endpoint with custom metrics. (#632)
+- Expose version through prometheus endpoint. (#637)
 
 ### Quality
 
@@ -28,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - Upgrade to `eclipse-temurin:11.0.21_9-jre-focal`. (#635)
 - Upgrade to Spring Boot 2.7.17. (#634)
 - Upgrade to Spring Dependency Management Plugin 1.1.4. (#634)
+- Upgrade to Spring Doc Openapi 1.7.0. (#637)
 - Upgrade to `jenkins-library` 2.7.4. (#630)
 
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29

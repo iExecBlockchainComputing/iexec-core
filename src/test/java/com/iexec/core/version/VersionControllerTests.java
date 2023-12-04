@@ -16,32 +16,65 @@
 
 package com.iexec.core.version;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
+@ExtendWith(SpringExtension.class)
+@Import(ProjectInfoAutoConfiguration.class)
 class VersionControllerTests {
-    @Mock
-    private VersionService versionService;
-    @InjectMocks
+
     private VersionController versionController;
+
+    @Autowired
+    private BuildProperties buildProperties;
+
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
+        versionController = new VersionController(buildProperties);
+        versionController.initializeGaugeVersion();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings={"x.y.z", "x.y.z-rc", "x.y.z-NEXT-SNAPSHOT"})
-    void testVersionController(String version) {
-        when(versionService.getVersion()).thenReturn(version);
-        assertEquals(ResponseEntity.ok(version), versionController.getVersion());
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
+    @Test
+    void testVersionController() {
+        assertEquals(ResponseEntity.ok(buildProperties.getVersion()), versionController.getVersion());
+    }
+
+    @Test
+    void shouldReturnInfoGauge() {
+        final Gauge info = Metrics.globalRegistry.find(VersionController.METRIC_INFO_GAUGE_NAME).gauge();
+        assertThat(info)
+                .isNotNull()
+                .extracting(Gauge::getId)
+                .isNotNull()
+                .extracting(
+                        id -> id.getTag(VersionController.METRIC_INFO_LABEL_APP_NAME),
+                        id -> id.getTag(VersionController.METRIC_INFO_LABEL_APP_VERSION)
+                )
+                .containsExactly(buildProperties.getName(), buildProperties.getVersion());
     }
 }
