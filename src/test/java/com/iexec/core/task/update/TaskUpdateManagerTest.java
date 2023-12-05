@@ -41,6 +41,11 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -60,6 +65,7 @@ import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
+import static com.iexec.core.task.update.TaskUpdateManager.METRIC_TASKS_STATUSES_COUNT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -104,10 +110,40 @@ class TaskUpdateManagerTest {
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
 
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
     }
+
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
+    // region init
+    @Test
+    void shouldBuildGauges() {
+        for (final TaskStatus status : TaskStatus.values()) {
+            // Give a unique initial count for each status
+            when(taskService.countByCurrentStatus(status)).thenReturn((long) status.ordinal());
+        }
+
+        taskUpdateManager.init();
+
+        for (final TaskStatus status : TaskStatus.values()) {
+            final Gauge gauge = getCurrentTasksCountGauge(status);
+            assertThat(gauge).isNotNull()
+                    // Check the gauge value is equal to the unique count for each status
+                    .extracting(Gauge::value)
+                    .isEqualTo(((double) status.ordinal()));
+        }
+    }
+    // endregion
 
     // Tests on consensusReached2Reopening transition
 
@@ -1892,6 +1928,45 @@ class TaskUpdateManagerTest {
         verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
 
+    // region onTaskCreatedEvent
+    @Test
+    void shouldIncrementCurrentReceivedGaugeWhenTaskReceived() {
+        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(0L);
+
+        // Init gauges
+        taskUpdateManager.init();
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        assertThat(currentReceivedTasks.value()).isZero();
+
+        taskUpdateManager.onTaskCreatedEvent();
+
+        assertThat(currentReceivedTasks.value()).isOne();
+    }
+    // endregion
+
+    // region updateMetricsAfterStatusUpdate
+    @Test
+    void shouldUpdateMetricsAfterStatusUpdate() {
+        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(1L);
+        when(taskService.countByCurrentStatus(INITIALIZING)).thenReturn(0L);
+
+        // Init gauges
+        taskUpdateManager.init();
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isOne();
+        assertThat(currentInitializingTasks.value()).isZero();
+
+        taskUpdateManager.updateMetricsAfterStatusUpdate(RECEIVED, INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isZero();
+        assertThat(currentInitializingTasks.value()).isOne();
+    }
+    // endregion
+
     // region utils
     private void mockTaskDescriptionFromTask(Task task) {
         final TaskDescription taskDescription = TaskDescription.builder()
@@ -1901,6 +1976,15 @@ class TaskUpdateManagerTest {
                 .callback("")
                 .build();
         when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
+    }
+
+    Gauge getCurrentTasksCountGauge(TaskStatus status) {
+        return Metrics.globalRegistry
+                .find(METRIC_TASKS_STATUSES_COUNT)
+                .tags(
+                        "period", "current",
+                        "status", status.name()
+                ).gauge();
     }
     // endregion
 }

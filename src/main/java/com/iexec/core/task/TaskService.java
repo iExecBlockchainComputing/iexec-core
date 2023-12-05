@@ -187,7 +187,7 @@ public class TaskService {
      * </ul>
      *
      * @param statuses             The task status should be one of this list.
-     * @param excludedTag          The task tag should not be this tag
+     * @param excludedTags         The task tag should not be these tags
      *                             - use {@literal null} if no tag should be excluded.
      * @param excludedChainTaskIds The chain task ID should not be one of this list.
      * @param sort                 How to prioritize tasks.
@@ -263,5 +263,9 @@ public class TaskService {
 
     public long getCompletedTasksCount() {
         return (long) completedTasksCounter.count();
+    }
+
+    public long countByCurrentStatus(TaskStatus status) {
+        return taskRepository.countByCurrentStatus(status);
     }
 }
