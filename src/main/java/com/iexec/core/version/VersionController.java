@@ -33,6 +33,7 @@ public class VersionController {
     public static final String METRIC_INFO_GAUGE_DESC = "A metric to expose version and application name.";
     public static final String METRIC_INFO_LABEL_APP_NAME = "iexecAppName";
     public static final String METRIC_INFO_LABEL_APP_VERSION = "iexecAppVersion";
+    // Must be static final to avoid garbage collect and side effect on gauge
     public static final int METRIC_VALUE = 1;
     private final BuildProperties buildProperties;
 
