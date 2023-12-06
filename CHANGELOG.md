@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - Fix web security depreciation warning. (#624)
 - Move `TaskModel` and `ReplicateModel` instances creation methods to `Task` and `Replicate` classes. (#625)
 - Expose `TaskLogsModel` on `TaskController` instead of `TaskLogs`. (#631)
+- Fix NaN value for gauge version. (#639)
 
 ### Dependency Upgrades
 
