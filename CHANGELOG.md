@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - Move first DTO classes to `iexec-core-library` subproject. (#626)
 - Move `PlatformMetric` to `iexec-core-library` subproject, modify it to become immutable. (#628 #629)
 - Add prometheus endpoint with custom metrics. (#632)
-- Expose version through prometheus endpoint. (#637)
+- Expose version through prometheus endpoint. (#637, #639)
 - Stop fetching completed tasks count from DB. (#638)
 
 ### Quality

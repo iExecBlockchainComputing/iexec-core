@@ -33,7 +33,8 @@ public class VersionController {
     public static final String METRIC_INFO_GAUGE_DESC = "A metric to expose version and application name.";
     public static final String METRIC_INFO_LABEL_APP_NAME = "iexecAppName";
     public static final String METRIC_INFO_LABEL_APP_VERSION = "iexecAppVersion";
-
+    // Must be static final to avoid garbage collect and side effect on gauge
+    public static final int METRIC_VALUE = 1;
     private final BuildProperties buildProperties;
 
     public VersionController(BuildProperties buildProperties) {
@@ -42,7 +43,7 @@ public class VersionController {
 
     @PostConstruct
     void initializeGaugeVersion() {
-        Gauge.builder(METRIC_INFO_GAUGE_NAME, 1.0, n -> n)
+        Gauge.builder(METRIC_INFO_GAUGE_NAME, METRIC_VALUE, n -> METRIC_VALUE)
                 .description(METRIC_INFO_GAUGE_DESC)
                 .tags(METRIC_INFO_LABEL_APP_VERSION, buildProperties.getVersion(),
                         METRIC_INFO_LABEL_APP_NAME, buildProperties.getName())
