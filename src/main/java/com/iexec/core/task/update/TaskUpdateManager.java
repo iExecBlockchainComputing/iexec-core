@@ -98,8 +98,11 @@ class TaskUpdateManager {
     @PostConstruct
     void init() {
         // The following could take a bit of time, depending on how many tasks are in DB.
-        // It is expected to take ~1s for 100,000 tasks and to be linear (so, ~10s for 1,000,000 tasks).
-        currentTaskStatusesCount.forEach((status, count) -> count.set(taskService.countByCurrentStatus(status)));
+        // It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+        currentTaskStatusesCount
+                .entrySet()
+                .parallelStream()
+                .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey())));
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
