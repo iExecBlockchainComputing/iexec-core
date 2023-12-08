@@ -33,13 +33,20 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -48,6 +55,8 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 @Slf4j
 class TaskUpdateManager {
+    public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
+
     private final TaskService taskService;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
@@ -55,6 +64,9 @@ class TaskUpdateManager {
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
+
+    private final Map<TaskStatus, AtomicLong> currentTaskStatusesCount;
+    private final ExecutorService taskStatusesCountExecutor;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -70,6 +82,38 @@ class TaskUpdateManager {
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.smsService = smsService;
+
+        this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        status -> new AtomicLong(),
+                        (a, b) -> b,
+                        LinkedHashMap::new));
+
+        for (TaskStatus status : TaskStatus.values()) {
+            Gauge.builder(METRIC_TASKS_STATUSES_COUNT, () -> currentTaskStatusesCount.get(status).get())
+                    .tags(
+                            "period", "current",
+                            "status", status.name()
+                    ).register(Metrics.globalRegistry);
+        }
+
+        this.taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
+    }
+
+    @PostConstruct
+    Future<Void> init() {
+        return taskStatusesCountExecutor.submit(
+                // The following could take a bit of time, depending on how many tasks are in DB.
+                // It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+                // As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+                // even though new deals are detected during the count.
+                () -> currentTaskStatusesCount
+                        .entrySet()
+                        .parallelStream()
+                        .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey()))),
+                null    // Trick to get a `Future<Void>` instead of a `Future<?>`
+        );
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -173,6 +217,7 @@ class TaskUpdateManager {
 
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (savedTask.isPresent()) {
+            updateMetricsAfterStatusUpdate(currentStatus, newStatus);
             log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
             return savedTask.get();
         } else {
@@ -651,5 +696,15 @@ class TaskUpdateManager {
     void toFailed(Task task) {
         updateTaskStatusAndSave(task, FAILED);
         applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
+    }
+
+    void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
+        currentTaskStatusesCount.get(previousStatus).decrementAndGet();
+        currentTaskStatusesCount.get(newStatus).incrementAndGet();
+    }
+
+    @EventListener(TaskCreatedEvent.class)
+    void onTaskCreatedEvent() {
+        currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
     }
 }
