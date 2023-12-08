@@ -128,13 +128,13 @@ class TaskUpdateManagerTest {
 
     // region init
     @Test
-    void shouldBuildGauges() {
+    void shouldBuildGauges() throws ExecutionException, InterruptedException {
         for (final TaskStatus status : TaskStatus.values()) {
             // Give a unique initial count for each status
             when(taskService.countByCurrentStatus(status)).thenReturn((long) status.ordinal());
         }
 
-        taskUpdateManager.init();
+        taskUpdateManager.init().get();
 
         for (final TaskStatus status : TaskStatus.values()) {
             final Gauge gauge = getCurrentTasksCountGauge(status);
