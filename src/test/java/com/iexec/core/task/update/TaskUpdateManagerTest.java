@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -1947,12 +1948,12 @@ class TaskUpdateManagerTest {
 
     // region updateMetricsAfterStatusUpdate
     @Test
-    void shouldUpdateMetricsAfterStatusUpdate() {
+    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
         when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(1L);
         when(taskService.countByCurrentStatus(INITIALIZING)).thenReturn(0L);
 
         // Init gauges
-        taskUpdateManager.init();
+        taskUpdateManager.init().get();
 
         final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
         final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);

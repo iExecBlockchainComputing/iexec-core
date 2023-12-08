@@ -42,6 +42,9 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -63,6 +66,7 @@ class TaskUpdateManager {
     private final SmsService smsService;
 
     private final Map<TaskStatus, AtomicLong> currentTaskStatusesCount;
+    private final ExecutorService taskStatusesCountExecutor;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -93,16 +97,23 @@ class TaskUpdateManager {
                             "status", status.name()
                     ).register(Metrics.globalRegistry);
         }
+
+        this.taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
     }
 
     @PostConstruct
-    void init() {
-        // The following could take a bit of time, depending on how many tasks are in DB.
-        // It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
-        currentTaskStatusesCount
-                .entrySet()
-                .parallelStream()
-                .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey())));
+    Future<Void> init() {
+        return taskStatusesCountExecutor.submit(
+                // The following could take a bit of time, depending on how many tasks are in DB.
+                // It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+                // As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+                // even though new deals are detected during the count.
+                () -> currentTaskStatusesCount
+                        .entrySet()
+                        .parallelStream()
+                        .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey()))),
+                null    // Trick to get a `Future<Void>` instead of a `Future<?>`
+        );
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
