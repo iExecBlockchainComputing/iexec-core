@@ -18,7 +18,6 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterApiClientBuilder;
-import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
 import lombok.Data;
@@ -56,11 +55,6 @@ public class BlockchainAdapterClientConfig {
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
                 Logger.Level.NONE, getUrl(), username, password);
-    }
-
-    @Bean
-    public BlockchainAdapterService blockchainAdapterService(BlockchainAdapterApiClient blockchainAdapterClient) {
-        return new BlockchainAdapterService(blockchainAdapterClient, WATCH_PERIOD_SECONDS, MAX_ATTEMPTS);
     }
 
     @Bean
