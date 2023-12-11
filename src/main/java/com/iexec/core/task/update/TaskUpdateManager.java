@@ -16,13 +16,14 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.blockchain.api.BlockchainAdapterApiClient;
+import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
@@ -295,9 +296,8 @@ class TaskUpdateManager {
         blockchainAdapterService
                 .isInitialized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess != null && isSuccess) {
-                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]",
-                                task.getChainTaskId());
+                    if (Boolean.TRUE.equals(isSuccess)) {
+                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
                         task.setInitializationBlockNumber(task.getDealBlockNumber());
                         replicatesService.createEmptyReplicateList(task.getChainTaskId());
@@ -669,9 +669,8 @@ class TaskUpdateManager {
         blockchainAdapterService
                 .isFinalized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess != null && isSuccess) {
-                        log.info("Finalized on blockchain (tx mined)" +
-                                "[chainTaskId:{}]", task.getChainTaskId());
+                    if (Boolean.TRUE.equals(isSuccess)) {
+                        log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
                         updateTaskStatusAndSave(task, FINALIZED, null);
                         finalizedToCompleted(task);
                         return;

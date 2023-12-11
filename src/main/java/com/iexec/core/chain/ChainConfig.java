@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,16 +30,16 @@ import java.time.Duration;
 @NoArgsConstructor
 public class ChainConfig {
 
-    @Value("#{blockchainAdapterService.publicChainConfig.chainId}")
-    private Integer chainId;
+    @Value("#{publicChainConfig.chainId}")
+    private int chainId;
 
-    @Value("#{blockchainAdapterService.publicChainConfig.isSidechain()}")
+    @Value("#{publicChainConfig.isSidechain()}")
     private boolean isSidechain;
 
-    @Value("#{blockchainAdapterService.publicChainConfig.iexecHubContractAddress}")
+    @Value("#{publicChainConfig.iexecHubContractAddress}")
     private String hubAddress;
 
-    @Value("#{blockchainAdapterService.publicChainConfig.blockTime}")
+    @Value("#{publicChainConfig.blockTime}")
     private Duration blockTime;
 
     @Value("${chain.privateAddress}")

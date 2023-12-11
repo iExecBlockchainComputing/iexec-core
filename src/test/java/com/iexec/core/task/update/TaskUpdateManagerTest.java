@@ -16,6 +16,7 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -28,7 +29,6 @@ import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,35 +18,34 @@ package com.iexec.core.chain.adapter;
 
 import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterApiClientBuilder;
+import com.iexec.blockchain.api.BlockchainAdapterService;
+import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@Data
+@ConstructorBinding
+@ConfigurationProperties(prefix = "blockchain-adapter")
 public class BlockchainAdapterClientConfig {
 
-    @Value("${blockchain-adapter.protocol}")
-    private String protocol;
-    @Value("${blockchain-adapter.host}")
-    private String host;
-    @Value("${blockchain-adapter.port}")
-    private int port;
+    public static final int WATCH_PERIOD_SECONDS = 1;//To tune
+    public static final int MAX_ATTEMPTS = 50;
+
+    private final String protocol;
+    private final String host;
+    private final int port;
+    // TODO improve property names before next major version
     @Value("${blockchain-adapter.user.name}")
-    private String username;
+    private final String username;
     @Value("${blockchain-adapter.user.password}")
-    private String password;
+    private final String password;
 
     public String getUrl() {
         return buildHostUrl(protocol, host, port);
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
     }
 
     private String buildHostUrl(String protocol, String host, int port) {
@@ -56,7 +55,22 @@ public class BlockchainAdapterClientConfig {
     @Bean
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
-                Logger.Level.NONE, getUrl(), getUsername(), getPassword());
+                Logger.Level.NONE, getUrl(), username, password);
+    }
+
+    @Bean
+    public BlockchainAdapterService blockchainAdapterService(BlockchainAdapterApiClient blockchainAdapterClient) {
+        return new BlockchainAdapterService(blockchainAdapterClient, WATCH_PERIOD_SECONDS, MAX_ATTEMPTS);
+    }
+
+    @Bean
+    public PublicChainConfig publicChainConfig(BlockchainAdapterApiClient apiClient) {
+        return apiClient.getPublicChainConfig();
+    }
+
+    @Bean
+    public int getChainId(PublicChainConfig publicChainConfig) {
+        return publicChainConfig.getChainId();
     }
 
 }
