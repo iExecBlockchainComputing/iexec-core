@@ -217,7 +217,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNotUpgrade2ReopenedSinceNotEnoughtGas() {
+    void shouldNotUpgrade2ReopenedSinceNotEnoughGas() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -373,7 +373,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
+    void shouldUpdateInitializing2InitializeFailedSinceChainTaskIdIsEmpty() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -523,7 +523,7 @@ class TaskUpdateManagerTest {
         verify(taskService, times(2)).updateTask(task); // INITIALIZE_FAILED & FAILED 
     }
 
-    // Tests on initializing2Initialized transition
+    // region initializing2Initialized
 
     @Test
     void shouldUpdateInitializing2Initialized() {
@@ -571,6 +571,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(INITIALIZING);
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
     }
+
+    // endregion
 
     // Tests on initialized2Running transition
 
@@ -1597,7 +1599,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
-    // Tests on finalizedToCompleted transition
+    // region finalizingToFinalizedToCompleted
+
     @Test
     void shouldUpdateFinalizing2Finalized2Completed() {
         Task task = getStubTask(maxExecutionTime);
@@ -1612,6 +1615,40 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
+
+    @Test
+    void shouldNotUpdateFinalizing2FinalizedSinceNotFinalized() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZE_FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    void shouldNotUpdateFinalizing2FinalizedSinceFailedToCheck() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FINALIZING);
+        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZING);
+    }
+
+    // endregion
 
     // 3 replicates in RUNNING 0 in COMPUTED
     @Test

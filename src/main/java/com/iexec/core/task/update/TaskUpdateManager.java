@@ -16,7 +16,6 @@
 
 package com.iexec.core.task.update;
 
-import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
@@ -270,8 +269,8 @@ class TaskUpdateManager {
                             task.getChainTaskId());
                     final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.getSmsUrl());
                     if (enclaveChallenge.isEmpty()) {
-                        log.error("Can't initialize task, enclave challenge is empty" +
-                                " [chainTaskId:{}]", chainTaskId);
+                        log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]",
+                                chainTaskId);
                         updateTaskStatusAndSave(task, INITIALIZE_FAILED);
                         updateTask(chainTaskId);
                         return;
@@ -297,7 +296,8 @@ class TaskUpdateManager {
                 .isInitialized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
                     if (Boolean.TRUE.equals(isSuccess)) {
-                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
+                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]",
+                                task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
                         task.setInitializationBlockNumber(task.getDealBlockNumber());
                         replicatesService.createEmptyReplicateList(task.getChainTaskId());
@@ -670,18 +670,19 @@ class TaskUpdateManager {
                 .isFinalized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
                     if (Boolean.TRUE.equals(isSuccess)) {
-                        log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
+                        log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]",
+                                task.getChainTaskId());
                         updateTaskStatusAndSave(task, FINALIZED, null);
                         finalizedToCompleted(task);
                         return;
                     }
-                    log.error("Finalization failed on blockchain (tx reverted)" +
-                            "[chainTaskId:{}]", task.getChainTaskId());
+                    log.error("Finalization failed on blockchain (tx reverted) [chainTaskId:{}]",
+                            task.getChainTaskId());
                     updateTaskStatusAndSave(task, FINALIZE_FAILED);
                     updateTaskStatusAndSave(task, FAILED);
                 }, () -> log.error("Unable to check finalization on blockchain " +
-                        "(likely too long), should use a detector " +
-                        "[chainTaskId:{}]", task.getChainTaskId()));
+                                "(likely too long), should use a detector [chainTaskId:{}]",
+                        task.getChainTaskId()));
     }
 
     void finalizedToCompleted(Task task) {
