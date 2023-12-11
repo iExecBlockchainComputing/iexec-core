@@ -53,6 +53,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.time.Instant;
@@ -119,6 +120,7 @@ class TaskUpdateManagerTest {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        ReflectionTestUtils.setField(taskUpdateManager, "blockchainAdapterService", blockchainAdapterService);
     }
 
     @AfterEach

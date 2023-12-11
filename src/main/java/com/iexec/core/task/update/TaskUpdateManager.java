@@ -16,6 +16,7 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
@@ -50,6 +51,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.iexec.core.chain.adapter.BlockchainAdapterClientConfig.MAX_ATTEMPTS;
+import static com.iexec.core.chain.adapter.BlockchainAdapterClientConfig.WATCH_PERIOD_SECONDS;
 import static com.iexec.core.task.TaskStatus.*;
 
 @Service
@@ -73,14 +76,14 @@ class TaskUpdateManager {
                              ReplicatesService replicatesService,
                              ApplicationEventPublisher applicationEventPublisher,
                              WorkerService workerService,
-                             BlockchainAdapterService blockchainAdapterService,
+                             BlockchainAdapterApiClient blockchainAdapterApiClient,
                              SmsService smsService) {
         this.taskService = taskService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.workerService = workerService;
-        this.blockchainAdapterService = blockchainAdapterService;
+        this.blockchainAdapterService = new BlockchainAdapterService(blockchainAdapterApiClient, WATCH_PERIOD_SECONDS, MAX_ATTEMPTS);
         this.smsService = smsService;
 
         this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
