@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -60,7 +61,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
@@ -81,7 +81,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .build();
 
         Worker newWorker = Worker.builder()
@@ -90,7 +89,6 @@ class WorkerServiceTests {
                 .os("otherOS")
                 .cpu("otherCpu")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .build();
 
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
@@ -112,7 +110,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .build();
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
         when(workerRepository.save(Mockito.any())).thenReturn(worker);
@@ -121,7 +118,7 @@ class WorkerServiceTests {
         // check that the save method was called once
         Mockito.verify(workerRepository, Mockito.times(1)).save(Mockito.any());
         assertThat(addedWorker.getName()).isEqualTo(worker.getName());
-        assertThat(addedWorker.getLastAliveDate()).isEqualTo(worker.getLastAliveDate());
+        assertThat(workerService.getWorkerStatsMap().get(walletAddress).getLastAliveDate()).isBefore(new Date());
     }
 
     // isAllowedToJoin
@@ -146,7 +143,7 @@ class WorkerServiceTests {
         assertThat(workerService.isAllowedToJoin("w3")).isFalse();
     }
 
-    // updateLasAlive
+    // updateLastAlive
 
     @Test
     void shouldUpdateLastAlive() throws ParseException {
@@ -158,40 +155,17 @@ class WorkerServiceTests {
                 .id("1")
                 .name(workerName)
                 .walletAddress(walletAddress)
-                .lastAliveDate(oldLastAlive)
                 .build();
         when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(worker));
 
         // call
-        Optional<Worker> updatedWorker = workerService.updateLastAlive(walletAddress);
-
-        // check argument passed to the save method
-        ArgumentCaptor<Worker> argument = ArgumentCaptor.forClass(Worker.class);
-        Mockito.verify(workerRepository).save(argument.capture());
-        assertThat(argument.getValue().getId()).isEqualTo(worker.getId());
-        assertThat(argument.getValue().getName()).isEqualTo(worker.getName());
-        // check that the save method was called with a lastAlive parameter updated less than a second ago
-        Date now = new Date();
-        long duration = now.getTime() - argument.getValue().getLastAliveDate().getTime();
-        long diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
-        assertThat(diffInSeconds).isZero();
+        workerService.updateLastAlive(walletAddress);
 
         // check object returned by the method
-        assertThat(updatedWorker).isPresent();
-        assertThat(updatedWorker.get().getId()).isEqualTo(worker.getId());
-        assertThat(updatedWorker.get().getName()).isEqualTo(worker.getName());
-        duration = now.getTime() - updatedWorker.get().getLastAliveDate().getTime();
-        diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
+        Date now = new Date();
+        long duration = now.getTime() - workerService.getWorkerStatsMap().get(walletAddress).getLastAliveDate().getTime();
+        long diffInSeconds = TimeUnit.MILLISECONDS.toSeconds(duration);
         assertThat(diffInSeconds).isZero();
-    }
-
-    @Test
-    void shouldNotFindWorkerForUpdateLastAlive() {
-        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.empty());
-
-        Optional<Worker> optional = workerService.updateLastAlive(walletAddress);
-        assertThat(optional).isEmpty();
     }
 
     // isWorkerAllowedToAskReplicate
@@ -200,8 +174,8 @@ class WorkerServiceTests {
     void shouldWorkerBeAllowedToAskReplicate() {
         String wallet = "wallet";
         Worker worker = Worker.builder()
-                .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(10)))
                 .build();
+        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new);
         when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
         when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
@@ -211,9 +185,7 @@ class WorkerServiceTests {
     @Test
     void shouldWorkerBeAllowedToAskReplicateSinceFirstTime() {
         String wallet = "wallet";
-        Worker worker = new Worker();
-        worker.setLastReplicateDemandDate(null);
-        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }
@@ -221,10 +193,8 @@ class WorkerServiceTests {
     @Test
     void shouldWorkerNotBeAllowedToAskReplicateSinceTooSoon() {
         String wallet = "wallet";
-        Worker worker = Worker.builder()
-                .lastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)))
-                .build();
-        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new)
+                        .setLastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)));
         when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isFalse();
@@ -236,13 +206,12 @@ class WorkerServiceTests {
     void shouldUpdateLastReplicateDemand() {
         String wallet = "wallet";
         Date lastDate = Date.from(Instant.now().minusSeconds(1));
-        Worker worker = Worker.builder()
-                .lastReplicateDemandDate(lastDate)
-                .build();
-        when(workerRepository.findByWalletAddress(wallet)).thenReturn(Optional.of(worker));
+        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new)
+                .setLastReplicateDemandDate(lastDate);
 
-        assertThat(workerService.updateLastReplicateDemandDate(wallet)
-                .get()
+        workerService.updateLastReplicateDemandDate(wallet);
+        assertThat(workerService.getWorkerStatsMap()
+                .get(wallet)
                 .getLastReplicateDemandDate())
                 .isAfter(lastDate);
     }
@@ -260,7 +229,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .build();
@@ -340,7 +308,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .build();
@@ -377,7 +344,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
@@ -408,7 +374,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
@@ -439,7 +404,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
@@ -464,7 +428,6 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(participatingIds)
                 .computingChainTaskIds(computingIds)
                 .build();
@@ -485,18 +448,12 @@ class WorkerServiceTests {
     @Test
     void shouldGetLostWorkers() {
 
-        List<Worker> allWorkers = getDummyWorkers(3);
+        List<Worker> allWorkers = getDummyWorkers();
+
         List<Worker> lostWorkers = allWorkers.subList(1, 3);
-        when(workerRepository.findByLastAliveDateBefore(Mockito.any())).thenReturn(lostWorkers);
+        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(lostWorkers);
 
         List<Worker> claimedLostWorkers = workerService.getLostWorkers();
-
-        // check findByLastAliveDateBefore was called with a date of one minute ago
-        ArgumentCaptor<Date> argument = ArgumentCaptor.forClass(Date.class);
-        Mockito.verify(workerRepository).findByLastAliveDateBefore(argument.capture());
-        long diff = (new Date()).getTime() - argument.getValue().getTime();
-        long diffInMinutes = TimeUnit.MILLISECONDS.toMinutes(diff);
-        assertThat(diffInMinutes).isEqualTo(1);
 
         // check the claimedLostWorkers are actually the lostWorkers
         assertThat(claimedLostWorkers)
@@ -506,27 +463,17 @@ class WorkerServiceTests {
 
     @Test
     void shouldNotFindLostWorkers() {
-
-        when(workerRepository.findByLastAliveDateBefore(Mockito.any())).thenReturn(Collections.emptyList());
-
         assertThat(workerService.getLostWorkers()).isEmpty();
     }
 
     @Test
     void shouldGetAliveWorkers() {
 
-        List<Worker> allWorkers = getDummyWorkers(3);
+        List<Worker> allWorkers = getDummyWorkers();
         List<Worker> aliveWorkers = allWorkers.subList(0, 1);
-        when(workerRepository.findByLastAliveDateAfter(Mockito.any())).thenReturn(aliveWorkers);
+        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(aliveWorkers);
 
         List<Worker> claimedAliveWorkers = workerService.getAliveWorkers();
-
-        // check findByLastAliveDateAfter was called with a date of one minute ago
-        ArgumentCaptor<Date> argument = ArgumentCaptor.forClass(Date.class);
-        Mockito.verify(workerRepository).findByLastAliveDateAfter(argument.capture());
-        long diff = (new Date()).getTime() - argument.getValue().getTime();
-        long diffInMinutes = TimeUnit.MILLISECONDS.toMinutes(diff);
-        assertThat(diffInMinutes).isEqualTo(1);
 
         // check the claimedAliveWorkers are actually the aliveWorkers
         assertThat(claimedAliveWorkers)
@@ -536,9 +483,7 @@ class WorkerServiceTests {
 
     @Test
     void shouldNotFindAliveWorkers() {
-
-        when(workerRepository.findByLastAliveDateAfter(Mockito.any())).thenReturn(Collections.emptyList());
-
+        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveWorkers()).isEmpty();
     }
 
@@ -578,14 +523,15 @@ class WorkerServiceTests {
         assertThat(workerService.canAcceptMoreWorks(walletAddress)).isFalse();
     }
 
-    List<Worker> getDummyWorkers(int n) {
-
-        List<Worker> dummyWorkers = new ArrayList<>();
-
-        for (int i=0; i<n; i++) {
-            dummyWorkers.add(Worker.builder().id(Integer.toString(i)).build());
-        }
-        return dummyWorkers;
+    List<Worker> getDummyWorkers() {
+        workerService.getWorkerStatsMap().computeIfAbsent("address1", WorkerService.WorkerStats::new).setLastAliveDate(new Date());
+        workerService.getWorkerStatsMap().computeIfAbsent("address2", WorkerService.WorkerStats::new).setLastAliveDate(addMinutesToDate(new Date(), -2));
+        workerService.getWorkerStatsMap().computeIfAbsent("address3", WorkerService.WorkerStats::new).setLastAliveDate(addMinutesToDate(new Date(), -3));
+        return List.of(
+                Worker.builder().id("1").walletAddress("address1").build(),
+                Worker.builder().id("2").walletAddress("address2").build(),
+                Worker.builder().id("3").walletAddress("address3").build()
+        );
     }
 
     Worker getDummyWorker(String walletAddress, int cpuNb, List<String> participatingIds, List<String> computingIds) {
@@ -612,7 +558,7 @@ class WorkerServiceTests {
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
                 List.of("task1"));//3 CPUs available
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);
     }
@@ -630,14 +576,14 @@ class WorkerServiceTests {
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
                 Arrays.asList("task1", "task2", "task3", "task4"));
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Arrays.asList(worker1, worker2));
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
     @Test
     void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(Collections.emptyList());
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
@@ -652,7 +598,7 @@ class WorkerServiceTests {
                 .cpuNb(2)
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
 
         assertThat(workerService.getAliveTotalCpu())
                 .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
@@ -669,7 +615,7 @@ class WorkerServiceTests {
                 .gpuEnabled(false)
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
 
         assertThat(workerService.getAliveTotalGpu()).isEqualTo(1);
     }
@@ -687,7 +633,7 @@ class WorkerServiceTests {
                 .computingChainTaskIds(List.of("t1"))
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findByLastAliveDateAfter(any())).thenReturn(list);
+        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
 
         assertThat(workerService.getAliveAvailableGpu()).isEqualTo(1);
     }

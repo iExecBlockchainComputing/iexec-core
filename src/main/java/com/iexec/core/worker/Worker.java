@@ -50,6 +50,7 @@ public class Worker {
     private List<String> participatingChainTaskIds;
     private List<String> computingChainTaskIds;
 
+    // TODO remove it cleanly in a release
     private Date lastAliveDate;
     private Date lastReplicateDemandDate;
 

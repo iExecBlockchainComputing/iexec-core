@@ -31,11 +31,9 @@ import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.Hash;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static org.springframework.http.ResponseEntity.ok;
-import static org.springframework.http.ResponseEntity.status;
 
 @Slf4j
 @RestController
@@ -63,9 +61,8 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         final String publicConfigurationHash = publicConfigurationService.getPublicConfigurationHash();
-        return workerService.updateLastAlive(workerWalletAddress)
-                .map(worker -> ok(publicConfigurationHash))
-                .orElseGet(() -> status(HttpStatus.NOT_FOUND).build());
+        workerService.updateLastAlive(workerWalletAddress);
+        return ok(publicConfigurationHash);
     }
 
     @GetMapping(path = "/workers/challenge")
@@ -117,7 +114,6 @@ public class WorkerController {
                 .memorySize(model.getMemorySize())
                 .teeEnabled(model.isTeeEnabled())
                 .gpuEnabled(model.isGpuEnabled())
-                .lastAliveDate(new Date())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())
                 .build();
