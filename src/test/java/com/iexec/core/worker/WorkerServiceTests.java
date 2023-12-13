@@ -250,9 +250,32 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotAddTaskIdToWorker() {
+    void shouldNotAddTaskIdToWorkerSinceUnknownWorker() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
+        assertThat(addedWorker).isEmpty();
+    }
+
+    @Test
+    void shouldNotAddTaskIdToWorkerSinceCantAcceptMoreWorker() {
+        String workerName = "worker1";
+        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+        Worker existingWorker = Worker.builder()
+                .id("1")
+                .name(workerName)
+                .walletAddress(walletAddress)
+                .os("Linux")
+                .cpu("x86")
+                .cpuNb(3)
+                .maxNbTasks(2)
+                .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .build();
+
+        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(existingWorker));
+        when(workerRepository.save(existingWorker)).thenReturn(existingWorker);
+
+        Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", walletAddress);
         assertThat(addedWorker).isEmpty();
     }
 
