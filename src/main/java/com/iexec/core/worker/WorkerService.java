@@ -133,12 +133,6 @@ public class WorkerService {
         return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
 
-    public boolean canAcceptMoreWorks(String walletAddress) {
-        Optional<Worker> optionalWorker = getWorker(walletAddress);
-        return optionalWorker.filter(this::canAcceptMoreWorks).isPresent();
-
-    }
-
     public boolean canAcceptMoreWorks(Worker worker) {
         int workerMaxNbTasks = worker.getMaxNbTasks();
         int runningReplicateNb = worker.getComputingChainTaskIds().size();

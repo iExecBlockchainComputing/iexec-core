@@ -522,19 +522,8 @@ class WorkerServiceTests {
                 3,
                 Arrays.asList("task1", "task2", "task3", "task4", "task5"),
                 Arrays.asList("task1", "task3"));
-        when(workerRepository.findByWalletAddress(walletAddress)).thenReturn(Optional.of(worker));
 
-        assertThat(workerService.canAcceptMoreWorks(walletAddress)).isTrue();
-    }
-
-    @Test
-    void shouldNotAcceptMoreWorksSinceWorkerNotFound() {
-        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-
-        when(workerRepository.findByWalletAddress(Mockito.any())).thenReturn(Optional.empty());
-
-        boolean canAccept = workerService.canAcceptMoreWorks(walletAddress);
-        assertThat(canAccept).isFalse();
+        assertThat(workerService.canAcceptMoreWorks(worker)).isTrue();
     }
 
     @Test
@@ -545,9 +534,8 @@ class WorkerServiceTests {
                 2,
                 Arrays.asList("task1", "task2", "task3", "task4"),
                 Arrays.asList("task1", "task3"));
-        when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.of(worker));
 
-        assertThat(workerService.canAcceptMoreWorks(walletAddress)).isFalse();
+        assertThat(workerService.canAcceptMoreWorks(worker)).isFalse();
     }
 
     List<Worker> getDummyWorkers() {

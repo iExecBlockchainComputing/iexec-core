@@ -91,11 +91,6 @@ class ReplicateSupplyServiceTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    void workerCanWorkAndHasGas(String workerAddress) {
-        when(workerService.canAcceptMoreWorks(workerAddress)).thenReturn(true);
-        when(web3jService.hasEnoughGas(workerAddress)).thenReturn(true);
-    }
-
     // Tests on getAuthOfAvailableReplicate()
 
     // If worker does not exist, canAcceptMoreWorks return false
@@ -103,7 +98,7 @@ class ReplicateSupplyServiceTests {
     // in getAuthOfAvailableReplicate method
     @Test
     void shouldNotGetAnyReplicateSinceWorkerDoesNotExist() {
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -113,7 +108,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceWorkerLastBlockNotAvailable() {
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(0, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -122,7 +117,18 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceNoRunningTask() {
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        final Worker worker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(4)
+                .maxNbTasks(3)
+                .teeEnabled(false)
+                .build();
+
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
+        when(workerService.getWorker(WALLET_WORKER_1))
+                .thenReturn(Optional.ofNullable(worker));
+
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -148,7 +154,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
@@ -185,7 +191,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
@@ -206,7 +212,14 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetAnyReplicateSinceWorkerIsFull() {
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(false);
+        final Worker worker = Worker.builder()
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .maxNbTasks(1)
+                .build();
+        when(workerService.getWorker(WALLET_WORKER_1))
+                .thenReturn(Optional.of(worker));
+        when(workerService.canAcceptMoreWorks(worker)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -215,7 +228,6 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetAnyReplicateSinceWorkerDoesNotHaveEnoughGas() {
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -245,7 +257,8 @@ class ReplicateSupplyServiceTests {
                 Collections.singletonList(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID))
         ));
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -312,6 +325,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
                 .build();
 
@@ -326,7 +340,7 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -371,7 +385,7 @@ class ReplicateSupplyServiceTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, List.of(CHAIN_TASK_ID)))
                 .thenReturn(Optional.of(taskDeadlineReached));
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
@@ -414,7 +428,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -450,7 +464,7 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -495,7 +509,7 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -535,7 +549,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.empty());
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -569,7 +583,7 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
