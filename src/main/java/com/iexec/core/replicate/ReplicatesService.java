@@ -72,17 +72,20 @@ public class ReplicatesService {
     }
 
     public void addNewReplicate(String chainTaskId, String walletAddress) {
-        if (getReplicate(chainTaskId, walletAddress).isEmpty()) {
-            Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
-            if (optional.isPresent()) {
-                ReplicatesList replicatesList = optional.get();
-                Replicate replicate = new Replicate(walletAddress, chainTaskId);
-                replicate.setWorkerWeight(iexecHubService.getWorkerWeight(walletAddress));// workerWeight value for pendingWeight estimate
-                replicatesList.getReplicates().add(replicate);
+        final Optional<ReplicatesList> oReplicatesList = getReplicatesList(chainTaskId);
+        if (oReplicatesList.isEmpty()) {
+            log.warn("Can't add replicate to unknown ReplicatesList [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
+            return;
+        }
 
-                replicatesRepository.save(replicatesList);
-                log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-            }
+        final ReplicatesList replicatesList = oReplicatesList.get();
+        if (replicatesList.getReplicateOfWorker(walletAddress).isEmpty()) {
+            Replicate replicate = new Replicate(walletAddress, chainTaskId);
+            replicate.setWorkerWeight(iexecHubService.getWorkerWeight(walletAddress));// workerWeight value for pendingWeight estimate
+            replicatesList.getReplicates().add(replicate);
+
+            replicatesRepository.save(replicatesList);
+            log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
         } else {
             log.error("Replicate already saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
         }

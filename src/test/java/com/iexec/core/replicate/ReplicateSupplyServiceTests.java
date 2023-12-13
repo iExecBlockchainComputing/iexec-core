@@ -58,7 +58,7 @@ class ReplicateSupplyServiceTests {
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0xdcfeffee1443fbf9277e6fa3b50cf3b38f7101af";
 
-    private final static String CHAIN_TASK_ID   = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
+    private final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
     private final static String CHAIN_TASK_ID_2 = "0xc536af16737e02bb28100452a932056d499be3c462619751a9ed36515de64d50";
 
     private final static String DAPP_NAME = "dappName";
@@ -69,12 +69,18 @@ class ReplicateSupplyServiceTests {
     private final static long maxExecutionTime = 60000;
     long workerLastBlock = 12;
 
-    @Mock private ReplicatesService replicatesService;
-    @Mock private SignatureService signatureService;
-    @Mock private TaskService taskService;
-    @Mock private TaskUpdateRequestManager taskUpdateRequestManager;
-    @Mock private WorkerService workerService;
-    @Mock private Web3jService web3jService;
+    @Mock
+    private ReplicatesService replicatesService;
+    @Mock
+    private SignatureService signatureService;
+    @Mock
+    private TaskService taskService;
+    @Mock
+    private TaskUpdateRequestManager taskUpdateRequestManager;
+    @Mock
+    private WorkerService workerService;
+    @Mock
+    private Web3jService web3jService;
 
     @Spy
     @InjectMocks
@@ -97,11 +103,12 @@ class ReplicateSupplyServiceTests {
     // in getAuthOfAvailableReplicate method
     @Test
     void shouldNotGetAnyReplicateSinceWorkerDoesNotExist() {
+        workerCanWorkAndHasGas(WALLET_WORKER_1);
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
-        Mockito.verifyNoInteractions(web3jService, taskService, taskUpdateRequestManager, replicatesService, signatureService);
+        Mockito.verifyNoInteractions(taskService, taskUpdateRequestManager, replicatesService, signatureService);
     }
 
     @Test
@@ -130,6 +137,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
                 .build();
 
@@ -160,6 +168,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
@@ -180,6 +189,7 @@ class ReplicateSupplyServiceTests {
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
+        when(workerService.canAcceptMoreWorks(worker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.isConsensusReached(replicatesList)).thenReturn(true);
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).thenReturn(false);
@@ -220,6 +230,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -256,6 +267,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .build();
 
         int trust = 5;
@@ -277,11 +289,14 @@ class ReplicateSupplyServiceTests {
         );
 
         // Try to see if a replicate of the task can be scheduled on worker2
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_2);
@@ -335,6 +350,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
                 .build();
 
@@ -361,9 +377,12 @@ class ReplicateSupplyServiceTests {
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(task1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(WorkerpoolAuthorization.builder().chainTaskId(CHAIN_TASK_ID).build());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
 
         final Optional<ReplicateTaskSummary> replicateTaskSummary = replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
@@ -382,6 +401,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
                 .build();
 
@@ -413,6 +433,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
                 .build();
 
@@ -432,9 +453,12 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(new WorkerpoolAuthorization());
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -452,6 +476,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
                 .build();
 
@@ -470,9 +495,12 @@ class ReplicateSupplyServiceTests {
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -491,6 +519,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
                 .build();
 
@@ -519,6 +548,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
                 .build();
 
@@ -537,9 +567,12 @@ class ReplicateSupplyServiceTests {
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -559,6 +592,7 @@ class ReplicateSupplyServiceTests {
      */
     private void assertTaskAccessForNewReplicateNotDeadLocking(String chainTaskId) {
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.get(chainTaskId);
+        System.out.println("Task: " + chainTaskId + " ; lock : " + lock);
         final Boolean successfulLock = CompletableFuture.supplyAsync(() -> {
                     final boolean locked = lock.tryLock();
                     if (!locked) {
@@ -574,7 +608,8 @@ class ReplicateSupplyServiceTests {
 
     private void assertTaskAccessForNewReplicateLockNeverUsed(String chainTaskId) {
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.get(chainTaskId);
-        assertThat(lock).isNull();;
+        assertThat(lock).isNull();
+        ;
     }
 
     // Tests on getMissedTaskNotifications()
@@ -612,12 +647,12 @@ class ReplicateSupplyServiceTests {
         assertThat(taskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, times(0))
-            .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
 
     @Test
-    // CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
+        // CREATED, ..., CAN_CONTRIBUTE => RecoveryAction.CONTRIBUTE
     void shouldTellReplicateToContributeWhenComputing() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
@@ -641,7 +676,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
+        // CONTRIBUTING + !onChain => RecoveryAction.CONTRIBUTE
     void shouldTellReplicateToContributeSinceNotDoneOnchain() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RUNNING);
@@ -668,8 +703,8 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // CONTRIBUTING + done onChain   => updateStatus to CONTRIBUTED
-    // Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
+        // CONTRIBUTING + done onChain   => updateStatus to CONTRIBUTED
+        // Task not in CONSENSUS_REACHED => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceContributedOnchain() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -707,8 +742,8 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // CONTRIBUTING + done onChain => updateStatus to CONTRIBUTED
-    // Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
+        // CONTRIBUTING + done onChain => updateStatus to CONTRIBUTED
+        // Task in CONSENSUS_REACHED   => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceConsensusReached() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -746,7 +781,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
+        // any status + Task in CONTRIBUTION_TIMEOUT => RecoveryAction.ABORT_CONTRIBUTION_TIMEOUT
     void shouldTellReplicateToAbortSinceContributionTimeout() {
         long blockNumber = 3;
         List<String> ids = List.of(CHAIN_TASK_ID);
@@ -773,7 +808,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
+        // !CONTRIBUTED + Task in CONSENSUS_REACHED => RecoveryAction.ABORT_CONSENSUS_REACHED
     void shouldTellReplicateToWaitSinceConsensusReachedAndItDidNotContribute() {
         long blockNumber = 3;
         List<String> ids = List.of(CHAIN_TASK_ID);
@@ -801,7 +836,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
+        // CONTRIBUTED + Task in REVEAL phase => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceContributed() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
@@ -825,7 +860,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // REVEALING + !onChain => RecoveryAction.REVEAL
+        // REVEALING + !onChain => RecoveryAction.REVEAL
     void shouldTellReplicateToRevealSinceNotDoneOnchain() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.AT_LEAST_ONE_REVEALED);
@@ -852,8 +887,8 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // REVEALING + done onChain     => updateStatus to REVEALED
-    // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
+        // REVEALING + done onChain     => updateStatus to REVEALED
+        // no RESULT_UPLOAD_REQUESTED   => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceRevealed() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -891,8 +926,8 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // REVEALING + done onChain     => updateStatus to REVEALED
-    // RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
+        // REVEALING + done onChain     => updateStatus to REVEALED
+        // RESULT_UPLOAD_REQUESTED   => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceRequestedAfterRevealing() {
         long blockNumber = 3;
         // ChainReceipt chainReceipt = new ChainReceipt(blockNumber, "");
@@ -929,7 +964,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
+        // RESULT_UPLOAD_REQUESTED => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceRequested() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -953,7 +988,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
+        // RESULT_UPLOADING + not done yet => RecoveryAction.UPLOAD_RESULT
     void shouldTellReplicateToUploadResultSinceNotDoneYet() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -979,8 +1014,8 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
-    //                            RecoveryAction.WAIT
+        // RESULT_UPLOADING + done => update to ReplicateStatus.RESULT_UPLOADED
+        //                            RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceDetectedResultUpload() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -1009,7 +1044,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // RESULT_UPLOADED => RecoveryAction.WAIT
+        // RESULT_UPLOADED => RecoveryAction.WAIT
     void shouldTellReplicateToWaitSinceItUploadedResult() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.RESULT_UPLOADING);
@@ -1038,7 +1073,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // REVEALED + Task in completion phase => RecoveryAction.WAIT
+        // REVEALED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealed() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
@@ -1064,7 +1099,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
+        // REVEALED + RESULT_UPLOADED + Task in completion phase => RecoveryAction.WAIT
     void shouldTellReplicateToWaitForCompletionSinceItRevealedAndUploaded() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);
@@ -1122,7 +1157,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    // !REVEALED + Task in completion phase => null / nothing
+        // !REVEALED + Task in completion phase => null / nothing
     void shouldNotTellReplicateToWaitForCompletionSinceItDidNotReveal() {
         List<String> ids = List.of(CHAIN_TASK_ID);
         List<Task> taskList = getStubTaskList(TaskStatus.FINALIZING);

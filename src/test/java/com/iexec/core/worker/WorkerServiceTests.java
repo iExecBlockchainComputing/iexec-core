@@ -19,7 +19,10 @@ package com.iexec.core.worker;
 import com.iexec.core.configuration.WorkerConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -194,7 +197,7 @@ class WorkerServiceTests {
     void shouldWorkerNotBeAllowedToAskReplicateSinceTooSoon() {
         String wallet = "wallet";
         workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new)
-                        .setLastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)));
+                .setLastReplicateDemandDate(Date.from(Instant.now().minusSeconds(1)));
         when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isFalse();
@@ -219,7 +222,7 @@ class WorkerServiceTests {
     // addChainTaskIdToWorker
 
     @Test
-    void shouldAddTaskIdToWorker(){
+    void shouldAddTaskIdToWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -229,6 +232,7 @@ class WorkerServiceTests {
                 .os("Linux")
                 .cpu("x86")
                 .cpuNb(8)
+                .maxNbTasks(7)
                 .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
                 .build();
@@ -246,7 +250,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotAddTaskIdToWorker(){
+    void shouldNotAddTaskIdToWorker() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker).isEmpty();
@@ -294,11 +298,11 @@ class WorkerServiceTests {
 
         assertThat(workerService.getComputingTaskIds(wallet)).isEmpty();
     }
-    
+
     // removeChainTaskIdFromWorker
 
     @Test
-    void shouldRemoveTaskIdFromWorker(){
+    void shouldRemoveTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         Worker existingWorker = Worker.builder()
@@ -325,14 +329,14 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveTaskIdWorkerNotFound(){
+    void shouldNotRemoveTaskIdWorkerNotFound() {
         when(workerRepository.findByWalletAddress(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
         assertThat(addedWorker).isEmpty();
     }
 
     @Test
-    void shouldNotRemoveAnythingSinceTaskIdNotFound(){
+    void shouldNotRemoveAnythingSinceTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -362,7 +366,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldRemoveComputedChainTaskIdFromWorker(){
+    void shouldRemoveComputedChainTaskIdFromWorker() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -392,7 +396,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));
@@ -416,7 +420,7 @@ class WorkerServiceTests {
     }
 
     @Test
-    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound(){
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound() {
         String workerName = "worker1";
         String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
         List<String> participatingIds = new ArrayList<>(Arrays.asList("task1", "task2"));

@@ -86,14 +86,9 @@ public class ReplicateSupplyService implements Purgeable {
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
-        // return empty if max computing task is reached or if the worker is not found
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
-            return Optional.empty();
-        }
-
         // return empty if the worker is not sync
         //TODO Check if worker node is sync
-        boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
+        final boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
         if (!isWorkerLastBlockAvailable) {
             return Optional.empty();
         }
@@ -104,11 +99,16 @@ public class ReplicateSupplyService implements Purgeable {
 
         // TODO : Remove this, the optional can never be empty
         // This is covered in workerService.canAcceptMoreWorks
-        Optional<Worker> optional = workerService.getWorker(walletAddress);
+        final Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
             return Optional.empty();
         }
-        Worker worker = optional.get();
+        final Worker worker = optional.get();
+
+        // return empty if max computing task is reached or if the worker is not found
+        if (!workerService.canAcceptMoreWorks(worker)) {
+            return Optional.empty();
+        }
 
         return getReplicateTaskSummaryForAnyAvailableTask(
                 walletAddress,
@@ -161,8 +161,8 @@ public class ReplicateSupplyService implements Purgeable {
                 chainTaskId,
                 task.getEnclaveChallenge());
         ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
-            .workerpoolAuthorization(authorization);
-        if(task.isTeeTask()){
+                .workerpoolAuthorization(authorization);
+        if (task.isTeeTask()) {
             replicateTaskSummary.smsUrl(task.getSmsUrl());
         }
         return Optional.of(replicateTaskSummary.build());
@@ -173,7 +173,7 @@ public class ReplicateSupplyService implements Purgeable {
      * tries to accept the task - i.e. create a new {@link Replicate}
      * for that task on that worker.
      *
-     * @param task  {@link Task} needing at least one new {@link Replicate}.
+     * @param task          {@link Task} needing at least one new {@link Replicate}.
      * @param walletAddress Wallet address of a worker looking for new {@link Task}.
      * @return {@literal true} if the task has been accepted,
      * {@literal false} otherwise.
@@ -220,8 +220,8 @@ public class ReplicateSupplyService implements Purgeable {
                 return false;
             }
 
-            replicatesService.addNewReplicate(chainTaskId, walletAddress);
-            workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
+            workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
+                    .ifPresent(worker -> replicatesService.addNewReplicate(chainTaskId, walletAddress));
         } finally {
             // We should always unlock the task
             // so that it could be taken by another replicate
@@ -234,8 +234,8 @@ public class ReplicateSupplyService implements Purgeable {
 
     /**
      * Get notifications missed by the worker during the time it was absent.
-     * 
-     * @param blockNumber last seen blocknumber by the worker
+     *
+     * @param blockNumber   last seen blocknumber by the worker
      * @param walletAddress of the worker
      * @return list of missed notifications. Can be empty if no notification is found
      */
@@ -264,7 +264,7 @@ public class ReplicateSupplyService implements Purgeable {
                 continue;
             }
             TaskNotificationExtra taskNotificationExtra =
-                    getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
+                    getTaskNotificationExtra(task, taskNotificationType.get(), walletAddress, enclaveChallenge);
 
             TaskNotification taskNotification = TaskNotification.builder()
                     .chainTaskId(chainTaskId)
@@ -286,7 +286,7 @@ public class ReplicateSupplyService implements Purgeable {
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
         TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
 
-        switch (taskNotificationType){
+        switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
                 WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                         walletAddress, task.getChainTaskId(), enclaveChallenge);
@@ -312,7 +312,7 @@ public class ReplicateSupplyService implements Purgeable {
         // CONTRIBUTION_TIMEOUT or CONSENSUS_REACHED without contribution
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)
                 || (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED)
-                        && !replicate.containsContributedStatus())) {
+                && !replicate.containsContributedStatus())) {
             return Optional.of(TaskNotificationType.PLEASE_ABORT);
         }
 
