@@ -82,6 +82,7 @@ public class ReplicatesService {
             log.info("New replicate saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
         } else {
             log.error("Replicate already saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
+            return false;
         }
 
         return true;
