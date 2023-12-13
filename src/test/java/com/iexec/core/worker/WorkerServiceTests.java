@@ -451,7 +451,7 @@ class WorkerServiceTests {
         List<Worker> allWorkers = getDummyWorkers();
 
         List<Worker> lostWorkers = allWorkers.subList(1, 3);
-        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(lostWorkers);
+        when(workerRepository.findByWalletAddressIn(Mockito.any())).thenReturn(lostWorkers);
 
         List<Worker> claimedLostWorkers = workerService.getLostWorkers();
 
@@ -471,7 +471,7 @@ class WorkerServiceTests {
 
         List<Worker> allWorkers = getDummyWorkers();
         List<Worker> aliveWorkers = allWorkers.subList(0, 1);
-        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(aliveWorkers);
+        when(workerRepository.findByWalletAddressIn(Mockito.any())).thenReturn(aliveWorkers);
 
         List<Worker> claimedAliveWorkers = workerService.getAliveWorkers();
 
@@ -483,7 +483,7 @@ class WorkerServiceTests {
 
     @Test
     void shouldNotFindAliveWorkers() {
-        when(workerRepository.findAllByWalletAddress(Mockito.any())).thenReturn(Collections.emptyList());
+        when(workerRepository.findByWalletAddressIn(Mockito.any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveWorkers()).isEmpty();
     }
 
@@ -558,7 +558,7 @@ class WorkerServiceTests {
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
                 List.of("task1"));//3 CPUs available
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Arrays.asList(worker1, worker2));
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);
     }
@@ -576,14 +576,14 @@ class WorkerServiceTests {
                 4,
                 Arrays.asList("task1", "task2", "task3", "task4"),
                 Arrays.asList("task1", "task2", "task3", "task4"));
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Arrays.asList(worker1, worker2));
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(Arrays.asList(worker1, worker2));
 
         assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
     @Test
     void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(Collections.emptyList());
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(Collections.emptyList());
         assertThat(workerService.getAliveAvailableCpu()).isZero();
     }
 
@@ -598,7 +598,7 @@ class WorkerServiceTests {
                 .cpuNb(2)
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(list);
 
         assertThat(workerService.getAliveTotalCpu())
                 .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
@@ -615,7 +615,7 @@ class WorkerServiceTests {
                 .gpuEnabled(false)
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(list);
 
         assertThat(workerService.getAliveTotalGpu()).isEqualTo(1);
     }
@@ -633,7 +633,7 @@ class WorkerServiceTests {
                 .computingChainTaskIds(List.of("t1"))
                 .build();
         List<Worker> list = List.of(worker1, worker2);
-        when(workerRepository.findAllByWalletAddress(any())).thenReturn(list);
+        when(workerRepository.findByWalletAddressIn(any())).thenReturn(list);
 
         assertThat(workerService.getAliveAvailableGpu()).isEqualTo(1);
     }

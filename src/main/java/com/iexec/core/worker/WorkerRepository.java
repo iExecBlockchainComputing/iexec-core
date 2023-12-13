@@ -18,6 +18,7 @@ package com.iexec.core.worker;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,5 +26,5 @@ interface WorkerRepository extends MongoRepository<Worker, String> {
 
     Optional<Worker> findByWalletAddress(String walletAddress);
 
-    List<Worker> findAllByWalletAddress(Iterable<String> walletAddress);
+    List<Worker> findByWalletAddressIn(Collection<String> walletAddresses);
 }
