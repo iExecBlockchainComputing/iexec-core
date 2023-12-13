@@ -205,8 +205,7 @@ public class WorkerService {
 
     // region Read-and-write methods
     public Worker addWorker(Worker worker) {
-        workerStatsMap.computeIfAbsent(worker.getWalletAddress(), WorkerStats::new)
-                .setLastAliveDate(new Date());
+        updateLastAlive(worker.getWalletAddress());
         return contextualLockRunner.applyWithLock(
                 worker.getWalletAddress(),
                 address -> addWorkerWithoutThreadSafety(worker)
