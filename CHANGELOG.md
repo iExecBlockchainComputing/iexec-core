@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.2) 2023-12-13
+
+### Bug Fixes
+
+- Replace `findAllByWalletAddress` with `findByWalletAddressIn` in `WorkerRepository`. (#643)
+
 ## [[8.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.1) 2023-12-13
 
 ### Bug Fixes

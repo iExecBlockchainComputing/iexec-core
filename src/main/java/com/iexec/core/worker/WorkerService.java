@@ -119,7 +119,7 @@ public class WorkerService {
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
-        return workerRepository.findAllByWalletAddress(lostWorkers);
+        return workerRepository.findByWalletAddressIn(lostWorkers);
     }
 
     // worker is considered alive if it received a ping during the last minute
@@ -130,7 +130,7 @@ public class WorkerService {
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
-        return workerRepository.findAllByWalletAddress(aliveWorkers);
+        return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
 
     public boolean canAcceptMoreWorks(String walletAddress) {
