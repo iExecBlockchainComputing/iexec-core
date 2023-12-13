@@ -18,13 +18,14 @@ package com.iexec.core.worker;
 
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
+import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
@@ -42,6 +43,19 @@ public class WorkerService {
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
     private final ContextualLockRunner<String> contextualLockRunner;
+    @Getter
+    private final ConcurrentHashMap<String, WorkerStats> workerStatsMap = new ConcurrentHashMap<>();
+
+    @Data
+    public static class WorkerStats {
+        private String walletAddress;
+        private Date lastAliveDate;
+        private Date lastReplicateDemandDate;
+
+        public WorkerStats(String walletAddress) {
+            this.walletAddress = walletAddress;
+        }
+    }
 
     public WorkerService(WorkerRepository workerRepository,
                          WorkerConfiguration workerConfiguration) {
@@ -65,27 +79,17 @@ public class WorkerService {
     }
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
-        Optional<Date> oDate = getLastReplicateDemand(walletAddress);
-        if (oDate.isEmpty()) {
+        Date lastReplicateDemandDate = workerStatsMap.get(walletAddress).getLastReplicateDemandDate();
+        if (lastReplicateDemandDate == null) {
             return true;
         }
 
         // the difference between now and the last time the worker asked for work should be less than the period allowed
         // in the configuration (500ms since (now - lastAsk) can still be slightly too small even if the worker behave nicely)
         long now = new Date().getTime();
-        long lastAsk = oDate.get().getTime();
+        long lastAsk = lastReplicateDemandDate.getTime();
 
         return (now - lastAsk) + 500 > workerConfiguration.getAskForReplicatePeriod();
-    }
-
-    public Optional<Date> getLastReplicateDemand(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isEmpty()) {
-            return Optional.empty();
-        }
-        Worker worker = optional.get();
-
-        return Optional.ofNullable(worker.getLastReplicateDemandDate());
     }
 
     public List<String> getChainTaskIds(String walletAddress) {
@@ -110,13 +114,23 @@ public class WorkerService {
     // worker is considered lost if it didn't ping for 1 minute
     public List<Worker> getLostWorkers() {
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
-        return workerRepository.findByLastAliveDateBefore(oneMinuteAgo);
+        List<String> lostWorkers = workerStatsMap.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        return workerRepository.findAllByWalletAddress(lostWorkers);
     }
 
-    // worker is considered alive if it ping after 1 minute
+    // worker is considered alive if it received a ping during the last minute
     public List<Worker> getAliveWorkers() {
         Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
-        return workerRepository.findByLastAliveDateAfter(oneMinuteAgo);
+        List<String> aliveWorkers = workerStatsMap.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        return workerRepository.findAllByWalletAddress(aliveWorkers);
     }
 
     public boolean canAcceptMoreWorks(String walletAddress) {
@@ -130,7 +144,7 @@ public class WorkerService {
         int runningReplicateNb = worker.getComputingChainTaskIds().size();
 
         if (runningReplicateNb >= workerMaxNbTasks) {
-            log.debug("Worker asking for too many replicates [walletAddress: {}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
+            log.debug("Worker asking for too many replicates [walletAddress:{}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
                     walletAddress, runningReplicateNb, workerMaxNbTasks);
             return false;
         }
@@ -191,6 +205,7 @@ public class WorkerService {
 
     // region Read-and-write methods
     public Worker addWorker(Worker worker) {
+        updateLastAlive(worker.getWalletAddress());
         return contextualLockRunner.applyWithLock(
                 worker.getWalletAddress(),
                 address -> addWorkerWithoutThreadSafety(worker)
@@ -213,42 +228,14 @@ public class WorkerService {
         return workerRepository.save(worker);
     }
 
-    public Optional<Worker> updateLastAlive(String walletAddress) {
-        return contextualLockRunner.applyWithLock(
-                walletAddress,
-                this::updateLastAliveWithoutThreadSafety
-        );
+    public void updateLastAlive(String walletAddress) {
+        workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
+                .setLastAliveDate(new Date());
     }
 
-    private Optional<Worker> updateLastAliveWithoutThreadSafety(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.setLastAliveDate(new Date());
-            workerRepository.save(worker);
-            return Optional.of(worker);
-        }
-
-        return Optional.empty();
-    }
-
-    public Optional<Worker> updateLastReplicateDemandDate(String walletAddress) {
-        return contextualLockRunner.applyWithLock(
-                walletAddress,
-                this::updateLastReplicateDemandDateWithoutThreadSafety
-        );
-    }
-
-    private Optional<Worker> updateLastReplicateDemandDateWithoutThreadSafety(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.setLastReplicateDemandDate(new Date());
-            workerRepository.save(worker);
-            return Optional.of(worker);
-        }
-
-        return Optional.empty();
+    public void updateLastReplicateDemandDate(String walletAddress) {
+        workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
+                .setLastReplicateDemandDate(new Date());
     }
 
     public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {

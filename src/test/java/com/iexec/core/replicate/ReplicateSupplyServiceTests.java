@@ -131,7 +131,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -162,7 +161,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
@@ -222,7 +220,6 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -259,7 +256,6 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(2)
-                .lastAliveDate(new Date())
                 .build();
 
         int trust = 5;
@@ -302,7 +298,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -341,7 +336,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(4)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         int trust = 5;
@@ -389,7 +383,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -421,7 +414,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -461,7 +453,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -501,7 +492,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -530,7 +520,6 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);

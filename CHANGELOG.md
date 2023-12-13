@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.1) 2023-12-13
+
+### Bug Fixes
+
+- Do not write `lastAliveDate` or `lastReplicateDemandDate` to MongoDB to decrease load on the database. (#642)
+
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
 ### New Features

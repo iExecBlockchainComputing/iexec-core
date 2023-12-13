@@ -32,10 +32,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.Optional;
 
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.Mockito.*;
 
 class WorkerLostDetectorTests {
@@ -71,14 +69,10 @@ class WorkerLostDetectorTests {
 
     @Test
     void shouldUpdateOneReplicateToWorkerLost(){
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
-
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
-                .lastAliveDate(twoMinutesAgo)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
-
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
@@ -156,11 +150,8 @@ class WorkerLostDetectorTests {
 
     @Test
     void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired(){
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
-
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
-                .lastAliveDate(twoMinutesAgo)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
                 .build();
 
