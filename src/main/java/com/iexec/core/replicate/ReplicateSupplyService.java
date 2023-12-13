@@ -184,22 +184,6 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         final String chainTaskId = task.getChainTaskId();
-        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
-        // Check is only here to prevent
-        // "`Optional.get()` without `isPresent()` warning".
-        // This case should not happen.
-        if (oReplicatesList.isEmpty()) {
-            return false;
-        }
-
-        final ReplicatesList replicatesList = oReplicatesList.get();
-
-        final boolean hasWorkerAlreadyParticipated =
-                replicatesList.hasWorkerAlreadyParticipated(walletAddress);
-        if (hasWorkerAlreadyParticipated) {
-            return false;
-        }
-
         final Lock lock = taskAccessForNewReplicateLocks
                 .computeIfAbsent(chainTaskId, k -> new ReentrantLock());
         if (!lock.tryLock()) {
@@ -209,6 +193,22 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         try {
+            final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
+            // Check is only here to prevent
+            // "`Optional.get()` without `isPresent()` warning".
+            // This case should not happen.
+            if (oReplicatesList.isEmpty()) {
+                return false;
+            }
+
+            final ReplicatesList replicatesList = oReplicatesList.get();
+
+            final boolean hasWorkerAlreadyParticipated =
+                    replicatesList.hasWorkerAlreadyParticipated(walletAddress);
+            if (hasWorkerAlreadyParticipated) {
+                return false;
+            }
+
             final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
                     chainTaskId,
                     replicatesList.getReplicates(),
@@ -220,16 +220,15 @@ public class ReplicateSupplyService implements Purgeable {
                 return false;
             }
 
-            workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
-                    .ifPresent(worker -> replicatesService.addNewReplicate(chainTaskId, walletAddress));
+            return workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
+                    .map(worker -> replicatesService.addNewReplicate(replicatesList, walletAddress))
+                    .orElse(false);
         } finally {
             // We should always unlock the task
             // so that it could be taken by another replicate
             // if there's any issue.
             lock.unlock();
         }
-
-        return true;
     }
 
     /**

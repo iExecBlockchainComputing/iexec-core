@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-- Check if Worker can still accept more work right before giving it new replicate. (#644)
+- Check if Worker can still accept more work right before giving it a new replicate. (#644)
 
 ## [[8.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.2) 2023-12-13
 

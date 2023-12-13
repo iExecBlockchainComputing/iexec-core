@@ -338,7 +338,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isEmpty();
 
-        Mockito.verify(replicatesService, Mockito.never()).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService, Mockito.never()).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService, Mockito.never()).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verifyNoInteractions(signatureService);
         assertTaskAccessForNewReplicateLockNeverUsed(CHAIN_TASK_ID);
@@ -383,13 +383,15 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(WorkerpoolAuthorization.builder().chainTaskId(CHAIN_TASK_ID).build());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         final Optional<ReplicateTaskSummary> replicateTaskSummary = replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(replicateTaskSummary).isPresent();
         assertThat(replicateTaskSummary.get().getWorkerpoolAuthorization().getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verify(signatureService, times(0)).createAuthorization(any(), eq(CHAIN_TASK_ID_2), any());
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
@@ -459,12 +461,14 @@ class ReplicateSupplyServiceTests {
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verify(signatureService).createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
@@ -501,6 +505,8 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(new WorkerpoolAuthorization());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -508,7 +514,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }
@@ -573,6 +579,8 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(new WorkerpoolAuthorization());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -580,7 +588,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }

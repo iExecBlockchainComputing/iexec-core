@@ -83,7 +83,7 @@ class ReplicateServiceTests {
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, list);
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesRepository.save(any())).thenReturn(replicatesList);
-        replicatesService.addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_3);
+        replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_3);
         Mockito.verify(replicatesRepository, Mockito.times(1))
                 .save(any());
     }
@@ -103,11 +103,11 @@ class ReplicateServiceTests {
         when(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesRepository.save(any())).thenReturn(replicatesList);
 
-        replicatesService.addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
 
-        replicatesService.addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_2);
+        replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_2);
         Mockito.verify(replicatesRepository, Mockito.times(0))
                 .save(any());
     }

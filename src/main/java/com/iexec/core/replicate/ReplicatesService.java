@@ -71,14 +71,8 @@ public class ReplicatesService {
         this.taskLogsService = taskLogsService;
     }
 
-    public void addNewReplicate(String chainTaskId, String walletAddress) {
-        final Optional<ReplicatesList> oReplicatesList = getReplicatesList(chainTaskId);
-        if (oReplicatesList.isEmpty()) {
-            log.warn("Can't add replicate to unknown ReplicatesList [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
-            return;
-        }
-
-        final ReplicatesList replicatesList = oReplicatesList.get();
+    public boolean addNewReplicate(ReplicatesList replicatesList, String walletAddress) {
+        final String chainTaskId = replicatesList.getChainTaskId();
         if (replicatesList.getReplicateOfWorker(walletAddress).isEmpty()) {
             Replicate replicate = new Replicate(walletAddress, chainTaskId);
             replicate.setWorkerWeight(iexecHubService.getWorkerWeight(walletAddress));// workerWeight value for pendingWeight estimate
@@ -90,6 +84,7 @@ public class ReplicatesService {
             log.error("Replicate already saved [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
         }
 
+        return true;
     }
 
     public synchronized void createEmptyReplicateList(String chainTaskId) {
