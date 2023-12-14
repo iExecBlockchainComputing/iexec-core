@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[8.2.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.3) 2023-12-13
+## [[8.2.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.3) 2023-12-14
 
 ### Bug Fixes
 
