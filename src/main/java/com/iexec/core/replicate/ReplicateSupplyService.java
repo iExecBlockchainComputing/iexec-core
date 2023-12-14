@@ -191,35 +191,8 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         try {
-            final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
-            // Check is only here to prevent
-            // "`Optional.get()` without `isPresent()` warning".
-            // This case should not happen.
-            if (oReplicatesList.isEmpty()) {
-                return false;
-            }
-
-            final ReplicatesList replicatesList = oReplicatesList.get();
-
-            final boolean hasWorkerAlreadyParticipated =
-                    replicatesList.hasWorkerAlreadyParticipated(walletAddress);
-            if (hasWorkerAlreadyParticipated) {
-                return false;
-            }
-
-            final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
-                    chainTaskId,
-                    replicatesList.getReplicates(),
-                    task.getTrust(),
-                    task.getMaxExecutionTime());
-
-            if (!taskNeedsMoreContributions
-                    || taskService.isConsensusReached(replicatesList)) {
-                return false;
-            }
-
-            return workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
-                    .map(worker -> replicatesService.addNewReplicate(replicatesList, walletAddress))
+            return replicatesService.getReplicatesList(chainTaskId)
+                    .map(replicatesList -> acceptOrRejectTask(task, walletAddress, replicatesList))
                     .orElse(false);
         } finally {
             // We should always unlock the task
@@ -227,6 +200,41 @@ public class ReplicateSupplyService implements Purgeable {
             // if there's any issue.
             lock.unlock();
         }
+    }
+
+    /**
+     * Given a {@link Task}, a {@code walletAddress} of a worker and a {@link ReplicatesList},
+     * tries to accept the task - i.e. create a new {@link Replicate}
+     * for that task on that worker.
+     *
+     * @param task          {@link Task} needing at least one new {@link Replicate}.
+     * @param walletAddress Wallet address of a worker looking for new {@link Task}.
+     * @param replicatesList Replicates of given {@link Task}.
+     * @return {@literal true} if the task has been accepted,
+     * {@literal false} otherwise.
+     */
+    boolean acceptOrRejectTask(Task task, String walletAddress, ReplicatesList replicatesList) {
+        final boolean hasWorkerAlreadyParticipated =
+                replicatesList.hasWorkerAlreadyParticipated(walletAddress);
+        if (hasWorkerAlreadyParticipated) {
+            return false;
+        }
+
+        final String chainTaskId = replicatesList.getChainTaskId();
+        final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
+                chainTaskId,
+                replicatesList.getReplicates(),
+                task.getTrust(),
+                task.getMaxExecutionTime());
+
+        if (!taskNeedsMoreContributions
+                || taskService.isConsensusReached(replicatesList)) {
+            return false;
+        }
+
+        return workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
+                .map(worker -> replicatesService.addNewReplicate(replicatesList, walletAddress))
+                .orElse(false);
     }
 
     /**
