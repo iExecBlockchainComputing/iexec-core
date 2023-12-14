@@ -27,6 +27,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 
+import java.time.Duration;
+
 @Data
 @ConstructorBinding
 @ConfigurationProperties(prefix = "blockchain-adapter")
@@ -60,7 +62,7 @@ public class BlockchainAdapterClientConfig {
 
     @Bean
     public BlockchainAdapterService blockchainAdapterService(BlockchainAdapterApiClient blockchainAdapterClient) {
-        return new BlockchainAdapterService(blockchainAdapterClient, WATCH_PERIOD_SECONDS, MAX_ATTEMPTS);
+        return new BlockchainAdapterService(blockchainAdapterClient, Duration.ofSeconds(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS);
     }
 
     @Bean
