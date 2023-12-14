@@ -69,10 +69,10 @@ public class WorkerService {
         return workerRepository.findByWalletAddress(walletAddress);
     }
 
-    public boolean isAllowedToJoin(String workerAddress){
+    public boolean isAllowedToJoin(String workerAddress) {
         List<String> whitelist = workerConfiguration.getWhitelist();
         // if the whitelist is empty, there is no restriction on the workers
-        if (whitelist.isEmpty()){
+        if (whitelist.isEmpty()) {
             return true;
         }
         return whitelist.contains(workerAddress);
@@ -133,19 +133,13 @@ public class WorkerService {
         return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
 
-    public boolean canAcceptMoreWorks(String walletAddress) {
-        Optional<Worker> optionalWorker = getWorker(walletAddress);
-        if (optionalWorker.isEmpty()){
-            return false;
-        }
-
-        Worker worker = optionalWorker.get();
+    public boolean canAcceptMoreWorks(Worker worker) {
         int workerMaxNbTasks = worker.getMaxNbTasks();
         int runningReplicateNb = worker.getComputingChainTaskIds().size();
 
         if (runningReplicateNb >= workerMaxNbTasks) {
             log.debug("Worker asking for too many replicates [walletAddress:{}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
-                    walletAddress, runningReplicateNb, workerMaxNbTasks);
+                    worker.getWalletAddress(), runningReplicateNb, workerMaxNbTasks);
             return false;
         }
 
@@ -154,7 +148,7 @@ public class WorkerService {
 
     public int getAliveAvailableCpu() {
         int availableCpus = 0;
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 continue;
             }
@@ -162,18 +156,18 @@ public class WorkerService {
             int workerCpuNb = worker.getCpuNb();
             int computingReplicateNb = worker.getComputingChainTaskIds().size();
             int availableCpu = workerCpuNb - computingReplicateNb;
-            availableCpus+= availableCpu;
+            availableCpus += availableCpu;
         }
         return availableCpus;
     }
 
     public int getAliveTotalCpu() {
         int totalCpus = 0;
-        for (Worker worker: getAliveWorkers()){
-            if(worker.isGpuEnabled()) {
+        for (Worker worker : getAliveWorkers()) {
+            if (worker.isGpuEnabled()) {
                 continue;
             }
-            totalCpus+= worker.getCpuNb();
+            totalCpus += worker.getCpuNb();
         }
         return totalCpus;
     }
@@ -181,7 +175,7 @@ public class WorkerService {
     // We suppose for now that 1 Gpu enabled worker has only one GPU
     public int getAliveTotalGpu() {
         int totalGpus = 0;
-        for(Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 totalGpus++;
             }
@@ -189,9 +183,9 @@ public class WorkerService {
         return totalGpus;
     }
 
-    public int getAliveAvailableGpu () {
+    public int getAliveAvailableGpu() {
         int availableGpus = getAliveTotalGpu();
-        for (Worker worker: getAliveWorkers()) {
+        for (Worker worker : getAliveWorkers()) {
             if (worker.isGpuEnabled()) {
                 boolean isWorking = !worker.getComputingChainTaskIds().isEmpty();
                 if (isWorking) {
@@ -246,13 +240,20 @@ public class WorkerService {
     }
 
     private Optional<Worker> addChainTaskIdToWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
+        final Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
         if (optional.isPresent()) {
-            Worker worker = optional.get();
+            final Worker worker = optional.get();
+            if (!canAcceptMoreWorks(worker)) {
+                log.warn("Can't add chainTaskId to worker when already full [chainTaskId:{}, workerName:{}]",
+                        chainTaskId, walletAddress);
+                return Optional.empty();
+            }
             worker.addChainTaskId(chainTaskId);
             log.info("Added chainTaskId to worker [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
             return Optional.of(workerRepository.save(worker));
         }
+        log.warn("Can't add chainTaskId to worker when unknown worker [chainTaskId:{}, workerName:{}]",
+                chainTaskId, walletAddress);
         return Optional.empty();
     }
 

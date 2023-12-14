@@ -37,7 +37,9 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -74,13 +76,14 @@ class WorkerServiceRealRepositoryTests {
      */
     @Test
     void addMultipleTaskIds() {
+        final int nThreads = 10;
         workerService.addWorker(
                 Worker.builder()
                         .walletAddress(WALLET_WORKER_1)
+                        .maxNbTasks(nThreads)
                         .build()
         );
 
-        final int nThreads = 10;
         final ExecutorService executor = Executors.newFixedThreadPool(nThreads);
 
         final List<Future<Optional<Worker>>> futures = IntStream.range(0, nThreads)

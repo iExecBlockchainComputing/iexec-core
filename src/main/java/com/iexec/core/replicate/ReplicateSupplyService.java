@@ -86,14 +86,9 @@ public class ReplicateSupplyService implements Purgeable {
      */
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
-        // return empty if max computing task is reached or if the worker is not found
-        if (!workerService.canAcceptMoreWorks(walletAddress)) {
-            return Optional.empty();
-        }
-
         // return empty if the worker is not sync
         //TODO Check if worker node is sync
-        boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
+        final boolean isWorkerLastBlockAvailable = workerLastBlock > 0;
         if (!isWorkerLastBlockAvailable) {
             return Optional.empty();
         }
@@ -102,13 +97,16 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.empty();
         }
 
-        // TODO : Remove this, the optional can never be empty
-        // This is covered in workerService.canAcceptMoreWorks
-        Optional<Worker> optional = workerService.getWorker(walletAddress);
+        final Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
             return Optional.empty();
         }
-        Worker worker = optional.get();
+        final Worker worker = optional.get();
+
+        // return empty if max computing task is reached or if the worker is not found
+        if (!workerService.canAcceptMoreWorks(worker)) {
+            return Optional.empty();
+        }
 
         return getReplicateTaskSummaryForAnyAvailableTask(
                 walletAddress,
@@ -161,8 +159,8 @@ public class ReplicateSupplyService implements Purgeable {
                 chainTaskId,
                 task.getEnclaveChallenge());
         ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
-            .workerpoolAuthorization(authorization);
-        if(task.isTeeTask()){
+                .workerpoolAuthorization(authorization);
+        if (task.isTeeTask()) {
             replicateTaskSummary.smsUrl(task.getSmsUrl());
         }
         return Optional.of(replicateTaskSummary.build());
@@ -173,7 +171,7 @@ public class ReplicateSupplyService implements Purgeable {
      * tries to accept the task - i.e. create a new {@link Replicate}
      * for that task on that worker.
      *
-     * @param task  {@link Task} needing at least one new {@link Replicate}.
+     * @param task          {@link Task} needing at least one new {@link Replicate}.
      * @param walletAddress Wallet address of a worker looking for new {@link Task}.
      * @return {@literal true} if the task has been accepted,
      * {@literal false} otherwise.
@@ -184,22 +182,6 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         final String chainTaskId = task.getChainTaskId();
-        final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
-        // Check is only here to prevent
-        // "`Optional.get()` without `isPresent()` warning".
-        // This case should not happen.
-        if (oReplicatesList.isEmpty()) {
-            return false;
-        }
-
-        final ReplicatesList replicatesList = oReplicatesList.get();
-
-        final boolean hasWorkerAlreadyParticipated =
-                replicatesList.hasWorkerAlreadyParticipated(walletAddress);
-        if (hasWorkerAlreadyParticipated) {
-            return false;
-        }
-
         final Lock lock = taskAccessForNewReplicateLocks
                 .computeIfAbsent(chainTaskId, k -> new ReentrantLock());
         if (!lock.tryLock()) {
@@ -209,33 +191,56 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         try {
-            final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
-                    chainTaskId,
-                    replicatesList.getReplicates(),
-                    task.getTrust(),
-                    task.getMaxExecutionTime());
-
-            if (!taskNeedsMoreContributions
-                    || taskService.isConsensusReached(replicatesList)) {
-                return false;
-            }
-
-            replicatesService.addNewReplicate(chainTaskId, walletAddress);
-            workerService.addChainTaskIdToWorker(chainTaskId, walletAddress);
+            return replicatesService.getReplicatesList(chainTaskId)
+                    .map(replicatesList -> acceptOrRejectTask(task, walletAddress, replicatesList))
+                    .orElse(false);
         } finally {
             // We should always unlock the task
             // so that it could be taken by another replicate
             // if there's any issue.
             lock.unlock();
         }
+    }
 
-        return true;
+    /**
+     * Given a {@link Task}, a {@code walletAddress} of a worker and a {@link ReplicatesList},
+     * tries to accept the task - i.e. create a new {@link Replicate}
+     * for that task on that worker.
+     *
+     * @param task          {@link Task} needing at least one new {@link Replicate}.
+     * @param walletAddress Wallet address of a worker looking for new {@link Task}.
+     * @param replicatesList Replicates of given {@link Task}.
+     * @return {@literal true} if the task has been accepted,
+     * {@literal false} otherwise.
+     */
+    boolean acceptOrRejectTask(Task task, String walletAddress, ReplicatesList replicatesList) {
+        final boolean hasWorkerAlreadyParticipated =
+                replicatesList.hasWorkerAlreadyParticipated(walletAddress);
+        if (hasWorkerAlreadyParticipated) {
+            return false;
+        }
+
+        final String chainTaskId = replicatesList.getChainTaskId();
+        final boolean taskNeedsMoreContributions = ConsensusHelper.doesTaskNeedMoreContributionsForConsensus(
+                chainTaskId,
+                replicatesList.getReplicates(),
+                task.getTrust(),
+                task.getMaxExecutionTime());
+
+        if (!taskNeedsMoreContributions
+                || taskService.isConsensusReached(replicatesList)) {
+            return false;
+        }
+
+        return workerService.addChainTaskIdToWorker(chainTaskId, walletAddress)
+                .map(worker -> replicatesService.addNewReplicate(replicatesList, walletAddress))
+                .orElse(false);
     }
 
     /**
      * Get notifications missed by the worker during the time it was absent.
-     * 
-     * @param blockNumber last seen blocknumber by the worker
+     *
+     * @param blockNumber   last seen blocknumber by the worker
      * @param walletAddress of the worker
      * @return list of missed notifications. Can be empty if no notification is found
      */
@@ -264,7 +269,7 @@ public class ReplicateSupplyService implements Purgeable {
                 continue;
             }
             TaskNotificationExtra taskNotificationExtra =
-                    getTaskNotificationExtra(task, taskNotificationType.get(),  walletAddress, enclaveChallenge);
+                    getTaskNotificationExtra(task, taskNotificationType.get(), walletAddress, enclaveChallenge);
 
             TaskNotification taskNotification = TaskNotification.builder()
                     .chainTaskId(chainTaskId)
@@ -286,7 +291,7 @@ public class ReplicateSupplyService implements Purgeable {
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
         TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
 
-        switch (taskNotificationType){
+        switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
                 WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                         walletAddress, task.getChainTaskId(), enclaveChallenge);
@@ -312,7 +317,7 @@ public class ReplicateSupplyService implements Purgeable {
         // CONTRIBUTION_TIMEOUT or CONSENSUS_REACHED without contribution
         if (task.getCurrentStatus().equals(TaskStatus.CONTRIBUTION_TIMEOUT)
                 || (task.getCurrentStatus().equals(TaskStatus.CONSENSUS_REACHED)
-                        && !replicate.containsContributedStatus())) {
+                && !replicate.containsContributedStatus())) {
             return Optional.of(TaskNotificationType.PLEASE_ABORT);
         }
 
