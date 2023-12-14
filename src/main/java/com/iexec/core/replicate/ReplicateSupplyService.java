@@ -97,8 +97,6 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.empty();
         }
 
-        // TODO : Remove this, the optional can never be empty
-        // This is covered in workerService.canAcceptMoreWorks
         final Optional<Worker> optional = workerService.getWorker(walletAddress);
         if (optional.isEmpty()) {
             return Optional.empty();
