@@ -18,10 +18,15 @@ package com.iexec.core.api;
 
 import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
+import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.replicate.ReplicateTaskSummary;
+import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.core.logs.TaskLogsModel;
+import com.iexec.core.metric.PlatformMetric;
+import com.iexec.core.task.TaskModel;
 import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
@@ -30,6 +35,8 @@ import java.security.Signature;
 import java.util.List;
 
 public interface SchedulerClient {
+    @RequestLine("GET /metrics")
+    PlatformMetric getMetrics();
 
     @RequestLine("GET /version")
     String getCoreVersion();
@@ -75,5 +82,26 @@ public interface SchedulerClient {
             @Param("chainTaskId") String chainTaskId,
             ReplicateStatusUpdate replicateStatusUpdate
     );
+    // endregion
+
+    // region /tasks
+    @RequestLine("GET /tasks/{chainTaskId}")
+    TaskModel getTask(@Param("chainTaskId") String chainTaskId);
+
+    @RequestLine("GET /tasks/logs/challenge?address={address}")
+    EIP712Challenge getTaskLogsChallenge(@Param("address") String address);
+
+    @Headers("Authorization: {authorization}")
+    @RequestLine("GET /tasks/{chainTaskId}/logs")
+    TaskLogsModel getTaskLogs(
+            @Param("chainTaskId") String chainTaskId,
+            @Param("authorization") String authorization);
+
+    @Headers("Authorization: {authorization}")
+    @RequestLine("GET /tasks/{chainTaskId}/replicates/{walletAddress}/logs")
+    ComputeLogs getComputeLogs(
+            @Param("chainTaskId") String chainTaskId,
+            @Param("walletAddress") String walletAddress,
+            @Param("authorization") String authorization);
     // endregion
 }
