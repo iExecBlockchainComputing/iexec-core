@@ -91,11 +91,6 @@ class ReplicateSupplyServiceTests {
         MockitoAnnotations.openMocks(this);
     }
 
-    void workerCanWorkAndHasGas(String workerAddress) {
-        when(workerService.canAcceptMoreWorks(workerAddress)).thenReturn(true);
-        when(web3jService.hasEnoughGas(workerAddress)).thenReturn(true);
-    }
-
     // Tests on getAuthOfAvailableReplicate()
 
     // If worker does not exist, canAcceptMoreWorks return false
@@ -103,16 +98,17 @@ class ReplicateSupplyServiceTests {
     // in getAuthOfAvailableReplicate method
     @Test
     void shouldNotGetAnyReplicateSinceWorkerDoesNotExist() {
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(workerService.getWorker(Mockito.anyString())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
-        Mockito.verifyNoInteractions(web3jService, taskService, taskUpdateRequestManager, replicatesService, signatureService);
+        Mockito.verifyNoInteractions(taskService, taskUpdateRequestManager, replicatesService, signatureService);
     }
 
     @Test
     void shouldNotGetReplicateSinceWorkerLastBlockNotAvailable() {
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(0, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -121,7 +117,18 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceNoRunningTask() {
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        final Worker worker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(4)
+                .maxNbTasks(3)
+                .teeEnabled(false)
+                .build();
+
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
+        when(workerService.getWorker(WALLET_WORKER_1))
+                .thenReturn(Optional.ofNullable(worker));
+
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -136,8 +143,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -147,7 +154,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
@@ -167,8 +174,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
@@ -184,10 +191,11 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(worker));
+        when(workerService.canAcceptMoreWorks(worker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.isConsensusReached(replicatesList)).thenReturn(true);
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).thenReturn(false);
@@ -204,7 +212,14 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetAnyReplicateSinceWorkerIsFull() {
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(false);
+        final Worker worker = Worker.builder()
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .maxNbTasks(1)
+                .build();
+        when(workerService.getWorker(WALLET_WORKER_1))
+                .thenReturn(Optional.of(worker));
+        when(workerService.canAcceptMoreWorks(worker)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -213,7 +228,6 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetAnyReplicateSinceWorkerDoesNotHaveEnoughGas() {
-        when(workerService.canAcceptMoreWorks(WALLET_WORKER_1)).thenReturn(true);
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
@@ -228,7 +242,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
-                .lastAliveDate(new Date())
+                .maxNbTasks(1)
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -243,7 +257,8 @@ class ReplicateSupplyServiceTests {
                 Collections.singletonList(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID))
         ));
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -265,7 +280,7 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(2)
-                .lastAliveDate(new Date())
+                .maxNbTasks(1)
                 .build();
 
         int trust = 5;
@@ -287,11 +302,14 @@ class ReplicateSupplyServiceTests {
         );
 
         // Try to see if a replicate of the task can be scheduled on worker2
-        workerCanWorkAndHasGas(WALLET_WORKER_2);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_2)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_2);
@@ -307,8 +325,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -322,7 +340,7 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -334,7 +352,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isEmpty();
 
-        Mockito.verify(replicatesService, Mockito.never()).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService, Mockito.never()).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService, Mockito.never()).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verifyNoInteractions(signatureService);
         assertTaskAccessForNewReplicateLockNeverUsed(CHAIN_TASK_ID);
@@ -346,8 +364,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(4)
+                .maxNbTasks(3)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         int trust = 5;
@@ -367,22 +385,27 @@ class ReplicateSupplyServiceTests {
 
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, List.of(CHAIN_TASK_ID)))
                 .thenReturn(Optional.of(taskDeadlineReached));
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(task1));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(WorkerpoolAuthorization.builder().chainTaskId(CHAIN_TASK_ID).build());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         final Optional<ReplicateTaskSummary> replicateTaskSummary = replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
         assertThat(replicateTaskSummary).isPresent();
         assertThat(replicateTaskSummary.get().getWorkerpoolAuthorization().getChainTaskId()).isEqualTo(CHAIN_TASK_ID);
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verify(signatureService, times(0)).createAuthorization(any(), eq(CHAIN_TASK_ID_2), any());
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
@@ -394,8 +417,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -405,7 +428,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -426,8 +449,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -441,20 +464,25 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(new WorkerpoolAuthorization());
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         Mockito.verify(signatureService).createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
@@ -466,8 +494,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -481,13 +509,18 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -495,7 +528,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }
@@ -506,8 +539,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(false)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -516,7 +549,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
                 .thenReturn(Optional.empty());
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
@@ -535,8 +568,8 @@ class ReplicateSupplyServiceTests {
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
+                .maxNbTasks(1)
                 .teeEnabled(true)
-                .lastAliveDate(new Date())
                 .build();
 
         Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
@@ -550,13 +583,18 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
         );
 
-        workerCanWorkAndHasGas(WALLET_WORKER_1);
+        when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
                 .thenReturn(Optional.of(runningTask));
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(existingWorker));
+        when(workerService.canAcceptMoreWorks(existingWorker)).thenReturn(true);
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
                 .thenReturn(new WorkerpoolAuthorization());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
 
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -564,7 +602,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(replicateTaskSummary).isPresent();
 
-        Mockito.verify(replicatesService).addNewReplicate(CHAIN_TASK_ID, WALLET_WORKER_1);
+        Mockito.verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
         Mockito.verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
         assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }
@@ -576,6 +614,7 @@ class ReplicateSupplyServiceTests {
      */
     private void assertTaskAccessForNewReplicateNotDeadLocking(String chainTaskId) {
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.get(chainTaskId);
+        System.out.println("Task: " + chainTaskId + " ; lock : " + lock);
         final Boolean successfulLock = CompletableFuture.supplyAsync(() -> {
                     final boolean locked = lock.tryLock();
                     if (!locked) {

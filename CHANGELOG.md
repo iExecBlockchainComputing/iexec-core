@@ -36,6 +36,24 @@ All notable changes to this project will be documented in this file.
 - Upgrade to Spring Doc Openapi 1.7.0. (#637)
 - Upgrade to `jenkins-library` 2.7.4. (#630)
 
+## [[8.2.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.3) 2023-12-14
+
+### Bug Fixes
+
+- Check if Worker can still accept more work right before giving it a new replicate. (#644)
+
+## [[8.2.2]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.2) 2023-12-13
+
+### Bug Fixes
+
+- Replace `findAllByWalletAddress` with `findByWalletAddressIn` in `WorkerRepository`. (#643)
+
+## [[8.2.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.1) 2023-12-13
+
+### Bug Fixes
+
+- Do not write `lastAliveDate` or `lastReplicateDemandDate` to MongoDB to decrease load on the database. (#642)
+
 ## [[8.2.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.0) 2023-09-29
 
 ### New Features
