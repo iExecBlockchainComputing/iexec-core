@@ -31,7 +31,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -74,7 +73,6 @@ class WorkerControllerTests {
     @Test
     void shouldAcceptPing() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
-        when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
         when(publicConfigurationService.getPublicConfigurationHash()).thenReturn(PUBLIC_CONFIGURATION_HASH);
 
         ResponseEntity<String> response = workerController.ping(TOKEN);
@@ -86,7 +84,6 @@ class WorkerControllerTests {
     @Test
     void shouldAcceptPingAndGetSameSessionIdForTwoCalls() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
-        when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.of(WORKER));
 
         ResponseEntity<String> response1 = workerController.ping(TOKEN);
         ResponseEntity<String> response2 = workerController.ping(TOKEN);
@@ -105,15 +102,6 @@ class WorkerControllerTests {
         verify(workerService, never()).updateLastAlive(WALLET);
     }
 
-    @Test
-    void shouldNotAcceptPingSinceCannotUpdateLastAlive() {
-        when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN)).thenReturn(WALLET);
-        when(workerService.updateLastAlive(WALLET)).thenReturn(Optional.empty());
-
-        ResponseEntity<String> response = workerController.ping(TOKEN);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        verify(workerService).updateLastAlive(WALLET);
-    }
     //endregion
 
     //region getChallenge
