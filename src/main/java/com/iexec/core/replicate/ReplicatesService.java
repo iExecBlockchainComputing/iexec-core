@@ -170,7 +170,7 @@ public class ReplicatesService {
                                                                UpdateReplicateStatusArgs updateReplicateStatusArgs) {
         final String chainTaskId = replicate.getChainTaskId();
         final String walletAddress = replicate.getWalletAddress();
-        ReplicateStatus newStatus = statusUpdate.getStatus();
+        final ReplicateStatus newStatus = statusUpdate.getStatus();
 
         boolean hasAlreadyTransitionedToStatus = replicate.containsStatus(newStatus);
         if (hasAlreadyTransitionedToStatus) {
@@ -420,7 +420,7 @@ public class ReplicatesService {
         }
         final ReplicatesList replicatesList = oReplicatesList.get();
         final Replicate replicate = oReplicate.get();
-        ReplicateStatus newStatus = statusUpdate.getStatus();
+        final ReplicateStatus newStatus = statusUpdate.getStatus();
 
         final ReplicateStatusUpdateError error = canUpdateReplicateStatus(replicate, statusUpdate, updateReplicateStatusArgs);
         if (ReplicateStatusUpdateError.NO_ERROR != error) {
