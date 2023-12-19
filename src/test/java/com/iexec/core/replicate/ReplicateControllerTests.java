@@ -54,7 +54,7 @@ class ReplicateControllerTests {
     private static final ReplicateTaskSummary REPLICATE_TASK_SUMMARY = ReplicateTaskSummary.builder()
             .workerpoolAuthorization(AUTH)
             .smsUrl(SMS_URL)
-            .build(); 
+            .build();
     private static final ReplicateStatusUpdate UPDATE = ReplicateStatusUpdate.builder()
             .status(ReplicateStatus.STARTED)
             .build();
@@ -229,11 +229,11 @@ class ReplicateControllerTests {
                 .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+        when(replicatesService.canUpdateReplicateStatus(new Replicate(CHAIN_TASK_ID, WALLET_ADDRESS), UPDATE, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
                 .thenReturn(Either.right(TaskNotificationType.PLEASE_DOWNLOAD_APP));
-        
+
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
@@ -258,7 +258,7 @@ class ReplicateControllerTests {
                 .thenReturn(true);
         when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs))
                 .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
+        when(replicatesService.canUpdateReplicateStatus(new Replicate(CHAIN_TASK_ID, WALLET_ADDRESS), updateWithLogs, UPDATE_ARGS))
                 .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
                 .thenReturn(Either.right((TaskNotificationType.PLEASE_DOWNLOAD_APP)));
@@ -279,7 +279,7 @@ class ReplicateControllerTests {
     void shouldNotUpdateReplicateSinceUnauthorized() {
         when(jwtTokenProvider.getWalletAddressFromBearerToken(TOKEN))
                 .thenReturn("");
-        
+
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
@@ -321,7 +321,7 @@ class ReplicateControllerTests {
                 .thenReturn(UPDATE_ARGS);
         when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
                 .thenReturn(Either.left(error));
-        
+
         ResponseEntity<TaskNotificationType> response =
                 replicatesController.updateReplicateStatus(TOKEN, CHAIN_TASK_ID, UPDATE);
 
