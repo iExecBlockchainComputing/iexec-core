@@ -101,7 +101,7 @@ public class Replicate {
     }
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusCause cause,
-                                ReplicateStatusModifier modifier, ChainReceipt  chainReceipt) {
+                                ReplicateStatusModifier modifier, ChainReceipt chainReceipt) {
         ReplicateStatusDetails details = ReplicateStatusDetails.builder()
                 .chainReceipt(chainReceipt)
                 .cause(cause)
