@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - Upgrade to Spring Dependency Management Plugin 1.1.4. (#634)
 - Upgrade to Spring Doc Openapi 1.7.0. (#637)
 - Upgrade to `jenkins-library` 2.7.4. (#630)
+- Upgrade to `iexec-commons-poco` 3.2.0. (#648)
+- Upgrade to `iexec-common` 8.3.1. (#648)
 
 ## [[8.2.3]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.2.3) 2023-12-14
 

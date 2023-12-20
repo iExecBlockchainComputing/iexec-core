@@ -125,6 +125,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> nbOfCategoryUnits: number of category units dedicated
      *      for the contribution phase.
+     * </ul>
      *
      * @param chainDeal
      * @return
@@ -147,6 +148,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> 10: number of category units dedicated
      *      for the hole execution.
+     * </ul>
      *
      * @param chainDeal
      * @return
@@ -267,14 +269,14 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
                 "isRevealedTrue", this::isRevealed, chainTaskId, walletAddress);
     }
 
-    boolean isContributed(String... args) {
+    public boolean isContributed(String... args) {
         return getChainContribution(args[0], args[1])
                 .map(ChainContribution::getStatus)
                 .filter(chainStatus -> chainStatus == CONTRIBUTED || chainStatus == REVEALED)
                 .isPresent();
     }
 
-    boolean isRevealed(String... args) {
+    public boolean isRevealed(String... args) {
         return getChainContribution(args[0], args[1])
                 .map(ChainContribution::getStatus)
                 .filter(chainStatus -> chainStatus == REVEALED)
