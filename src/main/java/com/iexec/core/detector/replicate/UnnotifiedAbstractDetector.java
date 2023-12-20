@@ -71,9 +71,9 @@ public abstract class UnnotifiedAbstractDetector {
     /**
      * Detects the following issues:
      * <ul>
-     *     <li>`onchainDone` status only if replicates are in `offchainOngoing` status;</li>
-     *     <li>`onchainDone` if replicates are not in `offchainDone` status.</li>
-     * </ul></ul>
+     * <li>`onchainDone` status only if replicates are in `offchainOngoing` status
+     * <li>`onchainDone` if replicates are not in `offchainDone` status
+     * </ul>
      * The second detection is not always ran, depending on the detector run occurrences.
      */
     void detectOnChainChanges() {
@@ -101,11 +101,8 @@ public abstract class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
-                        task.getChainTaskId(),
-                        replicate.getWalletAddress(),
-                        onchainDone
-                );
+                final boolean statusTrueOnChain = detectStatusReachedOnChain(
+                        task.getChainTaskId(), replicate.getWalletAddress());
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
@@ -121,7 +118,7 @@ public abstract class UnnotifiedAbstractDetector {
      * (worker didn't notify any status)
      * We want to detect them:
      * - Frequently but no so often since it's eth node resource consuming and less probable
-     * - When we receive a "can't do <action>" relative to the `onchainDone` status (e.g.: `CANNOT_REVEAL`)
+     * - When we receive a "can't do &lt;action&gt;" relative to the `onchainDone` status (e.g.: `CANNOT_REVEAL`)
      */
     public void detectOnchainDone() {
         log.debug("Detect onchain {} [retryIn:{}]", onchainDone, this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
@@ -133,11 +130,8 @@ public abstract class UnnotifiedAbstractDetector {
                     continue;
                 }
 
-                final boolean statusTrueOnChain = iexecHubService.isStatusTrueOnChain(
-                        task.getChainTaskId(),
-                        replicate.getWalletAddress(),
-                        onchainDone
-                );
+                final boolean statusTrueOnChain = detectStatusReachedOnChain(
+                        task.getChainTaskId(), replicate.getWalletAddress());
 
                 if (statusTrueOnChain) {
                     log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
@@ -145,6 +139,24 @@ public abstract class UnnotifiedAbstractDetector {
                     updateReplicateStatuses(task, replicate);
                 }
             }
+        }
+    }
+
+    /**
+     * Checks if {@code onchainDone} status has been reached on blockchain network.
+     *
+     * @param chainTaskId   ID of on-chain task
+     * @param walletAddress Address of a worker working on the current task.
+     * @return
+     */
+    private boolean detectStatusReachedOnChain(String chainTaskId, String walletAddress) {
+        switch (onchainDone) {
+            case CONTRIBUTED:
+                return iexecHubService.isContributed(chainTaskId, walletAddress);
+            case REVEALED:
+                return iexecHubService.isRevealed(chainTaskId, walletAddress);
+            default:
+                return false;
         }
     }
 

@@ -618,13 +618,11 @@ public class ReplicatesService {
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
-        return iexecHubService.isStatusTrueOnChain(
-                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.CONTRIBUTED));
+        return iexecHubService.isContributed(chainTaskId, walletAddress);
     }
 
     public boolean didReplicateRevealOnchain(String chainTaskId, String walletAddress) {
-        return iexecHubService.isStatusTrueOnChain(
-                chainTaskId, walletAddress, getChainStatus(ReplicateStatus.REVEALED));
+        return iexecHubService.isRevealed(chainTaskId, walletAddress);
     }
 
     public void setRevealTimeoutStatusIfNeeded(String chainTaskId, Replicate replicate) {

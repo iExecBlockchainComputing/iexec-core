@@ -18,7 +18,6 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.ChainContribution;
-import com.iexec.commons.poco.chain.ChainContributionStatus;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
@@ -866,13 +865,7 @@ class ReplicateServiceTests {
 
     @Test
     void shouldReturnFindReplicateContributedOnchain() {
-        when(
-                iexecHubService.isStatusTrueOnChain(
-                        CHAIN_TASK_ID,
-                        WALLET_WORKER_1,
-                        ChainContributionStatus.CONTRIBUTED
-                )
-        ).thenReturn(true);
+        when(iexecHubService.isContributed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
         assertThat(
                 replicatesService.didReplicateContributeOnchain(
                         CHAIN_TASK_ID,
@@ -884,14 +877,8 @@ class ReplicateServiceTests {
     // didReplicateRevealOnchain
 
     @Test
-    void shouldFindReplicatedReveledOnchain() {
-        when(
-                iexecHubService.isStatusTrueOnChain(
-                        CHAIN_TASK_ID,
-                        WALLET_WORKER_1,
-                        ChainContributionStatus.REVEALED
-                )
-        ).thenReturn(true);
+    void shouldFindReplicatedRevealedOnchain() {
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(true);
         assertThat(
                 replicatesService.didReplicateRevealOnchain(
                         CHAIN_TASK_ID,

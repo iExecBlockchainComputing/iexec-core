@@ -71,6 +71,7 @@ class ContributionUnnotifiedDetectorTests {
     }
 
     // region Detector aggregator
+
     /**
      * When running {@link ContributionUnnotifiedDetector#detectOnChainChanges} 10 times,
      * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
@@ -89,7 +90,7 @@ class ContributionUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -103,9 +104,11 @@ class ContributionUnnotifiedDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(11))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
     //region detectOnchainDoneWhenOffchainOngoing (CONTRIBUTING)
+
     @Test
     void shouldDetectUnNotifiedContributedAfterContributing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -117,7 +120,7 @@ class ContributionUnnotifiedDetectorTests {
 
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong()))
                 .thenReturn(ChainReceipt.builder().blockNumber(10L).txHash("0xabcef").build());
@@ -139,7 +142,7 @@ class ContributionUnnotifiedDetectorTests {
 
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
 
         contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
@@ -158,15 +161,17 @@ class ContributionUnnotifiedDetectorTests {
 
         // when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(false);
         contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
     // region detectOnchainDone (CONTRIBUTED)
+
     @Test
     void shouldDetectUnNotifiedContributed1() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -178,7 +183,7 @@ class ContributionUnnotifiedDetectorTests {
 
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -202,7 +207,7 @@ class ContributionUnnotifiedDetectorTests {
 
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -226,11 +231,12 @@ class ContributionUnnotifiedDetectorTests {
 
         when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         contributionDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 }

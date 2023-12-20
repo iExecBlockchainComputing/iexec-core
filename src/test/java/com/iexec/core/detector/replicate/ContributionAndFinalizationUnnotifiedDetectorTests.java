@@ -3,7 +3,6 @@ package com.iexec.core.detector.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.commons.poco.chain.ChainContributionStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -55,6 +54,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     }
 
     // region Detector aggregator
+
     /**
      * When running {@link ContributionAndFinalizationUnnotifiedDetector#detectOnChainChanges} 10 times,
      * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
@@ -73,7 +73,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0))
                 .thenReturn(ChainReceipt.builder()
@@ -94,9 +94,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                         any(ReplicateStatusDetails.class)
                 );
     }
+
     // endregion
 
     //region detectOnchainDoneWhenOffchainOngoing (ContributeAndFinalizeOngoing)
+
     @Test
     void shouldDetectUnNotifiedContributeAndFinalizeDoneAfterContributeAndFinalizeOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -107,7 +109,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0))
                 .thenReturn(ChainReceipt.builder()
@@ -137,7 +139,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
 
         detector.detectOnchainDoneWhenOffchainOngoing();
 
@@ -155,15 +157,17 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(false);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(false);
         detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
     //region detectOnchainDone (REVEALED)
+
     @Test
     void shouldDetectUnNotifiedContributeAndFinalizeOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
@@ -174,7 +178,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0)).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -202,12 +206,13 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(CHAIN_TASK_ID, WALLET_ADDRESS, ChainContributionStatus.REVEALED)).thenReturn(true);
+        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
         detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
 }
