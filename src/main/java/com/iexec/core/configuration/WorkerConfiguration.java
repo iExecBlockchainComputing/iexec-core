@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,34 +16,20 @@
 
 package com.iexec.core.configuration;
 
-import lombok.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
 import java.util.Arrays;
 import java.util.List;
 
-@Setter
-@Component
+@Data
+@ConstructorBinding
+@ConfigurationProperties(prefix = "workers")
 public class WorkerConfiguration {
-
-    @Value("${workers.askForReplicatePeriod}")
-    private long askForReplicatePeriod;
-
-    @Value("${workers.requiredWorkerVersion}")
-    private String requiredWorkerVersion;
-
-    @Value("${workers.whitelist}")
-    private String[] whitelist;
-
-    // getters are overridden since the whitelist should return a list, not an array
-    public long getAskForReplicatePeriod() {
-        return askForReplicatePeriod;
-    }
-
-    public String getRequiredWorkerVersion() {
-        return requiredWorkerVersion;
-    }
+    private final long askForReplicatePeriod;
+    private final String requiredWorkerVersion;
+    private final String[] whitelist;
 
     public List<String> getWhitelist() {
         return Arrays.asList(whitelist);
