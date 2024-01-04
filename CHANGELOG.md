@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Move `TaskModel` and `ReplicateModel` instances creation methods to `Task` and `Replicate` classes. (#625)
 - Expose `TaskLogsModel` on `TaskController` instead of `TaskLogs`. (#631)
 - Remove duplicated MongoDB read on `ReplicatesList` during replicate status update. (#647)
+- Use less MongoDB calls when updating a task to a final status. (#649)
 
 ### Dependency Upgrades
 
