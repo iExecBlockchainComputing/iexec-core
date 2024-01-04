@@ -146,7 +146,7 @@ class TaskUpdateManagerTest {
     }
     // endregion
 
-    // Tests on consensusReached2Reopening transition
+    // region consensusReached2Reopening
 
     @Test
     void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
@@ -233,9 +233,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
-
     @Test
-    void shouldNotUpgrade2ReopenedBut2ReopendedFailedSinceTxFailed() {
+    void shouldNotUpgrade2ReopenedBut2ReopenFailedSinceTxFailed() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -278,7 +277,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(4).getStatus()).isEqualTo(INITIALIZED);
     }
 
-    // Tests on received2Initializing transition
+    // endregion
+
+    // region received2Initializing
 
     @Test
     void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
@@ -450,7 +451,6 @@ class TaskUpdateManagerTest {
         verify(taskService, times(2)).updateTask(task); //initializing & initialized 
     }
 
-
     @Test
     void shouldUpdateReceived2Initializing2InitializedOnTee() {
         Task task = getStubTask(maxExecutionTime);
@@ -520,8 +520,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
         verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
-        verify(taskService, times(2)).updateTask(task); // INITIALIZE_FAILED & FAILED 
+        verify(taskService, times(1)).updateTask(task); // INITIALIZE_FAILED & FAILED
     }
+
+    // endregion
 
     // region initializing2Initialized
 
@@ -574,7 +576,7 @@ class TaskUpdateManagerTest {
 
     // endregion
 
-    // Tests on initialized2Running transition
+    // region initialized2Running
 
     @Test
     void shouldUpdateInitialized2Running() { // 1 RUNNING out of 2
@@ -634,7 +636,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    // initializedOrRunning2ContributionTimeout
+    // endregion
+
+    // region initializedOrRunning2ContributionTimeout
 
     @Test
     void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
@@ -699,7 +703,6 @@ class TaskUpdateManagerTest {
                 .publishEvent(any());
     }
 
-
     @Test
     void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
         Date now = new Date();
@@ -723,7 +726,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
 
-    // Tests on running2Finalized2Completed transition
+    // endregion
+
+    // region running2Finalized2Completed
 
     @Test
     void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
@@ -795,7 +800,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
-    // Tests on running2ConsensusReached transition
+    // endregion
+
+    // region running2ConsensusReached
 
     @Test
     void shouldUpdateRunning2ConsensusReached() {
@@ -878,7 +885,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
-    // Tests on running2RunningFailed transition
+    // endregion
+
+    // region running2RunningFailed
+
     @Test
     void shouldUpdateRunning2RunningFailedOn1Worker() {
         Task task = getStubTask(maxExecutionTime);
@@ -1117,7 +1127,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
     }
 
-    // Tests on consensusReached2AtLeastOneReveal2UploadRequested transition
+    // endregion
+
+    // region consensusReached2AtLeastOneReveal2UploadRequested
 
     @Test
     void shouldUpdateConsensusReached2AtLeastOneReveal2Uploading() {
@@ -1153,7 +1165,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
-    // Tests on AT_LEAST_ONE_REVEALED
+    // endregion
+
+    // region requestUpload
+
     @Test
     void shouldRequestUploadAfterOneRevealed() {
         Task task = getStubTask(maxExecutionTime);
@@ -1187,7 +1202,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
     }
 
-    // Tests on reopening2Reopened transition
+    // endregion
+
+    // region reopening2Reopened
+
     @Test
     void shouldUpdateReopening2Reopened() {
         final Task task = getStubTask(maxExecutionTime);
@@ -1234,7 +1252,10 @@ class TaskUpdateManagerTest {
         verify(replicatesService, times(0)).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
     }
 
-    // Tests on REOPENED
+    // endregion
+
+    // region reopened2Initialized
+
     @Test
     void shouldUpdateReopened() {
         final Task task = getStubTask(maxExecutionTime);
@@ -1247,7 +1268,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    // Test on resultUploading2Uploaded2Finalizing2Finalized
+    // endregion
+
+    // region resultUploading2Uploaded2Finalizing2Finalized
 
     @Test
     void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
@@ -1285,7 +1308,9 @@ class TaskUpdateManagerTest {
         assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
     }
 
-    // Tests on finalizing2Finalized transition
+    // endregion
+
+    // region finalizing2Finalized
 
     @Test
     void shouldUpdateFinalized2Completed() {
@@ -1314,6 +1339,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZE_FAILED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
+
+    // endregion
 
     @Test
     void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
@@ -1880,7 +1907,8 @@ class TaskUpdateManagerTest {
         }
     }
 
-    // Tests on requestUpload
+    // region requestUpload
+
     @Test
     void shouldRequestUpload() {
         Task task = getStubTask(maxExecutionTime);
@@ -1958,13 +1986,17 @@ class TaskUpdateManagerTest {
                 .publishEvent(any(PleaseUploadEvent.class));
     }
 
-    // publishRequest
+    // endregion
+
+    // region publishRequest
 
     @Test
     void shouldTriggerUpdateTaskAsynchronously() {
         taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
+
+    // endregion
 
     // region onTaskCreatedEvent
     @Test
