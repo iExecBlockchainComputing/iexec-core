@@ -19,18 +19,18 @@ package com.iexec.core.configuration;
 import com.iexec.resultproxy.api.ResultProxyClient;
 import com.iexec.resultproxy.api.ResultProxyClientBuilder;
 import feign.Logger;
-import lombok.Data;
+import lombok.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 
-@Data
+@Value
 @ConstructorBinding
 @ConfigurationProperties(prefix = "result-repository")
 public class ResultRepositoryConfiguration {
-    private final String protocol;
-    private final String host;
-    private final String port;
+    String protocol;
+    String host;
+    String port;
 
     public String getResultRepositoryURL() {
         return protocol + "://" + host + ":" + port;

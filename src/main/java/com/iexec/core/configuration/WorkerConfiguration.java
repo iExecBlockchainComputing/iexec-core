@@ -16,22 +16,17 @@
 
 package com.iexec.core.configuration;
 
-import lombok.Data;
+import lombok.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 
-import java.util.Arrays;
 import java.util.List;
 
-@Data
+@Value
 @ConstructorBinding
 @ConfigurationProperties(prefix = "workers")
 public class WorkerConfiguration {
-    private final long askForReplicatePeriod;
-    private final String requiredWorkerVersion;
-    private final String[] whitelist;
-
-    public List<String> getWhitelist() {
-        return Arrays.asList(whitelist);
-    }
+    long askForReplicatePeriod;
+    String requiredWorkerVersion;
+    List<String> whitelist;
 }
