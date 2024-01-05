@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2023
+## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
 ### New Features
 
@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Replace single thread executor with synchronized keyword. (#633)
 - Move contribution status checks from `iexec-commons-poco`. (#636)
 - Use `BlockchainAdapterService` from `iexec-blockchain-adapter-api-library`. (#641)
+- `ResultRepositoryConfiguration` and `WorkerConfiguration` classes are now immutable with `@Value` lombok annotation. (#650)
 
 ### Bug Fixes
 
