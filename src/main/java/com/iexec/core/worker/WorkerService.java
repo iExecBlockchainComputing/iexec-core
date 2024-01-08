@@ -121,7 +121,8 @@ public class WorkerService {
     }
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
-        Date lastReplicateDemandDate = workerStatsMap.get(walletAddress).getLastReplicateDemandDate();
+        Date lastReplicateDemandDate = workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
+                .getLastReplicateDemandDate();
         if (lastReplicateDemandDate == null) {
             return true;
         }
