@@ -336,6 +336,7 @@ class ReplicateServiceTests {
         assertThat(shouldBe0).isZero();
     }
 
+    // region getRandomReplicateWithRevealStatus
     @Test
     void shouldGetReplicateWithRevealStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -384,7 +385,9 @@ class ReplicateServiceTests {
         Optional<Replicate> optional = replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID);
         assertThat(optional).isEmpty();
     }
+    //endregion
 
+    //region updateReplicateStatus
     @Test
     void shouldUpdateReplicateStatusWithoutStdout() {
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -765,8 +768,9 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
         assertThat(capturedEvent.getReplicateStatusUpdate().getStatus()).isEqualTo(RESULT_UPLOADED);
     }
+    // endregion
 
-    // getReplicateWithResultUploadedStatus
+    // region getReplicateWithResultUploadedStatus
 
     @Test
     void should() {
@@ -786,8 +790,9 @@ class ReplicateServiceTests {
                 .getWalletAddress())
                 .isEqualTo(WALLET_WORKER_2);
     }
+    // endregion
 
-    // isResultUploaded
+    // region isResultUploaded
 
     @Test
     void shouldCheckResultServiceAndReturnTrue() {
@@ -860,6 +865,7 @@ class ReplicateServiceTests {
         assertThat(isResultUploaded).isTrue();
         verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
     }
+    // endregion
 
     // didReplicateContributeOnchain
 
@@ -1343,7 +1349,7 @@ class ReplicateServiceTests {
 
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(expectedWorkerWeight);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
-                .thenReturn(Optional.of(ChainContribution.builder().build()));
+                .thenReturn(Optional.of(expectedChainContribution));
 
         assertThat(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
                 .isEqualTo(UpdateReplicateStatusArgs.builder()
@@ -1354,8 +1360,6 @@ class ReplicateServiceTests {
 
     @Test
     void computeUpdateReplicateStatusArgsResultUploaded() {
-        final int unexpectedWorkerWeight = 1;
-        final ChainContribution unexpectedChainContribution = ChainContribution.builder().build();
         final String expectedResultLink = "resultLink";
         final String expectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
@@ -1370,9 +1374,6 @@ class ReplicateServiceTests {
                 .details(details)
                 .build();
 
-        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
-        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
-                .thenReturn(Optional.of(unexpectedChainContribution));
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(expectedTaskDescription);
 
@@ -1380,6 +1381,42 @@ class ReplicateServiceTests {
                 replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         assertThat(actualResult)
                 .isEqualTo(UpdateReplicateStatusArgs.builder()
+                        .resultLink(expectedResultLink)
+                        .chainCallbackData(expectedChainCallbackData)
+                        .taskDescription(expectedTaskDescription)
+                        .build());
+
+        verify(iexecHubService, never()).getWorkerWeight(WALLET_WORKER_1);
+        verify(iexecHubService, never()).getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1);
+    }
+
+    @Test
+    void computeUpdateReplicateStatusArgsContributeAndFinalizeDone() {
+        final int expectedWorkerWeight = 1;
+        final ChainContribution expectedChainContribution = ChainContribution.builder().build();
+        final String expectedResultLink = "resultLink";
+        final String expectedChainCallbackData = "chainCallbackData";
+        final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
+
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .resultLink(expectedResultLink)
+                .chainCallbackData(expectedChainCallbackData)
+                .build();
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER)
+                .status(CONTRIBUTE_AND_FINALIZE_DONE)
+                .details(details)
+                .build();
+
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(expectedTaskDescription);
+        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(expectedWorkerWeight);
+        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(expectedChainContribution));
+
+        assertThat(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
+                .isEqualTo(UpdateReplicateStatusArgs.builder()
+                        .workerWeight(expectedWorkerWeight)
+                        .chainContribution(expectedChainContribution)
                         .resultLink(expectedResultLink)
                         .chainCallbackData(expectedChainCallbackData)
                         .taskDescription(expectedTaskDescription)
