@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - Expose `TaskLogsModel` on `TaskController` instead of `TaskLogs`. (#631)
 - Remove duplicated MongoDB read on `ReplicatesList` during replicate status update. (#647)
 - Use less MongoDB calls when updating a task to a final status. (#649)
+- Save contribution and result updload replicate data when `CONTRIBUTE_AND_FINALIZE_DONE`. (#651)
 
 ### Dependency Upgrades
 
