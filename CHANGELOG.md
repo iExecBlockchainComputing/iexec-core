@@ -32,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - Use less MongoDB calls when updating a task to a final status. (#649)
 - Save contribution and result updload replicate data when `CONTRIBUTE_AND_FINALIZE_DONE`. (#651)
 - Fix potential `NullPointerException` during first worker replicate request. (#652)
+- Fix missed replicate status update detectors to avoid false positives by mixing `CONTRIBUTE-REVEAL-FINALIZE` and `CONTRIBUTE_AND_FINALIZE` workflows. (#653)
 
 ### Dependency Upgrades
 
