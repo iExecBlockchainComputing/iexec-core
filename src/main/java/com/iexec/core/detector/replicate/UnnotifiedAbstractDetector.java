@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
-import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
+import static com.iexec.common.replicate.ReplicateStatus.*;
 
 @Slf4j
 public abstract class UnnotifiedAbstractDetector {
@@ -95,21 +94,11 @@ public abstract class UnnotifiedAbstractDetector {
                 this.onchainDone, this.offchainOngoing, this.detectorRate);
 
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
-                if (lastRelevantStatus != offchainOngoing) {
-                    continue;
-                }
-
-                final boolean statusTrueOnChain = detectStatusReachedOnChain(
-                        task.getChainTaskId(), replicate.getWalletAddress());
-
-                if (statusTrueOnChain) {
-                    log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus, onchainDone, task.getChainTaskId());
-                    updateReplicateStatuses(task, replicate);
-                }
-            }
+            replicatesService.getReplicates(task.getChainTaskId()).stream()
+                    .filter(replicate -> replicate.getLastRelevantStatus() == offchainOngoing)
+                    .filter(this::checkDetectionIsValid)
+                    .filter(this::detectStatusReachedOnChain)
+                    .forEach(replicate -> updateReplicateStatuses(task, replicate));
         }
     }
 
@@ -123,33 +112,40 @@ public abstract class UnnotifiedAbstractDetector {
     public void detectOnchainDone() {
         log.debug("Detect onchain {} [retryIn:{}]", onchainDone, this.detectorRate * LESS_OFTEN_DETECTOR_FREQUENCY);
         for (Task task : taskService.findByCurrentStatus(detectWhenOffChainTaskStatuses)) {
-            for (Replicate replicate : replicatesService.getReplicates(task.getChainTaskId())) {
-                final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
-
-                if (lastRelevantStatus == offchainDone) {
-                    continue;
-                }
-
-                final boolean statusTrueOnChain = detectStatusReachedOnChain(
-                        task.getChainTaskId(), replicate.getWalletAddress());
-
-                if (statusTrueOnChain) {
-                    log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
-                            lastRelevantStatus, onchainDone, task.getChainTaskId());
-                    updateReplicateStatuses(task, replicate);
-                }
-            }
+            replicatesService.getReplicates(task.getChainTaskId()).stream()
+                    .filter(replicate -> replicate.getLastRelevantStatus() != offchainDone)
+                    .filter(this::checkDetectionIsValid)
+                    .filter(this::detectStatusReachedOnChain)
+                    .forEach(replicate -> updateReplicateStatuses(task, replicate));
         }
+    }
+
+    /**
+     * Checks replicate eligibility to a detection against an {@code offchainDone} status.
+     * <p>
+     * All replicates are eligible to detection against {@code REVEALED}, but not against {@code CONTRIBUTED} or
+     * {@code CONTRIBUTED_AND_FINALIZED}.
+     *
+     * @param replicate The replicate to check
+     * @return {@literal true} if the replicate is eligible, {@literal false} otherwise
+     */
+    private boolean checkDetectionIsValid(Replicate replicate) {
+        final boolean isEligibleToContributeAndFinalize = iexecHubService.getTaskDescription(replicate.getChainTaskId())
+                .isEligibleToContributeAndFinalize();
+        return offchainDone == REVEALED
+                || (!isEligibleToContributeAndFinalize && offchainDone == CONTRIBUTED)
+                || (isEligibleToContributeAndFinalize && offchainDone == CONTRIBUTE_AND_FINALIZE_DONE);
     }
 
     /**
      * Checks if {@code onchainDone} status has been reached on blockchain network.
      *
-     * @param chainTaskId   ID of on-chain task
-     * @param walletAddress Address of a worker working on the current task.
-     * @return
+     * @param replicate Replicate whose on-chain status will be checked
+     * @return {@literal true} if given status has been found on-chain, {@literal false} otherwise.
      */
-    private boolean detectStatusReachedOnChain(String chainTaskId, String walletAddress) {
+    private boolean detectStatusReachedOnChain(Replicate replicate) {
+        final String chainTaskId = replicate.getChainTaskId();
+        final String walletAddress = replicate.getWalletAddress();
         switch (onchainDone) {
             case CONTRIBUTED:
                 return iexecHubService.isContributed(chainTaskId, walletAddress);
@@ -171,13 +167,12 @@ public abstract class UnnotifiedAbstractDetector {
     private void updateReplicateStatuses(Task task, Replicate replicate) {
         final String chainTaskId = task.getChainTaskId();
         final long initBlockNumber = task.getInitializationBlockNumber();
-
-        final ReplicateStatus retrieveFrom = replicate.getCurrentStatus().equals(WORKER_LOST)
-                ? replicate.getLastButOneStatus()
-                : replicate.getCurrentStatus();
-        final List<ReplicateStatus> statusesToUpdate = getMissingStatuses(retrieveFrom, offchainDone);
-
+        final ReplicateStatus lastRelevantStatus = replicate.getLastRelevantStatus();
+        final List<ReplicateStatus> statusesToUpdate = getMissingStatuses(lastRelevantStatus, offchainDone);
         final String wallet = replicate.getWalletAddress();
+
+        log.info("Detected confirmed missing update (replicate) [is:{}, should:{}, taskId:{}]",
+                lastRelevantStatus, onchainDone, task.getChainTaskId());
 
         for (ReplicateStatus statusToUpdate : statusesToUpdate) {
             // add details to the update if needed
