@@ -31,7 +31,6 @@ import org.mockito.MockitoAnnotations;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -53,7 +52,7 @@ class MetricServiceTests {
 
     @Test
     void shouldGetPlatformMetrics() {
-        final LinkedHashMap<TaskStatus, AtomicLong> expectedCurrentTaskStatusesCount = createExpectedCurrentTaskStatusesCount();
+        final LinkedHashMap<TaskStatus, Long> expectedCurrentTaskStatusesCount = createExpectedCurrentTaskStatusesCount();
 
         List<Worker> aliveWorkers = List.of(new Worker());
         when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
@@ -73,7 +72,7 @@ class MetricServiceTests {
                 () -> assertThat(metric.getAliveAvailableCpu()).isEqualTo(1),
                 () -> assertThat(metric.getAliveTotalGpu()).isEqualTo(1),
                 () -> assertThat(metric.getAliveAvailableGpu()).isEqualTo(1),
-                () -> assertThat(metric.getCurrentTaskStatusCounts()).isEqualTo(expectedCurrentTaskStatusesCount),
+                () -> assertThat(metric.getCurrentTaskStatusesCount()).isEqualTo(expectedCurrentTaskStatusesCount),
                 () -> assertThat(metric.getDealEventsCount()).isEqualTo(10),
                 () -> assertThat(metric.getDealsCount()).isEqualTo(8),
                 () -> assertThat(metric.getReplayDealsCount()).isEqualTo(2),
@@ -81,29 +80,30 @@ class MetricServiceTests {
         );
     }
 
-    private LinkedHashMap<TaskStatus, AtomicLong> createExpectedCurrentTaskStatusesCount() {
-        final LinkedHashMap<TaskStatus, AtomicLong> expectedCurrentTaskStatusesCount = new LinkedHashMap<>(TaskStatus.values().length);
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RECEIVED, new AtomicLong(1));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZING, new AtomicLong(2));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZED, new AtomicLong(3));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZE_FAILED, new AtomicLong(4));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RUNNING, new AtomicLong(5));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RUNNING_FAILED, new AtomicLong(6));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.CONTRIBUTION_TIMEOUT, new AtomicLong(7));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.CONSENSUS_REACHED, new AtomicLong(8));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPENING, new AtomicLong(9));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPENED, new AtomicLong(10));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPEN_FAILED, new AtomicLong(11));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.AT_LEAST_ONE_REVEALED, new AtomicLong(12));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOADING, new AtomicLong(13));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOADED, new AtomicLong(14));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOAD_TIMEOUT, new AtomicLong(15));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZING, new AtomicLong(16));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZED, new AtomicLong(17));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZE_FAILED, new AtomicLong(18));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.FINAL_DEADLINE_REACHED, new AtomicLong(19));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.COMPLETED, new AtomicLong(20));
-        expectedCurrentTaskStatusesCount.put(TaskStatus.FAILED, new AtomicLong(21));
+    private LinkedHashMap<TaskStatus, Long> createExpectedCurrentTaskStatusesCount() {
+        final LinkedHashMap<TaskStatus, Long> expectedCurrentTaskStatusesCount = new LinkedHashMap<>(TaskStatus.values().length);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RECEIVED, 1L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZING, 2L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZED, 3L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.INITIALIZE_FAILED, 4L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RUNNING, 5L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RUNNING_FAILED, 6L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.CONTRIBUTION_TIMEOUT, 7L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.CONSENSUS_REACHED, 8L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPENING, 9L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPENED, 10L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.REOPEN_FAILED, 11L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.AT_LEAST_ONE_REVEALED, 12L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOADING, 13L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOADED, 14L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.RESULT_UPLOAD_TIMEOUT, 15L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZING, 16L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZED, 17L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.FINALIZE_FAILED, 18L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.FINAL_DEADLINE_REACHED, 19L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.COMPLETED, 20L);
+        expectedCurrentTaskStatusesCount.put(TaskStatus.FAILED, 21L);
+
         metricService.onTaskStatusesCountUpdateEvent(new TaskStatusesCountUpdatedEvent(expectedCurrentTaskStatusesCount));
 
         return expectedCurrentTaskStatusesCount;

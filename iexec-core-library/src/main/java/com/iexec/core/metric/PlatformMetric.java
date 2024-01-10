@@ -24,7 +24,6 @@ import lombok.Value;
 
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Value
 @Builder
@@ -35,7 +34,7 @@ public class PlatformMetric {
     int aliveAvailableCpu;
     int aliveTotalGpu;
     int aliveAvailableGpu;
-    LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusCounts;
+    LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
     long dealEventsCount;
     long dealsCount;
     long replayDealsCount;

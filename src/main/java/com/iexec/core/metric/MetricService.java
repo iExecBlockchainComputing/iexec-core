@@ -24,13 +24,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class MetricService {
     private final DealWatcherService dealWatcherService;
     private final WorkerService workerService;
-    private LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
+    private LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
 
     public MetricService(DealWatcherService dealWatcherService,
                          WorkerService workerService) {
@@ -47,7 +46,7 @@ public class MetricService {
                 .aliveAvailableCpu(workerService.getAliveAvailableCpu())
                 .aliveTotalGpu(workerService.getAliveTotalGpu())
                 .aliveAvailableGpu(workerService.getAliveAvailableGpu())
-                .currentTaskStatusCounts(currentTaskStatusesCount)
+                .currentTaskStatusesCount(currentTaskStatusesCount)
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
                 .dealsCount(dealWatcherService.getDealsCount())
                 .replayDealsCount(dealWatcherService.getReplayDealsCount())

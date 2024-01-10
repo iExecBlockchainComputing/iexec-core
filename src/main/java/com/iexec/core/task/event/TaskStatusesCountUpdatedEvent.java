@@ -20,9 +20,8 @@ import com.iexec.core.task.TaskStatus;
 import lombok.Value;
 
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Value
 public class TaskStatusesCountUpdatedEvent {
-    LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
+    LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
 }

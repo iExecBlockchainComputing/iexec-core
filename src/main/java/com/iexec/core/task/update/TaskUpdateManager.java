@@ -727,7 +727,18 @@ class TaskUpdateManager {
     }
 
     private void publishTaskStatusesCountUpdate() {
-        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCount);
+        // Copying the map here ensures the original values can't be updated from outside this class.
+        // As this data should be read only, no need for any atomic class.
+        final LinkedHashMap<TaskStatus, Long> currentTaskStatusesCountToPublish = currentTaskStatusesCount
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entrySet -> entrySet.getValue().get(),
+                        (a, b) -> b,
+                        LinkedHashMap::new
+                ));
+        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCountToPublish);
         applicationEventPublisher.publishEvent(event);
     }
 }
