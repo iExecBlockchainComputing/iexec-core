@@ -124,7 +124,7 @@ public abstract class UnnotifiedAbstractDetector {
      * Checks replicate eligibility to a detection against an {@code offchainDone} status.
      * <p>
      * All replicates are eligible to detection against {@code REVEALED}, but not against {@code CONTRIBUTED} or
-     * {@code CONTRIBUTED_AND_FINALIZED}.
+     * {@code CONTRIBUTE_AND_FINALIZED}.
      *
      * @param replicate The replicate to check
      * @return {@literal true} if the replicate is eligible, {@literal false} otherwise
