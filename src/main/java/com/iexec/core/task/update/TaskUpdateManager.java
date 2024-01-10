@@ -65,7 +65,7 @@ class TaskUpdateManager {
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
 
-    private final Map<TaskStatus, AtomicLong> currentTaskStatusesCount;
+    private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
     private final ExecutorService taskStatusesCountExecutor;
 
     public TaskUpdateManager(TaskService taskService,
@@ -104,16 +104,23 @@ class TaskUpdateManager {
     @PostConstruct
     Future<Void> init() {
         return taskStatusesCountExecutor.submit(
-                // The following could take a bit of time, depending on how many tasks are in DB.
-                // It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
-                // As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
-                // even though new deals are detected during the count.
-                () -> currentTaskStatusesCount
-                        .entrySet()
-                        .parallelStream()
-                        .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey()))),
+                this::initializeCurrentTaskStatusesCount,
                 null    // Trick to get a `Future<Void>` instead of a `Future<?>`
         );
+    }
+
+    /**
+     * The following could take a bit of time, depending on how many tasks are in DB.
+     * It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+     * As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+     * even though new deals are detected during the count.
+     */
+    private void initializeCurrentTaskStatusesCount() {
+        currentTaskStatusesCount
+                .entrySet()
+                .parallelStream()
+                .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey())));
+        publishTaskStatusesCountUpdate();
     }
 
     void updateTask(String chainTaskId) {
@@ -710,10 +717,17 @@ class TaskUpdateManager {
     void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
         currentTaskStatusesCount.get(previousStatus).decrementAndGet();
         currentTaskStatusesCount.get(newStatus).incrementAndGet();
+        publishTaskStatusesCountUpdate();
     }
 
     @EventListener(TaskCreatedEvent.class)
     void onTaskCreatedEvent() {
         currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    private void publishTaskStatusesCountUpdate() {
+        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCount);
+        applicationEventPublisher.publishEvent(event);
     }
 }

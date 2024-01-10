@@ -18,10 +18,13 @@ package com.iexec.core.metric;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import com.iexec.core.task.TaskStatus;
 import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigInteger;
+import java.util.LinkedHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Value
 @Builder
@@ -32,7 +35,7 @@ public class PlatformMetric {
     int aliveAvailableCpu;
     int aliveTotalGpu;
     int aliveAvailableGpu;
-    long completedTasks;
+    LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusCounts;
     long dealEventsCount;
     long dealsCount;
     long replayDealsCount;
