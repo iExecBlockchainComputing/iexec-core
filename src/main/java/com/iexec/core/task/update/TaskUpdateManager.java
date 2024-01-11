@@ -66,7 +66,6 @@ class TaskUpdateManager {
     private final SmsService smsService;
 
     private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
-    private final ExecutorService taskStatusesCountExecutor;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -97,16 +96,17 @@ class TaskUpdateManager {
                             "status", status.name()
                     ).register(Metrics.globalRegistry);
         }
-
-        this.taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
     }
 
     @PostConstruct
     Future<Void> init() {
-        return taskStatusesCountExecutor.submit(
+        final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
+        final Future<Void> future = taskStatusesCountExecutor.submit(
                 this::initializeCurrentTaskStatusesCount,
                 null    // Trick to get a `Future<Void>` instead of a `Future<?>`
         );
+        taskStatusesCountExecutor.shutdown();
+        return future;
     }
 
     /**
