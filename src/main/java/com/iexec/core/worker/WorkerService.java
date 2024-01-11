@@ -18,13 +18,17 @@ package com.iexec.core.worker;
 
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
+import io.micrometer.core.instrument.Metrics;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
@@ -40,9 +44,15 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 @Service
 public class WorkerService {
 
+    public static final String METRIC_WORKERS_GAUGE = "iexec.core.workers";
+    public static final String METRIC_CPU_TOTAL_GAUGE = "iexec.core.cpu.total";
+    public static final String METRIC_CPU_AVAILABLE_GAUGE = "iexec.core.cpu.available";
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
     private final ContextualLockRunner<String> contextualLockRunner;
+    private AtomicInteger aliveWorkersGauge;
+    private AtomicInteger aliveTotalCpuGauge;
+    private AtomicInteger aliveAvailableCpuGauge;
     @Getter
     private final ConcurrentHashMap<String, WorkerStats> workerStatsMap = new ConcurrentHashMap<>();
 
@@ -64,6 +74,38 @@ public class WorkerService {
         this.contextualLockRunner = new ContextualLockRunner<>();
     }
 
+    @PostConstruct
+    void init() {
+        aliveWorkersGauge = Metrics.gauge(METRIC_WORKERS_GAUGE, new AtomicInteger(getAliveWorkers().size()));
+        aliveTotalCpuGauge = Metrics.gauge(METRIC_CPU_TOTAL_GAUGE, new AtomicInteger(getAliveTotalCpu()));
+        aliveAvailableCpuGauge = Metrics.gauge(METRIC_CPU_AVAILABLE_GAUGE, new AtomicInteger(getAliveAvailableCpu()));
+    }
+
+    /**
+     * updateMetrics is used to update all workers metrics
+     */
+    @Scheduled(fixedDelayString = "${cron.metrics.refresh.period}", initialDelayString = "${cron.metrics.refresh.period}")
+    void updateMetrics() {
+        // Fusion of methods getAliveTotalCpu and getAliveAvailableCpu to prevent making 3 calls to getAliveWorkers
+        int availableCpus = 0;
+        int totalCpus = 0;
+        List<Worker> workers = getAliveWorkers();
+        for (Worker worker : workers) {
+            if (worker.isGpuEnabled()) {
+                continue;
+            }
+            int workerCpuNb = worker.getCpuNb();
+            int computingReplicateNb = worker.getComputingChainTaskIds().size();
+            int availableCpu = workerCpuNb - computingReplicateNb;
+            totalCpus += workerCpuNb;
+            availableCpus += availableCpu;
+        }
+
+        aliveWorkersGauge.set(workers.size());
+        aliveTotalCpuGauge.set(totalCpus);
+        aliveAvailableCpuGauge.set(availableCpus);
+    }
+
     // region Read methods
     public Optional<Worker> getWorker(String walletAddress) {
         return workerRepository.findByWalletAddress(walletAddress);
@@ -79,7 +121,8 @@ public class WorkerService {
     }
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
-        Date lastReplicateDemandDate = workerStatsMap.get(walletAddress).getLastReplicateDemandDate();
+        Date lastReplicateDemandDate = workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
+                .getLastReplicateDemandDate();
         if (lastReplicateDemandDate == null) {
             return true;
         }

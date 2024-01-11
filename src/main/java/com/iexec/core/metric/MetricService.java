@@ -17,24 +17,26 @@
 package com.iexec.core.metric;
 
 import com.iexec.core.chain.DealWatcherService;
-import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.WorkerService;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+
+import java.util.LinkedHashMap;
 
 @Service
 public class MetricService {
-
     private final DealWatcherService dealWatcherService;
     private final WorkerService workerService;
-    private final TaskService taskService;
+    private LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
 
     public MetricService(DealWatcherService dealWatcherService,
-                         WorkerService workerService,
-                         TaskService taskService) {
+                         WorkerService workerService) {
         this.dealWatcherService = dealWatcherService;
         this.workerService = workerService;
-        this.taskService = taskService;
+
+        this.currentTaskStatusesCount = new LinkedHashMap<>();
     }
 
     public PlatformMetric getPlatformMetrics() {
@@ -44,7 +46,7 @@ public class MetricService {
                 .aliveAvailableCpu(workerService.getAliveAvailableCpu())
                 .aliveTotalGpu(workerService.getAliveTotalGpu())
                 .aliveAvailableGpu(workerService.getAliveAvailableGpu())
-                .completedTasks(taskService.findByCurrentStatus(TaskStatus.COMPLETED).size())
+                .currentTaskStatusesCount(currentTaskStatusesCount)
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
                 .dealsCount(dealWatcherService.getDealsCount())
                 .replayDealsCount(dealWatcherService.getReplayDealsCount())
@@ -52,4 +54,8 @@ public class MetricService {
                 .build();
     }
 
+    @EventListener
+    void onTaskStatusesCountUpdateEvent(TaskStatusesCountUpdatedEvent event) {
+        this.currentTaskStatusesCount = event.getCurrentTaskStatusesCount();
+    }
 }

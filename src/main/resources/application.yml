@@ -19,21 +19,22 @@ mongock:
 
 cron:
   # all in milliseconds
+  metrics.refresh.period: 20000 #20s
   deal.replay: 60000  # 1m
   detector:
-    worker-lost:               30000  # 30s
+    worker-lost: 30000  # 30s
     chain:
-      unstarted-tx:            300000  # 5m
-      initialize:              30000   # 30s
-      contribute:              30000   # 30s
-      reveal:                  30000   # 30s
+      unstarted-tx: 300000  # 5m
+      initialize: 30000   # 30s
+      contribute: 30000   # 30s
+      reveal: 30000   # 30s
       contribute-and-finalize: 30000   # 30s
-      finalize:                30000   # 30s
-      final-deadline:          30000   # 30s
+      finalize: 30000   # 30s
+      final-deadline: 30000   # 30s
     timeout:
-      contribute:              120000  # 2m
+      contribute: 120000  # 2m
       reveal: ${REVEAL_TIMEOUT_PERIOD:120000}  # 2m
-      result-upload:           30000   # 30s
+      result-upload: 30000   # 30s
 
 workers:
   askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}

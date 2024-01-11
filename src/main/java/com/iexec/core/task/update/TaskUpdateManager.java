@@ -16,13 +16,13 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
@@ -33,13 +33,20 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -48,6 +55,8 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 @Slf4j
 class TaskUpdateManager {
+    public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
+
     private final TaskService taskService;
     private final IexecHubService iexecHubService;
     private final ReplicatesService replicatesService;
@@ -55,6 +64,8 @@ class TaskUpdateManager {
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
+
+    private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -70,9 +81,48 @@ class TaskUpdateManager {
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.smsService = smsService;
+
+        this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        status -> new AtomicLong(),
+                        (a, b) -> b,
+                        LinkedHashMap::new));
+
+        for (TaskStatus status : TaskStatus.values()) {
+            Gauge.builder(METRIC_TASKS_STATUSES_COUNT, () -> currentTaskStatusesCount.get(status).get())
+                    .tags(
+                            "period", "current",
+                            "status", status.name()
+                    ).register(Metrics.globalRegistry);
+        }
     }
 
-    @SuppressWarnings("DuplicateBranchesInSwitch")
+    @PostConstruct
+    Future<Void> init() {
+        final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
+        final Future<Void> future = taskStatusesCountExecutor.submit(
+                this::initializeCurrentTaskStatusesCount,
+                null    // Trick to get a `Future<Void>` instead of a `Future<?>`
+        );
+        taskStatusesCountExecutor.shutdown();
+        return future;
+    }
+
+    /**
+     * The following could take a bit of time, depending on how many tasks are in DB.
+     * It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+     * As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+     * even though new deals are detected during the count.
+     */
+    private void initializeCurrentTaskStatusesCount() {
+        currentTaskStatusesCount
+                .entrySet()
+                .parallelStream()
+                .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey())));
+        publishTaskStatusesCountUpdate();
+    }
+
     void updateTask(String chainTaskId) {
         Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
         if (optional.isEmpty()) {
@@ -84,11 +134,10 @@ class TaskUpdateManager {
         boolean isFinalDeadlinePossible =
                 !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(currentStatus);
         if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())) {
-            updateTaskStatusAndSave(task, FINAL_DEADLINE_REACHED);
             // Eventually should fire a "final deadline reached" notification to worker,
             // but here let's just trigger an toFailed(task) leading to a failed status
             // which will itself fire a generic "abort" notification
-            toFailed(task);
+            toFailed(task, FINAL_DEADLINE_REACHED);
             return;
         }
 
@@ -103,24 +152,15 @@ class TaskUpdateManager {
                 initialized2Running(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
-            case INITIALIZE_FAILED:
-                toFailed(task);
-                break;
             case RUNNING:
                 running2Finalized2Completed(task); // running2Finalized2Completed must be the first call to prevent other transition execution
                 running2ConsensusReached(task);
                 running2RunningFailed(task);
                 initializedOrRunning2ContributionTimeout(task);
                 break;
-            case RUNNING_FAILED:
-                toFailed(task);
-                break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2ResultUploading(task);
                 consensusReached2Reopening(task);
-                break;
-            case CONTRIBUTION_TIMEOUT:
-                toFailed(task);
                 break;
             case AT_LEAST_ONE_REVEALED:
                 requestUpload(task);
@@ -131,9 +171,6 @@ class TaskUpdateManager {
             case REOPENED:
                 updateTaskStatusAndSave(task, INITIALIZED);
                 break;
-            case REOPEN_FAILED:
-                toFailed(task);
-                break;
             case RESULT_UPLOADING:
                 resultUploading2Uploaded(task);
                 resultUploading2UploadTimeout(task);
@@ -141,18 +178,18 @@ class TaskUpdateManager {
             case RESULT_UPLOADED:
                 resultUploaded2Finalizing(task);
                 break;
-            case RESULT_UPLOAD_TIMEOUT:
-                toFailed(task);
-                break;
             case FINALIZING:
                 finalizing2Finalized2Completed(task);
                 break;
             case FINALIZED:
                 finalizedToCompleted(task);
                 break;
+            case INITIALIZE_FAILED:
+            case RUNNING_FAILED:
+            case CONTRIBUTION_TIMEOUT:
+            case REOPEN_FAILED:
+            case RESULT_UPLOAD_TIMEOUT:
             case FINALIZE_FAILED:
-                toFailed(task);
-                break;
             case FINAL_DEADLINE_REACHED:
                 toFailed(task);
                 break;
@@ -162,24 +199,49 @@ class TaskUpdateManager {
         }
     }
 
-    Task updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
-        return updateTaskStatusAndSave(task, newStatus, null);
+    /**
+     * Creates one or several task status changes for the task before committing all of them to the database.
+     *
+     * @param task     The task
+     * @param statuses List of statuses to append to the task {@code dateStatusList}
+     */
+    void updateTaskStatusesAndSave(Task task, TaskStatus... statuses) {
+        TaskStatus initialStatus = task.getCurrentStatus();
+        TaskStatus lastStatus = statuses[statuses.length - 1];
+        for (TaskStatus newStatus : statuses) {
+            log.info("Create TaskStatusChange succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
+                    task.getChainTaskId(), task.getCurrentStatus(), newStatus);
+            task.changeStatus(newStatus, null);
+        }
+        saveTask(task, initialStatus, lastStatus);
     }
 
-    Task updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
-        TaskStatus currentStatus = task.getCurrentStatus();
-        task.changeStatus(newStatus, chainReceipt);
-        Optional<Task> savedTask = taskService.updateTask(task);
+    void updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
+        updateTaskStatusAndSave(task, newStatus, null);
+    }
 
+    void updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
+        TaskStatus initialStatus = task.getCurrentStatus();
+        task.changeStatus(newStatus, chainReceipt);
+        saveTask(task, initialStatus, newStatus);
+    }
+
+    /**
+     * Saves the task to the database.
+     *
+     * @param task          The task
+     * @param currentStatus The current status in database
+     * @param newStatus     The new status in database after save
+     */
+    void saveTask(Task task, TaskStatus currentStatus, TaskStatus newStatus) {
+        Optional<Task> savedTask = taskService.updateTask(task);
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (savedTask.isPresent()) {
+            updateMetricsAfterStatusUpdate(currentStatus, newStatus);
             log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
-            return savedTask.get();
         } else {
-            log.warn("UpdateTaskStatus failed. Chain Task is probably unknown." +
-                            " [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
+            log.warn("UpdateTaskStatus failed. Chain Task is probably unknown [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
                     task.getChainTaskId(), currentStatus, newStatus);
-            return null;
         }
     }
 
@@ -208,8 +270,7 @@ class TaskUpdateManager {
             Optional<String> smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
             if (smsUrl.isEmpty()) {
                 log.error("Couldn't get verified SMS url [chainTaskId: {}]", task.getChainTaskId());
-                updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-                updateTaskStatusAndSave(task, FAILED);
+                toFailed(task, INITIALIZE_FAILED);
                 return;
             }
             task.setSmsUrl(smsUrl.get()); //SMS URL source of truth for the task
@@ -224,10 +285,9 @@ class TaskUpdateManager {
                             task.getChainTaskId());
                     final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.getSmsUrl());
                     if (enclaveChallenge.isEmpty()) {
-                        log.error("Can't initialize task, enclave challenge is empty" +
-                                " [chainTaskId:{}]", chainTaskId);
-                        updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-                        updateTask(chainTaskId);
+                        log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]",
+                                chainTaskId);
+                        toFailed(task, INITIALIZE_FAILED);
                         return;
                     }
                     task.setEnclaveChallenge(enclaveChallenge.get());
@@ -237,8 +297,7 @@ class TaskUpdateManager {
                 }, () -> {
                     log.error("Failed to request initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-                    updateTaskStatusAndSave(task, FAILED);
+                    toFailed(task, INITIALIZE_FAILED);
                 });
     }
 
@@ -250,7 +309,7 @@ class TaskUpdateManager {
         blockchainAdapterService
                 .isInitialized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess != null && isSuccess) {
+                    if (Boolean.TRUE.equals(isSuccess)) {
                         log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]",
                                 task.getChainTaskId());
                         //Without receipt, using deal block for initialization block
@@ -261,8 +320,7 @@ class TaskUpdateManager {
                     }
                     log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]",
                             task.getChainTaskId());
-                    updateTaskStatusAndSave(task, INITIALIZE_FAILED);
-                    updateTaskStatusAndSave(task, FAILED);
+                    toFailed(task, INITIALIZE_FAILED);
                 }, () -> log.error("Unable to check initialization on blockchain " +
                                 "(likely too long), should use a detector [chainTaskId:{}]",
                         task.getChainTaskId()));
@@ -362,12 +420,11 @@ class TaskUpdateManager {
         } else if (nbReplicatesWithContributeAndFinalizeStatus > 1) {
             log.error("Too many replicates in ContributeAndFinalize status"
                     + " [chainTaskId:{}, nbReplicates:{}]", chainTaskId, nbReplicatesWithContributeAndFinalizeStatus);
-            toFailed(task);
+            toFailed(task, RUNNING_FAILED);
             return;
         }
 
-        updateTaskStatusAndSave(task, FINALIZED);
-        finalizedToCompleted(task);
+        toFinalizedToCompleted(task);
     }
 
     void initializedOrRunning2ContributionTimeout(Task task) {
@@ -376,8 +433,7 @@ class TaskUpdateManager {
         boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
 
         if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
-            updateTaskStatusAndSave(task, CONTRIBUTION_TIMEOUT);
-            updateTaskStatusAndSave(task, FAILED);
+            updateTaskStatusesAndSave(task, CONTRIBUTION_TIMEOUT, FAILED);
             applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(task.getChainTaskId()));
         }
     }
@@ -428,8 +484,7 @@ class TaskUpdateManager {
         // If all alive workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
-        updateTaskStatusAndSave(task, RUNNING_FAILED);
-        updateTaskStatusAndSave(task, FAILED);
+        updateTaskStatusesAndSave(task, RUNNING_FAILED, FAILED);
         applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
     }
 
@@ -550,9 +605,8 @@ class TaskUpdateManager {
                 && new Date().after(task.getFinalDeadline());
 
         if (isTaskInResultUploading && isNowAfterFinalDeadline) {
-            updateTaskStatusAndSave(task, RESULT_UPLOAD_TIMEOUT);
             applicationEventPublisher.publishEvent(new ResultUploadTimeoutEvent(task.getChainTaskId()));
-            updateTaskStatusAndSave(task, FAILED);
+            toFailed(task, RESULT_UPLOAD_TIMEOUT);
         }
     }
 
@@ -615,8 +669,7 @@ class TaskUpdateManager {
                 }, () -> {
                     log.error("Failed to request finalize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    updateTaskStatusAndSave(task, FINALIZE_FAILED);
-                    updateTaskStatusAndSave(task, FAILED);
+                    toFailed(task, FINALIZE_FAILED);
                 });
     }
 
@@ -624,20 +677,18 @@ class TaskUpdateManager {
         blockchainAdapterService
                 .isFinalized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
-                    if (isSuccess != null && isSuccess) {
-                        log.info("Finalized on blockchain (tx mined)" +
-                                "[chainTaskId:{}]", task.getChainTaskId());
-                        updateTaskStatusAndSave(task, FINALIZED, null);
-                        finalizedToCompleted(task);
+                    if (Boolean.TRUE.equals(isSuccess)) {
+                        log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]",
+                                task.getChainTaskId());
+                        toFinalizedToCompleted(task);
                         return;
                     }
-                    log.error("Finalization failed on blockchain (tx reverted)" +
-                            "[chainTaskId:{}]", task.getChainTaskId());
-                    updateTaskStatusAndSave(task, FINALIZE_FAILED);
-                    updateTaskStatusAndSave(task, FAILED);
+                    log.error("Finalization failed on blockchain (tx reverted) [chainTaskId:{}]",
+                            task.getChainTaskId());
+                    toFailed(task, FINALIZE_FAILED);
                 }, () -> log.error("Unable to check finalization on blockchain " +
-                        "(likely too long), should use a detector " +
-                        "[chainTaskId:{}]", task.getChainTaskId()));
+                                "(likely too long), should use a detector [chainTaskId:{}]",
+                        task.getChainTaskId()));
     }
 
     void finalizedToCompleted(Task task) {
@@ -648,8 +699,46 @@ class TaskUpdateManager {
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
 
+    void toFinalizedToCompleted(Task task) {
+        updateTaskStatusesAndSave(task, FINALIZED, COMPLETED);
+        applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
+    }
+
     void toFailed(Task task) {
         updateTaskStatusAndSave(task, FAILED);
         applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
+    }
+
+    void toFailed(Task task, TaskStatus reason) {
+        updateTaskStatusesAndSave(task, reason, FAILED);
+        applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
+    }
+
+    void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
+        currentTaskStatusesCount.get(previousStatus).decrementAndGet();
+        currentTaskStatusesCount.get(newStatus).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    @EventListener(TaskCreatedEvent.class)
+    void onTaskCreatedEvent() {
+        currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    private void publishTaskStatusesCountUpdate() {
+        // Copying the map here ensures the original values can't be updated from outside this class.
+        // As this data should be read only, no need for any atomic class.
+        final LinkedHashMap<TaskStatus, Long> currentTaskStatusesCountToPublish = currentTaskStatusesCount
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entrySet -> entrySet.getValue().get(),
+                        (a, b) -> b,
+                        LinkedHashMap::new
+                ));
+        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCountToPublish);
+        applicationEventPublisher.publishEvent(event);
     }
 }

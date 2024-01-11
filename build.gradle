@@ -1,14 +1,12 @@
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '8.2.2'
-    id 'org.springframework.boot' version '2.7.14'
-    id 'io.spring.dependency-management' version '1.1.3'
+    id 'org.springframework.boot' version '2.7.17'
+    id 'io.spring.dependency-management' version '1.1.4'
     id 'jacoco'
     id 'org.sonarqube' version '4.2.1.3168'
     id 'maven-publish'
 }
-
-group = 'com.iexec.core'
 
 ext {
     springCloudVersion = '2021.0.8'
@@ -21,21 +19,30 @@ if (!project.hasProperty('gitBranch')) {
     ext.gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
 }
 
-if (gitBranch != 'main' && gitBranch != 'master' && ! (gitBranch ==~ '(release|hotfix|support)/.*')) {
-    version += '-NEXT-SNAPSHOT'
-}
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url "https://docker-regis-adm.iex.ec/repository/maven-public/"
-        credentials {
-            username nexusUser
-            password nexusPassword
-        }
+allprojects {
+    group = 'com.iexec.core'
+    if (gitBranch != 'main' && gitBranch != 'master' && !(gitBranch ==~ '(release|hotfix|support)/.*')) {
+        version += '-NEXT-SNAPSHOT'
     }
-    maven { url "https://jitpack.io" }
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://docker-regis-adm.iex.ec/repository/maven-public/"
+            credentials {
+                username nexusUser
+                password nexusPassword
+            }
+        }
+        maven { url "https://jitpack.io" }
+    }
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
+    }
 }
 
 dependencyManagement {
@@ -51,6 +58,7 @@ dependencies {
     implementation "com.iexec.blockchain:iexec-blockchain-adapter-api-library:$iexecBlockchainAdapterVersion"
     implementation "com.iexec.result-proxy:iexec-result-proxy-library:$iexecResultVersion"
     implementation "com.iexec.sms:iexec-sms-library:$iexecSmsVersion"
+    implementation project(':iexec-core-library')
 
     // spring
     implementation "org.springframework.boot:spring-boot-starter"
@@ -66,7 +74,7 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
 
     // Spring Doc
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.3'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 
     // apache commons.lang3
     implementation 'org.apache.commons:commons-lang3'
@@ -104,12 +112,6 @@ dependencies {
     testImplementation "org.testcontainers:mongodb:$testContainersVersion"
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
-    }
-}
-
 jar {
     enabled = true
     archiveClassifier.set('library')
@@ -122,7 +124,7 @@ springBoot {
 tasks.named("bootJar") {
     manifest {
         attributes("Implementation-Title": "iExec Core Scheduler",
-                   "Implementation-Version": project.version)
+                "Implementation-Version": project.version)
     }
 }
 
@@ -141,7 +143,7 @@ jacocoTestReport {
         xml.required = true
     }
 }
-tasks.test.finalizedBy    tasks.jacocoTestReport
+tasks.test.finalizedBy tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
 publishing {
@@ -162,14 +164,13 @@ publishing {
     }
 }
 
-ext.jarPathForOCI  = relativePath(tasks.bootJar.outputs.files.singleFile)
+ext.jarPathForOCI = relativePath(tasks.bootJar.outputs.files.singleFile)
 ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
-ext.ociImageName   = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
+ext.ociImageName = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
 tasks.register('buildImage', Exec) {
     group 'Build'
     description 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar
-    commandLine("sh", "-c", "docker build --build-arg jar=$jarPathForOCI -t $ociImageName:$gitShortCommit . &&" +
-            "docker tag $ociImageName:$gitShortCommit $ociImageName:dev")
+    commandLine 'docker', 'build', '--build-arg', 'jar=' + jarPathForOCI, '-t', ociImageName + ':dev', '.'
 }

@@ -16,6 +16,7 @@
 
 package com.iexec.core.task.update;
 
+import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -28,7 +29,6 @@ import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
-import com.iexec.core.chain.adapter.BlockchainAdapterService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
@@ -39,8 +39,14 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.PleaseUploadEvent;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -48,18 +54,19 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
+import static com.iexec.core.task.update.TaskUpdateManager.METRIC_TASKS_STATUSES_COUNT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -104,12 +111,44 @@ class TaskUpdateManagerTest {
     @InjectMocks
     private TaskUpdateManager taskUpdateManager;
 
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
     }
 
-    // Tests on consensusReached2Reopening transition
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
+    // region init
+    @Test
+    void shouldBuildGaugesAndFireEvent() throws ExecutionException, InterruptedException {
+        for (final TaskStatus status : TaskStatus.values()) {
+            // Give a unique initial count for each status
+            when(taskService.countByCurrentStatus(status)).thenReturn((long) status.ordinal());
+        }
+
+        taskUpdateManager.init().get();
+
+        for (final TaskStatus status : TaskStatus.values()) {
+            final Gauge gauge = getCurrentTasksCountGauge(status);
+            assertThat(gauge).isNotNull()
+                    // Check the gauge value is equal to the unique count for each status
+                    .extracting(Gauge::value)
+                    .isEqualTo(((double) status.ordinal()));
+        }
+
+        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region consensusReached2Reopening
 
     @Test
     void shouldNotUpgrade2ReopenedSinceCurrentStatusWrong() {
@@ -180,7 +219,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNotUpgrade2ReopenedSinceNotEnoughtGas() {
+    void shouldNotUpgrade2ReopenedSinceNotEnoughGas() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -196,9 +235,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
-
     @Test
-    void shouldNotUpgrade2ReopenedBut2ReopendedFailedSinceTxFailed() {
+    void shouldNotUpgrade2ReopenedBut2ReopenFailedSinceTxFailed() {
         Task task = getStubTask(maxExecutionTime);
 
         task.changeStatus(CONSENSUS_REACHED);
@@ -241,7 +279,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(4).getStatus()).isEqualTo(INITIALIZED);
     }
 
-    // Tests on received2Initializing transition
+    // endregion
+
+    // region received2Initializing
 
     @Test
     void shouldNotUpdateReceived2InitializingSinceChainTaskIdIsNotEmpty() {
@@ -336,7 +376,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldUpdateInitializing2InitailizeFailedSinceChainTaskIdIsEmpty() {
+    void shouldUpdateInitializing2InitializeFailedSinceChainTaskIdIsEmpty() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RECEIVED);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -413,7 +453,6 @@ class TaskUpdateManagerTest {
         verify(taskService, times(2)).updateTask(task); //initializing & initialized 
     }
 
-
     @Test
     void shouldUpdateReceived2Initializing2InitializedOnTee() {
         Task task = getStubTask(maxExecutionTime);
@@ -483,10 +522,12 @@ class TaskUpdateManagerTest {
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
         verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
-        verify(taskService, times(2)).updateTask(task); // INITIALIZE_FAILED & FAILED 
+        verify(taskService, times(1)).updateTask(task); // INITIALIZE_FAILED & FAILED
     }
 
-    // Tests on initializing2Initialized transition
+    // endregion
+
+    // region initializing2Initialized
 
     @Test
     void shouldUpdateInitializing2Initialized() {
@@ -535,7 +576,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
     }
 
-    // Tests on initialized2Running transition
+    // endregion
+
+    // region initialized2Running
 
     @Test
     void shouldUpdateInitialized2Running() { // 1 RUNNING out of 2
@@ -595,7 +638,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    // initializedOrRunning2ContributionTimeout
+    // endregion
+
+    // region initializedOrRunning2ContributionTimeout
 
     @Test
     void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
@@ -660,7 +705,6 @@ class TaskUpdateManagerTest {
                 .publishEvent(any());
     }
 
-
     @Test
     void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
         Date now = new Date();
@@ -684,7 +728,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
     }
 
-    // Tests on running2Finalized2Completed transition
+    // endregion
+
+    // region running2Finalized2Completed
 
     @Test
     void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
@@ -756,7 +802,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
-    // Tests on running2ConsensusReached transition
+    // endregion
+
+    // region running2ConsensusReached
 
     @Test
     void shouldUpdateRunning2ConsensusReached() {
@@ -839,7 +887,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
-    // Tests on running2RunningFailed transition
+    // endregion
+
+    // region running2RunningFailed
+
     @Test
     void shouldUpdateRunning2RunningFailedOn1Worker() {
         Task task = getStubTask(maxExecutionTime);
@@ -1078,7 +1129,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateOfStatus(RUNNING_FAILED)).isEmpty();
     }
 
-    // Tests on consensusReached2AtLeastOneReveal2UploadRequested transition
+    // endregion
+
+    // region consensusReached2AtLeastOneReveal2UploadRequested
 
     @Test
     void shouldUpdateConsensusReached2AtLeastOneReveal2Uploading() {
@@ -1114,7 +1167,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
     }
 
-    // Tests on AT_LEAST_ONE_REVEALED
+    // endregion
+
+    // region requestUpload
+
     @Test
     void shouldRequestUploadAfterOneRevealed() {
         Task task = getStubTask(maxExecutionTime);
@@ -1148,7 +1204,10 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
     }
 
-    // Tests on reopening2Reopened transition
+    // endregion
+
+    // region reopening2Reopened
+
     @Test
     void shouldUpdateReopening2Reopened() {
         final Task task = getStubTask(maxExecutionTime);
@@ -1195,7 +1254,10 @@ class TaskUpdateManagerTest {
         verify(replicatesService, times(0)).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
     }
 
-    // Tests on REOPENED
+    // endregion
+
+    // region reopened2Initialized
+
     @Test
     void shouldUpdateReopened() {
         final Task task = getStubTask(maxExecutionTime);
@@ -1208,7 +1270,9 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    // Test on resultUploading2Uploaded2Finalizing2Finalized
+    // endregion
+
+    // region resultUploading2Uploaded2Finalizing2Finalized
 
     @Test
     void shouldUpdateResultUploading2Uploaded2Finalizing2Finalized() { //one worker uploaded
@@ -1246,7 +1310,9 @@ class TaskUpdateManagerTest {
         assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
     }
 
-    // Tests on finalizing2Finalized transition
+    // endregion
+
+    // region finalizing2Finalized
 
     @Test
     void shouldUpdateFinalized2Completed() {
@@ -1275,6 +1341,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZE_FAILED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
+
+    // endregion
 
     @Test
     void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
@@ -1560,7 +1628,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
-    // Tests on finalizedToCompleted transition
+    // region finalizingToFinalizedToCompleted
+
     @Test
     void shouldUpdateFinalizing2Finalized2Completed() {
         Task task = getStubTask(maxExecutionTime);
@@ -1575,6 +1644,40 @@ class TaskUpdateManagerTest {
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
     }
+
+    @Test
+    void shouldNotUpdateFinalizing2FinalizedSinceNotFinalized() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 4).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZE_FAILED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FAILED);
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+    }
+
+    @Test
+    void shouldNotUpdateFinalizing2FinalizedSinceFailedToCheck() {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(FINALIZING);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RECEIVED);
+        assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 1).getStatus()).isEqualTo(FINALIZING);
+        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZING);
+    }
+
+    // endregion
 
     // 3 replicates in RUNNING 0 in COMPUTED
     @Test
@@ -1806,7 +1909,8 @@ class TaskUpdateManagerTest {
         }
     }
 
-    // Tests on requestUpload
+    // region requestUpload
+
     @Test
     void shouldRequestUpload() {
         Task task = getStubTask(maxExecutionTime);
@@ -1884,13 +1988,73 @@ class TaskUpdateManagerTest {
                 .publishEvent(any(PleaseUploadEvent.class));
     }
 
-    // publishRequest
+    // endregion
+
+    // region publishRequest
 
     @Test
     void shouldTriggerUpdateTaskAsynchronously() {
         taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
         verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
+
+    // endregion
+
+    // region onTaskCreatedEvent
+    @Test
+    void shouldIncrementCurrentReceivedGaugeWhenTaskReceived() {
+        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(0L);
+
+        // Init gauges
+        taskUpdateManager.init();
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        assertThat(currentReceivedTasks.value()).isZero();
+
+        taskUpdateManager.onTaskCreatedEvent();
+
+        assertThat(currentReceivedTasks.value()).isOne();
+    }
+    // endregion
+
+    // region updateMetricsAfterStatusUpdate
+    @Test
+    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
+        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(1L);
+        when(taskService.countByCurrentStatus(INITIALIZING)).thenReturn(0L);
+
+        // Init gauges
+        taskUpdateManager.init().get();
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isOne();
+        assertThat(currentInitializingTasks.value()).isZero();
+
+        taskUpdateManager.updateMetricsAfterStatusUpdate(RECEIVED, INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isZero();
+        assertThat(currentInitializingTasks.value()).isOne();
+        // Called a first time during init, then a second time during update
+        verify(applicationEventPublisher, times(2)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region onTaskCreatedEvent
+    @Test
+    void shouldUpdateCurrentReceivedCountAndFireEvent() {
+        final AtomicLong receivedCount =
+                (AtomicLong) ((LinkedHashMap<?, ?>) ReflectionTestUtils.getField(taskUpdateManager, "currentTaskStatusesCount"))
+                        .get(RECEIVED);
+        final long initialCount = receivedCount.get();
+
+        taskUpdateManager.onTaskCreatedEvent();
+
+        assertThat(receivedCount.get() - initialCount).isOne();
+        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
 
     // region utils
     private void mockTaskDescriptionFromTask(Task task) {
@@ -1901,6 +2065,15 @@ class TaskUpdateManagerTest {
                 .callback("")
                 .build();
         when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
+    }
+
+    Gauge getCurrentTasksCountGauge(TaskStatus status) {
+        return Metrics.globalRegistry
+                .find(METRIC_TASKS_STATUSES_COUNT)
+                .tags(
+                        "period", "current",
+                        "status", status.name()
+                ).gauge();
     }
     // endregion
 }

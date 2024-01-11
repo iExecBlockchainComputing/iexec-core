@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/config/chain"
+  },
+  "response": {
+    "status": 200,
+    "body": "{\"chainId\":255,\"chainNodeUrl\":\"http://localhost:8545\",\"blockTime\":\"PT5s\",\"sidechain\":\"true\"}",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

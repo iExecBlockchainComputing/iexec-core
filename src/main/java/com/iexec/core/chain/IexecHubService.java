@@ -39,8 +39,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.common.utils.DateTimeUtils.now;
+import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
+import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
-import static com.iexec.commons.poco.contract.generated.IexecHubContract.TASKFINALIZE_EVENT;
 import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
@@ -124,6 +125,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> nbOfCategoryUnits: number of category units dedicated
      *      for the contribution phase.
+     * </ul>
      *
      * @param chainDeal
      * @return
@@ -146,6 +148,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
      * <li> maxCategoryTime: duration of the deal's category.
      * <li> 10: number of category units dedicated
      *      for the hole execution.
+     * </ul>
      *
      * @param chainDeal
      * @return
@@ -255,7 +258,33 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
                 .build();
     }
 
-    // region Get event blocks
+    // region check contribution status
+    public boolean repeatIsContributedTrue(String chainTaskId, String walletAddress) {
+        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_RETRY, MAX_RETRIES,
+                "isContributedTrue", this::isContributed, chainTaskId, walletAddress);
+    }
+
+    public boolean repeatIsRevealedTrue(String chainTaskId, String walletAddress) {
+        return web3jService.repeatCheck(NB_BLOCKS_TO_WAIT_PER_RETRY, MAX_RETRIES,
+                "isRevealedTrue", this::isRevealed, chainTaskId, walletAddress);
+    }
+
+    public boolean isContributed(String... args) {
+        return getChainContribution(args[0], args[1])
+                .map(ChainContribution::getStatus)
+                .filter(chainStatus -> chainStatus == CONTRIBUTED || chainStatus == REVEALED)
+                .isPresent();
+    }
+
+    public boolean isRevealed(String... args) {
+        return getChainContribution(args[0], args[1])
+                .map(ChainContribution::getStatus)
+                .filter(chainStatus -> chainStatus == REVEALED)
+                .isPresent();
+    }
+    // endregion
+
+    // region get event blocks
     public ChainReceipt getContributionBlock(String chainTaskId,
                                              String workerWallet,
                                              long fromBlock) {

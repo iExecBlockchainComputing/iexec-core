@@ -63,7 +63,7 @@ interface TaskRepository extends MongoRepository<Task, String> {
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
     Optional<Task> findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(List<TaskStatus> statuses, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
-    
+
     @Query("{ 'currentStatus': {$nin: ?0} }")
     List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
 
@@ -71,4 +71,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
 
     List<Task> findByCurrentStatusInAndContributionDeadlineAfter(List<TaskStatus> status, Date date);
+
+    long countByCurrentStatus(TaskStatus currentStatus);
 }

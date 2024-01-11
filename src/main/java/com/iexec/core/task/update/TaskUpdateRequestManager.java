@@ -23,8 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.concurrent.*;
-import java.util.function.Supplier;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.chain.CategoriesUtils.LONGEST_TASK_TIMEOUT;
 
@@ -42,7 +42,6 @@ public class TaskUpdateRequestManager {
      */
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final ContextualLockRunner<String> taskExecutionLockRunner =
             new ContextualLockRunner<>(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
 
@@ -69,36 +68,36 @@ public class TaskUpdateRequestManager {
     }
 
     /**
-     * Publish TaskUpdateRequest async
-     * @param chainTaskId
-     * @return
+     * Publish a TaskUpdateRequest if no request is already waiting for this task.
+     * This request will be dealt with asynchronously.
+     * <p>
+     * As of now, we do sequential requests to the DB which can cause a big load.
+     * We should aim to have some batch requests to unload the scheduler.
+     *
+     * @param chainTaskId ID of the task to publish the request for.
+     * @return {@literal true} if request has been published,
+     * {@literal false} otherwise.
      */
-    public CompletableFuture<Boolean> publishRequest(String chainTaskId) {
-        Supplier<Boolean> publishRequest = () -> {
-            if (chainTaskId.isEmpty()){
-                return false;
-            }
-            if (queue.containsTask(chainTaskId)){
-                log.debug("Request already published [chainTaskId:{}]", chainTaskId);
-                return false;
-            }
-            final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
-            if (oTask.isEmpty()) {
-                log.warn("No such task. [chainTaskId: {}]", chainTaskId);
-                return false;
-            }
+    public synchronized boolean publishRequest(String chainTaskId) {
+        if (chainTaskId.isEmpty()) {
+            return false;
+        }
+        if (queue.containsTask(chainTaskId)) {
+            log.debug("Request already published [chainTaskId:{}]", chainTaskId);
+            return false;
+        }
+        final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
+        if (oTask.isEmpty()) {
+            log.warn("No such task. [chainTaskId: {}]", chainTaskId);
+            return false;
+        }
 
-            final Task task = oTask.get();
-            taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
-            log.debug("Published task update request" +
-                    " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
-                    chainTaskId, task.getChainTaskId(), task.getContributionDeadline(), queue.size());
-            return true;
-        };
-        // TODO: find a better way to publish request.
-        // As of now, we do sequential requests to the DB which can cause a big load.
-        // We should aim to have some batch requests to unload the scheduler.
-        return CompletableFuture.supplyAsync(publishRequest, executorService);
+        final Task task = oTask.get();
+        taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
+        log.debug("Published task update request" +
+                        " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
+                chainTaskId, task.getCurrentStatus(), task.getContributionDeadline(), queue.size());
+        return true;
     }
 
     private void updateTask(String chainTaskId) {

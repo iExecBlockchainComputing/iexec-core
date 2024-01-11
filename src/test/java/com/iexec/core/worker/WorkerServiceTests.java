@@ -17,6 +17,12 @@
 package com.iexec.core.worker;
 
 import com.iexec.core.configuration.WorkerConfiguration;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -46,12 +52,40 @@ class WorkerServiceTests {
     @InjectMocks
     private WorkerService workerService;
 
+
+    @BeforeAll
+    static void initRegistry() {
+        Metrics.globalRegistry.add(new SimpleMeterRegistry());
+    }
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
     }
 
+    @AfterEach
+    void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
     // getWorker
+
+    @Test
+    void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
+        workerService.init();
+        Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
+        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
+        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+
+        Assertions.assertThat(aliveWorkersGauge).isNotNull();
+        Assertions.assertThat(aliveTotalCpuGauge).isNotNull();
+        Assertions.assertThat(aliveAvailableCpuGauge).isNotNull();
+
+        Assertions.assertThat(aliveWorkersGauge.value()).isZero();
+        Assertions.assertThat(aliveTotalCpuGauge.value()).isZero();
+        Assertions.assertThat(aliveAvailableCpuGauge.value()).isZero();
+
+    }
 
     @Test
     void shouldGetWorker() {
@@ -98,7 +132,6 @@ class WorkerServiceTests {
         when(workerRepository.save(Mockito.any())).thenReturn(newWorker);
 
         Worker addedWorker = workerService.addWorker(newWorker);
-
         assertThat(addedWorker).isNotEqualTo(existingWorker);
         assertThat(addedWorker.getId()).isEqualTo(existingWorker.getId());
     }
@@ -608,15 +641,31 @@ class WorkerServiceTests {
     void shouldGetTotalAliveCpu() {
         Worker worker1 = Worker.builder()
                 .cpuNb(4)
+                .computingChainTaskIds(List.of("T1", "T2", "T3"))
                 .build();
         Worker worker2 = Worker.builder()
                 .cpuNb(2)
+                .computingChainTaskIds(List.of("T4"))
                 .build();
         List<Worker> list = List.of(worker1, worker2);
         when(workerRepository.findByWalletAddressIn(any())).thenReturn(list);
+        workerService.init();
+        workerService.updateMetrics();
 
         assertThat(workerService.getAliveTotalCpu())
                 .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
+
+        Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
+        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
+        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+
+        Assertions.assertThat(aliveWorkersGauge).isNotNull();
+        Assertions.assertThat(aliveTotalCpuGauge).isNotNull();
+        Assertions.assertThat(aliveAvailableCpuGauge).isNotNull();
+
+        Assertions.assertThat(aliveWorkersGauge.value()).isEqualTo(list.size());
+        Assertions.assertThat(aliveTotalCpuGauge.value()).isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
+        Assertions.assertThat(aliveAvailableCpuGauge.value()).isEqualTo(2);
     }
 
     // getAliveTotalGpu

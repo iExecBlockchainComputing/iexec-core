@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.ChainReceipt;
+import com.iexec.core.exception.MultipleOccurrencesOfFieldNotAllowed;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -100,7 +101,7 @@ public class Replicate {
     }
 
     public boolean updateStatus(ReplicateStatus newStatus, ReplicateStatusCause cause,
-                                ReplicateStatusModifier modifier, ChainReceipt  chainReceipt) {
+                                ReplicateStatusModifier modifier, ChainReceipt chainReceipt) {
         ReplicateStatusDetails details = ReplicateStatusDetails.builder()
                 .chainReceipt(chainReceipt)
                 .cause(cause)
@@ -158,5 +159,49 @@ public class Replicate {
         return size >= 2
                 && statusUpdateList.get(size - 1).getStatus().equals(WORKER_LOST)
                 && statusUpdateList.get(size - 2).getStatus().equals(status);
+    }
+
+    public ReplicateModel generateModel() {
+        final List<ReplicateStatusUpdateModel> modelStatusUpdateList = new ArrayList<>();
+
+        Integer appExitCode = null;
+        String teeSessionGenerationError = null;
+        for (ReplicateStatusUpdate replicateStatusUpdate : statusUpdateList) {
+            modelStatusUpdateList.add(ReplicateStatusUpdateModel.fromEntity(replicateStatusUpdate));
+            ReplicateStatusDetails details = replicateStatusUpdate.getDetails();
+            if (details != null) {
+                final Integer detailsExitCode = details.getExitCode();
+                if (detailsExitCode != null) {
+                    if (appExitCode != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("exitCode");
+                    }
+                    appExitCode = detailsExitCode;
+                }
+
+                final String detailsTeeSessionGenerationError = details.getTeeSessionGenerationError();
+                if (detailsTeeSessionGenerationError != null) {
+                    if (teeSessionGenerationError != null) {
+                        throw new MultipleOccurrencesOfFieldNotAllowed("teeSessionGenerationError");
+                    }
+                    teeSessionGenerationError = detailsTeeSessionGenerationError;
+                }
+
+                if (appExitCode != null && teeSessionGenerationError != null) {
+                    break;
+                }
+            }
+        }
+
+        return ReplicateModel.builder()
+                .chainTaskId(chainTaskId)
+                .walletAddress(walletAddress)
+                .currentStatus(getCurrentStatus())
+                .statusUpdateList(modelStatusUpdateList)
+                .resultLink(resultLink)
+                .chainCallbackData(chainCallbackData)
+                .contributionHash(contributionHash)
+                .appExitCode(appExitCode)
+                .teeSessionGenerationError(teeSessionGenerationError)
+                .build();
     }
 }

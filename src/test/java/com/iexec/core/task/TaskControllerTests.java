@@ -23,6 +23,7 @@ import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.logs.TaskLogs;
+import com.iexec.core.logs.TaskLogsModel;
 import com.iexec.core.logs.TaskLogsService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicateModel;
@@ -57,12 +58,18 @@ class TaskControllerTests {
     private String requesterAddress;
     private String signature;
 
-    @Mock private EIP712ChallengeService challengeService;
-    @Mock private IexecHubService iexecHubService;
-    @Mock private ReplicatesService replicatesService;
-    @Mock private TaskService taskService;
-    @Mock private TaskLogsService taskLogsService;
-    @InjectMocks private TaskController taskController;
+    @Mock
+    private EIP712ChallengeService challengeService;
+    @Mock
+    private IexecHubService iexecHubService;
+    @Mock
+    private ReplicatesService replicatesService;
+    @Mock
+    private TaskService taskService;
+    @Mock
+    private TaskLogsService taskLogsService;
+    @InjectMocks
+    private TaskController taskController;
 
     @BeforeEach
     @SneakyThrows
@@ -98,8 +105,8 @@ class TaskControllerTests {
     //region getTask
     @Test
     void shouldGetTaskModel() {
-        Task taskEntity = mock(Task.class);
-        when(taskEntity.getChainTaskId()).thenReturn(TASK_ID);
+        Task taskEntity = new Task();
+        taskEntity.setChainTaskId(TASK_ID);
         when(taskService.getTaskByChainTaskId(TASK_ID))
                 .thenReturn(Optional.of(taskEntity));
 
@@ -113,8 +120,8 @@ class TaskControllerTests {
 
     @Test
     void shouldGetTaskModelWithReplicates() {
-        Task taskEntity = mock(Task.class);
-        when(taskEntity.getChainTaskId()).thenReturn(TASK_ID);
+        Task taskEntity = new Task();
+        taskEntity.setChainTaskId(TASK_ID);
         when(taskService.getTaskByChainTaskId(TASK_ID))
                 .thenReturn(Optional.of(taskEntity));
         when(replicatesService.hasReplicatesList(TASK_ID))
@@ -165,10 +172,10 @@ class TaskControllerTests {
     //region buildReplicateModel
     @Test
     void shouldBuildReplicateModel() {
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeLogsPresent()).thenReturn(false);
+        Replicate entity = new Replicate();
+        entity.setChainTaskId(TASK_ID);
+        entity.setWalletAddress(WORKER_ADDRESS);
+        entity.setAppComputeLogsPresent(false);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
@@ -178,10 +185,10 @@ class TaskControllerTests {
 
     @Test
     void shouldBuildReplicateModelWithComputeLogs() {
-        Replicate entity = mock(Replicate.class);
-        when(entity.getChainTaskId()).thenReturn(TASK_ID);
-        when(entity.getWalletAddress()).thenReturn(WORKER_ADDRESS);
-        when(entity.isAppComputeLogsPresent()).thenReturn(true);
+        Replicate entity = new Replicate();
+        entity.setChainTaskId(TASK_ID);
+        entity.setWalletAddress(WORKER_ADDRESS);
+        entity.setAppComputeLogsPresent(true);
 
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
@@ -201,7 +208,7 @@ class TaskControllerTests {
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         when(taskLogsService.getTaskLogs(TASK_ID)).thenReturn(Optional.of(taskStdout));
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
+        ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
@@ -215,7 +222,7 @@ class TaskControllerTests {
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         when(taskLogsService.getTaskLogs(TASK_ID)).thenReturn(Optional.empty());
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
+        ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
@@ -229,14 +236,14 @@ class TaskControllerTests {
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.empty());
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
+        ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }
 
     @Test
     void shouldFailToGetTaskLogsWhenInvalidAuthorization() {
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, "");
+        ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, "");
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verifyNoInteractions(iexecHubService);
     }
@@ -250,7 +257,7 @@ class TaskControllerTests {
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        ResponseEntity<TaskLogs> response = taskController.getTaskLogs(TASK_ID, authorization);
+        ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
     }

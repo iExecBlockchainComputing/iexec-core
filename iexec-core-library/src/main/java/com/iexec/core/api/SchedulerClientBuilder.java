@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.iexec.core.version;
+package com.iexec.core.api;
 
-import org.springframework.boot.info.BuildProperties;
-import org.springframework.stereotype.Service;
+import com.iexec.common.utils.FeignBuilder;
+import feign.Logger;
 
-@Service
-public class VersionService {
+public class SchedulerClientBuilder {
 
-    private final BuildProperties buildProperties;
+    private SchedulerClientBuilder() {}
 
-    VersionService (BuildProperties buildProperties) {
-        this.buildProperties = buildProperties;
+    public static SchedulerClient getInstance(Logger.Level logLevel, String url) {
+        return FeignBuilder.createBuilder(logLevel)
+                .target(SchedulerClient.class, url);
     }
-
-    public String getVersion() {
-        return buildProperties.getVersion();
-    }
-
 }

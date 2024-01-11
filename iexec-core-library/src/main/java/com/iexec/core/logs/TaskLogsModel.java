@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,23 @@
  * limitations under the License.
  */
 
-package com.iexec.core.metric;
+package com.iexec.core.logs;
 
+import com.iexec.common.replicate.ComputeLogs;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
-@AllArgsConstructor
 @Builder
-public class PlatformMetric {
-
-    private int aliveWorkers;
-    private int aliveTotalCpu;
-    private int aliveAvailableCpu;
-    private int aliveTotalGpu;
-    private int aliveAvailableGpu;
-    private int completedTasks;
-    private long dealEventsCount;
-    private long dealsCount;
-    private long replayDealsCount;
-    private BigInteger latestBlockNumberWithDeal;
-
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskLogsModel {
+    String chainTaskId;
+    @Builder.Default
+    List<ComputeLogs> computeLogsList = new ArrayList<>();
 }

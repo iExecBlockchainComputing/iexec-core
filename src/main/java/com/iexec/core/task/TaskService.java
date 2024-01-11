@@ -21,11 +21,14 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -37,13 +40,22 @@ import static com.iexec.core.task.TaskStatus.*;
 @Slf4j
 @Service
 public class TaskService {
+
+    public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
+    private final Counter completedTasksCounter;
 
     public TaskService(TaskRepository taskRepository,
                        IexecHubService iexecHubService) {
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
+        this.completedTasksCounter = Metrics.counter(METRIC_TASKS_COMPLETED_COUNT);
+    }
+
+    @PostConstruct
+    void init() {
+        completedTasksCounter.increment(findByCurrentStatus(TaskStatus.COMPLETED).size());
     }
 
     /**
@@ -97,13 +109,21 @@ public class TaskService {
     /**
      * Updates a task if it already exists in DB.
      * Otherwise, will not do anything.
+     *
      * @param task Task to update.
      * @return An {@link Optional<Task>} if task exists, {@link Optional#empty()} otherwise.
      */
     public Optional<Task> updateTask(Task task) {
-        return taskRepository
+
+        Optional<Task> optionalTask = taskRepository
                 .findByChainTaskId(task.getChainTaskId())
                 .map(existingTask -> taskRepository.save(task));
+
+        if (optionalTask.isPresent() && optionalTask.get().getCurrentStatus() == TaskStatus.COMPLETED) {
+            completedTasksCounter.increment();
+        }
+
+        return optionalTask;
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -135,7 +155,7 @@ public class TaskService {
      *
      * @param shouldExcludeTeeTasks Whether TEE tasks should be retrieved
      *                              as well as standard tasks.
-     * @param excludedChainTaskIds Tasks to exclude from retrieval.
+     * @param excludedChainTaskIds  Tasks to exclude from retrieval.
      * @return The first task which is {@link TaskStatus#INITIALIZED}
      * or {@link TaskStatus#RUNNING},
      * or {@link Optional#empty()} if no task meets the requirements.
@@ -167,7 +187,7 @@ public class TaskService {
      * </ul>
      *
      * @param statuses             The task status should be one of this list.
-     * @param excludedTag          The task tag should not be this tag
+     * @param excludedTags         The task tag should not be these tags
      *                             - use {@literal null} if no tag should be excluded.
      * @param excludedChainTaskIds The chain task ID should not be one of this list.
      * @param sort                 How to prioritize tasks.
@@ -239,5 +259,13 @@ public class TaskService {
         int onChainWinners = chainTask.getWinnerCounter();
         int offChainWinners = replicatesList.getNbValidContributedWinners(chainTask.getConsensusValue());
         return offChainWinners >= onChainWinners;
+    }
+
+    public long getCompletedTasksCount() {
+        return (long) completedTasksCounter.count();
+    }
+
+    public long countByCurrentStatus(TaskStatus status) {
+        return taskRepository.countByCurrentStatus(status);
     }
 }

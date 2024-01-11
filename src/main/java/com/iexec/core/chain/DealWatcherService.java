@@ -26,6 +26,8 @@ import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.event.TaskCreatedEvent;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import io.reactivex.disposables.Disposable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,10 @@ import static com.iexec.commons.poco.contract.generated.IexecHubContract.SCHEDUL
 @Service
 public class DealWatcherService {
 
+    public static final String METRIC_DEALS_EVENTS_COUNT = "iexec.core.deals.events";
+    public static final String METRIC_DEALS_COUNT = "iexec.core.deals";
+    public static final String METRIC_DEALS_REPLAY_COUNT = "iexec.core.deals.replay";
+    public static final String METRIC_DEALS_LAST_BLOCK = "iexec.core.deals.last.block";
     private static final List<BigInteger> CORRECT_TEE_TRUSTS = List.of(BigInteger.ZERO, BigInteger.ONE);
 
     private final ChainConfig chainConfig;
@@ -72,6 +78,11 @@ public class DealWatcherService {
     @Getter
     private long replayDealsCount = 0;
 
+    private final Counter dealEventsCounter;
+    private final Counter dealsCounter;
+    private final Counter replayDealsCounter;
+    private final Counter latestBlockNumberWithDealCounter;
+
     public DealWatcherService(ChainConfig chainConfig,
                               IexecHubService iexecHubService,
                               ConfigurationService configurationService,
@@ -84,6 +95,11 @@ public class DealWatcherService {
         this.applicationEventPublisher = applicationEventPublisher;
         this.taskService = taskService;
         this.web3jService = web3jService;
+
+        this.dealEventsCounter = Metrics.counter(METRIC_DEALS_EVENTS_COUNT);
+        this.dealsCounter = Metrics.counter(METRIC_DEALS_COUNT);
+        this.replayDealsCounter = Metrics.counter(METRIC_DEALS_REPLAY_COUNT);
+        this.latestBlockNumberWithDealCounter = Metrics.counter(METRIC_DEALS_LAST_BLOCK);
     }
 
     /**
@@ -111,6 +127,7 @@ public class DealWatcherService {
 
     /**
      * Dispose of a {@link Disposable} subscription if it exists and is not already disposed.
+     *
      * @param subscription Deal event subscription to dispose of.
      */
     private void disposeSubscription(Disposable subscription) {
@@ -122,7 +139,7 @@ public class DealWatcherService {
     /**
      * Subscribe to onchain deal events from
      * a given block to the latest block.
-     * 
+     *
      * @param from start block
      * @return disposable subscription
      */
@@ -137,14 +154,16 @@ public class DealWatcherService {
     /**
      * Update last seen block in the database
      * and run {@link DealEvent} handler.
-     * 
+     *
      * @param dealEvent
      */
     private void onDealEvent(DealEvent dealEvent, String watcher) {
         if ("replay".equals(watcher)) {
             replayDealsCount++;
+            replayDealsCounter.increment();
         } else {
             dealsCount++;
+            dealsCounter.increment();
         }
         String dealId = dealEvent.getChainDealId();
         BigInteger dealBlock = dealEvent.getBlockNumber();
@@ -254,9 +273,9 @@ public class DealWatcherService {
     /**
      * Subscribe to onchain deal events for
      * a fixed range of blocks.
-     * 
+     *
      * @param from start block
-     * @param to end block
+     * @param to   end block
      * @return disposable subscription
      */
     private Disposable subscribeToDealEventInRange(BigInteger from, BigInteger to) {
@@ -282,9 +301,12 @@ public class DealWatcherService {
 
     Optional<DealEvent> schedulerNoticeToDealEvent(IexecHubContract.SchedulerNoticeEventResponse schedulerNotice) {
         dealEventsCount++;
+        dealEventsCounter.increment();
         BigInteger noticeBlockNumber = schedulerNotice.log.getBlockNumber();
         if (latestBlockNumberWithDeal.compareTo(noticeBlockNumber) < 0) {
+            double deltaBlocksNumber = noticeBlockNumber.subtract(latestBlockNumberWithDeal).doubleValue();
             latestBlockNumberWithDeal = noticeBlockNumber;
+            latestBlockNumberWithDealCounter.increment(deltaBlocksNumber);
         }
         log.info("Received new deal [blockNumber:{}, chainDealId:{}, dealEventsCount:{}]",
                 schedulerNotice.log.getBlockNumber(), BytesUtils.bytesToString(schedulerNotice.dealid), dealEventsCount);

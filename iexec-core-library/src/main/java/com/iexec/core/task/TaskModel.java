@@ -29,7 +29,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class TaskModel {
-
     private String chainTaskId;
     private List<ReplicateModel> replicates;
     private long maxExecutionTime;
@@ -48,26 +47,4 @@ public class TaskModel {
     private String resultLink;
     private String chainCallbackData;
     private List<TaskStatusChange> dateStatusList;
-
-    public static TaskModel fromEntity(Task entity) {
-        return TaskModel.builder()
-                .chainTaskId(entity.getChainTaskId())
-                .maxExecutionTime(entity.getMaxExecutionTime())
-                .tag(entity.getTag())
-                .dappType(entity.getDappType())
-                .dappName(entity.getDappName())
-                .commandLine(entity.getCommandLine())
-                .initializationBlockNumber(entity.getInitializationBlockNumber())
-                .currentStatus(entity.getCurrentStatus())
-                .trust(entity.getTrust())
-                .uploadingWorkerWalletAddress(entity.getUploadingWorkerWalletAddress())
-                .consensus(entity.getConsensus())
-                .contributionDeadline(entity.getContributionDeadline())
-                .revealDeadline(entity.getRevealDeadline())
-                .finalDeadline(entity.getFinalDeadline())
-                .resultLink(entity.getResultLink())
-                .chainCallbackData(entity.getChainCallbackData())
-                .dateStatusList(entity.getDateStatusList())
-                .build();
-    }
 }

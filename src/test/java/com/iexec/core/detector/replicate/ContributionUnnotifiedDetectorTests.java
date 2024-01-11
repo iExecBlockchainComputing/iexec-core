@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
+import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CronConfiguration;
@@ -30,21 +32,24 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.*;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Arrays;
+import java.math.BigInteger;
 import java.util.Collections;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class ContributionUnnotifiedDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
     private final static String WALLET_ADDRESS = "0x1";
-    private final static int DETECTOR_PERIOD = 1000;
 
     @Mock
     private TaskService taskService;
@@ -68,9 +73,24 @@ class ContributionUnnotifiedDetectorTests {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        ReflectionTestUtils.setField(contributionDetector, "detectorRate", 1000);
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(true)
+                .callback("0x1")
+                .build());
     }
 
-    // region Detector aggregator
+    private Replicate getReplicateWithStatus(ReplicateStatus replicateStatus) {
+        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
+        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+                .modifier(WORKER).status(replicateStatus).build();
+        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
+        return replicate;
+    }
+
+    // region detectOnChainChanges
+
     /**
      * When running {@link ContributionUnnotifiedDetector#detectOnChainChanges} 10 times,
      * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
@@ -84,12 +104,9 @@ class ContributionUnnotifiedDetectorTests {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).modifier(WORKER).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
+        Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -103,21 +120,19 @@ class ContributionUnnotifiedDetectorTests {
         Mockito.verify(replicatesService, Mockito.times(11))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
-    //region detectOnchainDoneWhenOffchainOngoing (CONTRIBUTING)
+    // region detectOnchainDoneWhenOffchainOngoing (CONTRIBUTING)
+
     @Test
-    void shouldDetectUnNotifiedContributedAfterContributing() {
+    void shouldDetectMissedUpdateSinceOffChainOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
+        Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong()))
                 .thenReturn(ChainReceipt.builder().blockNumber(10L).txHash("0xabcef").build());
@@ -129,56 +144,47 @@ class ContributionUnnotifiedDetectorTests {
     }
 
     @Test
-    void shouldDetectUnNotifiedContributedAfterContributingSinceBeforeContributing() {
+    void shouldNotDetectMissedUpdateSinceNotOffChainOngoing() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(COMPUTED).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
+        Replicate replicate = getReplicateWithStatus(COMPUTED);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
 
         contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
-        Mockito.verify(replicatesService, Mockito.times(0))
+        Mockito.verify(replicatesService, never())
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
     @Test
-    void shouldNotDetectUnNotifiedContributedAfterContributingSinceNotContributedOnChain() {
+    void shouldNotDetectMissedUpdateSinceNotOnChainDone() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        // when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
+        Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(false);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(false);
         contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
-        Mockito.verify(replicatesService, Mockito.times(0))
+        Mockito.verify(replicatesService, never())
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
+
     // endregion
 
     // region detectOnchainDone (CONTRIBUTED)
-    @Test
-    void shouldDetectUnNotifiedContributed1() {
+
+    @ParameterizedTest
+    @EnumSource(value = ReplicateStatus.class, names = {"COMPUTED", "CONTRIBUTING"})
+    void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(ReplicateStatus replicateStatus) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
+        Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -192,17 +198,29 @@ class ContributionUnnotifiedDetectorTests {
     }
 
     @Test
-    void shouldDetectUnNotifiedContributed2() {
+    void shouldNotDetectMissedUpdateSinceOnChainDoneAndOffChainDone() {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTING).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
+        Replicate replicate = getReplicateWithStatus(CONTRIBUTED);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
+        contributionDetector.detectOnchainDone();
+
+        Mockito.verify(replicatesService, never())
+                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+    }
+
+    @Test
+    void shouldNotDetectMissedUpdateSinceOnChainDoneAndEligibleToContributeAndFinalize() {
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
+                TaskDescription.builder().trust(BigInteger.ONE).isTeeTask(true).callback(BytesUtils.EMPTY_ADDRESS).build());
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+
+        Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
+        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
+        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
@@ -211,26 +229,9 @@ class ContributionUnnotifiedDetectorTests {
 
         contributionDetector.detectOnchainDone();
 
-        Mockito.verify(replicatesService, Mockito.times(1))//Missed CONTRIBUTING & CONTRIBUTED
+        Mockito.verify(replicatesService, never())
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
     }
 
-    @Test
-    void shouldNotDetectUnNotifiedContributedSinceContributed() {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
-
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder().status(CONTRIBUTED).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
-
-        when(cronConfiguration.getContribute()).thenReturn(DETECTOR_PERIOD);
-        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isStatusTrueOnChain(any(), any(), any())).thenReturn(true);
-        contributionDetector.detectOnchainDone();
-
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
-    }
     // endregion
 }
