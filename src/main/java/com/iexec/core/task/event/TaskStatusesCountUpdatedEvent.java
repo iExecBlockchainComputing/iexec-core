@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,14 @@
  * limitations under the License.
  */
 
-package com.iexec.core.metric;
+package com.iexec.core.task.event;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.iexec.core.task.TaskStatus;
-import lombok.Builder;
 import lombok.Value;
 
-import java.math.BigInteger;
 import java.util.LinkedHashMap;
 
 @Value
-@Builder
-@JsonDeserialize(builder = PlatformMetric.PlatformMetricBuilder.class)
-public class PlatformMetric {
-    int aliveWorkers;
-    int aliveTotalCpu;
-    int aliveAvailableCpu;
-    int aliveTotalGpu;
-    int aliveAvailableGpu;
+public class TaskStatusesCountUpdatedEvent {
     LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
-    long dealEventsCount;
-    long dealsCount;
-    long replayDealsCount;
-    BigInteger latestBlockNumberWithDeal;
-
-    @JsonPOJOBuilder(withPrefix = "")
-    public static class PlatformMetricBuilder {
-    }
 }

@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 - Add prometheus endpoint with custom metrics. (#632)
 - Expose version through prometheus endpoint. (#637, #639)
 - Stop fetching completed tasks count from DB. (#638)
-- Expose current task statuses count to Prometheus. (#640)
+- Expose current task statuses count to Prometheus and `/metrics` endpoint. (#640, #654)
 - Add `tasks` endpoints to `iexec-core-library`. (#645)
 
 ### Quality

@@ -39,6 +39,7 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.PleaseUploadEvent;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import io.micrometer.core.instrument.Gauge;
@@ -53,15 +54,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -128,7 +128,7 @@ class TaskUpdateManagerTest {
 
     // region init
     @Test
-    void shouldBuildGauges() throws ExecutionException, InterruptedException {
+    void shouldBuildGaugesAndFireEvent() throws ExecutionException, InterruptedException {
         for (final TaskStatus status : TaskStatus.values()) {
             // Give a unique initial count for each status
             when(taskService.countByCurrentStatus(status)).thenReturn((long) status.ordinal());
@@ -143,6 +143,8 @@ class TaskUpdateManagerTest {
                     .extracting(Gauge::value)
                     .isEqualTo(((double) status.ordinal()));
         }
+
+        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
     }
     // endregion
 
@@ -2034,6 +2036,23 @@ class TaskUpdateManagerTest {
 
         assertThat(currentReceivedTasks.value()).isZero();
         assertThat(currentInitializingTasks.value()).isOne();
+        // Called a first time during init, then a second time during update
+        verify(applicationEventPublisher, times(2)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region onTaskCreatedEvent
+    @Test
+    void shouldUpdateCurrentReceivedCountAndFireEvent() {
+        final AtomicLong receivedCount =
+                (AtomicLong) ((LinkedHashMap<?, ?>) ReflectionTestUtils.getField(taskUpdateManager, "currentTaskStatusesCount"))
+                        .get(RECEIVED);
+        final long initialCount = receivedCount.get();
+
+        taskUpdateManager.onTaskCreatedEvent();
+
+        assertThat(receivedCount.get() - initialCount).isOne();
+        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
     }
     // endregion
 
