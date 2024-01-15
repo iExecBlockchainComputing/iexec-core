@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import static com.iexec.common.replicate.ReplicateStatus.*;
+import static com.iexec.common.replicate.ReplicateStatus.getMissingStatuses;
 
 @Slf4j
 public abstract class UnnotifiedAbstractDetector {
@@ -38,7 +38,7 @@ public abstract class UnnotifiedAbstractDetector {
 
     private final TaskService taskService;
     private final ReplicatesService replicatesService;
-    private final IexecHubService iexecHubService;
+    protected final IexecHubService iexecHubService;
 
     private final List<TaskStatus> detectWhenOffChainTaskStatuses;
     private final ReplicateStatus offchainOngoing;
@@ -129,13 +129,7 @@ public abstract class UnnotifiedAbstractDetector {
      * @param replicate The replicate to check
      * @return {@literal true} if the replicate is eligible, {@literal false} otherwise
      */
-    private boolean checkDetectionIsValid(Replicate replicate) {
-        final boolean isEligibleToContributeAndFinalize = iexecHubService.getTaskDescription(replicate.getChainTaskId())
-                .isEligibleToContributeAndFinalize();
-        return offchainDone == REVEALED
-                || (!isEligibleToContributeAndFinalize && offchainDone == CONTRIBUTED)
-                || (isEligibleToContributeAndFinalize && offchainDone == CONTRIBUTE_AND_FINALIZE_DONE);
-    }
+    protected abstract boolean checkDetectionIsValid(Replicate replicate);
 
     /**
      * Checks if {@code onchainDone} status has been reached on blockchain network.
@@ -143,18 +137,7 @@ public abstract class UnnotifiedAbstractDetector {
      * @param replicate Replicate whose on-chain status will be checked
      * @return {@literal true} if given status has been found on-chain, {@literal false} otherwise.
      */
-    private boolean detectStatusReachedOnChain(Replicate replicate) {
-        final String chainTaskId = replicate.getChainTaskId();
-        final String walletAddress = replicate.getWalletAddress();
-        switch (onchainDone) {
-            case CONTRIBUTED:
-                return iexecHubService.isContributed(chainTaskId, walletAddress);
-            case REVEALED:
-                return iexecHubService.isRevealed(chainTaskId, walletAddress);
-            default:
-                return false;
-        }
-    }
+    protected abstract boolean detectStatusReachedOnChain(Replicate replicate);
 
     /*
      * This method should stay private. We need to ensure that
