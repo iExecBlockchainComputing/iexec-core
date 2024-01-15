@@ -18,6 +18,7 @@ package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.ChainContribution;
+import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
@@ -31,7 +32,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.web3j.utils.Numeric;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -1373,9 +1376,14 @@ class ReplicateServiceTests {
                 .status(RESULT_UPLOADED)
                 .details(details)
                 .build();
+        final ChainTask chainTask = ChainTask.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .results(Numeric.toHexString(expectedResultLink.getBytes(StandardCharsets.UTF_8)))
+                .build();
 
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(expectedTaskDescription);
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
 
         final UpdateReplicateStatusArgs actualResult =
                 replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
@@ -1407,11 +1415,16 @@ class ReplicateServiceTests {
                 .status(CONTRIBUTE_AND_FINALIZE_DONE)
                 .details(details)
                 .build();
+        final ChainTask chainTask = ChainTask.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .results(Numeric.toHexString(expectedResultLink.getBytes(StandardCharsets.UTF_8)))
+                .build();
 
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(expectedTaskDescription);
         when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(expectedWorkerWeight);
         when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(expectedChainContribution));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
 
         assertThat(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate))
                 .isEqualTo(UpdateReplicateStatusArgs.builder()

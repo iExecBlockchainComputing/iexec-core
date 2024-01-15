@@ -19,6 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.*;
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.commons.poco.chain.ChainContribution;
+import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
@@ -34,6 +35,7 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.web3j.utils.Numeric;
 
 import java.util.Collections;
 import java.util.List;
@@ -101,26 +103,16 @@ public class ReplicatesService {
     }
 
     public List<Replicate> getReplicates(String chainTaskId) {
-        Optional<ReplicatesList> optionalList = getReplicatesList(chainTaskId);
-        if (optionalList.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return optionalList.get().getReplicates();
+        return getReplicatesList(chainTaskId)
+                .map(ReplicatesList::getReplicates)
+                .orElse(Collections.emptyList());
     }
 
     public Optional<Replicate> getReplicate(String chainTaskId, String walletAddress) {
-        Optional<ReplicatesList> optional = getReplicatesList(chainTaskId);
-        if (optional.isEmpty()) {
-            return Optional.empty();
-        }
-
-        for (Replicate replicate : optional.get().getReplicates()) {
-            if (replicate.getWalletAddress().equals(walletAddress)) {
-                return Optional.of(replicate);
-            }
-        }
-
-        return Optional.empty();
+        return getReplicates(chainTaskId)
+                .stream()
+                .filter(replicate -> replicate.getWalletAddress().equals(walletAddress))
+                .findFirst();
     }
 
     public int getNbReplicatesWithCurrentStatus(String chainTaskId, ReplicateStatus... listStatus) {
@@ -244,10 +236,15 @@ public class ReplicatesService {
 
         if (statusUpdate.getStatus() == RESULT_UPLOADED || statusUpdate.getStatus() == CONTRIBUTE_AND_FINALIZE_DONE) {
             final ReplicateStatusDetails details = statusUpdate.getDetails();
+            // TODO fetch chainCallbackData from chainTask when using latest ABI
             if (details != null) {
-                resultLink = details.getResultLink();
                 chainCallbackData = details.getChainCallbackData();
             }
+            resultLink = iexecHubService.getChainTask(chainTaskId)
+                    .map(ChainTask::getResults)
+                    .map(Numeric::hexStringToByteArray)
+                    .map(String::new)
+                    .orElse(null);
         }
 
         return UpdateReplicateStatusArgs.builder()
