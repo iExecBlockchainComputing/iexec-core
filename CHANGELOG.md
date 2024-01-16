@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Filter out `CONTRIBUTE_AND_FINALIZE` tasks when detecting missed `REVEALED` status update. (#658)
-- Fetch `results` on-chain when updating a replicate status. (#659)
+- Fetch `results` on-chain when updating a replicate status. (#659 #660)
 
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 
