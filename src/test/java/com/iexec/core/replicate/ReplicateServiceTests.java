@@ -1376,14 +1376,9 @@ class ReplicateServiceTests {
                 .status(RESULT_UPLOADED)
                 .details(details)
                 .build();
-        final ChainTask chainTask = ChainTask.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .results(Numeric.toHexString(expectedResultLink.getBytes(StandardCharsets.UTF_8)))
-                .build();
 
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(expectedTaskDescription);
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
 
         final UpdateReplicateStatusArgs actualResult =
                 replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);

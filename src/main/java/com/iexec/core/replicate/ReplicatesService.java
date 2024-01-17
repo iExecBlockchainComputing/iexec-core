@@ -236,10 +236,14 @@ public class ReplicatesService {
 
         if (statusUpdate.getStatus() == RESULT_UPLOADED || statusUpdate.getStatus() == CONTRIBUTE_AND_FINALIZE_DONE) {
             final ReplicateStatusDetails details = statusUpdate.getDetails();
-            // TODO fetch chainCallbackData from chainTask when using latest ABI
             if (details != null) {
+                resultLink = details.getResultLink();
                 chainCallbackData = details.getChainCallbackData();
             }
+        }
+
+        if (statusUpdate.getStatus() == CONTRIBUTE_AND_FINALIZE_DONE) {
+            // TODO read chainCallbackData if CONTRIBUTE_AND_FINALIZE becomes applicable some day in the future and if latest ABI is used
             resultLink = iexecHubService.getChainTask(chainTaskId)
                     .map(ChainTask::getResults)
                     .map(Numeric::hexStringToByteArray)
