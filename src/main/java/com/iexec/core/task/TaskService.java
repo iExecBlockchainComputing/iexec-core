@@ -21,11 +21,16 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
+import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -42,12 +47,15 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
 
     public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
+    private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
     private final Counter completedTasksCounter;
 
-    public TaskService(TaskRepository taskRepository,
+    public TaskService(MongoTemplate mongoTemplate,
+                       TaskRepository taskRepository,
                        IexecHubService iexecHubService) {
+        this.mongoTemplate = mongoTemplate;
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
         this.completedTasksCounter = Metrics.counter(METRIC_TASKS_COMPLETED_COUNT);
@@ -124,6 +132,24 @@ public class TaskService {
         }
 
         return optionalTask;
+    }
+
+    public Optional<Task> updateTaskStatus(Task task, List<TaskStatusChange> statusChanges) {
+        Update update = Update.update("currentStatus", task.getCurrentStatus());
+        update.push("dateStatusList").each(statusChanges);
+        UpdateResult result = mongoTemplate.updateFirst(
+                Query.query(Criteria.where("chainTaskId").is(task.getChainTaskId())),
+                update,
+                Task.class);
+        log.debug("Updated chainTaskId {} {}", task.getChainTaskId(), result);
+        return getTaskByChainTaskId(task.getChainTaskId());
+    }
+
+    public void updateTask(String chainTaskId, Update update) {
+        UpdateResult result = mongoTemplate.updateFirst(
+                Query.query(Criteria.where("chainTaskId").is(chainTaskId)),
+                update, Task.class);
+        log.debug("Updated chainTaskId {} {}", chainTaskId, result);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {

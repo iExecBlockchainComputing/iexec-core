@@ -18,10 +18,15 @@ package com.iexec.core.worker;
 
 import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
+import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Metrics;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +52,7 @@ public class WorkerService {
     public static final String METRIC_WORKERS_GAUGE = "iexec.core.workers";
     public static final String METRIC_CPU_TOTAL_GAUGE = "iexec.core.cpu.total";
     public static final String METRIC_CPU_AVAILABLE_GAUGE = "iexec.core.cpu.available";
+    private final MongoTemplate mongoTemplate;
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
     private final ContextualLockRunner<String> contextualLockRunner;
@@ -67,8 +73,10 @@ public class WorkerService {
         }
     }
 
-    public WorkerService(WorkerRepository workerRepository,
+    public WorkerService(MongoTemplate mongoTemplate,
+                         WorkerRepository workerRepository,
                          WorkerConfiguration workerConfiguration) {
+        this.mongoTemplate = mongoTemplate;
         this.workerRepository = workerRepository;
         this.workerConfiguration = workerConfiguration;
         this.contextualLockRunner = new ContextualLockRunner<>();
@@ -136,21 +144,15 @@ public class WorkerService {
     }
 
     public List<String> getChainTaskIds(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            return worker.getParticipatingChainTaskIds();
-        }
-        return Collections.emptyList();
+        return getWorker(walletAddress)
+                .map(Worker::getParticipatingChainTaskIds)
+                .orElse(Collections.emptyList());
     }
 
     public List<String> getComputingTaskIds(String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            return worker.getComputingChainTaskIds();
-        }
-        return Collections.emptyList();
+        return getWorker(walletAddress)
+                .map(Worker::getComputingChainTaskIds)
+                .orElse(Collections.emptyList());
     }
 
 
@@ -268,11 +270,19 @@ public class WorkerService {
     public void updateLastAlive(String walletAddress) {
         workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
                 .setLastAliveDate(new Date());
+        mongoTemplate.updateFirst(
+                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                new Update().currentDate("lastAliveDate"),
+                Worker.class);
     }
 
     public void updateLastReplicateDemandDate(String walletAddress) {
         workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
                 .setLastReplicateDemandDate(new Date());
+        mongoTemplate.updateFirst(
+                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                new Update().currentDate("lastReplicateDemandDate"),
+                Worker.class);
     }
 
     public Optional<Worker> addChainTaskIdToWorker(String chainTaskId, String walletAddress) {
@@ -308,14 +318,12 @@ public class WorkerService {
     }
 
     private Optional<Worker> removeChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.removeChainTaskId(chainTaskId);
-            log.info("Removed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
-        }
-        return Optional.empty();
+        UpdateResult result = mongoTemplate.updateFirst(
+                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                new Update().pull("computingChainTaskIds", chainTaskId).pull("participatingChainTaskIds", chainTaskId),
+                Worker.class);
+        log.info("Remove chainTaskId {} {}", chainTaskId, result);
+        return workerRepository.findByWalletAddress(walletAddress);
     }
 
     public Optional<Worker> removeComputedChainTaskIdFromWorker(String chainTaskId, String walletAddress) {
@@ -326,14 +334,12 @@ public class WorkerService {
     }
 
     private Optional<Worker> removeComputedChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
-        Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            Worker worker = optional.get();
-            worker.removeComputedChainTaskId(chainTaskId);
-            log.info("Removed computed chainTaskId from worker [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
-        }
-        return Optional.empty();
+        UpdateResult result = mongoTemplate.updateFirst(
+                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                new Update().pull("computingChainTaskIds", chainTaskId),
+                Worker.class);
+        log.info("Remove computed chainTaskId {} {}", chainTaskId, result);
+        return workerRepository.findByWalletAddress(walletAddress);
     }
     // endregion
 }

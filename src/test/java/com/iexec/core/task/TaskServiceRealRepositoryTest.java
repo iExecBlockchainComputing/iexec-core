@@ -25,6 +25,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
@@ -32,7 +33,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -57,6 +61,8 @@ class TaskServiceRealRepositoryTest {
     }
 
     @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
     private TaskRepository taskRepository;
 
     @Mock
@@ -67,7 +73,7 @@ class TaskServiceRealRepositoryTest {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        taskService = new TaskService(taskRepository, iexecHubService);
+        taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService);
     }
 
     @Test
