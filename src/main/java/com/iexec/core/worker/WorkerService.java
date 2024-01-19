@@ -298,15 +298,15 @@ public class WorkerService {
         if (optional.isPresent()) {
             final Worker worker = optional.get();
             if (!canAcceptMoreWorks(worker)) {
-                log.warn("Can't add chainTaskId to worker when already full [chainTaskId:{}, workerName:{}]",
+                log.warn("Can't add chainTaskId to worker when already full [chainTaskId:{}, workerAddress:{}]",
                         chainTaskId, walletAddress);
                 return Optional.empty();
             }
             worker.addChainTaskId(chainTaskId);
-            log.info("Added chainTaskId to worker [chainTaskId:{}, workerName:{}]", chainTaskId, walletAddress);
+            log.info("Added chainTaskId to worker [chainTaskId:{}, workerAddress:{}]", chainTaskId, walletAddress);
             return Optional.of(workerRepository.save(worker));
         }
-        log.warn("Can't add chainTaskId to worker when unknown worker [chainTaskId:{}, workerName:{}]",
+        log.warn("Can't add chainTaskId to worker when unknown worker [chainTaskId:{}, workerAddress:{}]",
                 chainTaskId, walletAddress);
         return Optional.empty();
     }
@@ -323,7 +323,7 @@ public class WorkerService {
                 Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().pull("computingChainTaskIds", chainTaskId).pull("participatingChainTaskIds", chainTaskId),
                 Worker.class);
-        log.info("Remove chainTaskId [chainTaskId:{}, workerName:{}, result:{}]", chainTaskId, walletAddress, result);
+        log.info("Remove chainTaskId [chainTaskId:{}, workerAddress:{}, result:{}]", chainTaskId, walletAddress, result);
         return workerRepository.findByWalletAddress(walletAddress);
     }
 
@@ -339,7 +339,7 @@ public class WorkerService {
                 Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().pull("computingChainTaskIds", chainTaskId),
                 Worker.class);
-        log.debug("Remove computed chainTaskId [chainTaskId:{}, workerName:{}, result:{}]", chainTaskId, walletAddress, result);
+        log.debug("Remove computed chainTaskId [chainTaskId:{}, workerAddress:{}, result:{}]", chainTaskId, walletAddress, result);
         return workerRepository.findByWalletAddress(walletAddress);
     }
     // endregion
