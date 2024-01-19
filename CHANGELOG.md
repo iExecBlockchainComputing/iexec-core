@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### New Features
+
+- Use `MongoTemplate` to enable document update withour full rewrite. (#661)
+
 ### Bug Fixes
 
 - Filter out `CONTRIBUTE_AND_FINALIZE` tasks when detecting missed `REVEALED` status update. (#658)
