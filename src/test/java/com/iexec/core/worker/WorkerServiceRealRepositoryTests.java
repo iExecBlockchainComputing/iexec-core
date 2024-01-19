@@ -26,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
@@ -34,9 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -44,11 +43,16 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.iexec.commons.poco.utils.TestUtils.WALLET_WORKER_1;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @DataMongoTest
 @Testcontainers
 class WorkerServiceRealRepositoryTests {
+
+    private static final String WORKER_NAME = "worker1";
+    private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+
     @Container
     private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.4"));
 
@@ -59,15 +63,29 @@ class WorkerServiceRealRepositoryTests {
     }
 
     @SpyBean
+    private MongoTemplate mongoTemplate;
+    @SpyBean
     private WorkerRepository workerRepository;
     @Mock
     private WorkerConfiguration workerConfiguration;
     private WorkerService workerService;
 
+    private final Worker existingWorker = Worker.builder()
+            .id("1")
+            .name(WORKER_NAME)
+            .walletAddress(WALLET_ADDRESS)
+            .os("Linux")
+            .cpu("x86")
+            .cpuNb(8)
+            .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+            .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+            .build();
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        workerService = new WorkerService(workerRepository, workerConfiguration);
+        workerService = new WorkerService(mongoTemplate, workerRepository, workerConfiguration);
+        workerRepository.deleteAll();
     }
 
     /**
@@ -97,4 +115,78 @@ class WorkerServiceRealRepositoryTests {
         Assertions.assertThat(workerService.getWorker(WALLET_WORKER_1).get().getComputingChainTaskIds())
                 .hasSize(nThreads);
     }
+
+    // region removeChainTaskIdFromWorker
+    @Test
+    void shouldRemoveTaskIdFromWorker() {
+        workerRepository.save(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("task2", WALLET_ADDRESS);
+        assertThat(removedWorker).isPresent();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(1);
+        assertThat(worker.getParticipatingChainTaskIds().get(0)).isEqualTo("task1");
+        assertThat(worker.getComputingChainTaskIds()).hasSize(1);
+        assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task1");
+    }
+
+    @Test
+    void shouldNotRemoveTaskIdWorkerNotFound() {
+        Optional<Worker> addedWorker = workerService.removeChainTaskIdFromWorker("task1", "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248");
+        assertThat(addedWorker).isEmpty();
+    }
+
+    @Test
+    void shouldNotRemoveAnythingSinceTaskIdNotFound() {
+        workerRepository.save(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeChainTaskIdFromWorker("dummyTaskId", WALLET_ADDRESS);
+        assertThat(removedWorker).isPresent();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(List.of("task1", "task2"));
+
+        assertThat(worker.getComputingChainTaskIds()).hasSize(2);
+        assertThat(worker.getComputingChainTaskIds()).isEqualTo(List.of("task1", "task2"));
+    }
+    // endregion
+
+    // region removeComputedChainTaskIdFromWorker
+    @Test
+    void shouldRemoveComputedChainTaskIdFromWorker() {
+        workerRepository.save(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", WALLET_ADDRESS);
+        assertThat(removedWorker).isPresent();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(List.of("task1", "task2"));
+
+        assertThat(worker.getComputingChainTaskIds()).hasSize(1);
+        assertThat(worker.getComputingChainTaskIds().get(0)).isEqualTo("task2");
+    }
+
+    @Test
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceWorkerNotFound() {
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("task1", WALLET_ADDRESS);
+        assertThat(removedWorker).isEmpty();
+    }
+
+    @Test
+    void shouldNotRemoveComputedChainTaskIdFromWorkerSinceChainTaskIdNotFound() {
+        List<String> participatingIds = List.of("task1", "task2");
+        List<String> computingIds = List.of("task1", "task2");
+
+        workerRepository.save(existingWorker);
+
+        Optional<Worker> removedWorker = workerService.removeComputedChainTaskIdFromWorker("dummyTaskId", WALLET_ADDRESS);
+        assertThat(removedWorker).isPresent();
+        Worker worker = removedWorker.get();
+        assertThat(worker.getParticipatingChainTaskIds()).hasSize(2);
+        assertThat(worker.getParticipatingChainTaskIds()).isEqualTo(participatingIds);
+
+        assertThat(worker.getComputingChainTaskIds()).hasSize(2);
+        assertThat(worker.getComputingChainTaskIds()).isEqualTo(computingIds);
+    }
+    // endregion
 }

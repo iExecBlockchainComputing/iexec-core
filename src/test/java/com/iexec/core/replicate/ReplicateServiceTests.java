@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.web3j.utils.Numeric;
 
 import java.nio.charset.StandardCharsets;
@@ -50,6 +51,8 @@ class ReplicateServiceTests {
             .workerWeight(1)
             .build();
 
+    @Mock
+    private MongoTemplate mongoTemplate;
     @Mock
     private ReplicatesRepository replicatesRepository;
     @Mock

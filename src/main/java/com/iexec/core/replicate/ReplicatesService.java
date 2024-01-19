@@ -31,6 +31,10 @@ import io.vavr.control.Either;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -49,6 +53,7 @@ import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
 @Service
 public class ReplicatesService {
 
+    private final MongoTemplate mongoTemplate;
     private final ReplicatesRepository replicatesRepository;
     private final IexecHubService iexecHubService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -59,12 +64,14 @@ public class ReplicatesService {
     private final ContextualLockRunner<String> replicatesUpdateLockRunner =
             new ContextualLockRunner<>(10, TimeUnit.MINUTES);
 
-    public ReplicatesService(ReplicatesRepository replicatesRepository,
+    public ReplicatesService(MongoTemplate mongoTemplate,
+                             ReplicatesRepository replicatesRepository,
                              IexecHubService iexecHubService,
                              ApplicationEventPublisher applicationEventPublisher,
                              Web3jService web3jService,
                              ResultService resultService,
                              TaskLogsService taskLogsService) {
+        this.mongoTemplate = mongoTemplate;
         this.replicatesRepository = replicatesRepository;
         this.iexecHubService = iexecHubService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -403,16 +410,14 @@ public class ReplicatesService {
         log.info("Replicate update request [status:{}, chainTaskId:{}, walletAddress:{}, details:{}]",
                 statusUpdate.getStatus(), chainTaskId, walletAddress, statusUpdate.getDetailsWithoutLogs());
 
-        final Optional<ReplicatesList> oReplicatesList = getReplicatesList(chainTaskId);
-        final Optional<Replicate> oReplicate = oReplicatesList
-                .flatMap(replicatesList -> replicatesList.getReplicateOfWorker(walletAddress));
-        if (oReplicatesList.isEmpty() || oReplicate.isEmpty()) {
+        final Replicate replicate = getReplicatesList(chainTaskId)
+                .flatMap(replicatesList -> replicatesList.getReplicateOfWorker(walletAddress))
+                .orElse(null);
+        if (replicate == null) {
             log.error("Cannot update replicate, could not get replicate [chainTaskId:{}, UpdateRequest:{}]",
                     chainTaskId, statusUpdate);
             return Either.left(ReplicateStatusUpdateError.UNKNOWN_REPLICATE);
         }
-        final ReplicatesList replicatesList = oReplicatesList.get();
-        final Replicate replicate = oReplicate.get();
         final ReplicateStatus newStatus = statusUpdate.getStatus();
 
         final ReplicateStatusUpdateError error = canUpdateReplicateStatus(replicate, statusUpdate, updateReplicateStatusArgs);
@@ -420,14 +425,19 @@ public class ReplicatesService {
             return Either.left(error);
         }
 
+        Update update = new Update();
         if (newStatus == CONTRIBUTED || newStatus == CONTRIBUTE_AND_FINALIZE_DONE) {
             replicate.setContributionHash(updateReplicateStatusArgs.getChainContribution().getResultHash());
             replicate.setWorkerWeight(updateReplicateStatusArgs.getWorkerWeight());
+            update.set("replicates.$.contributionHash", updateReplicateStatusArgs.getChainContribution().getResultHash());
+            update.set("replicates.$.workerWeight", updateReplicateStatusArgs.getWorkerWeight());
         }
 
         if (newStatus == RESULT_UPLOADED || newStatus == CONTRIBUTE_AND_FINALIZE_DONE) {
             replicate.setResultLink(updateReplicateStatusArgs.getResultLink());
             replicate.setChainCallbackData(updateReplicateStatusArgs.getChainCallbackData());
+            update.set("replicates.$.resultLink", updateReplicateStatusArgs.getResultLink());
+            update.set("replicates.$.chainCallbackData", updateReplicateStatusArgs.getChainCallbackData());
         }
 
         if (statusUpdate.getDetails() != null &&
@@ -437,10 +447,13 @@ public class ReplicatesService {
             taskLogsService.addComputeLogs(chainTaskId, computeLogs);
             statusUpdate.getDetails().setComputeLogs(null);//using null here to keep light replicate
             replicate.setAppComputeLogsPresent(true);
+            update.set("replicates.$.appComputeLogsPresent", true);
         }
 
+        update.push("replicates.$.statusUpdateList", statusUpdate);
+        Query query = Query.query(Criteria.where("chainTaskId").is(chainTaskId).and("replicates.walletAddress").is(walletAddress));
+        mongoTemplate.updateFirst(query, update, ReplicatesList.class);
         replicate.updateStatus(statusUpdate);
-        replicatesRepository.save(replicatesList);
         applicationEventPublisher.publishEvent(new ReplicateUpdatedEvent(chainTaskId, walletAddress, statusUpdate));
         ReplicateStatusCause newStatusCause = statusUpdate.getDetails() != null ?
                 statusUpdate.getDetails().getCause() : null;

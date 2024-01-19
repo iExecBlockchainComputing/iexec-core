@@ -30,6 +30,7 @@ import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -38,6 +39,7 @@ import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -206,14 +208,17 @@ class TaskUpdateManager {
      * @param statuses List of statuses to append to the task {@code dateStatusList}
      */
     void updateTaskStatusesAndSave(Task task, TaskStatus... statuses) {
-        TaskStatus initialStatus = task.getCurrentStatus();
-        TaskStatus lastStatus = statuses[statuses.length - 1];
+        TaskStatus currentStatus = task.getCurrentStatus();
+        List<TaskStatusChange> statusChanges = new ArrayList<>();
         for (TaskStatus newStatus : statuses) {
             log.info("Create TaskStatusChange succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
                     task.getChainTaskId(), task.getCurrentStatus(), newStatus);
-            task.changeStatus(newStatus, null);
+            final TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).build();
+            task.setCurrentStatus(newStatus);
+            task.getDateStatusList().add(statusChange);
+            statusChanges.add(statusChange);
         }
-        saveTask(task, initialStatus, lastStatus);
+        saveTask(task, currentStatus, statusChanges);
     }
 
     void updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
@@ -221,9 +226,11 @@ class TaskUpdateManager {
     }
 
     void updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
-        TaskStatus initialStatus = task.getCurrentStatus();
-        task.changeStatus(newStatus, chainReceipt);
-        saveTask(task, initialStatus, newStatus);
+        TaskStatus currentStatus = task.getCurrentStatus();
+        TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).chainReceipt(chainReceipt).build();
+        task.setCurrentStatus(newStatus);
+        task.getDateStatusList().add(statusChange);
+        saveTask(task, currentStatus, List.of(statusChange));
     }
 
     /**
@@ -231,17 +238,18 @@ class TaskUpdateManager {
      *
      * @param task          The task
      * @param currentStatus The current status in database
-     * @param newStatus     The new status in database after save
+     * @param statusChanges List of changes
      */
-    void saveTask(Task task, TaskStatus currentStatus, TaskStatus newStatus) {
-        Optional<Task> savedTask = taskService.updateTask(task);
+    void saveTask(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
+        Optional<Task> savedTask = taskService.updateTaskStatus(task, statusChanges);
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (savedTask.isPresent()) {
-            updateMetricsAfterStatusUpdate(currentStatus, newStatus);
-            log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]", task.getChainTaskId(), currentStatus, newStatus);
+            updateMetricsAfterStatusUpdate(currentStatus, task.getCurrentStatus());
+            log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
+                    task.getChainTaskId(), currentStatus, task.getCurrentStatus());
         } else {
             log.warn("UpdateTaskStatus failed. Chain Task is probably unknown [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
-                    task.getChainTaskId(), currentStatus, newStatus);
+                    task.getChainTaskId(), currentStatus, task.getCurrentStatus());
         }
     }
 
@@ -266,6 +274,7 @@ class TaskUpdateManager {
             return;
         }
 
+        Update update = new Update();
         if (task.isTeeTask()) {
             Optional<String> smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
             if (smsUrl.isEmpty()) {
@@ -274,8 +283,17 @@ class TaskUpdateManager {
                 return;
             }
             task.setSmsUrl(smsUrl.get()); //SMS URL source of truth for the task
-            taskService.updateTask(task);
+            update.set("smsUrl", smsUrl.get());
         }
+        final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(task.getChainTaskId(), task.getSmsUrl());
+        if (enclaveChallenge.isEmpty()) {
+            log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]", task.getChainTaskId());
+            toFailed(task, INITIALIZE_FAILED);
+            return;
+        }
+        task.setEnclaveChallenge(enclaveChallenge.get());
+        update.set("enclaveChallenge", enclaveChallenge.get());
+        taskService.updateTask(task.getChainTaskId(), update);
 
         blockchainAdapterService
                 .requestInitialize(task.getChainDealId(), task.getTaskIndex())
@@ -283,14 +301,6 @@ class TaskUpdateManager {
                 .ifPresentOrElse(chainTaskId -> {
                     log.info("Requested initialize on blockchain [chainTaskId:{}]",
                             task.getChainTaskId());
-                    final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(chainTaskId, task.getSmsUrl());
-                    if (enclaveChallenge.isEmpty()) {
-                        log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]",
-                                chainTaskId);
-                        toFailed(task, INITIALIZE_FAILED);
-                        return;
-                    }
-                    task.setEnclaveChallenge(enclaveChallenge.get());
                     updateTaskStatusAndSave(task, INITIALIZING);
                     //Watch initializing to initialized
                     updateTask(task.getChainTaskId());
@@ -376,6 +386,10 @@ class TaskUpdateManager {
             task.setConsensus(chainTask.getConsensusValue());
             long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
             task.setConsensusReachedBlockNumber(consensusBlockNumber);
+            taskService.updateTask(task.getChainTaskId(),
+                    Update.update("revealDeadline", task.getRevealDeadline())
+                            .set("consensus", task.getConsensus())
+                            .set("consensusReachedBlockNumber", task.getConsensusReachedBlockNumber()));
             updateTaskStatusAndSave(task, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
@@ -559,16 +573,19 @@ class TaskUpdateManager {
 
     void resultUploading2Uploaded(Task task) {
         boolean isTaskInResultUploading = task.getCurrentStatus() == RESULT_UPLOADING;
-        Optional<Replicate> oUploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId());
-        boolean didReplicateUpload = oUploadedReplicate.isPresent();
+        Replicate uploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId())
+                .orElse(null);
 
         if (!isTaskInResultUploading) {
             return;
         }
 
-        if (didReplicateUpload) {
-            task.setResultLink(oUploadedReplicate.get().getResultLink());
-            task.setChainCallbackData(oUploadedReplicate.get().getChainCallbackData());
+        if (uploadedReplicate != null) {
+            task.setResultLink(uploadedReplicate.getResultLink());
+            task.setChainCallbackData(uploadedReplicate.getChainCallbackData());
+            taskService.updateTask(task.getChainTaskId(),
+                    Update.update("resultLink", uploadedReplicate.getResultLink())
+                            .set("chainCallbackData", uploadedReplicate.getChainCallbackData()));
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
             resultUploaded2Finalizing(task);
             return;
@@ -627,6 +644,7 @@ class TaskUpdateManager {
 
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
+            taskService.updateTask(task.getChainTaskId(), Update.update("uploadingWorkerWalletAddress", replicate.getWalletAddress()));
             updateTaskStatusAndSave(task, RESULT_UPLOADING);
             replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
                     ReplicateStatus.RESULT_UPLOAD_REQUESTED);

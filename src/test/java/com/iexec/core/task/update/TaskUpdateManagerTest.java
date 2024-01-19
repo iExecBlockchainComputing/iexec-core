@@ -450,7 +450,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(0)).getVerifiedSmsUrl(anyString(), anyString());
-        verify(taskService, times(2)).updateTask(task); //initializing & initialized 
+        verify(taskService, times(2)).updateTaskStatus(any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -486,7 +486,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isEqualTo(smsUrl);
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
-        verify(taskService, times(3)).updateTask(task); //save smsurl, INITIALIZING & INITIALIZED 
+        verify(taskService, times(2)).updateTaskStatus(any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -522,7 +522,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
         verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
-        verify(taskService, times(1)).updateTask(task); // INITIALIZE_FAILED & FAILED
+        verify(taskService, times(1)).updateTaskStatus(any(), any()); // INITIALIZE_FAILED & FAILED
     }
 
     // endregion

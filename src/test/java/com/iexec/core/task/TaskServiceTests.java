@@ -35,6 +35,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -53,6 +54,8 @@ class TaskServiceTests {
     private final Date contributionDeadline = new Date();
     private final Date finalDeadline = new Date();
 
+    @Mock
+    private MongoTemplate mongoTemplate;
     @Mock
     private TaskRepository taskRepository;
 
@@ -367,7 +370,7 @@ class TaskServiceTests {
 
     @Test
     void shouldGet3CompletedTasksCount() {
-        final TaskService taskService = new TaskService(taskRepository, iexecHubService);
+        final TaskService taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService);
         final Task task = Task.builder().currentStatus(COMPLETED).build();
         when(taskRepository.findByCurrentStatus(COMPLETED))
                 .thenReturn(List.of(task, task, task));
