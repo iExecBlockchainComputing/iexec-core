@@ -49,6 +49,7 @@ import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 @Service
 public class WorkerService {
 
+    private static final String WALLET_ADDRESS_FIELD = "walletAddress";
     public static final String METRIC_WORKERS_GAUGE = "iexec.core.workers";
     public static final String METRIC_CPU_TOTAL_GAUGE = "iexec.core.cpu.total";
     public static final String METRIC_CPU_AVAILABLE_GAUGE = "iexec.core.cpu.available";
@@ -271,7 +272,7 @@ public class WorkerService {
         workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
                 .setLastAliveDate(new Date());
         mongoTemplate.updateFirst(
-                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().currentDate("lastAliveDate"),
                 Worker.class);
     }
@@ -280,7 +281,7 @@ public class WorkerService {
         workerStatsMap.computeIfAbsent(walletAddress, WorkerStats::new)
                 .setLastReplicateDemandDate(new Date());
         mongoTemplate.updateFirst(
-                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().currentDate("lastReplicateDemandDate"),
                 Worker.class);
     }
@@ -319,10 +320,10 @@ public class WorkerService {
 
     private Optional<Worker> removeChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
         UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().pull("computingChainTaskIds", chainTaskId).pull("participatingChainTaskIds", chainTaskId),
                 Worker.class);
-        log.info("Remove chainTaskId {} {}", chainTaskId, result);
+        log.info("Remove chainTaskId [chainTaskId:{}, workerName:{}, result:{}]", chainTaskId, walletAddress, result);
         return workerRepository.findByWalletAddress(walletAddress);
     }
 
@@ -335,10 +336,10 @@ public class WorkerService {
 
     private Optional<Worker> removeComputedChainTaskIdFromWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
         UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where("walletAddress").is(walletAddress)),
+                Query.query(Criteria.where(WALLET_ADDRESS_FIELD).is(walletAddress)),
                 new Update().pull("computingChainTaskIds", chainTaskId),
                 Worker.class);
-        log.info("Remove computed chainTaskId {} {}", chainTaskId, result);
+        log.debug("Remove computed chainTaskId [chainTaskId:{}, workerName:{}, result:{}]", chainTaskId, walletAddress, result);
         return workerRepository.findByWalletAddress(walletAddress);
     }
     // endregion
