@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
-- Use `MongoTemplate` to enable document update withour full rewrite. (#661)
+- Use `MongoTemplate` to enable document update without full rewrite. (#661)
 
 ### Bug Fixes
 
