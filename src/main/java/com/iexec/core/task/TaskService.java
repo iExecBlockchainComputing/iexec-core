@@ -46,6 +46,7 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class TaskService {
 
+    private static final String CHAIN_TASK_ID_FIELD = "chainTaskId";
     public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
     private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
@@ -138,18 +139,18 @@ public class TaskService {
         Update update = Update.update("currentStatus", task.getCurrentStatus());
         update.push("dateStatusList").each(statusChanges);
         UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where("chainTaskId").is(task.getChainTaskId())),
+                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(task.getChainTaskId())),
                 update,
                 Task.class);
-        log.debug("Updated chainTaskId {} {}", task.getChainTaskId(), result);
+        log.debug("Updated chainTaskId [chainTaskId:{},  result:{}]", task.getChainTaskId(), result);
         return getTaskByChainTaskId(task.getChainTaskId());
     }
 
     public void updateTask(String chainTaskId, Update update) {
         UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where("chainTaskId").is(chainTaskId)),
+                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(chainTaskId)),
                 update, Task.class);
-        log.debug("Updated chainTaskId {} {}", chainTaskId, result);
+        log.debug("Updated chainTaskId [chainTaskId:{},  result{}]", chainTaskId, result);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
