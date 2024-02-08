@@ -32,7 +32,7 @@ class TaskRepositoryTest {
     private final long maxExecutionTime = 60000;
 
     @Container
-    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.4"));
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {

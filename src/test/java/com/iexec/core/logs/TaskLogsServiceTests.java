@@ -19,10 +19,14 @@ package com.iexec.core.logs;
 import com.iexec.common.replicate.ComputeLogs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,32 +35,46 @@ import java.util.Optional;
 import static com.iexec.commons.poco.utils.TestUtils.CHAIN_TASK_ID;
 import static com.iexec.commons.poco.utils.TestUtils.WORKER_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
 
+@DataMongoTest
+@Testcontainers
 class TaskLogsServiceTests {
 
     private static final String STDOUT = "This is an stdout string";
     private static final String STDERR = "This is an stderr string";
 
-    @Mock
-    private TaskLogsRepository taskLogsRepository;
-    @InjectMocks
-    private TaskLogsService taskLogsService;
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
+        registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
+    }
+
+    private final TaskLogsRepository taskLogsRepository;
+    private final TaskLogsService taskLogsService;
+
+    @Autowired
+    public TaskLogsServiceTests(TaskLogsRepository taskLogsRepository) {
+        this.taskLogsRepository = taskLogsRepository;
+        this.taskLogsService = new TaskLogsService(taskLogsRepository);
+        spy(taskLogsRepository);
+    }
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
+        taskLogsRepository.deleteAll();
     }
 
     //region addComputeLogs
     @Test
     void shouldAddComputeLogs() {
         final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
-
-        ArgumentCaptor<TaskLogs> argumentCaptor = ArgumentCaptor.forClass(TaskLogs.class);
         taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
-        verify(taskLogsRepository, times(1)).save(argumentCaptor.capture());
-        TaskLogs capturedEvent = argumentCaptor.getAllValues().get(0);
+        assertThat(taskLogsRepository.count()).isOne();
+        TaskLogs capturedEvent = taskLogsRepository.findOneByChainTaskId(CHAIN_TASK_ID).orElseThrow();
         assertThat(capturedEvent.getComputeLogsList().get(0).getStdout()).isEqualTo(STDOUT);
         assertThat(capturedEvent.getComputeLogsList().get(0).getStderr()).isEqualTo(STDERR);
         assertThat(capturedEvent.getComputeLogsList().get(0).getWalletAddress()).isEqualTo(WORKER_ADDRESS);
@@ -65,7 +83,7 @@ class TaskLogsServiceTests {
     @Test
     void shouldNotAddComputeLogsSinceNull() {
         taskLogsService.addComputeLogs(CHAIN_TASK_ID, null);
-        verifyNoInteractions(taskLogsRepository);
+        assertThat(taskLogsRepository.count()).isZero();
     }
 
     @Test
@@ -75,14 +93,10 @@ class TaskLogsServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .computeLogsList(Collections.singletonList(computeLogs))
                 .build();
-
-        when(taskLogsService.getTaskLogs(CHAIN_TASK_ID))
-                .thenReturn(Optional.of(taskLogs));
+        taskLogsRepository.save(taskLogs);
 
         taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
-
-        verify(taskLogsRepository).findOneByChainTaskId(CHAIN_TASK_ID);
-        verify(taskLogsRepository, times(0)).save(any());
+        assertThat(taskLogsRepository.count()).isOne();
     }
     //endregion
 
@@ -94,8 +108,7 @@ class TaskLogsServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .computeLogsList(List.of(computeLogs))
                 .build();
-        when(taskLogsRepository.findByChainTaskIdAndWalletAddress(CHAIN_TASK_ID, WORKER_ADDRESS))
-                .thenReturn(Optional.of(taskLogs));
+        taskLogsRepository.save(taskLogs);
         Optional<ComputeLogs> optional = taskLogsService.getComputeLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
         assertThat(optional).isPresent();
         final ComputeLogs actualLogs = optional.get();

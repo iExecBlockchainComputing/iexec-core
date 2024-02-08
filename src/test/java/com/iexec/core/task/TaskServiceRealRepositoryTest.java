@@ -52,7 +52,7 @@ class TaskServiceRealRepositoryTest {
     private final Date finalDeadline = new Date();
 
     @Container
-    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.4"));
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
