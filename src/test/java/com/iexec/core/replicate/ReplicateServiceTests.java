@@ -112,7 +112,8 @@ class ReplicateServiceTests {
         list.add(replicate1);
         list.add(replicate2);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, list);
-        replicatesRepository.save(replicatesList);
+        final ReplicatesList savedReplicatesList = replicatesRepository.save(replicatesList);
+        assertThat(savedReplicatesList.getReplicates()).hasSize(2);
         replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_3);
         final ReplicatesList result = replicatesRepository.findByChainTaskId(CHAIN_TASK_ID).orElseThrow();
         assertThat(result.getReplicates()).hasSize(3);
@@ -130,10 +131,10 @@ class ReplicateServiceTests {
         list.add(replicate1);
         list.add(replicate2);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, list);
-        replicatesRepository.save(replicatesList);
+        final ReplicatesList savedReplicatesList = replicatesRepository.save(replicatesList);
+        assertThat(savedReplicatesList.getReplicates()).hasSize(2);
 
         replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1);
-
         replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_2);
         assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).hasSize(2);
     }
@@ -165,7 +166,9 @@ class ReplicateServiceTests {
         replicatesRepository.save(replicatesList);
 
         assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).isNotNull();
-        assertThat(replicatesService.getReplicates(CHAIN_TASK_ID)).hasSize(1);
+        assertThat(replicatesService.getReplicates(CHAIN_TASK_ID))
+                .hasSize(1)
+                .contains(replicate1);
     }
 
     @Test
@@ -248,10 +251,8 @@ class ReplicateServiceTests {
         int shouldBe3 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, STARTING, COMPUTED);
         assertThat(shouldBe3).isEqualTo(3);
 
-        int shouldBe4 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, STARTING, COMPUTED,
-                CONTRIBUTED);
+        int shouldBe4 = replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, STARTING, COMPUTED, CONTRIBUTED);
         assertThat(shouldBe4).isEqualTo(4);
-
     }
 
     @Test
@@ -276,7 +277,7 @@ class ReplicateServiceTests {
     }
 
     @Test
-    void shouldGetCorrectNbReplicatesWithMultipleLastReleveantStatus() {
+    void shouldGetCorrectNbReplicatesWithMultipleLastRelevantStatus() {
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate1.updateStatus(COMPUTED, ReplicateStatusModifier.WORKER);
@@ -298,13 +299,11 @@ class ReplicateServiceTests {
         int shouldBe2 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, COMPUTED, CONTRIBUTED);
         assertThat(shouldBe2).isEqualTo(2);
 
-        int shouldBe3 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED);
-        assertThat(shouldBe3).isEqualTo(4);
+        int shouldBe4 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED);
+        assertThat(shouldBe4).isEqualTo(4);
 
-        int shouldBe4 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED,
-                CONTRIBUTED);
-        assertThat(shouldBe4).isEqualTo(5);
-
+        int shouldBe5 = replicatesService.getNbReplicatesWithLastRelevantStatus(CHAIN_TASK_ID, STARTING, COMPUTED, CONTRIBUTED);
+        assertThat(shouldBe5).isEqualTo(5);
     }
 
     @Test
@@ -348,8 +347,7 @@ class ReplicateServiceTests {
         int shouldBe4 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, STARTING, COMPUTED);
         assertThat(shouldBe4).isEqualTo(4);
 
-        int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPLETED, FAILED,
-                RESULT_UPLOADING);
+        int shouldBe0 = replicatesService.getNbReplicatesContainingStatus(CHAIN_TASK_ID, COMPLETED, FAILED, RESULT_UPLOADING);
         assertThat(shouldBe0).isZero();
     }
 
@@ -524,6 +522,9 @@ class ReplicateServiceTests {
                 .build();
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, statusUpdate);
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_2)).isEmpty();
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).map(Replicate::getCurrentStatus)
+                .contains(CONTRIBUTED);
         verifyNoInteractions(applicationEventPublisher);
     }
 
@@ -540,6 +541,8 @@ class ReplicateServiceTests {
                 .build();
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).map(Replicate::getCurrentStatus)
+                .contains(CONTRIBUTED);
         verifyNoInteractions(applicationEventPublisher);
     }
 
@@ -559,7 +562,8 @@ class ReplicateServiceTests {
                 .build();
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-        assertThat(replicatesRepository.findByChainTaskId(CHAIN_TASK_ID)).contains(replicatesList);
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).map(Replicate::getCurrentStatus)
+                .contains(CONTRIBUTING);
         verifyNoInteractions(applicationEventPublisher);
     }
 
@@ -582,7 +586,8 @@ class ReplicateServiceTests {
                 .build();
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).map(Replicate::getCurrentStatus)
+                .contains(CONTRIBUTING);
         verifyNoInteractions(applicationEventPublisher);
     }
 
@@ -609,7 +614,8 @@ class ReplicateServiceTests {
                 .build();
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-
+        assertThat(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).map(Replicate::getCurrentStatus)
+                .contains(CONTRIBUTING);
         verifyNoInteractions(applicationEventPublisher);
     }
 
@@ -783,11 +789,9 @@ class ReplicateServiceTests {
                 Arrays.asList(replicate1, replicate2));
         replicatesRepository.save(replicatesList);
 
-        assertThat(replicatesService
-                .getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)
-                .get()
-                .getWalletAddress())
-                .isEqualTo(WALLET_WORKER_2);
+        assertThat(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)
+                .map(Replicate::getWalletAddress))
+                .contains(WALLET_WORKER_2);
     }
     // endregion
 
@@ -904,7 +908,6 @@ class ReplicateServiceTests {
         final ReplicatesList result = replicatesRepository.findByChainTaskId(CHAIN_TASK_ID).orElseThrow();
         assertThat(result.getReplicates()).hasSize(1);
         assertThat(result.getReplicates().get(0).getStatusUpdateList()).hasSize(3);
-        //verify(replicatesRepository).findByChainTaskId(CHAIN_TASK_ID);
     }
 
     // region canUpdateReplicateStatus
