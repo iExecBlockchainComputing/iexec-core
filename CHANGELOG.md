@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
 - Filter out `CONTRIBUTE_AND_FINALIZE` tasks when detecting missed `REVEALED` status update. (#658)
 - Fetch `results` on-chain when updating a replicate status in `CONTRIBUTE_AND_FINALIZE` workflow. (#659 #660)
 
+### Quality
+
+- Use `@DataMongoTest` and `@Testcontainers` annotations in replicates and compute logs tests. (#662)
+
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 
 ### New Features

@@ -54,7 +54,7 @@ class WorkerServiceRealRepositoryTests {
     private static final String WALLET_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
 
     @Container
-    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.4"));
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {

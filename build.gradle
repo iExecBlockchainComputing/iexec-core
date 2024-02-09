@@ -130,6 +130,7 @@ tasks.named("bootJar") {
 
 test {
     useJUnitPlatform()
+    systemProperty "mongo.image", "mongo:4.4.28-focal"
 }
 
 tasks.register('itest') {
