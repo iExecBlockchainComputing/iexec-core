@@ -43,6 +43,7 @@ class TaskLogsServiceTests {
 
     private static final String STDOUT = "This is an stdout string";
     private static final String STDERR = "This is an stderr string";
+    private static final ComputeLogs COMPUTE_LOGS = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
 
     @Container
     private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
@@ -71,8 +72,7 @@ class TaskLogsServiceTests {
     //region addComputeLogs
     @Test
     void shouldAddComputeLogs() {
-        final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
-        taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
+        taskLogsService.addComputeLogs(CHAIN_TASK_ID, COMPUTE_LOGS);
         assertThat(taskLogsRepository.count()).isOne();
         TaskLogs capturedEvent = taskLogsRepository.findOneByChainTaskId(CHAIN_TASK_ID).orElseThrow();
         assertThat(capturedEvent.getComputeLogsList().get(0).getStdout()).isEqualTo(STDOUT);
@@ -88,14 +88,40 @@ class TaskLogsServiceTests {
 
     @Test
     void shouldNotAddComputeLogsSinceLogsAlreadyKnown() {
-        final ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
         final TaskLogs taskLogs = TaskLogs.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .computeLogsList(Collections.singletonList(computeLogs))
+                .computeLogsList(Collections.singletonList(COMPUTE_LOGS))
                 .build();
         taskLogsRepository.save(taskLogs);
+        assertThat(taskLogs.containsWalletAddress(WORKER_ADDRESS)).isTrue();
+        taskLogsService.addComputeLogs(CHAIN_TASK_ID, COMPUTE_LOGS);
+        assertThat(taskLogsRepository.count()).isOne();
+        assertThat(taskLogsRepository.findOneByChainTaskId(CHAIN_TASK_ID)).contains(taskLogs);
+    }
+    //endregion
 
-        taskLogsService.addComputeLogs(CHAIN_TASK_ID, computeLogs);
+    //region delete
+    @Test
+    void shouldDeleteKnownTask() {
+        final TaskLogs taskLogs = TaskLogs.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .computeLogsList(List.of(COMPUTE_LOGS))
+                .build();
+        taskLogsRepository.save(taskLogs);
+        assertThat(taskLogsRepository.count()).isOne();
+        taskLogsService.delete(List.of(CHAIN_TASK_ID));
+        assertThat(taskLogsRepository.count()).isZero();
+    }
+
+    @Test
+    void shouldNotDeleteUnknownTask() {
+        final TaskLogs taskLogs = TaskLogs.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .computeLogsList(List.of(COMPUTE_LOGS))
+                .build();
+        taskLogsRepository.save(taskLogs);
+        assertThat(taskLogsRepository.count()).isOne();
+        taskLogsService.delete(List.of("0x00"));
         assertThat(taskLogsRepository.count()).isOne();
     }
     //endregion
@@ -103,10 +129,9 @@ class TaskLogsServiceTests {
     //region getComputeLogs
     @Test
     void shouldGetComputeLogs() {
-        ComputeLogs computeLogs = new ComputeLogs(WORKER_ADDRESS, STDOUT, STDERR);
-        TaskLogs taskLogs = TaskLogs.builder()
+        final TaskLogs taskLogs = TaskLogs.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .computeLogsList(List.of(computeLogs))
+                .computeLogsList(List.of(COMPUTE_LOGS))
                 .build();
         taskLogsRepository.save(taskLogs);
         Optional<ComputeLogs> optional = taskLogsService.getComputeLogs(CHAIN_TASK_ID, WORKER_ADDRESS);
