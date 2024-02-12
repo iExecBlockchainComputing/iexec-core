@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import com.iexec.core.registry.PlatformRegistryConfiguration;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
-import feign.Request;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +33,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -69,14 +67,14 @@ class SmsServiceTests {
 
     // region isSmsClientReady
     static Stream<Arguments> validData() {
-        List<String> supportedTeeTags = 
-            List.of(
-                TeeUtils.TEE_SCONE_ONLY_TAG, 
-                TeeUtils.TEE_GRAMINE_ONLY_TAG);
+        List<String> supportedTeeTags =
+                List.of(
+                        TeeUtils.TEE_SCONE_ONLY_TAG,
+                        TeeUtils.TEE_GRAMINE_ONLY_TAG);
         //Ensure all TeeEnclaveProvider are handled
         // (adding a new one would break assertion)
         Assertions.assertThat(supportedTeeTags)
-            .hasSize(TeeFramework.values().length);
+                .hasSize(TeeFramework.values().length);
         return Stream.of(
                 Arguments.of(supportedTeeTags.get(0), SCONE_SMS_URL),
                 Arguments.of(supportedTeeTags.get(1), GRAMINE_SMS_URL)
@@ -90,7 +88,7 @@ class SmsServiceTests {
         when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(inputTag));
 
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, inputTag))
-            .isEqualTo(Optional.of(expectedSmsUrl));
+                .isEqualTo(Optional.of(expectedSmsUrl));
 
         verify(smsClientProvider).getSmsClient(expectedSmsUrl);
         verify(smsClient).getTeeFramework();
@@ -99,19 +97,19 @@ class SmsServiceTests {
     @Test
     void shouldNotGetVerifiedSmsUrlSinceCannotGetEnclaveProviderFromTag() {
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, "0xabc"))
-            .isEmpty();
+                .isEmpty();
 
         verify(smsClientProvider, times(0)).getSmsClient(anyString());
         verify(smsClient, times(0)).getTeeFramework();
     }
 
     @Test
-    void shouldNotGetVerifiedSmsUrlSinceSinceWrongTeeEnclaveProviderOnRemoteSms() {
+    void shouldNotGetVerifiedSmsUrlSinceWrongTeeEnclaveProviderOnRemoteSms() {
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
 
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_GRAMINE_ONLY_TAG))
-            .isEmpty();
+                .isEmpty();
 
         verify(smsClientProvider).getSmsClient(GRAMINE_SMS_URL);
         verify(smsClient).getTeeFramework();
@@ -135,7 +133,7 @@ class SmsServiceTests {
         String expected = "challenge";
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
         when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
-        
+
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, url);
         verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
         Assertions.assertThat(received)
@@ -155,16 +153,35 @@ class SmsServiceTests {
 
     // region generateEnclaveChallenge
     @Test
-    void shouldNotGetEnclaveChallengeOnFeignException() {
+    void shouldGenerateEnclaveChallenge() {
+        final String expected = "challenge";
+
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        Request request = Request.create(Request.HttpMethod.HEAD, url,
-                Collections.emptyMap(), Request.Body.empty(), null);
-        Assertions.assertThat(smsService.generateEnclaveChallenge(
-                new FeignException.Unauthorized("", request, new byte[0], null),
-                CHAIN_TASK_ID,
-                url)
-        ).isEmpty();
-        verifyNoInteractions(smsClient);
+        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
+
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Assertions.assertThat(received)
+                .contains(expected);
+    }
+
+    @Test
+    void shouldNotGenerateEnclaveChallengeSinceNoPublicKeyReturned() {
+        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
+
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Assertions.assertThat(received)
+                .isEmpty();
+    }
+
+    @Test
+    void shouldNotGenerateEnclaveChallengeSinceFeignException() {
+        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenThrow(FeignException.GatewayTimeout.class);
+
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Assertions.assertThat(received)
+                .isEmpty();
     }
     // endregion
 }
