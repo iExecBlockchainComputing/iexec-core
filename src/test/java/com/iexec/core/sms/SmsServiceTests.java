@@ -183,5 +183,15 @@ class SmsServiceTests {
         Assertions.assertThat(received)
                 .isEmpty();
     }
+
+    @Test
+    void shouldNotGenerateEnclaveChallengeSinceRuntimeException() {
+        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenThrow(RuntimeException.class);
+
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Assertions.assertThat(received)
+                .isEmpty();
+    }
     // endregion
 }

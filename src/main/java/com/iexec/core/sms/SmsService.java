@@ -134,7 +134,12 @@ public class SmsService {
 
             return Optional.of(teeChallengePublicKey);
         } catch (FeignException e) {
-            log.error("Failed to get enclaveChallenge from SMS [chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl, e);
+            log.error("Failed to get enclaveChallenge from SMS: unexpected return code [chainTaskId:{}, smsUrl:{}, statusCode:{}]",
+                    chainTaskId, smsUrl, e.status(), e);
+            return Optional.empty();
+        } catch (RuntimeException e) {
+            log.error("Failed to get enclaveChallenge from SMS: unexpected exception [chainTaskId:{}, smsUrl:{}]",
+                    chainTaskId, smsUrl, e);
             return Optional.empty();
         }
     }

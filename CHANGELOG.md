@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - Filter out `CONTRIBUTE_AND_FINALIZE` tasks when detecting missed `REVEALED` status update. (#658)
 - Fetch `results` on-chain when updating a replicate status in `CONTRIBUTE_AND_FINALIZE` workflow. (#659 #660)
-- Fix enclave challenge generation failure. (#663)
+- Properly catch all runtime exceptions when an enclave challenge generation fails. (#663)
 
 ### Quality
 
