@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,6 @@ import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -39,7 +37,7 @@ public class SmsService {
     private final SmsClientProvider smsClientProvider;
 
     public SmsService(PlatformRegistryConfiguration registryConfiguration,
-        SmsClientProvider smsClientProvider) {
+                      SmsClientProvider smsClientProvider) {
         this.registryConfiguration = registryConfiguration;
         this.smsClientProvider = smsClientProvider;
     }
@@ -55,27 +53,27 @@ public class SmsService {
      * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
      *
      * @param chainTaskId ID of the on-chain task.
-     * @param tag Tag of the deal.
+     * @param tag         Tag of the deal.
      * @return SMS url if TEE types of tag & SMS match.
      */
     public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
         final TeeFramework teeFrameworkForDeal = TeeUtils.getTeeFramework(tag);
-        if(teeFrameworkForDeal == null){
+        if (teeFrameworkForDeal == null) {
             log.error("Can't get verified SMS url with invalid TEE framework " +
-                "from tag [chainTaskId:{}]", chainTaskId);
+                    "from tag [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
         Optional<String> smsUrl = retrieveSmsUrl(teeFrameworkForDeal);
-        if(smsUrl.isEmpty()){
-            log.error("Can't get verified SMS url since type of tag is not " + 
-                "supported [chainTaskId:{},teeFrameworkForDeal:{}]",
+        if (smsUrl.isEmpty()) {
+            log.error("Can't get verified SMS url since type of tag is not " +
+                            "supported [chainTaskId:{},teeFrameworkForDeal:{}]",
                     chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
-        if(!checkSmsTeeFramework(smsClient, teeFrameworkForDeal, chainTaskId)){
-            log.error("Can't get verified SMS url since tag TEE type " + 
-                "does not match SMS TEE type [chainTaskId:{},teeFrameworkForDeal:{}]",
+        if (!checkSmsTeeFramework(smsClient, teeFrameworkForDeal, chainTaskId)) {
+            log.error("Can't get verified SMS url since tag TEE type " +
+                            "does not match SMS TEE type [chainTaskId:{},teeFrameworkForDeal:{}]",
                     chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
@@ -84,9 +82,9 @@ public class SmsService {
 
     private Optional<String> retrieveSmsUrl(TeeFramework teeFramework) {
         Optional<String> smsUrl = Optional.empty();
-        if(teeFramework == TeeFramework.SCONE){
+        if (teeFramework == TeeFramework.SCONE) {
             smsUrl = Optional.of(registryConfiguration.getSconeSms());
-        } else if(teeFramework == TeeFramework.GRAMINE){
+        } else if (teeFramework == TeeFramework.GRAMINE) {
             smsUrl = Optional.of(registryConfiguration.getGramineSms());
         }
         return smsUrl;
@@ -119,27 +117,29 @@ public class SmsService {
                 : generateEnclaveChallenge(chainTaskId, smsUrl);
     }
 
-    @Retryable(value = FeignException.class)
     Optional<String> generateEnclaveChallenge(String chainTaskId, String smsUrl) {
         // SMS client should already have been created once before.
         // If it couldn't be created, then the task would have been aborted.
         // So the following won't throw an exception.
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl);
 
-        final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+        try {
+            final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
 
-        if (StringUtils.isEmpty(teeChallengePublicKey)) {
-            log.error("An error occurred while getting teeChallengePublicKey " 
-                + "[chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl);
-            return Optional.empty();
+            if (StringUtils.isEmpty(teeChallengePublicKey)) {
+                log.error("An error occurred while getting teeChallengePublicKey "
+                        + "[chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl);
+                return Optional.empty();
+            }
+
+            return Optional.of(teeChallengePublicKey);
+        } catch (FeignException e) {
+            log.error("Failed to get enclaveChallenge from SMS: unexpected return code [chainTaskId:{}, smsUrl:{}, statusCode:{}]",
+                    chainTaskId, smsUrl, e.status(), e);
+        } catch (RuntimeException e) {
+            log.error("Failed to get enclaveChallenge from SMS: unexpected exception [chainTaskId:{}, smsUrl:{}]",
+                    chainTaskId, smsUrl, e);
         }
-
-        return Optional.of(teeChallengePublicKey);
-    }
-
-    @Recover
-    Optional<String> generateEnclaveChallenge(FeignException e, String chainTaskId, String smsUrl) {
-        log.error("Failed to get enclaveChallenge from SMS even after retrying [chainTaskId:{}, attempts:3]", chainTaskId, e);
         return Optional.empty();
     }
 }
