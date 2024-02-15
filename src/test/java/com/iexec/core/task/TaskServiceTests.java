@@ -18,6 +18,7 @@ package com.iexec.core.task;
 
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
+import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
@@ -33,6 +34,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -43,14 +45,18 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.COMPLETED;
 import static com.iexec.core.task.TaskStatus.INITIALIZED;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -101,6 +107,7 @@ class TaskServiceTests {
         Metrics.globalRegistry.clear();
     }
 
+    // region getTaskByChainTaskId
     @Test
     void shouldNotGetTaskWithTrust() {
         Optional<Task> task = taskService.getTaskByChainTaskId("dummyId");
@@ -114,7 +121,9 @@ class TaskServiceTests {
         Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
         assertThat(optional).usingRecursiveComparison().isEqualTo(Optional.of(task));
     }
+    // endregion
 
+    // region addTask
     @Test
     void shouldAddTask() {
         Task task = getStubTask(maxExecutionTime);
@@ -131,6 +140,50 @@ class TaskServiceTests {
     }
 
     @Test
+    void shouldAddTaskASingleTime() {
+        final int concurrentRequests = 5;
+        final String expectedChainTaskId = ChainUtils.generateChainTaskId(CHAIN_DEAL_ID, 0);
+
+        // Let's start n `taskService.addTask` at the same time.
+        // Without any sync mechanism, this should fail
+        // as it'll try to add more than once the same task - with the same key - to the DB.
+        final ExecutorService executorService = Executors.newFixedThreadPool(concurrentRequests);
+        final List<Future<Optional<Task>>> executions = new ArrayList<>(concurrentRequests);
+        for (int i = 0; i < concurrentRequests; i++) {
+            executions.add(executorService.submit(() -> taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
+                    2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline)));
+        }
+
+        // Let's wait for the `taskService.addTask` to complete and retrieve the results.
+        List<Optional<Task>> results = executions.stream().map(execution -> {
+            try {
+                return execution.get(1, TimeUnit.MINUTES);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof DuplicateKeyException) {
+                    fail("Task has been added twice. Should not happen!");
+                }
+                throw new RuntimeException("Something went wrong.", e);
+            } catch (InterruptedException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
+
+        // Check one execution has added the task,
+        // while the others have failed.
+        assertThat(results).hasSize(concurrentRequests);
+        final List<Task> nonEmptyResults = results
+                .stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        assertThat(nonEmptyResults).hasSize(1);
+        assertThat(nonEmptyResults.get(0).getChainTaskId()).isEqualTo(expectedChainTaskId);
+
+        // Finally, let's simply check the task has effectively been added.
+        assertThat(taskRepository.findByChainTaskId(CHAIN_TASK_ID)).isPresent();
+    }
+
+    @Test
     void shouldNotAddTask() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
@@ -140,7 +193,9 @@ class TaskServiceTests {
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEmpty();
     }
+    // endregion
 
+    // region findByCurrentStatus
     @Test
     void shouldFindByCurrentStatus() {
         TaskStatus status = TaskStatus.INITIALIZED;
@@ -181,7 +236,7 @@ class TaskServiceTests {
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
         assertThat(foundTasks).isEmpty();
     }
-
+    // endregion
 
     @Test
     void shouldGetInitializedOrRunningTasks() {
@@ -220,8 +275,6 @@ class TaskServiceTests {
         assertThat(taskService.getChainTaskIdsOfTasksExpiredBefore(date))
                 .isEqualTo(List.of(CHAIN_TASK_ID));
     }
-
-    // isExpired
 
     @Test
     void shouldFindTaskExpired() {
