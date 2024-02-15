@@ -43,7 +43,9 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 import static com.iexec.core.task.TaskStatus.COMPLETED;
 import static com.iexec.core.task.TaskStatus.INITIALIZED;
@@ -147,11 +149,9 @@ class TaskServiceTests {
         task.changeStatus(status);
         taskRepository.save(task);
 
-        List<Task> taskList = List.of(task);
-
         List<Task> foundTasks = taskService.findByCurrentStatus(status);
 
-        assertThat(foundTasks).usingRecursiveComparison().isEqualTo(taskList);
+        assertThat(foundTasks).usingRecursiveComparison().isEqualTo(List.of(task));
         assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(status);
     }
 
@@ -163,24 +163,21 @@ class TaskServiceTests {
 
     @Test
     void shouldFindByCurrentStatusList() {
-        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+        List<TaskStatus> statusList = List.of(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(TaskStatus.INITIALIZED);
         taskRepository.save(task);
 
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(task);
-
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
 
-        assertThat(foundTasks).usingRecursiveComparison().isEqualTo(taskList);
+        assertThat(foundTasks).usingRecursiveComparison().isEqualTo(List.of(task));
         assertThat(foundTasks.get(0).getCurrentStatus()).isIn(statusList);
     }
 
     @Test
     void shouldNotFindByCurrentStatusList() {
-        List<TaskStatus> statusList = Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
+        List<TaskStatus> statusList = List.of(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
         assertThat(foundTasks).isEmpty();
     }
@@ -191,7 +188,7 @@ class TaskServiceTests {
         Task task = getStubTask(maxExecutionTime);
         task.setCurrentStatus(INITIALIZED);
         taskRepository.save(task);
-        assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+        assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
                 .usingRecursiveComparison()
                 .isEqualTo(Optional.of(task));
     }
