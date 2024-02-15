@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ public class Task {
 
     public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
         Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
-        if (consensusReachedDate.isEmpty()){
+        if (consensusReachedDate.isEmpty()) {
             return false;
         }
         Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.maxExecutionTime);
@@ -163,24 +163,24 @@ public class Task {
         return Optional.empty();
     }
 
-    public boolean isContributionDeadlineReached(){
+    public boolean isContributionDeadlineReached() {
         return new Date().after(contributionDeadline);
     }
 
-	public boolean inContributionPhase() {
-		return TaskStatus.isInContributionPhase(getCurrentStatus());
-	}
+    public boolean inContributionPhase() {
+        return TaskStatus.isInContributionPhase(getCurrentStatus());
+    }
 
-	public boolean inRevealPhase() {
-		return TaskStatus.isInRevealPhase(getCurrentStatus());
-	}
+    public boolean inRevealPhase() {
+        return TaskStatus.isInRevealPhase(getCurrentStatus());
+    }
 
-	public boolean inResultUploadPhase() {
-		return TaskStatus.isInResultUploadPhase(getCurrentStatus());
-	}
+    public boolean inResultUploadPhase() {
+        return TaskStatus.isInResultUploadPhase(getCurrentStatus());
+    }
 
     public boolean inCompletionPhase() {
-		return TaskStatus.isInCompletionPhase(getCurrentStatus());
+        return TaskStatus.isInCompletionPhase(getCurrentStatus());
     }
 
     public boolean isTeeTask() {
