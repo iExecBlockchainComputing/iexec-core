@@ -136,7 +136,7 @@ class TaskServiceTests {
         assertThat(saved)
                 .usingRecursiveComparison()
                 .ignoringFields("value.id", "value.version")
-                .ignoringFieldsOfTypes(List.class)
+                .ignoringFieldsMatchingRegexes("value.dateStatusList.*")
                 .isEqualTo(Optional.of(task));
     }
 
