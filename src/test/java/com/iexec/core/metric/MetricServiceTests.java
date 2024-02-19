@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ class MetricServiceTests {
     void shouldGetPlatformMetrics() {
         final LinkedHashMap<TaskStatus, Long> expectedCurrentTaskStatusesCount = createExpectedCurrentTaskStatusesCount();
 
-        List<Worker> aliveWorkers = List.of(new Worker());
+        List<Worker> aliveWorkers = List.of(Worker.builder().build());
         when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
         when(workerService.getAliveTotalCpu()).thenReturn(1);
         when(workerService.getAliveAvailableCpu()).thenReturn(1);
