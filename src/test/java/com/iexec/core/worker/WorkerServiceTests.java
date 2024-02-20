@@ -26,11 +26,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -52,6 +50,7 @@ import java.util.stream.IntStream;
 
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.when;
 
 @DataMongoTest
@@ -72,7 +71,6 @@ class WorkerServiceTests {
 
     @Autowired
     private MongoTemplate mongoTemplate;
-    @SpyBean
     @Autowired
     private WorkerRepository workerRepository;
 
@@ -118,13 +116,17 @@ class WorkerServiceTests {
         Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
         Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
 
-        assertThat(aliveWorkersGauge).isNotNull();
-        assertThat(aliveTotalCpuGauge).isNotNull();
-        assertThat(aliveAvailableCpuGauge).isNotNull();
-
-        assertThat(aliveWorkersGauge.value()).isZero();
-        assertThat(aliveTotalCpuGauge.value()).isZero();
-        assertThat(aliveAvailableCpuGauge.value()).isZero();
+        assertAll(
+                () -> assertThat(aliveWorkersGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo(0.0),
+                () -> assertThat(aliveTotalCpuGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo(0.0),
+                () -> assertThat(aliveAvailableCpuGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo(0.0)
+        );
     }
 
     @Test
@@ -187,9 +189,10 @@ class WorkerServiceTests {
                 .cpuNb(8)
                 .build();
 
+        assertThat(workerRepository.count()).isZero();
         Worker addedWorker = workerService.addWorker(worker);
         // check that the save method was called once
-        Mockito.verify(workerRepository, Mockito.times(1)).save(Mockito.any());
+        assertThat(workerRepository.count()).isOne();
         assertThat(addedWorker.getName()).isEqualTo(worker.getName());
         assertThat(workerService.getWorkerStatsMap().get(WORKER1).getLastAliveDate()).isBefore(new Date());
     }
@@ -476,7 +479,7 @@ class WorkerServiceTests {
         List<Worker> allWorkers = getDummyWorkers();
 
         List<Worker> lostWorkers = allWorkers.subList(1, 3);
-        when(workerRepository.findByWalletAddressIn(Mockito.any())).thenReturn(lostWorkers);
+        workerRepository.saveAll(allWorkers);
 
         List<Worker> claimedLostWorkers = workerService.getLostWorkers();
 
@@ -623,13 +626,17 @@ class WorkerServiceTests {
         Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
         Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
 
-        assertThat(aliveWorkersGauge).isNotNull();
-        assertThat(aliveTotalCpuGauge).isNotNull();
-        assertThat(aliveAvailableCpuGauge).isNotNull();
-
-        assertThat(aliveWorkersGauge.value()).isEqualTo(list.size());
-        assertThat(aliveTotalCpuGauge.value()).isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
-        assertThat(aliveAvailableCpuGauge.value()).isEqualTo(2);
+        assertAll(
+                () -> assertThat(aliveWorkersGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo((double) list.size()),
+                () -> assertThat(aliveTotalCpuGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo((double) worker1.getCpuNb() + worker2.getCpuNb()),
+                () -> assertThat(aliveAvailableCpuGauge)
+                        .isNotNull()
+                        .extracting(Gauge::value).isEqualTo(2.0)
+        );
     }
 
     // getAliveTotalGpu
