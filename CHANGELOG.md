@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
 
 - Use `@DataMongoTest` and `@Testcontainers` annotations in replicates, compute logs and tasks tests. (#662 #664 #665)
 
+### Dependency Upgrades
+
+- Upgrade to `iexec-common` 8.4.0. (#666)
+
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 
 ### New Features
