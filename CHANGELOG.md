@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
+
+### New Features
+
+- Use `MongoTemplate` to enable document update without full rewrite. (#661)
+
+### Bug Fixes
+
+- Filter out `CONTRIBUTE_AND_FINALIZE` tasks when detecting missed `REVEALED` status update. (#658)
+- Fetch `results` on-chain when updating a replicate status in `CONTRIBUTE_AND_FINALIZE` workflow. (#659 #660)
+- Properly catch all runtime exceptions when an enclave challenge generation fails. (#663)
+
+### Quality
+
+- Use `@DataMongoTest` and `@Testcontainers` annotations in replicates, compute logs and tasks tests. (#662 #664 #665)
+
+### Dependency Upgrades
+
+- Upgrade to `iexec-common` 8.4.0. (#666)
+- Upgrade to `iexec-blockchain-adapter` 8.4.0. (#667)
+- Upgrade to `iexec-result-proxy` 8.4.0. (#667)
+- Upgrade to `iexec-sms` 8.5.0. (#667)
+
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 
 ### New Features

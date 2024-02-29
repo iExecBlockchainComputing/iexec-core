@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +23,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Data
 @Document
-@AllArgsConstructor
+@Data
 @Builder
+@AllArgsConstructor
 public class Worker {
 
     @Id
@@ -47,17 +46,14 @@ public class Worker {
     private int memorySize;
     private boolean teeEnabled;
     private boolean gpuEnabled;
-    private List<String> participatingChainTaskIds;
-    private List<String> computingChainTaskIds;
+    @Builder.Default
+    private List<String> participatingChainTaskIds = List.of();
+    @Builder.Default
+    private List<String> computingChainTaskIds = List.of();
 
     // TODO remove it cleanly in a release
     private Date lastAliveDate;
     private Date lastReplicateDemandDate;
-
-    public Worker() {
-        participatingChainTaskIds = new ArrayList<>();
-        computingChainTaskIds = new ArrayList<>();
-    }
 
     void addChainTaskId(String chainTaskId) {
         participatingChainTaskIds.add(chainTaskId);

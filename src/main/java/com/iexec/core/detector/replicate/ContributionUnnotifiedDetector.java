@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.commons.poco.chain.ChainContributionStatus;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.CronConfiguration;
+import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -50,5 +51,15 @@ public class ContributionUnnotifiedDetector extends UnnotifiedAbstractDetector {
     @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
     public void detectOnChainChanges() {
         super.detectOnChainChanges();
+    }
+
+    @Override
+    protected final boolean checkDetectionIsValid(Replicate replicate) {
+        return !iexecHubService.getTaskDescription(replicate.getChainTaskId()).isEligibleToContributeAndFinalize();
+    }
+
+    @Override
+    protected boolean detectStatusReachedOnChain(Replicate replicate) {
+        return iexecHubService.isContributed(replicate.getChainTaskId(), replicate.getWalletAddress());
     }
 }
