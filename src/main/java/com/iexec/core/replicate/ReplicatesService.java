@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -267,50 +267,6 @@ public class ReplicatesService {
                 .build();
     }
 
-    /*
-     * This implicitly sets the modifier to POOL_MANAGER
-     *
-     * @Retryable is needed as it isn't triggered by a call from within the class itself.
-     */
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public void updateReplicateStatus(String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus) {
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus);
-        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    }
-
-    @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus) {
-        logUpdateReplicateStatusRecover(exception);
-    }
-
-    /*
-     * This implicitly sets the modifier to POOL_MANAGER
-     *
-     * @Retryable is needed as it isn't triggered by a call from within the class itself.
-     */
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public void updateReplicateStatus(String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(newStatus, details);
-        updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-    }
-
-    @Recover
-    public void updateReplicateStatus(OptimisticLockingFailureException exception,
-                                      String chainTaskId,
-                                      String walletAddress,
-                                      ReplicateStatus newStatus,
-                                      ReplicateStatusDetails details) {
-        logUpdateReplicateStatusRecover(exception);
-    }
-
     @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
     public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
             String chainTaskId,
@@ -334,7 +290,9 @@ public class ReplicatesService {
             String chainTaskId,
             String walletAddress,
             ReplicateStatusUpdate statusUpdate) {
-        logUpdateReplicateStatusRecover(exception);
+        final String details = String.format("[chainTaskId:%s, walletAddress:%s, statusUpdate:%s]",
+                chainTaskId, walletAddress, statusUpdate);
+        log.error("Could not update replicate status, maximum number of retries reached {}", details, exception);
         return null;
     }
 
@@ -362,8 +320,7 @@ public class ReplicatesService {
      * @return Either a {@link ReplicateStatusUpdateError} if the status can't be updated,
      * or a next action for the worker.
      */
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
-    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
+    Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
             String chainTaskId,
             String walletAddress,
             ReplicateStatusUpdate statusUpdate,
@@ -377,23 +334,12 @@ public class ReplicatesService {
         );
     }
 
-    @Recover
-    public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
-            OptimisticLockingFailureException exception,
-            String chainTaskId,
-            String walletAddress,
-            ReplicateStatusUpdate statusUpdate,
-            UpdateReplicateStatusArgs updateReplicateStatusArgs) {
-        logUpdateReplicateStatusRecover(exception);
-        return null;
-    }
-
     /**
      * This method updates a replicate but does not care about thread safety.
      * A single replicate can then be updated twice at the same time
      * and completely break a task.
      * This method has to be used with a synchronization mechanism, e.g.
-     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)}
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatusUpdate, UpdateReplicateStatusArgs)}
      *
      * @param chainTaskId               Chain task id of the task whose replicate should be updated.
      * @param walletAddress             Wallet address of the worker whose replicate should be updated.
@@ -464,10 +410,6 @@ public class ReplicatesService {
                 replicate.getCurrentStatus(), newStatusCause, nextAction, chainTaskId, walletAddress);
 
         return Either.right(nextAction);
-    }
-
-    private void logUpdateReplicateStatusRecover(OptimisticLockingFailureException exception) {
-        log.error("Could not update replicate status, maximum number of retries reached", exception);
     }
 
     private boolean canUpdateToBlockchainSuccess(String chainTaskId,

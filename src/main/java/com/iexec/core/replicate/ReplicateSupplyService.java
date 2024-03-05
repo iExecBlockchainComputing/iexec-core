@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,8 +207,8 @@ public class ReplicateSupplyService implements Purgeable {
      * tries to accept the task - i.e. create a new {@link Replicate}
      * for that task on that worker.
      *
-     * @param task          {@link Task} needing at least one new {@link Replicate}.
-     * @param walletAddress Wallet address of a worker looking for new {@link Task}.
+     * @param task           {@link Task} needing at least one new {@link Replicate}.
+     * @param walletAddress  Wallet address of a worker looking for new {@link Task}.
      * @param replicatesList Replicates of given {@link Task}.
      * @return {@literal true} if the task has been accepted,
      * {@literal false} otherwise.
@@ -364,7 +364,8 @@ public class ReplicateSupplyService implements Purgeable {
 
         if (didReplicateStartContributing && didReplicateContributeOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, CONTRIBUTED, details);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(CONTRIBUTED, details);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -419,7 +420,8 @@ public class ReplicateSupplyService implements Purgeable {
 
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(REVEALED, details);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
             taskUpdateRequestManager.publishRequest(chainTaskId);
         }
 
@@ -474,7 +476,8 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
             taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);

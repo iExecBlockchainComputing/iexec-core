@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,20 +26,19 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.Collections;
 import java.util.Optional;
 
+import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 
 class WorkerLostDetectorTests {
 
-    private final static String WALLET_WORKER = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    private final static String CHAIN_TASK_ID = "chainTaskId";
+    private static final String WALLET_WORKER = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final String CHAIN_TASK_ID = "chainTaskId";
 
     @Mock
     private WorkerService workerService;
@@ -59,16 +58,15 @@ class WorkerLostDetectorTests {
     }
 
     @Test
-    void shouldNotDetectAnyWorkerLost(){
+    void shouldNotDetectAnyWorkerLost() {
         when(workerService.getLostWorkers()).thenReturn(Collections.emptyList());
         workerLostDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
                 .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusUpdate.class));
-
     }
 
     @Test
-    void shouldUpdateOneReplicateToWorkerLost(){
+    void shouldUpdateOneReplicateToWorkerLost() {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -83,13 +81,15 @@ class WorkerLostDetectorTests {
 
         workerLostDetector.detect();
         // verify that the call on the update is correct
+        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER), statusUpdate.capture());
+        assertThat(statusUpdate.getValue().getStatus()).isEqualTo(WORKER_LOST);
     }
 
     // similar test with previous except that the Replicate is already is WORKER_LOST status.
     @Test
-    void shouldNotUpdateToWorkerLostSinceAlreadyUpdated(){
+    void shouldNotUpdateToWorkerLostSinceAlreadyUpdated() {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -97,7 +97,7 @@ class WorkerLostDetectorTests {
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
-        replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+        replicate.updateStatus(WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
@@ -105,11 +105,11 @@ class WorkerLostDetectorTests {
 
         workerLostDetector.detect();
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
-    void shouldNotUpdateToWorkerLostSinceFailed(){
+    void shouldNotUpdateToWorkerLostSinceFailed() {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -125,11 +125,11 @@ class WorkerLostDetectorTests {
 
         workerLostDetector.detect();
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
-    void shouldNotUpdateToWorkerLostSinceCompleted(){
+    void shouldNotUpdateToWorkerLostSinceCompleted() {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -145,11 +145,11 @@ class WorkerLostDetectorTests {
 
         workerLostDetector.detect();
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
-    void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired(){
+    void shouldNotUpdateOneReplicateToWorkerLostTaskIsExpired() {
         Worker worker = Worker.builder()
                 .walletAddress(WALLET_WORKER)
                 .participatingChainTaskIds(Collections.singletonList(CHAIN_TASK_ID))
@@ -157,7 +157,7 @@ class WorkerLostDetectorTests {
 
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.STARTING, ReplicateStatusModifier.WORKER);
-        replicate.updateStatus(ReplicateStatus.WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
+        replicate.updateStatus(WORKER_LOST, ReplicateStatusModifier.POOL_MANAGER);
 
         when(workerService.getLostWorkers()).thenReturn(Collections.singletonList(worker));
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER)).thenReturn(Optional.of(replicate));
@@ -166,7 +166,7 @@ class WorkerLostDetectorTests {
         workerLostDetector.detect();
         // verify that the call on the update is correct
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
 
         // verify that the worker should remove the taskId from its current tasks
         Mockito.verify(workerService, Mockito.times(0))
