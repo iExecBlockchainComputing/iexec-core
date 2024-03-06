@@ -47,6 +47,7 @@ import static org.mockito.Mockito.*;
 class IexecHubServiceTests {
 
     private static final String TRANSACTION_HASH = "transactionHash";
+    private static final long TIME_INTERVAL_IN_MS = 100L;
 
     @Mock
     private CredentialsService credentialsService;
@@ -101,7 +102,7 @@ class IexecHubServiceTests {
     void canNotFinalizeWhenNotRevealing() {
         final ChainTask chainTask = ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
-                .finalDeadline(Instant.now().plus(10L, ChronoUnit.SECONDS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
                 .build();
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
         assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
@@ -111,10 +112,47 @@ class IexecHubServiceTests {
     void canNotFinalizeWhenFinalDeadlineReached() {
         final ChainTask chainTask = ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
-                .finalDeadline(Instant.now().minus(10L, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
                 .build();
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
         assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenNotEnoughReveals() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(2)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canFinalizeWhenRevealDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isTrue();
+    }
+
+    @Test
+    void canFinalizeWhenAllWinnersRevealed() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(1)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isTrue();
     }
     // endregion
 
