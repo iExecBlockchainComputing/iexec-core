@@ -135,6 +135,8 @@ class IexecHubServiceTests {
     void canFinalizeWhenRevealDeadlineReached() {
         final ChainTask chainTask = ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(2)
                 .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
                 .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
                 .build();
