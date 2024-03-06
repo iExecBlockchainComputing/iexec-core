@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.iexec.core.chain;
 
 import com.iexec.commons.poco.chain.*;
@@ -16,6 +32,8 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.methods.response.Log;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
@@ -54,7 +72,7 @@ class IexecHubServiceTests {
         iexecHubService = spy(new IexecHubService(credentialsService, web3jService, chainConfig));
     }
 
-
+    // region isTaskInCompletedStatusOnChain
     @Test
     void shouldTaskBeInCompletedStatusOnChain() {
         final ChainTask task = ChainTask.builder().status(ChainTaskStatus.COMPLETED).build();
@@ -70,8 +88,37 @@ class IexecHubServiceTests {
 
         assertThat(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).isFalse();
     }
+    // endregion
 
-    // region check contribution status
+    // region canFinalize
+    @Test
+    void canNotFinalizeWhenChainTaskNotFound() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenNotRevealing() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .finalDeadline(Instant.now().plus(10L, ChronoUnit.SECONDS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenFinalDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .finalDeadline(Instant.now().minus(10L, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+    // endregion
+
+    // region isContributed
     @ParameterizedTest
     @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"CONTRIBUTED", "REVEALED"})
     void shouldBeContributed(ChainContributionStatus status) {
@@ -87,7 +134,9 @@ class IexecHubServiceTests {
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
         assertThat(iexecHubService.isContributed(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
     }
+    // endregion
 
+    // region isRevealed
     @ParameterizedTest
     @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"REVEALED"})
     void shouldBeRevealed(ChainContributionStatus status) {
