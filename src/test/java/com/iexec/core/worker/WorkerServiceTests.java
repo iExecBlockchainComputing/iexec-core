@@ -40,6 +40,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.when;
@@ -534,9 +534,12 @@ class WorkerServiceTests {
     }
 
     List<Worker> getDummyWorkers() {
-        workerService.getWorkerStatsMap().computeIfAbsent("address1", WorkerService.WorkerStats::new).setLastAliveDate(new Date());
-        workerService.getWorkerStatsMap().computeIfAbsent("address2", WorkerService.WorkerStats::new).setLastAliveDate(addMinutesToDate(new Date(), -2));
-        workerService.getWorkerStatsMap().computeIfAbsent("address3", WorkerService.WorkerStats::new).setLastAliveDate(addMinutesToDate(new Date(), -3));
+        workerService.getWorkerStatsMap().computeIfAbsent("address1", WorkerService.WorkerStats::new)
+                .setLastAliveDate(Date.from(Instant.now()));
+        workerService.getWorkerStatsMap().computeIfAbsent("address2", WorkerService.WorkerStats::new)
+                .setLastAliveDate(Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES)));
+        workerService.getWorkerStatsMap().computeIfAbsent("address3", WorkerService.WorkerStats::new)
+                .setLastAliveDate(Date.from(Instant.now().minus(3L, ChronoUnit.MINUTES)));
         return List.of(
                 Worker.builder().id("1").walletAddress("address1").build(),
                 Worker.builder().id("2").walletAddress("address2").build(),

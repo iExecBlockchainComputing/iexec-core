@@ -20,7 +20,6 @@ import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
@@ -410,7 +409,7 @@ class TaskUpdateManagerTest {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.empty());
 
@@ -438,7 +437,7 @@ class TaskUpdateManagerTest {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
@@ -472,7 +471,7 @@ class TaskUpdateManagerTest {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag))
                 .thenReturn(Optional.of(smsUrl));
@@ -508,7 +507,7 @@ class TaskUpdateManagerTest {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .contributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60).getTime())
+                .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(Optional.empty());
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
@@ -645,8 +644,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
-        Date now = new Date();
-        Date timeoutInFuture = DateTimeUtils.addMinutesToDate(now, 1);
+        Date timeoutInFuture = Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES));
 
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
@@ -666,8 +664,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceChainTaskIsntActive() {
-        Date now = new Date();
-        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
@@ -687,8 +684,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
-        Date now = new Date();
-        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(CONTRIBUTION_TIMEOUT);
@@ -708,8 +704,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
-        Date now = new Date();
-        Date timeoutInPast = DateTimeUtils.addMinutesToDate(now, -1);
+        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);

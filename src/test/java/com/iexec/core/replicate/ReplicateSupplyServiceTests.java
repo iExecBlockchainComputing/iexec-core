@@ -20,7 +20,6 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.replicate.ReplicateTaskSummary;
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.commons.poco.notification.TaskNotificationExtra;
@@ -41,6 +40,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -154,7 +155,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
@@ -191,7 +192,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
@@ -252,7 +253,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(
@@ -291,7 +292,7 @@ class ReplicateSupplyServiceTests {
         runningTask.changeStatus(RUNNING);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         // Replicate already scheduled and contributed on worker1
@@ -336,7 +337,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge("");
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -374,14 +375,14 @@ class ReplicateSupplyServiceTests {
         int trust = 5;
         Task task1 = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
         task1.setMaxExecutionTime(maxExecutionTime);
-        task1.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        task1.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         task1.changeStatus(RUNNING);
         task1.setTag(NO_TEE_TAG);
         task1.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
         taskDeadlineReached.setMaxExecutionTime(maxExecutionTime);
-        taskDeadlineReached.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
+        taskDeadlineReached.setContributionDeadline(Date.from(Instant.now().minus(60, ChronoUnit.MINUTES)));
         taskDeadlineReached.changeStatus(RUNNING);
         taskDeadlineReached.setTag(NO_TEE_TAG);
         taskDeadlineReached.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -428,7 +429,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
@@ -460,7 +461,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -505,7 +506,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -550,7 +551,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
@@ -579,7 +580,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = Mockito.spy(

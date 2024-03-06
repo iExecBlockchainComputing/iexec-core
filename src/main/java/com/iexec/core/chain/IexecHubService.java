@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.utils.DateTimeUtils.now;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
@@ -167,9 +167,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         ChainTask chainTask = optional.get();
 
         boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean isFinalDeadlineInFuture = now() < chainTask.getFinalDeadline();
+        boolean isFinalDeadlineInFuture = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
         boolean hasEnoughRevealors = (chainTask.getRevealCounter() == chainTask.getWinnerCounter())
-                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now());
+                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= Instant.now().toEpochMilli());
 
         boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
@@ -190,8 +190,8 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         ChainTask chainTask = optional.get();
 
         boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean isBeforeFinalDeadline = now() < chainTask.getFinalDeadline();
-        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= now();
+        boolean isBeforeFinalDeadline = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
+        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= Instant.now().toEpochMilli();
         boolean revealCounterEqualsZero = chainTask.getRevealCounter() == 0;
 
         boolean check = isChainTaskStatusRevealing && isBeforeFinalDeadline && isAfterRevealDeadline
