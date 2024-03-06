@@ -765,8 +765,6 @@ class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        //Mockito.verify(replicatesService, times(1))
-        //        .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // CONTRIBUTED
     }
 
     /**
@@ -834,8 +832,6 @@ class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        //Mockito.verify(replicatesService, times(1))
-        //        .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
     }
 
     /**
@@ -956,8 +952,6 @@ class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        //Mockito.verify(replicatesService, times(1))
-        //        .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // REVEALED
     }
 
     /**
