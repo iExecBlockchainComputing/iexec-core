@@ -551,17 +551,12 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(TaskDescription task) {
-        // Offchain computing - basic & tee
+        // Offchain computing - basic & TEE
         if (task.containsCallback()) {
             return true;
         }
 
-        // Cloud computing - tee
-        if (task.isTeeTask()) {
-            return true; // pushed from enclave
-        }
-
-        // Cloud computing - basic
+        // Cloud computing - basic & TEE
         return resultService.isResultUploaded(task.getChainTaskId());
     }
 
