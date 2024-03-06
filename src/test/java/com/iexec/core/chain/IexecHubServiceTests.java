@@ -158,6 +158,67 @@ class IexecHubServiceTests {
     }
     // endregion
 
+    // region canReopen
+    @Test
+    void canNotRepoenWhenChainTaskNotFound() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenNotRevealing() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenFinalDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenBeforeRevealDeadline() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenSomeWinnersRevealed() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canReopenWhenRevealDeadlineReachedAndNoReveal() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isTrue();
+    }
+    // endregion
+
     // region isContributed
     @ParameterizedTest
     @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"CONTRIBUTED", "REVEALED"})

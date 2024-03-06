@@ -165,9 +165,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
             return false;
         }
 
-        final boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        final boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
         final boolean isFinalDeadlineInFuture = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
-        final boolean hasEnoughRevealors = (chainTask.getRevealCounter() == chainTask.getWinnerCounter())
+        final boolean hasEnoughRevealors = chainTask.getRevealCounter() == chainTask.getWinnerCounter()
                 || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= Instant.now().toEpochMilli());
         final boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
 
@@ -182,13 +182,12 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean canReopen(String chainTaskId) {
-        Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (optional.isEmpty()) {
+        final ChainTask chainTask = getChainTask(chainTaskId).orElse(null);
+        if (chainTask == null) {
             return false;
         }
-        ChainTask chainTask = optional.get();
 
-        boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
         boolean isBeforeFinalDeadline = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
         boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= Instant.now().toEpochMilli();
         boolean revealCounterEqualsZero = chainTask.getRevealCounter() == 0;
