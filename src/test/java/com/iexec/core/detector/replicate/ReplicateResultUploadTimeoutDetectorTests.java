@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
@@ -27,10 +28,7 @@ import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +37,8 @@ import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
 import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 class ReplicateResultUploadTimeoutDetectorTests {
@@ -87,9 +87,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatus.WORKER_LOST);
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_2, ReplicateStatus.WORKER_LOST);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -119,8 +117,10 @@ class ReplicateResultUploadTimeoutDetectorTests {
 
         // trying to detect any timeout
         timeoutDetector.detect();
+        ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
+                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture());
+        assertThat(statusUpdate.getValue().getStatus()).isEqualTo(RESULT_UPLOAD_FAILED);
 
         Mockito.verify(taskUpdateRequestManager, Mockito.times(1)).publishRequest(CHAIN_TASK_ID);
     }
@@ -138,7 +138,7 @@ class ReplicateResultUploadTimeoutDetectorTests {
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
 
         // we suppose that the status has already been set in a previous detect
-        replicate.updateStatus(ReplicateStatus.RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
+        replicate.updateStatus(RESULT_UPLOAD_FAILED, ReplicateStatusModifier.POOL_MANAGER);
 
         TaskStatusChange change1 = TaskStatusChange.builder().date(fourMinutesAgo).status(TaskStatus.INITIALIZED).build();
         TaskStatusChange change2 = TaskStatusChange.builder().date(threeMinutesAgo).status(TaskStatus.RUNNING).build();
@@ -154,6 +154,6 @@ class ReplicateResultUploadTimeoutDetectorTests {
         // trying to detect any timeout
         timeoutDetector.detect();
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOAD_FAILED);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 }

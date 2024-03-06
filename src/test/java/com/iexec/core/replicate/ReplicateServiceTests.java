@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -755,19 +755,18 @@ class ReplicateServiceTests {
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
         ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.singletonList(replicate));
         replicatesRepository.save(replicatesList);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(TaskDescription.builder().callback("callback").build());
+        final ReplicateStatusDetails details = ReplicateStatusDetails.builder()
+                .chainCallbackData("callbackData")
+                .build();
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOADED)
+                .details(details)
                 .build();
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
 
-        final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
-                .builder()
-                .chainCallbackData("callbackData")
-                .taskDescription(TaskDescription.builder().callback("callback").build())
-                .build();
-
-        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate, updateArgs);
+        replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
         Mockito.verify(applicationEventPublisher, Mockito.times(1))
                 .publishEvent(argumentCaptor.capture());
         ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);

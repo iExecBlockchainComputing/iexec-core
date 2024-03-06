@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.iexec.core.detector.task;
 
-import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +69,7 @@ class ContributionTimeoutTaskDetectorTests {
                 .removeChainTaskIdFromWorker(any(), any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
 
         Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
                 .publishRequest(any());
@@ -91,7 +91,7 @@ class ContributionTimeoutTaskDetectorTests {
                 .removeChainTaskIdFromWorker(any(), any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
 
         Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
                 .publishRequest(any());

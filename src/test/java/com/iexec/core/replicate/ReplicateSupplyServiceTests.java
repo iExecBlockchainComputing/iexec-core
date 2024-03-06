@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.replicate.*;
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.ReplicateTaskSummary;
 import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.notification.TaskNotification;
@@ -43,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
@@ -51,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
-
 
 class ReplicateSupplyServiceTests {
 
@@ -646,7 +649,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(list).isEmpty();
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -668,7 +671,7 @@ class ReplicateSupplyServiceTests {
         assertThat(taskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     /**
@@ -760,11 +763,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // CONTRIBUTED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -826,15 +826,12 @@ class ReplicateSupplyServiceTests {
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(missedTaskNotifications).isNotEmpty();
+        assertThat(missedTaskNotifications).hasSize(1);
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // RECOVERING
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -953,11 +950,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -991,11 +985,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -1077,11 +1068,13 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
+        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
+        Mockito.verify(replicatesService, times(2))
+                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture()); //RESULT UPLOADED
+        final List<ReplicateStatus> statuses = statusUpdate.getAllValues().stream()
+                .map(ReplicateStatusUpdate::getStatus)
+                .collect(Collectors.toList());
+        assertThat(statuses).isEqualTo(List.of(RESULT_UPLOADED, RECOVERING));
     }
 
     /**
@@ -1112,7 +1105,7 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED));
     }
 
     /**
@@ -1224,7 +1217,7 @@ class ReplicateSupplyServiceTests {
         assertThat(missedTaskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RECOVERING);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatusUpdate.poolManagerRequest(RECOVERING));
     }
 
     // region purgeTask

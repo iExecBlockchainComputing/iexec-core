@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -142,7 +142,7 @@ class RevealTimeoutDetectorTests {
                 .getReplicates(Mockito.any());
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
 
         Mockito.verify(iexecHubService, Mockito.times(0))
                 .reOpen(Mockito.any());
@@ -197,6 +197,6 @@ class RevealTimeoutDetectorTests {
         revealDetector.detect();
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 }

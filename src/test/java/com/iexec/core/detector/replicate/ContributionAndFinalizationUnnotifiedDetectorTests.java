@@ -17,7 +17,6 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
@@ -39,9 +38,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.List;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -69,6 +70,9 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @InjectMocks
     private ContributionAndFinalizationUnnotifiedDetector detector;
 
+    @Captor
+    private ArgumentCaptor<ReplicateStatusUpdate> statusUpdate;
+
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
@@ -92,7 +96,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     /**
      * When running {@link ContributionAndFinalizationUnnotifiedDetector#detectOnChainChanges} 10 times,
-     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatusUpdate)} should be called 11 times:
      * <ol>
      *     <li>10 times from {@link ContributionAndFinalizationUnnotifiedDetector#detectOnchainDoneWhenOffchainOngoing()};</li>
      *     <li>1 time from {@link ContributionAndFinalizationUnnotifiedDetector#detectOnchainDone()}</li>
@@ -122,8 +126,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 .updateReplicateStatus(
                         eq(CHAIN_TASK_ID),
                         eq(WALLET_ADDRESS),
-                        eq(CONTRIBUTE_AND_FINALIZE_DONE),
-                        any(ReplicateStatusDetails.class)
+                        statusUpdate.capture()
                 );
     }
 
@@ -153,8 +156,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 .updateReplicateStatus(
                         eq(CHAIN_TASK_ID),
                         eq(WALLET_ADDRESS),
-                        eq(CONTRIBUTE_AND_FINALIZE_DONE),
-                        any(ReplicateStatusDetails.class)
+                        statusUpdate.capture()
                 );
     }
 
@@ -170,7 +172,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -184,7 +186,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     // endregion
@@ -208,13 +210,14 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         detector.detectOnchainDone();
 
-        Mockito.verify(replicatesService, Mockito.times(1)) // Missed CONTRIBUTE_AND_FINALIZE_DONE
+        final List<ReplicateStatus> missingStatuses = getMissingStatuses(replicateStatus, CONTRIBUTE_AND_FINALIZE_DONE);
+        Mockito.verify(replicatesService, Mockito.times(missingStatuses.size())) // Missed CONTRIBUTE_AND_FINALIZE_DONE
                 .updateReplicateStatus(
                         eq(CHAIN_TASK_ID),
                         eq(WALLET_ADDRESS),
-                        eq(CONTRIBUTE_AND_FINALIZE_DONE),
-                        any(ReplicateStatusDetails.class)
+                        statusUpdate.capture()
                 );
+        assertThat(statusUpdate.getAllValues()).hasSize(missingStatuses.size());
     }
 
     @Test
@@ -228,7 +231,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -250,7 +253,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     // endregion

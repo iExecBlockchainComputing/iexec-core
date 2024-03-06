@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.iexec.core.task.update;
 
 import com.iexec.blockchain.api.BlockchainAdapterService;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
@@ -52,6 +53,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUESTED;
 import static com.iexec.core.task.TaskStatus.*;
 
 @Service
@@ -631,7 +633,7 @@ class TaskUpdateManager {
         boolean isThereAWorkerUploading = replicatesService
                 .getNbReplicatesWithCurrentStatus(task.getChainTaskId(),
                         ReplicateStatus.RESULT_UPLOADING,
-                        ReplicateStatus.RESULT_UPLOAD_REQUESTED) > 0;
+                        RESULT_UPLOAD_REQUESTED) > 0;
 
         if (isThereAWorkerUploading) {
             log.info("Upload is requested but an upload is already in process. [chainTaskId: {}]", task.getChainTaskId());
@@ -646,8 +648,8 @@ class TaskUpdateManager {
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
             taskService.updateTask(task.getChainTaskId(), Update.update("uploadingWorkerWalletAddress", replicate.getWalletAddress()));
             updateTaskStatusAndSave(task, RESULT_UPLOADING);
-            replicatesService.updateReplicateStatus(task.getChainTaskId(), replicate.getWalletAddress(),
-                    ReplicateStatus.RESULT_UPLOAD_REQUESTED);
+            replicatesService.updateReplicateStatus(
+                    task.getChainTaskId(), replicate.getWalletAddress(), ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOAD_REQUESTED));
 
             applicationEventPublisher.publishEvent(new PleaseUploadEvent(task.getChainTaskId(), replicate.getWalletAddress()));
         }

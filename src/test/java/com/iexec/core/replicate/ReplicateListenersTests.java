@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,7 +35,8 @@ import java.util.stream.Stream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 
 class ReplicateListenersTests {
 
@@ -57,7 +55,6 @@ class ReplicateListenersTests {
     @InjectMocks
     private ReplicateListeners replicateListeners;
 
-
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
@@ -67,7 +64,7 @@ class ReplicateListenersTests {
     void shouldUpdateTaskOnReplicateUpdate() {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
 
-        for (ReplicateStatus randomStatus: someStatuses){
+        for (ReplicateStatus randomStatus : someStatuses) {
             ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -126,7 +123,7 @@ class ReplicateListenersTests {
         List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
         someStatuses.remove(CONTRIBUTING);
 
-        for (ReplicateStatus randomStatus: someStatuses){
+        for (ReplicateStatus randomStatus : someStatuses) {
             ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
@@ -158,8 +155,10 @@ class ReplicateListenersTests {
         ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(uncompletableStatus);
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
+        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
         Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED);
+                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WORKER_WALLET), statusUpdate.capture());
+        assertThat(statusUpdate.getValue().getStatus()).isEqualTo(FAILED);
     }
 
     static Stream<ReplicateStatus> getCompletableStatuses() {
@@ -174,7 +173,7 @@ class ReplicateListenersTests {
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
         Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WORKER_WALLET, FAILED);
+                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -194,7 +193,7 @@ class ReplicateListenersTests {
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
         Mockito.verify(workerService, Mockito.times(1))
-            .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
     @Test
@@ -203,12 +202,12 @@ class ReplicateListenersTests {
         someStatuses.remove(COMPLETED);
         someStatuses.remove(FAILED);
 
-        for (ReplicateStatus randomStatus: someStatuses){
+        for (ReplicateStatus randomStatus : someStatuses) {
             ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
 
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
-        
+
         Mockito.verify(workerService, Mockito.times(0))
                 .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
