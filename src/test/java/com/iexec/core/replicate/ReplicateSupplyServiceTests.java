@@ -993,8 +993,6 @@ class ReplicateSupplyServiceTests {
 
         Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        //Mockito.verify(replicatesService, times(1))
-        //        .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // REVEALED
     }
 
     /**
