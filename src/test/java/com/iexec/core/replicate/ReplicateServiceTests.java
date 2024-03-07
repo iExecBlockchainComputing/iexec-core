@@ -54,6 +54,8 @@ import java.util.stream.IntStream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
+import static com.iexec.commons.poco.chain.DealParams.DROPBOX_RESULT_STORAGE_PROVIDER;
+import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.utils.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -805,6 +807,7 @@ class ReplicateServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(isTeeTask)
+                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
@@ -822,6 +825,7 @@ class ReplicateServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(isTeeTask)
+                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
@@ -856,6 +860,23 @@ class ReplicateServiceTests {
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
         verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldReturnTrueIfPrivateStorage(boolean isTeeTask) {
+        TaskDescription taskDescription = TaskDescription.builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .callback(BytesUtils.EMPTY_ADDRESS)
+                .isTeeTask(isTeeTask)
+                .resultStorageProvider(DROPBOX_RESULT_STORAGE_PROVIDER)
+                .build();
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
+                .thenReturn(taskDescription);
+
+        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        assertThat(isResultUploaded).isTrue();
+        verify(resultService, never()).isResultUploaded(any());
     }
     // endregion
 
@@ -982,7 +1003,7 @@ class ReplicateServiceTests {
                 .build();
         UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
                 .builder()
-                .taskDescription(TaskDescription.builder().build())
+                .taskDescription(TaskDescription.builder().resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER).build())
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, updateReplicateStatusArgs))
@@ -1234,7 +1255,11 @@ class ReplicateServiceTests {
                 .modifier(WORKER)
                 .status(CONTRIBUTE_AND_FINALIZE_DONE)
                 .build();
-        final TaskDescription task = TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final TaskDescription task = TaskDescription
+                .builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
 
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
