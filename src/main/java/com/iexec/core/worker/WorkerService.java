@@ -31,12 +31,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 /**
  * Manage {@link Worker} objects.
@@ -159,8 +159,8 @@ public class WorkerService {
 
     // worker is considered lost if it didn't ping for 1 minute
     public List<Worker> getLostWorkers() {
-        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
-        List<String> lostWorkers = workerStatsMap.entrySet()
+        final Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
+        final List<String> lostWorkers = workerStatsMap.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
@@ -170,8 +170,8 @@ public class WorkerService {
 
     // worker is considered alive if it received a ping during the last minute
     public List<Worker> getAliveWorkers() {
-        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
-        List<String> aliveWorkers = workerStatsMap.entrySet()
+        final Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
+        final List<String> aliveWorkers = workerStatsMap.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)

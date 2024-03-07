@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
 
+### Quality
+
+- Prepare migration to `java.time` package by building `Date` objects from `Instant` objects. (#671)
+
 ## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
 
 ### New Features

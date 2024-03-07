@@ -28,11 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.Optional;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
@@ -63,14 +62,13 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             String chainTaskId = task.getChainTaskId();
             String uploadingWallet = task.getUploadingWorkerWalletAddress();
 
-            Optional<Replicate> oUploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet);
-            if (oUploadingReplicate.isEmpty()) {
+            final Replicate uploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet).orElse(null);
+            if (uploadingReplicate == null) {
                 return;
             }
 
-            Replicate uploadingReplicate = oUploadingReplicate.get();
-
-            boolean startedUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
+            boolean startedUploadLongAgo = Instant.now().isAfter(
+                    Instant.ofEpochMilli(task.getLatestStatusChange().getDate().getTime()).plus(2L, ChronoUnit.MINUTES));
             boolean hasReplicateAlreadyFailedToUpload = uploadingReplicate.containsStatus(RESULT_UPLOAD_FAILED);
 
             if (!startedUploadLongAgo) {
