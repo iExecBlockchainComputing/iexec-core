@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
-- Check result has been uploaded for TEE tasks. (#671)
+- Check result has been uploaded for TEE tasks. (#672)
 
 ## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
 
