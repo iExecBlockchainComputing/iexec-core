@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 
 @Slf4j
 @Service
@@ -556,8 +557,13 @@ public class ReplicatesService {
             return true;
         }
 
-        // Cloud computing - basic & TEE
-        return resultService.isResultUploaded(task.getChainTaskId());
+        if (IPFS_RESULT_STORAGE_PROVIDER.equals(task.getResultStorageProvider())) {
+            // Cloud computing, upload to IPFS - basic & TEE
+            return resultService.isResultUploaded(task.getChainTaskId());
+        }
+
+        // Cloud computing, uploading to private storage
+        return true;
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {
