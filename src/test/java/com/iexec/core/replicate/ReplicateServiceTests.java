@@ -862,13 +862,12 @@ class ReplicateServiceTests {
         verify(resultService, never()).isResultUploaded(CHAIN_TASK_ID);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldReturnTrueIfPrivateStorage(boolean isTeeTask) {
+    @Test
+    void shouldReturnTrueIfPrivateStorageForTeeTask() {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
-                .isTeeTask(isTeeTask)
+                .isTeeTask(true)
                 .resultStorageProvider(DROPBOX_RESULT_STORAGE_PROVIDER)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
