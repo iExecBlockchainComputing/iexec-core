@@ -30,13 +30,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -93,9 +94,9 @@ class ReplicateResultUploadTimeoutDetectorTests {
     @Test
     void shouldDetectOneReplicateWithResultUploadingLongAgo() {
         // the latest status change from the replicate is very new so it is not timed out.
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
-        Date threeMinutesAgo = addMinutesToDate(new Date(), -4);
-        Date fourMinutesAgo = addMinutesToDate(new Date(), -5);
+        Date twoMinutesAgo = Date.from(Instant.now().minus(3L, ChronoUnit.MINUTES));
+        Date threeMinutesAgo = Date.from(Instant.now().minus(4L, ChronoUnit.MINUTES));
+        Date fourMinutesAgo = Date.from(Instant.now().minus(5L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -128,9 +129,9 @@ class ReplicateResultUploadTimeoutDetectorTests {
     @Test
     void shouldNotDetectReplicatePreviouslyDetected() {
         // the latest status change from the replicate is very new so it is not timed out.
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -3);
-        Date threeMinutesAgo = addMinutesToDate(new Date(), -4);
-        Date fourMinutesAgo = addMinutesToDate(new Date(), -5);
+        Date twoMinutesAgo = Date.from(Instant.now().minus(3L, ChronoUnit.MINUTES));
+        Date threeMinutesAgo = Date.from(Instant.now().minus(4L, ChronoUnit.MINUTES));
+        Date fourMinutesAgo = Date.from(Instant.now().minus(5L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);

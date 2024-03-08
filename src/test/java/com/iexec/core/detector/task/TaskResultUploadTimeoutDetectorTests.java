@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.iexec.core.detector.task;
 
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -28,6 +27,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 
@@ -53,7 +54,7 @@ class TaskResultUploadTimeoutDetectorTests {
     @Test
     void shouldDetectResultUploadTimeout() {
         String chainTaskId = "chainTaskId";
-        Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), -1);
+        Date oneMinuteBeforeNow = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         Task task = Task.builder()
                 .chainTaskId(chainTaskId)
@@ -71,7 +72,7 @@ class TaskResultUploadTimeoutDetectorTests {
     @Test
     void shouldNotDetectResultUploadTimeoutSinceStillBeforeDeadline() {
         String chainTaskId = "chainTaskId";
-        Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(new Date(), 1);
+        Date oneMinuteBeforeNow = Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES));
 
         Task task = Task.builder()
                 .chainTaskId(chainTaskId)

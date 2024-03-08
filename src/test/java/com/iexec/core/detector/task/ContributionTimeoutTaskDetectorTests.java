@@ -17,7 +17,6 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.utils.DateTimeUtils;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -28,6 +27,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -77,8 +78,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldNotUpdateTaskIfBeforeTimeout() {
-        Date now = new Date();
-        Date oneMinuteAfterNow = DateTimeUtils.addMinutesToDate(now, 1);
+        Date oneMinuteAfterNow = Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
@@ -100,8 +100,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldUpdateIfIsTimeout() {
-        Date now = new Date();
-        Date oneMinuteBeforeNow = DateTimeUtils.addMinutesToDate(now, -1);
+        Date oneMinuteBeforeNow = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);

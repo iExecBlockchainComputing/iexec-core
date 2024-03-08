@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,13 @@
 
 package com.iexec.core.task;
 
-
-import com.iexec.common.utils.DateTimeUtils;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
-import static com.iexec.common.utils.DateTimeUtils.now;
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,7 +32,7 @@ class TaskTests {
     private final static String COMMAND_LINE = "commandLine";
 
     @Test
-    void shouldInitializeProperly(){
+    void shouldInitializeProperly() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
 
         assertThat(task.getDateStatusList()).hasSize(1);
@@ -60,9 +58,9 @@ class TaskTests {
     }
 
     @Test
-    void shouldGetCorrectLastStatusChange(){
+    void shouldGetCorrectLastStatusChange() {
         Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        Date oneMinuteAgo = addMinutesToDate(new Date(), -1);
+        Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         TaskStatusChange latestChange = task.getLatestStatusChange();
         assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RECEIVED);
@@ -79,13 +77,13 @@ class TaskTests {
     }
 
     @Test
-    void shouldReturnTrueWhenConsensusReachedSinceAWhile(){
+    void shouldReturnTrueWhenConsensusReachedSinceAWhile() {
         final long maxExecutionTime = 60;
         Task task = new Task();
         task.setMaxExecutionTime(maxExecutionTime);
         TaskStatusChange taskStatusChange = TaskStatusChange.builder()
                 .status(CONSENSUS_REACHED)
-                .date(new Date(now() - 2 * maxExecutionTime))
+                .date(Date.from(Instant.now().minus(2 * maxExecutionTime, ChronoUnit.MILLIS)))
                 .build();
         task.setDateStatusList(List.of(taskStatusChange));
 
@@ -93,13 +91,13 @@ class TaskTests {
     }
 
     @Test
-    void shouldReturnFalseWhenConsensusReachedSinceNotLong(){
+    void shouldReturnFalseWhenConsensusReachedSinceNotLong() {
         final long maxExecutionTime = 60;
         Task task = new Task();
         task.setMaxExecutionTime(maxExecutionTime);
         TaskStatusChange taskStatusChange = TaskStatusChange.builder()
                 .status(CONSENSUS_REACHED)
-                .date(new Date(now() - 10))
+                .date(Date.from(Instant.now().minus(10L, ChronoUnit.MILLIS)))
                 .build();
         task.setDateStatusList(List.of(taskStatusChange));
 
@@ -110,7 +108,7 @@ class TaskTests {
     void shouldContributionDeadlineBeReached() {
         Task task = new Task();
         // contribution deadline in the past
-        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
+        task.setContributionDeadline(Date.from(Instant.now().minus(60L, ChronoUnit.MINUTES)));
         assertThat(task.isContributionDeadlineReached()).isTrue();
     }
 
@@ -118,7 +116,7 @@ class TaskTests {
     void shouldContributionDeadlineNotBeReached() {
         Task task = new Task();
         // contribution deadline in the future
-        task.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        task.setContributionDeadline(Date.from(Instant.now().plus(60L, ChronoUnit.MINUTES)));
         assertThat(task.isContributionDeadlineReached()).isFalse();
     }
 }

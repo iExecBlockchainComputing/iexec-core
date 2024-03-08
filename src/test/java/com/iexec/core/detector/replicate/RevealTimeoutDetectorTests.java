@@ -32,12 +32,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -66,7 +67,7 @@ class RevealTimeoutDetectorTests {
 
     @Test
     void souldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
+        Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.CONSENSUS_REACHED);
@@ -97,7 +98,7 @@ class RevealTimeoutDetectorTests {
 
     @Test
     void shouldDetectTaskAfterRevealDealLineWithZero() {
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
+        Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.CONSENSUS_REACHED);
@@ -151,7 +152,7 @@ class RevealTimeoutDetectorTests {
 
     @Test
     void shouldUpdateOneReplicateToRevealTimeout() {
-        Date twoMinutesAgo = addMinutesToDate(new Date(), -2);
+        Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.CONSENSUS_REACHED);
@@ -178,7 +179,7 @@ class RevealTimeoutDetectorTests {
 
     @Test
     void shouldNotUpdateSinceTaskIsNotTimedout() {
-        Date twoMinutesInFuture = addMinutesToDate(new Date(), 2);
+        Date twoMinutesInFuture = Date.from(Instant.now().plus(2L, ChronoUnit.MINUTES));
 
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.CONSENSUS_REACHED);
