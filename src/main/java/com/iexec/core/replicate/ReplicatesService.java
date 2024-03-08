@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.REVEAL_TIMEOUT;
+import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 
 @Slf4j
 @Service
@@ -551,17 +552,14 @@ public class ReplicatesService {
     }
 
     public boolean isResultUploaded(TaskDescription task) {
-        // Offchain computing - basic & tee
-        if (task.containsCallback()) {
+        final boolean hasIpfsStorageProvider = IPFS_RESULT_STORAGE_PROVIDER.equals(task.getResultStorageProvider());
+
+        // Offchain computing or TEE task with private storage
+        if (task.containsCallback() || (task.isTeeTask() && !hasIpfsStorageProvider)) {
             return true;
         }
 
-        // Cloud computing - tee
-        if (task.isTeeTask()) {
-            return true; // pushed from enclave
-        }
-
-        // Cloud computing - basic
+        // Cloud computing, upload to IPFS - basic & TEE
         return resultService.isResultUploaded(task.getChainTaskId());
     }
 

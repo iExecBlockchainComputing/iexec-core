@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
+- Check result has been uploaded for TEE tasks. (#672)
 
 ### Quality
 
