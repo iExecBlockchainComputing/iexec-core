@@ -256,11 +256,8 @@ class TaskUpdateManager {
     }
 
     void received2Initializing(Task task) {
-        boolean isCurrentStatusReceived = task.getCurrentStatus() == RECEIVED;
-
-        if (!isCurrentStatusReceived) {
-            log.error("Cannot initialize task [chainTaskId:{}, currentStatus:{}]",
-                    task.getChainTaskId(), task.getCurrentStatus());
+        if (task.getCurrentStatus() != RECEIVED) {
+            emitError(task, RECEIVED, "received2Initializing");
             return;
         }
 
@@ -314,7 +311,8 @@ class TaskUpdateManager {
     }
 
     void initializing2Initialized(Task task) {
-        if (INITIALIZING != task.getCurrentStatus()) {
+        if (task.getCurrentStatus() != INITIALIZING) {
+            emitError(task, INITIALIZING, "initializing2Initialized");
             return;
         }
         // TODO: the block where initialization happened can be found
@@ -339,6 +337,10 @@ class TaskUpdateManager {
     }
 
     void initialized2Running(Task task) {
+        if (task.getCurrentStatus() != INITIALIZED) {
+            emitError(task, INITIALIZED, "initialized2Running");
+            return;
+        }
         String chainTaskId = task.getChainTaskId();
 
         // We explicitly exclude START_FAILED as it could denote some serious issues
@@ -362,10 +364,8 @@ class TaskUpdateManager {
         final long nbReplicatesContainingStartingStatus = replicates.stream()
                 .filter(replicate -> acceptableStatus.contains(replicate.getLastRelevantStatus()))
                 .count();
-        boolean condition1 = nbReplicatesContainingStartingStatus > 0;
-        boolean condition2 = task.getCurrentStatus() == INITIALIZED;
 
-        if (condition1 && condition2) {
+        if (nbReplicatesContainingStartingStatus > 0) {
             updateTaskStatusAndSave(task, RUNNING);
         }
 
@@ -377,17 +377,20 @@ class TaskUpdateManager {
     }
 
     void running2ConsensusReached(Task task) {
-        boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
+        if (task.getCurrentStatus() != RUNNING) {
+            emitError(task, RUNNING, "running2ConsensusReached");
+            return;
+        }
         final String chainTaskId = task.getChainTaskId();
         final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
         if (oReplicatesList.isEmpty()) {
-            log.error("Can't transition task to `ConsensusReached` when no replicatesList exists" +
-                    " [chainTaskId:{}]", chainTaskId);
+            log.error("Can't transition task to `ConsensusReached` when no replicatesList exists [chainTaskId:{}]",
+                    chainTaskId);
             return;
         }
         boolean isConsensusReached = taskService.isConsensusReached(oReplicatesList.get());
 
-        if (isTaskInRunningStatus && isConsensusReached) {
+        if (isConsensusReached) {
             Optional<ChainTask> optional = iexecHubService.getChainTask(chainTaskId);
             if (optional.isEmpty()) return;
             ChainTask chainTask = optional.get();
@@ -412,26 +415,23 @@ class TaskUpdateManager {
     }
 
     void running2Finalized2Completed(Task task) {
-        boolean isTaskInRunningStatus = task.getCurrentStatus() == RUNNING;
+        if (task.getCurrentStatus() != RUNNING) {
+            emitError(task, RUNNING, "running2Finalized2Completed");
+            return;
+        }
         final String chainTaskId = task.getChainTaskId();
 
         final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
         if (!taskDescription.isEligibleToContributeAndFinalize()) {
-            log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible"
-                    + " [chainTaskId:{}]", chainTaskId);
-            return;
-        }
-
-        if (!isTaskInRunningStatus) {
-            log.error("Can't transition task to `Finalized` or `Completed` when task is not `Running` " +
-                    " [chainTaskId:{}]", chainTaskId);
+            log.debug("Task not running in a TEE, flow running2Finalized2Completed is not possible [chainTaskId:{}]",
+                    chainTaskId);
             return;
         }
 
         final Optional<ReplicatesList> oReplicatesList = replicatesService.getReplicatesList(chainTaskId);
         if (oReplicatesList.isEmpty()) {
-            log.error("Can't transition task to `Finalized` or `Completed` when no replicatesList exists" +
-                    " [chainTaskId:{}]", chainTaskId);
+            log.error("Can't transition task to `Finalized` or `Completed` when no replicatesList exists [chainTaskId:{}]",
+                    chainTaskId);
             return;
         }
 
@@ -439,12 +439,12 @@ class TaskUpdateManager {
         final int nbReplicatesWithContributeAndFinalizeStatus = replicates.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE);
 
         if (nbReplicatesWithContributeAndFinalizeStatus == 0) {
-            log.debug("No replicate in ContributeAndFinalize status"
-                    + " [chainTaskId:{}]", chainTaskId);
+            log.debug("No replicate in ContributeAndFinalize status [chainTaskId:{}]",
+                    chainTaskId);
             return;
         } else if (nbReplicatesWithContributeAndFinalizeStatus > 1) {
-            log.error("Too many replicates in ContributeAndFinalize status"
-                    + " [chainTaskId:{}, nbReplicates:{}]", chainTaskId, nbReplicatesWithContributeAndFinalizeStatus);
+            log.error("Too many replicates in ContributeAndFinalize status [chainTaskId:{}, nbReplicates:{}]",
+                    chainTaskId, nbReplicatesWithContributeAndFinalizeStatus);
             toFailed(task, RUNNING_FAILED);
             return;
         }
@@ -453,11 +453,12 @@ class TaskUpdateManager {
     }
 
     void initializedOrRunning2ContributionTimeout(Task task) {
-        boolean isInitializedOrRunningTask = task.getCurrentStatus() == INITIALIZED ||
-                task.getCurrentStatus() == RUNNING;
-        boolean isNowAfterContributionDeadline = task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline());
-
-        if (isInitializedOrRunningTask && isNowAfterContributionDeadline) {
+        if (task.getCurrentStatus() != INITIALIZED && task.getCurrentStatus() != RUNNING) {
+            emitError(task, INITIALIZED, "initializedOrRunning2ContributionTimeout");
+            emitError(task, RUNNING, "initializedOrRunning2ContributionTimeout");
+            return;
+        }
+        if (task.getContributionDeadline() != null && new Date().after(task.getContributionDeadline())) {
             updateTaskStatusesAndSave(task, CONTRIBUTION_TIMEOUT, FAILED);
             applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(task.getChainTaskId()));
         }
@@ -473,8 +474,11 @@ class TaskUpdateManager {
      * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
      */
     void running2RunningFailed(Task task) {
-        boolean isRunningTask = task.getCurrentStatus() == RUNNING;
-        if (!isRunningTask || !task.isTeeTask()) {
+        if (task.getCurrentStatus() != RUNNING) {
+            emitError(task, RUNNING, "running2RunningFailed");
+            return;
+        }
+        if (!task.isTeeTask()) {
             return;
         }
 
@@ -514,10 +518,11 @@ class TaskUpdateManager {
     }
 
     void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
-        boolean condition1 = task.getCurrentStatus() == CONSENSUS_REACHED;
-        boolean condition2 = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
-
-        if (condition1 && condition2) {
+        if (task.getCurrentStatus() != CONSENSUS_REACHED) {
+            emitError(task, CONSENSUS_REACHED, "consensusReached2AtLeastOneReveal2ResultUploading");
+            return;
+        }
+        if (replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0) {
             updateTaskStatusAndSave(task, AT_LEAST_ONE_REVEALED);
             requestUpload(task);
         }
@@ -583,13 +588,12 @@ class TaskUpdateManager {
     }
 
     void resultUploading2Uploaded(Task task) {
-        boolean isTaskInResultUploading = task.getCurrentStatus() == RESULT_UPLOADING;
-        Replicate uploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId())
-                .orElse(null);
-
-        if (!isTaskInResultUploading) {
+        if (task.getCurrentStatus() != RESULT_UPLOADING) {
+            emitError(task, RESULT_UPLOADING, "resultUploading2Uploaded");
             return;
         }
+        final Replicate uploadedReplicate = replicatesService.getReplicateWithResultUploadedStatus(task.getChainTaskId())
+                .orElse(null);
 
         if (uploadedReplicate != null) {
             task.setResultLink(uploadedReplicate.getResultLink());
@@ -628,11 +632,14 @@ class TaskUpdateManager {
     }
 
     void resultUploading2UploadTimeout(Task task) {
-        boolean isTaskInResultUploading = task.getCurrentStatus() == RESULT_UPLOADING;
+        if (task.getCurrentStatus() != RESULT_UPLOADING) {
+            emitError(task, RESULT_UPLOADING, "resultUploading2UploadTimeout");
+            return;
+        }
         boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
                 && new Date().after(task.getFinalDeadline());
 
-        if (isTaskInResultUploading && isNowAfterFinalDeadline) {
+        if (isNowAfterFinalDeadline) {
             applicationEventPublisher.publishEvent(new ResultUploadTimeoutEvent(task.getChainTaskId()));
             toFailed(task, RESULT_UPLOAD_TIMEOUT);
         }
@@ -665,7 +672,10 @@ class TaskUpdateManager {
     }
 
     void resultUploaded2Finalizing(Task task) {
-        boolean isTaskInResultUploaded = task.getCurrentStatus() == RESULT_UPLOADED;
+        if (task.getCurrentStatus() != RESULT_UPLOADED) {
+            emitError(task, RESULT_UPLOADED, "resultUploaded2Finalizing");
+            return;
+        }
         boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
         Optional<ChainTask> optional = iexecHubService.getChainTask(task.getChainTaskId());
@@ -678,7 +688,7 @@ class TaskUpdateManager {
         int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
         boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
 
-        if (!isTaskInResultUploaded || !canFinalize || !offChainRevealEqualsOnChainReveal) {
+        if (!canFinalize || !offChainRevealEqualsOnChainReveal) {
             return;
         }
 
@@ -703,6 +713,10 @@ class TaskUpdateManager {
     }
 
     void finalizing2Finalized2Completed(Task task) {
+        if (task.getCurrentStatus() != FINALIZING) {
+            emitError(task, FINALIZED, "finalizing2Finalized2Completed");
+            return;
+        }
         blockchainAdapterService
                 .isFinalized(task.getChainTaskId())
                 .ifPresentOrElse(isSuccess -> {
@@ -722,6 +736,7 @@ class TaskUpdateManager {
 
     void finalizedToCompleted(Task task) {
         if (task.getCurrentStatus() != FINALIZED) {
+            emitError(task, FINALIZED, "finalizedToCompleted");
             return;
         }
         updateTaskStatusAndSave(task, COMPLETED);
@@ -741,6 +756,11 @@ class TaskUpdateManager {
     void toFailed(Task task, TaskStatus reason) {
         updateTaskStatusesAndSave(task, reason, FAILED);
         applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
+    }
+
+    void emitError(Task task, TaskStatus expectedStatus, String methodName) {
+        log.error("Cannot initialize task [chainTaskId:{}, currentStatus:{}, expectedStatus:{}, method:{}]",
+                task.getChainTaskId(), task.getCurrentStatus(), expectedStatus, methodName);
     }
 
     void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
