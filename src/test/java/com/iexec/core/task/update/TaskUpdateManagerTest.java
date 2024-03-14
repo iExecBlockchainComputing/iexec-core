@@ -48,7 +48,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -68,9 +71,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(OutputCaptureExtension.class)
 class TaskUpdateManagerTest {
     private final long maxExecutionTime = 60000;
     private static final String smsUrl = "smsUrl";
+    private static final String ERROR_MSG = "Cannot initialize task [chainTaskId:%s, currentStatus:%s, expectedStatus:%s, method:%s]";
 
     @Mock
     private WorkerService workerService;
@@ -545,6 +550,15 @@ class TaskUpdateManagerTest {
     }
 
     @Test
+    void shouldNotUpdateInitializing2InitializedSinceNotInitializing(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        taskUpdateManager.initializing2Initialized(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RECEIVED);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RECEIVED, INITIALIZING, "initializing2Initialized"));
+    }
+
+    @Test
     void shouldNotUpdateInitializing2InitializedSinceNotInitialized() {
         Task task = getStubTask(maxExecutionTime);
         task.setChainTaskId(CHAIN_TASK_ID);
@@ -595,6 +609,16 @@ class TaskUpdateManagerTest {
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void shouldNotUpdateInitialized2RunningSinceNotInitialized(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(INITIALIZING);
+        taskUpdateManager.initialized2Running(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, INITIALIZING, INITIALIZED, "initialized2Running"));
     }
 
     @Test
@@ -840,7 +864,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNOTUpdateRunning2ConsensusReachedSinceOnChainStatusNotRevealing() {
+    void shouldNotUpdateRunning2ConsensusReachedSinceOnChainStatusNotRevealing() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
@@ -855,7 +879,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNOTUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
+    void shouldNotUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(RUNNING);
 
@@ -1136,7 +1160,17 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNOTUpdateConsensusReached2AtLeastOneRevealSinceNoRevealedReplicate() {
+    void shouldNotUpdateConsensusReached2AtLeastOneReveal2ResultUploadingSinceNotConsensusReached(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(RUNNING);
+        taskUpdateManager.consensusReached2AtLeastOneReveal2ResultUploading(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RUNNING, CONSENSUS_REACHED, "consensusReached2AtLeastOneReveal2ResultUploading"));
+    }
+
+    @Test
+    void shouldNotUpdateConsensusReached2AtLeastOneRevealSinceNoRevealedReplicate() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(CONSENSUS_REACHED);
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -1326,6 +1360,7 @@ class TaskUpdateManagerTest {
 
     // endregion
 
+    // region resultUploading2Uploaded
     @Test
     void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
         Task task = getStubTask(maxExecutionTime);
@@ -1374,7 +1409,6 @@ class TaskUpdateManagerTest {
         assertThat(lastButTwoStatus).isEqualTo(RESULT_UPLOADED);
     }
 
-
     @Test
     void shouldUpdateResultUploading2UploadedFailAndRequestUploadAgain() {
         Task task = getStubTask(maxExecutionTime);
@@ -1395,6 +1429,16 @@ class TaskUpdateManagerTest {
         verify(replicatesService).updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture());
         verify(applicationEventPublisher).publishEvent(any(PleaseUploadEvent.class));
         assertThat(statusUpdate.getValue().getStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
+    }
+
+    @Test
+    void shouldNotUpdateResultUploading2UploadedSinceNotResultUploading(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(CONSENSUS_REACHED);
+        taskUpdateManager.resultUploading2Uploaded(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, CONSENSUS_REACHED, RESULT_UPLOADING, "resultUploading2Uploaded"));
     }
 
     @Test
@@ -1480,6 +1524,7 @@ class TaskUpdateManagerTest {
         verify(replicatesService).updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture());
         assertThat(statusUpdate.getValue().getStatus()).isEqualTo(RESULT_UPLOAD_REQUESTED);
     }
+    // endregion
 
     // Tests on resultUploading2UploadTimeout transition
     @Test
@@ -1496,7 +1541,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.FAILED);
     }
 
-    // Tests on resultUploaded2Finalizing transition
+    // region resultUploaded2Finalizing
     @Test
     void shouldUpdateResultUploaded2Finalizing() {
         Task task = getStubTask(maxExecutionTime);
@@ -1526,6 +1571,16 @@ class TaskUpdateManagerTest {
         assertThat(lastButOneStatus).isEqualTo(FINALIZED);
         assertThat(lastButTwoStatus).isEqualTo(FINALIZING);
         assertThat(lastButThreeStatus).isEqualTo(RESULT_UPLOADED);
+    }
+
+    @Test
+    void shouldNotUpdateResultUploaded2FinalizingSinceNotResultUploaded(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(RESULT_UPLOADING);
+        taskUpdateManager.resultUploaded2Finalizing(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADING);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RESULT_UPLOADING, RESULT_UPLOADED, "resultUploaded2Finalizing"));
     }
 
     @Test
@@ -1608,6 +1663,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
 
+    // endregion
+
     // region finalizingToFinalizedToCompleted
 
     @Test
@@ -1623,6 +1680,16 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(FINALIZED);
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 3).getStatus()).isEqualTo(FINALIZING);
+    }
+
+    @Test
+    void shouldNotUpdateFinalizing2Finalized2CompletedSinceNotFinalizing(CapturedOutput output) {
+        Task task = getStubTask(maxExecutionTime);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        task.changeStatus(RESULT_UPLOADED);
+        taskUpdateManager.finalizing2Finalized2Completed(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RESULT_UPLOADED, FINALIZING, "finalizing2Finalized2Completed"));
     }
 
     @Test
@@ -1675,7 +1742,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
-    // 2 replicates in RUNNING and and 2 in COMPUTED
+    // 2 replicates in RUNNING and 2 in COMPUTED
     @Test
     void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = getStubTask(maxExecutionTime);

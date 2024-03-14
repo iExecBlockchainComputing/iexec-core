@@ -714,7 +714,7 @@ class TaskUpdateManager {
 
     void finalizing2Finalized2Completed(Task task) {
         if (task.getCurrentStatus() != FINALIZING) {
-            emitError(task, FINALIZED, "finalizing2Finalized2Completed");
+            emitError(task, FINALIZING, "finalizing2Finalized2Completed");
             return;
         }
         blockchainAdapterService
