@@ -129,12 +129,6 @@ public class ReplicatesService {
                 .orElse(0);
     }
 
-    public int getNbReplicatesWithLastRelevantStatus(String chainTaskId, ReplicateStatus... listStatus) {
-        return getReplicatesList(chainTaskId)
-                .map(replicatesList -> replicatesList.getNbReplicatesWithLastRelevantStatus(listStatus))
-                .orElse(0);
-    }
-
     public int getNbReplicatesContainingStatus(String chainTaskId, ReplicateStatus... listStatus) {
         return getReplicatesList(chainTaskId)
                 .map(replicatesList -> replicatesList.getNbReplicatesContainingStatus(listStatus))
