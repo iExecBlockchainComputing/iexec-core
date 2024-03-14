@@ -585,27 +585,13 @@ class TaskUpdateManagerTest {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
 
-        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
-                ReplicateStatus.STARTED,
-                ReplicateStatus.APP_DOWNLOADING,
-                ReplicateStatus.APP_DOWNLOAD_FAILED,
-                ReplicateStatus.APP_DOWNLOADED,
-                ReplicateStatus.DATA_DOWNLOADING,
-                ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                ReplicateStatus.DATA_DOWNLOADED,
-                ReplicateStatus.COMPUTING,
-                ReplicateStatus.COMPUTE_FAILED,
-                ReplicateStatus.COMPUTED,
-                ReplicateStatus.CONTRIBUTING,
-                ReplicateStatus.CONTRIBUTE_FAILED,
-                ReplicateStatus.CONTRIBUTED
-        };
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.STARTED, ReplicateStatusModifier.WORKER);
+        final List<Replicate> replicates = List.of(replicate);
 
-        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
-                .thenReturn(2);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.COMPUTED)).thenReturn(0);
-        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
+        when(taskService.updateTask(task)).thenReturn(Optional.of(task));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
@@ -1678,26 +1664,12 @@ class TaskUpdateManagerTest {
     void shouldUpdateTaskToRunningFromWorkersInRunning() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
-        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
-                ReplicateStatus.STARTED,
-                ReplicateStatus.APP_DOWNLOADING,
-                ReplicateStatus.APP_DOWNLOAD_FAILED,
-                ReplicateStatus.APP_DOWNLOADED,
-                ReplicateStatus.DATA_DOWNLOADING,
-                ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                ReplicateStatus.DATA_DOWNLOADED,
-                ReplicateStatus.COMPUTING,
-                ReplicateStatus.COMPUTE_FAILED,
-                ReplicateStatus.COMPUTED,
-                ReplicateStatus.CONTRIBUTING,
-                ReplicateStatus.CONTRIBUTE_FAILED,
-                ReplicateStatus.CONTRIBUTED
-        };
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
+        final List<Replicate> replicates = List.of(replicate);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
-                .thenReturn(3);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(0);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
@@ -1708,26 +1680,12 @@ class TaskUpdateManagerTest {
     void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         Task task = getStubTask(maxExecutionTime);
         task.changeStatus(INITIALIZED);
-        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
-                ReplicateStatus.STARTED,
-                ReplicateStatus.APP_DOWNLOADING,
-                ReplicateStatus.APP_DOWNLOAD_FAILED,
-                ReplicateStatus.APP_DOWNLOADED,
-                ReplicateStatus.DATA_DOWNLOADING,
-                ReplicateStatus.DATA_DOWNLOAD_FAILED,
-                ReplicateStatus.DATA_DOWNLOADED,
-                ReplicateStatus.COMPUTING,
-                ReplicateStatus.COMPUTE_FAILED,
-                ReplicateStatus.COMPUTED,
-                ReplicateStatus.CONTRIBUTING,
-                ReplicateStatus.CONTRIBUTE_FAILED,
-                ReplicateStatus.CONTRIBUTED
-        };
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
+        final List<Replicate> replicates = List.of(replicate);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(replicatesService.getNbReplicatesWithLastRelevantStatus(task.getChainTaskId(), acceptableStatus))
-                .thenReturn(4);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.COMPUTED)).thenReturn(2);
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(replicates);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);

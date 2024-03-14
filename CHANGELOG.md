@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
 - Check result has been uploaded for TEE tasks. (#672)
+- Check for consensus early if a worker has already `CONTRIBUTED` when the task is updated to `RUNNING`. (#673)
 
 ### Quality
 

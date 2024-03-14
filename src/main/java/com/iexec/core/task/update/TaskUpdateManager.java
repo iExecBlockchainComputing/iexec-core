@@ -343,7 +343,7 @@ class TaskUpdateManager {
 
         // We explicitly exclude START_FAILED as it could denote some serious issues
         // The task should not transition to `RUNNING` in this case.
-        final ReplicateStatus[] acceptableStatus = new ReplicateStatus[]{
+        final List<ReplicateStatus> acceptableStatus = List.of(
                 ReplicateStatus.STARTED,
                 ReplicateStatus.APP_DOWNLOADING,
                 ReplicateStatus.APP_DOWNLOAD_FAILED,
@@ -357,13 +357,22 @@ class TaskUpdateManager {
                 ReplicateStatus.CONTRIBUTING,
                 ReplicateStatus.CONTRIBUTE_FAILED,
                 ReplicateStatus.CONTRIBUTED
-        };
-        final int nbReplicatesContainingStartingStatus = replicatesService.getNbReplicatesWithLastRelevantStatus(chainTaskId, acceptableStatus);
+        );
+        final List<Replicate> replicates = replicatesService.getReplicates(chainTaskId);
+        final long nbReplicatesContainingStartingStatus = replicates.stream()
+                .filter(replicate -> acceptableStatus.contains(replicate.getLastRelevantStatus()))
+                .count();
         boolean condition1 = nbReplicatesContainingStartingStatus > 0;
         boolean condition2 = task.getCurrentStatus() == INITIALIZED;
 
         if (condition1 && condition2) {
             updateTaskStatusAndSave(task, RUNNING);
+        }
+
+        if (replicates.stream().anyMatch(replicate -> replicate.getLastRelevantStatus() == ReplicateStatus.CONTRIBUTED)) {
+            log.warn("At least a worker has already contributed before the task was updated to RUNNING [chainTaskId:{}]",
+                    chainTaskId);
+            updateTask(chainTaskId);
         }
     }
 
