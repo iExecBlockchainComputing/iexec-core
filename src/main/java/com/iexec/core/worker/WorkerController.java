@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,8 +58,10 @@ public class WorkerController {
     public ResponseEntity<String> ping(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("Worker keepalive ping [workerAddress:{}]", workerWalletAddress);
         final String publicConfigurationHash = publicConfigurationService.getPublicConfigurationHash();
         workerService.updateLastAlive(workerWalletAddress);
         return ok(publicConfigurationHash);
@@ -68,8 +70,10 @@ public class WorkerController {
     @GetMapping(path = "/workers/challenge")
     public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess(walletAddress);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("Worker challenge request [workerAddress:{}]", walletAddress);
         return ok(challengeService.getChallenge(walletAddress));
     }
 
@@ -77,9 +81,11 @@ public class WorkerController {
     public ResponseEntity<String> getToken(@RequestParam(name = "walletAddress") String walletAddress,
                                            @RequestBody Signature signature) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess(walletAddress);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        log.debug("Worker login attempt [workerAddress:{}]", walletAddress);
         String challenge = challengeService.getChallenge(walletAddress);
         byte[] hashToCheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
 
@@ -87,9 +93,11 @@ public class WorkerController {
                 BytesUtils.bytesToString(hashToCheck), walletAddress)) {
             challengeService.removeChallenge(walletAddress, challenge);
             String token = jwtTokenProvider.getOrCreateToken(walletAddress);
+            log.debug("Worker has successfully logged on [workerAddress:{}]", walletAddress);
             return ok(token);
         }
 
+        log.debug("Worker has failed to log in [workerAddress:{}]", walletAddress);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -98,6 +106,7 @@ public class WorkerController {
                                                  @RequestBody WorkerModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -125,6 +134,7 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/config")
     public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
+        log.debug("Ask for the public configuration");
         final PublicConfiguration config = publicConfigurationService.getPublicConfiguration();
         return ok(config);
     }
@@ -134,9 +144,10 @@ public class WorkerController {
     public ResponseEntity<List<String>> getComputingTasks(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("Worker requests for computing tasks ids [workerAddress:{}]", workerWalletAddress);
         return ok(workerService.getComputingTaskIds(workerWalletAddress));
     }
-
 }
