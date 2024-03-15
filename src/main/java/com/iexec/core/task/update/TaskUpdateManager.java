@@ -35,21 +35,15 @@ import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.event.*;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -59,7 +53,6 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 @Slf4j
 class TaskUpdateManager {
-    public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
 
     private final TaskService taskService;
     private final IexecHubService iexecHubService;
@@ -68,8 +61,6 @@ class TaskUpdateManager {
     private final WorkerService workerService;
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
-
-    private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
 
     public TaskUpdateManager(TaskService taskService,
                              IexecHubService iexecHubService,
@@ -85,46 +76,6 @@ class TaskUpdateManager {
         this.workerService = workerService;
         this.blockchainAdapterService = blockchainAdapterService;
         this.smsService = smsService;
-
-        this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        status -> new AtomicLong(),
-                        (a, b) -> b,
-                        LinkedHashMap::new));
-
-        for (TaskStatus status : TaskStatus.values()) {
-            Gauge.builder(METRIC_TASKS_STATUSES_COUNT, () -> currentTaskStatusesCount.get(status).get())
-                    .tags(
-                            "period", "current",
-                            "status", status.name()
-                    ).register(Metrics.globalRegistry);
-        }
-    }
-
-    @PostConstruct
-    Future<Void> init() {
-        final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
-        final Future<Void> future = taskStatusesCountExecutor.submit(
-                this::initializeCurrentTaskStatusesCount,
-                null    // Trick to get a `Future<Void>` instead of a `Future<?>`
-        );
-        taskStatusesCountExecutor.shutdown();
-        return future;
-    }
-
-    /**
-     * The following could take a bit of time, depending on how many tasks are in DB.
-     * It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
-     * As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
-     * even though new deals are detected during the count.
-     */
-    private void initializeCurrentTaskStatusesCount() {
-        currentTaskStatusesCount
-                .entrySet()
-                .parallelStream()
-                .forEach(entry -> entry.getValue().addAndGet(taskService.countByCurrentStatus(entry.getKey())));
-        publishTaskStatusesCountUpdate();
     }
 
     void updateTask(String chainTaskId) {
@@ -243,10 +194,9 @@ class TaskUpdateManager {
      * @param statusChanges List of changes
      */
     void saveTask(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
-        Optional<Task> savedTask = taskService.updateTaskStatus(task, statusChanges);
+        long updatedTaskCount = taskService.updateTaskStatus(task, currentStatus, statusChanges);
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
-        if (savedTask.isPresent()) {
-            updateMetricsAfterStatusUpdate(currentStatus, task.getCurrentStatus());
+        if (updatedTaskCount != 0L) {
             log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
                     task.getChainTaskId(), currentStatus, task.getCurrentStatus());
         } else {
@@ -761,33 +711,5 @@ class TaskUpdateManager {
     void emitError(Task task, TaskStatus expectedStatus, String methodName) {
         log.error("Cannot initialize task [chainTaskId:{}, currentStatus:{}, expectedStatus:{}, method:{}]",
                 task.getChainTaskId(), task.getCurrentStatus(), expectedStatus, methodName);
-    }
-
-    void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
-        currentTaskStatusesCount.get(previousStatus).decrementAndGet();
-        currentTaskStatusesCount.get(newStatus).incrementAndGet();
-        publishTaskStatusesCountUpdate();
-    }
-
-    @EventListener(TaskCreatedEvent.class)
-    void onTaskCreatedEvent() {
-        currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
-        publishTaskStatusesCountUpdate();
-    }
-
-    private void publishTaskStatusesCountUpdate() {
-        // Copying the map here ensures the original values can't be updated from outside this class.
-        // As this data should be read only, no need for any atomic class.
-        final LinkedHashMap<TaskStatus, Long> currentTaskStatusesCountToPublish = currentTaskStatusesCount
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entrySet -> entrySet.getValue().get(),
-                        (a, b) -> b,
-                        LinkedHashMap::new
-                ));
-        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCountToPublish);
-        applicationEventPublisher.publishEvent(event);
     }
 }

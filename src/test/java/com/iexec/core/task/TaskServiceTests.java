@@ -21,8 +21,9 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
@@ -34,31 +35,33 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.web3j.utils.Numeric;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static com.iexec.core.task.TaskStatus.COMPLETED;
-import static com.iexec.core.task.TaskStatus.INITIALIZED;
+import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
+import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
@@ -82,8 +85,7 @@ class TaskServiceTests {
     private TaskRepository taskRepository;
 
     @Mock
-    private ReplicatesService replicatesService;
-
+    private ApplicationEventPublisher applicationEventPublisher;
     @Mock
     private IexecHubService iexecHubService;
 
@@ -97,9 +99,8 @@ class TaskServiceTests {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService);
-        taskService.init();
         taskRepository.deleteAll();
+        taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
     }
 
     @AfterEach
@@ -344,7 +345,6 @@ class TaskServiceTests {
                 .isFalse();
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verifyNoInteractions(replicatesService);
     }
 
     @Test
@@ -362,7 +362,6 @@ class TaskServiceTests {
                 .isFalse();
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verifyNoInteractions(replicatesService);
     }
 
     @Test
@@ -406,7 +405,7 @@ class TaskServiceTests {
     }
     // endregion
 
-    // region getCompletedTasksCount
+    // region metrics
     @Test
     void shouldGet0CompletedTasksCountWhenNoTaskCompleted() {
         final long completedTasksCount = taskService.getCompletedTasksCount();
@@ -425,5 +424,92 @@ class TaskServiceTests {
         final long completedTasksCount = taskService.getCompletedTasksCount();
         assertThat(completedTasksCount).isEqualTo(3);
     }
+
+    @Test
+    void shouldBuildGaugesAndFireEvent() {
+        final List<Task> tasks = new ArrayList<>();
+        BigInteger taskId = BigInteger.ZERO;
+        for (final TaskStatus status : TaskStatus.values()) {
+            // Give a unique initial count for each status
+            taskId = taskId.add(BigInteger.ONE);
+            final Task task = new Task(Numeric.toHexStringWithPrefix(taskId), 0, "", "", 0, 0, "0x0");
+            task.setChainTaskId(Numeric.toHexStringWithPrefix(taskId));
+            task.changeStatus(status);
+            tasks.add(task);
+        }
+        taskRepository.saveAll(tasks);
+
+        taskService.init();
+
+        verify(applicationEventPublisher, timeout(1000L)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+        for (final TaskStatus status : TaskStatus.values()) {
+            final Gauge gauge = getCurrentTasksCountGauge(status);
+            assertThat(gauge).isNotNull()
+                    // Check the gauge value is equal to the unique count for each status
+                    .extracting(Gauge::value)
+                    .isEqualTo(1.0);
+        }
+    }
     // endregion
+
+    // region onTaskCreatedEvent
+    @Test
+    void shouldIncrementCurrentReceivedGaugeWhenTaskReceived() {
+        taskService.init();
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        assertThat(currentReceivedTasks.value()).isZero();
+        taskService.onTaskCreatedEvent();
+        assertThat(currentReceivedTasks.value()).isOne();
+    }
+
+    @Test
+    void shouldUpdateCurrentReceivedCountAndFireEvent() {
+        final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount = new LinkedHashMap<>();
+        currentTaskStatusesCount.put(RECEIVED, new AtomicLong(0L));
+        ReflectionTestUtils.setField(taskService, "currentTaskStatusesCount", currentTaskStatusesCount);
+
+        taskService.onTaskCreatedEvent();
+
+        assertThat(currentTaskStatusesCount.get(RECEIVED).get()).isOne();
+        verify(applicationEventPublisher).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region updateMetricsAfterStatusUpdate
+    @Test
+    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
+        Task receivedTask = new Task("", "", 0);
+        taskRepository.save(receivedTask);
+
+        // Init gauges
+        taskService.init();
+        // Called a first time during init
+        verify(applicationEventPublisher, timeout(1000L)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isOne();
+        assertThat(currentInitializingTasks.value()).isZero();
+
+        taskService.updateMetricsAfterStatusUpdate(RECEIVED, INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isZero();
+        assertThat(currentInitializingTasks.value()).isOne();
+        // Called a second time during update
+        verify(applicationEventPublisher, times(2)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region util
+    Gauge getCurrentTasksCountGauge(TaskStatus status) {
+        return Metrics.globalRegistry
+                .find(METRIC_TASKS_STATUSES_COUNT)
+                .tags(
+                        "period", "current",
+                        "status", status.name()
+                ).gauge();
+    }
+    // endregion
+
 }

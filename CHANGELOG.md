@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Check result has been uploaded for TEE tasks. (#672)
 - Check for consensus early if a worker has already `CONTRIBUTED` when the task is updated to `RUNNING`. (#673)
 - Always provide a `WorkerpoolAuthorization` to a worker during its recovery. (#674)
+- Move task metrics from `TaskUpdateManager` to `TaskService`. (#676)
 
 ### Quality
 
