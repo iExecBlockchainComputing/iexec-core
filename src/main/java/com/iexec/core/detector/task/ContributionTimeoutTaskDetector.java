@@ -51,10 +51,10 @@ public class ContributionTimeoutTaskDetector implements Detector {
         final Query query = Query.query(Criteria.where("currentStatus").in(TaskStatus.INITIALIZED, TaskStatus.RUNNING)
                 .and("contributionDeadline").lte(now)
                 .and("finalDeadline").gt(now));
-        final Update update = Update.update("currentStatus", TaskStatus.FAILED);
-        update.push("dateStatusList").each(
-                TaskStatusChange.builder().status(TaskStatus.CONTRIBUTION_TIMEOUT).build(),
-                TaskStatusChange.builder().status(TaskStatus.FAILED).build());
+        final Update update = Update.update("currentStatus", TaskStatus.FAILED)
+                .push("dateStatusList").each(
+                        TaskStatusChange.builder().status(TaskStatus.CONTRIBUTION_TIMEOUT).build(),
+                        TaskStatusChange.builder().status(TaskStatus.FAILED).build());
         taskService.failMultipleTasksByQuery(update, query)
                 .forEach(id -> applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(id)));
     }

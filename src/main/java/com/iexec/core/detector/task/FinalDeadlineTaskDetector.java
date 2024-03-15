@@ -49,10 +49,10 @@ public class FinalDeadlineTaskDetector implements Detector {
         log.debug("Detect tasks after final deadline");
         final Query query = Query.query(Criteria.where("currentStatus").nin(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible())
                 .and("finalDeadline").lte(Instant.now()));
-        final Update update = Update.update("currentStatus", TaskStatus.FAILED);
-        update.push("dateStatusList").each(
-                TaskStatusChange.builder().status(TaskStatus.FINAL_DEADLINE_REACHED).build(),
-                TaskStatusChange.builder().status(TaskStatus.FAILED).build());
+        final Update update = Update.update("currentStatus", TaskStatus.FAILED)
+                .push("dateStatusList").each(
+                        TaskStatusChange.builder().status(TaskStatus.FINAL_DEADLINE_REACHED).build(),
+                        TaskStatusChange.builder().status(TaskStatus.FAILED).build());
         taskService.failMultipleTasksByQuery(update, query)
                 .forEach(id -> applicationEventPublisher.publishEvent(new TaskFailedEvent(id)));
     }
