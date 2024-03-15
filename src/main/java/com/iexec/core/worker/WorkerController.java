@@ -134,7 +134,7 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/config")
     public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
-        log.debug("A worker asks for the public configuration");
+        log.debug("Ask for the public configuration");
         final PublicConfiguration config = publicConfigurationService.getPublicConfiguration();
         return ok(config);
     }
