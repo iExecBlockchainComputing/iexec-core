@@ -38,10 +38,8 @@ import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.PleaseUploadEvent;
-import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
@@ -53,20 +51,19 @@ import org.mockito.*;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUESTED;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
-import static com.iexec.core.task.update.TaskUpdateManager.METRIC_TASKS_STATUSES_COUNT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -130,28 +127,6 @@ class TaskUpdateManagerTest {
     void afterEach() {
         Metrics.globalRegistry.clear();
     }
-
-    // region init
-    @Test
-    void shouldBuildGaugesAndFireEvent() throws ExecutionException, InterruptedException {
-        for (final TaskStatus status : TaskStatus.values()) {
-            // Give a unique initial count for each status
-            when(taskService.countByCurrentStatus(status)).thenReturn((long) status.ordinal());
-        }
-
-        taskUpdateManager.init().get();
-
-        for (final TaskStatus status : TaskStatus.values()) {
-            final Gauge gauge = getCurrentTasksCountGauge(status);
-            assertThat(gauge).isNotNull()
-                    // Check the gauge value is equal to the unique count for each status
-                    .extracting(Gauge::value)
-                    .isEqualTo(((double) status.ordinal()));
-        }
-
-        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
-    }
-    // endregion
 
     // region consensusReached2Reopening
 
@@ -455,7 +430,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(0)).getVerifiedSmsUrl(anyString(), anyString());
-        verify(taskService, times(2)).updateTaskStatus(any(), any()); // INITIALIZING & INITIALIZED
+        verify(taskService, times(2)).updateTaskStatus(any(), any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -491,7 +466,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isEqualTo(smsUrl);
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
-        verify(taskService, times(2)).updateTaskStatus(any(), any()); // INITIALIZING & INITIALIZED
+        verify(taskService, times(2)).updateTaskStatus(any(), any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -527,7 +502,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
         verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
-        verify(taskService, times(1)).updateTaskStatus(any(), any()); // INITIALIZE_FAILED & FAILED
+        verify(taskService, times(1)).updateTaskStatus(any(), any(), any()); // INITIALIZE_FAILED & FAILED
     }
 
     // endregion
@@ -2019,62 +1994,6 @@ class TaskUpdateManagerTest {
 
     // endregion
 
-    // region onTaskCreatedEvent
-    @Test
-    void shouldIncrementCurrentReceivedGaugeWhenTaskReceived() {
-        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(0L);
-
-        // Init gauges
-        taskUpdateManager.init();
-
-        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
-        assertThat(currentReceivedTasks.value()).isZero();
-
-        taskUpdateManager.onTaskCreatedEvent();
-
-        assertThat(currentReceivedTasks.value()).isOne();
-    }
-    // endregion
-
-    // region updateMetricsAfterStatusUpdate
-    @Test
-    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
-        when(taskService.countByCurrentStatus(RECEIVED)).thenReturn(1L);
-        when(taskService.countByCurrentStatus(INITIALIZING)).thenReturn(0L);
-
-        // Init gauges
-        taskUpdateManager.init().get();
-
-        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
-        final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);
-
-        assertThat(currentReceivedTasks.value()).isOne();
-        assertThat(currentInitializingTasks.value()).isZero();
-
-        taskUpdateManager.updateMetricsAfterStatusUpdate(RECEIVED, INITIALIZING);
-
-        assertThat(currentReceivedTasks.value()).isZero();
-        assertThat(currentInitializingTasks.value()).isOne();
-        // Called a first time during init, then a second time during update
-        verify(applicationEventPublisher, times(2)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
-    }
-    // endregion
-
-    // region onTaskCreatedEvent
-    @Test
-    void shouldUpdateCurrentReceivedCountAndFireEvent() {
-        final AtomicLong receivedCount =
-                (AtomicLong) ((LinkedHashMap<?, ?>) ReflectionTestUtils.getField(taskUpdateManager, "currentTaskStatusesCount"))
-                        .get(RECEIVED);
-        final long initialCount = receivedCount.get();
-
-        taskUpdateManager.onTaskCreatedEvent();
-
-        assertThat(receivedCount.get() - initialCount).isOne();
-        verify(applicationEventPublisher, times(1)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
-    }
-    // endregion
-
     // region utils
     private void mockTaskDescriptionFromTask(Task task) {
         final TaskDescription taskDescription = TaskDescription.builder()
@@ -2084,15 +2003,6 @@ class TaskUpdateManagerTest {
                 .callback("")
                 .build();
         when(iexecHubService.getTaskDescription(task.getChainTaskId())).thenReturn(taskDescription);
-    }
-
-    Gauge getCurrentTasksCountGauge(TaskStatus status) {
-        return Metrics.globalRegistry
-                .find(METRIC_TASKS_STATUSES_COUNT)
-                .tags(
-                        "period", "current",
-                        "status", status.name()
-                ).gauge();
     }
     // endregion
 }

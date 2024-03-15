@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,15 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.task.event.TaskCreatedEvent;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -34,10 +39,11 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
@@ -48,23 +54,60 @@ public class TaskService {
 
     private static final String CHAIN_TASK_ID_FIELD = "chainTaskId";
     public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
+    public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
     private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final Counter completedTasksCounter;
+    private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
 
     public TaskService(MongoTemplate mongoTemplate,
                        TaskRepository taskRepository,
-                       IexecHubService iexecHubService) {
+                       IexecHubService iexecHubService,
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.mongoTemplate = mongoTemplate;
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
+        this.applicationEventPublisher = applicationEventPublisher;
+
+        this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        status -> new AtomicLong(),
+                        (a, b) -> b,
+                        LinkedHashMap::new));
+
+        for (TaskStatus status : TaskStatus.values()) {
+            Gauge.builder(METRIC_TASKS_STATUSES_COUNT, () -> currentTaskStatusesCount.get(status).get())
+                    .tags(
+                            "period", "current",
+                            "status", status.name()
+                    ).register(Metrics.globalRegistry);
+        }
         this.completedTasksCounter = Metrics.counter(METRIC_TASKS_COMPLETED_COUNT);
     }
 
     @PostConstruct
     void init() {
         completedTasksCounter.increment(findByCurrentStatus(TaskStatus.COMPLETED).size());
+        final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
+        taskStatusesCountExecutor.submit(this::initializeCurrentTaskStatusesCount);
+        taskStatusesCountExecutor.shutdown();
+    }
+
+    /**
+     * The following could take a bit of time, depending on how many tasks are in DB.
+     * It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+     * As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+     * even though new deals are detected during the count.
+     */
+    private void initializeCurrentTaskStatusesCount() {
+        currentTaskStatusesCount
+                .entrySet()
+                .parallelStream()
+                .forEach(entry -> entry.getValue().addAndGet(countByCurrentStatus(entry.getKey())));
+        publishTaskStatusesCountUpdate();
     }
 
     /**
@@ -103,14 +146,12 @@ public class TaskService {
         newTask.setContributionDeadline(contributionDeadline);
         try {
             newTask = taskRepository.save(newTask);
-            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                            "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                    taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}, chainTaskId:{}]",
+                    chainDealId, taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
             return Optional.of(newTask);
         } catch (DuplicateKeyException e) {
-            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                            "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                    taskIndex, imageName, commandLine, trust);
+            log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
+                    chainDealId, taskIndex, imageName, commandLine, trust);
             return Optional.empty();
         }
     }
@@ -135,7 +176,7 @@ public class TaskService {
         return optionalTask;
     }
 
-    public Optional<Task> updateTaskStatus(Task task, List<TaskStatusChange> statusChanges) {
+    public long updateTaskStatus(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
         Update update = Update.update("currentStatus", task.getCurrentStatus());
         update.push("dateStatusList").each(statusChanges);
         UpdateResult result = mongoTemplate.updateFirst(
@@ -143,7 +184,8 @@ public class TaskService {
                 update,
                 Task.class);
         log.debug("Updated chainTaskId [chainTaskId:{},  result:{}]", task.getChainTaskId(), result);
-        return getTaskByChainTaskId(task.getChainTaskId());
+        updateMetricsAfterStatusUpdate(currentStatus, task.getCurrentStatus());
+        return result.getModifiedCount();
     }
 
     public void updateTask(String chainTaskId, Update update) {
@@ -272,19 +314,23 @@ public class TaskService {
     }
 
     public boolean isConsensusReached(ReplicatesList replicatesList) {
-        Optional<ChainTask> optional = iexecHubService.getChainTask(replicatesList.getChainTaskId());
-        if (optional.isEmpty()) {
+        final ChainTask chainTask = iexecHubService.getChainTask(replicatesList.getChainTaskId()).orElse(null);
+        if (chainTask == null) {
+            log.error("Consensus not reached, task not found on-chain [chainTaskId:{}]", replicatesList.getChainTaskId());
             return false;
         }
 
-        final ChainTask chainTask = optional.get();
-        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean isChainTaskRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
         if (!isChainTaskRevealing) {
+            log.debug("Consensus not reached, on-chain task is not in REVEALING status [chainTaskId:{}]",
+                    replicatesList.getChainTaskId());
             return false;
         }
 
         int onChainWinners = chainTask.getWinnerCounter();
         int offChainWinners = replicatesList.getNbValidContributedWinners(chainTask.getConsensusValue());
+        log.debug("Returning off-chain and on-chain winners [offChainWinners:{}, onChainWinners:{}]",
+                offChainWinners, onChainWinners);
         return offChainWinners >= onChainWinners;
     }
 
@@ -294,5 +340,33 @@ public class TaskService {
 
     public long countByCurrentStatus(TaskStatus status) {
         return taskRepository.countByCurrentStatus(status);
+    }
+
+    void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
+        currentTaskStatusesCount.get(previousStatus).decrementAndGet();
+        currentTaskStatusesCount.get(newStatus).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    @EventListener(TaskCreatedEvent.class)
+    void onTaskCreatedEvent() {
+        currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    private void publishTaskStatusesCountUpdate() {
+        // Copying the map here ensures the original values can't be updated from outside this class.
+        // As this data should be read only, no need for any atomic class.
+        final LinkedHashMap<TaskStatus, Long> currentTaskStatusesCountToPublish = currentTaskStatusesCount
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entrySet -> entrySet.getValue().get(),
+                        (a, b) -> b,
+                        LinkedHashMap::new
+                ));
+        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCountToPublish);
+        applicationEventPublisher.publishEvent(event);
     }
 }
