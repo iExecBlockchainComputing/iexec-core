@@ -58,7 +58,7 @@ public class WorkerController {
     public ResponseEntity<String> ping(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            emitWarnOnUnAuthorizedAccess("");
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         log.debug("Worker keepalive ping [workerAddress:{}]", workerWalletAddress);
@@ -70,7 +70,7 @@ public class WorkerController {
     @GetMapping(path = "/workers/challenge")
     public ResponseEntity<String> getChallenge(@RequestParam(name = "walletAddress") String walletAddress) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
-            emitWarnOnUnAuthorizedAccess(walletAddress);
+            WorkerUtils.emitWarnOnUnAuthorizedAccess(walletAddress);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         log.debug("Worker challenge request [workerAddress:{}]", walletAddress);
@@ -81,7 +81,7 @@ public class WorkerController {
     public ResponseEntity<String> getToken(@RequestParam(name = "walletAddress") String walletAddress,
                                            @RequestBody Signature signature) {
         if (!workerService.isAllowedToJoin(walletAddress)) {
-            emitWarnOnUnAuthorizedAccess(walletAddress);
+            WorkerUtils.emitWarnOnUnAuthorizedAccess(walletAddress);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -106,7 +106,7 @@ public class WorkerController {
                                                  @RequestBody WorkerModel model) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            emitWarnOnUnAuthorizedAccess("");
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -144,21 +144,10 @@ public class WorkerController {
     public ResponseEntity<List<String>> getComputingTasks(@RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
-            emitWarnOnUnAuthorizedAccess("");
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         log.debug("Worker requests for computing tasks ids [workerAddress:{}]", workerWalletAddress);
         return ok(workerService.getComputingTaskIds(workerWalletAddress));
-    }
-
-    /**
-     * Utility function to log a message in the event of unauthorized access
-     * Either because the worker is not whitelisted or because the worker address was not found in the JWT token
-     *
-     * @param workerWalletAddress Address of the worker who attempted access
-     */
-    private void emitWarnOnUnAuthorizedAccess(String workerWalletAddress) {
-        final String workerAddress = workerWalletAddress.isEmpty() ? "NotAvailable" : workerWalletAddress;
-        log.warn("Worker is not allowed to join this workerpool [workerAddress:{}]", workerAddress);
     }
 }

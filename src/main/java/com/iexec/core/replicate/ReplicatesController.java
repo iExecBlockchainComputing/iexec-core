@@ -22,6 +22,7 @@ import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
+import com.iexec.core.worker.WorkerUtils;
 import feign.FeignException;
 import io.vavr.control.Either;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +63,7 @@ public class ReplicatesController {
             @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -91,6 +93,7 @@ public class ReplicatesController {
 
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -123,6 +126,7 @@ public class ReplicatesController {
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (walletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
