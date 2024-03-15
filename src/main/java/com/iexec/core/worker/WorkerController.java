@@ -130,6 +130,7 @@ public class WorkerController {
 
     @GetMapping(path = "/workers/config")
     public ResponseEntity<PublicConfiguration> getPublicConfiguration() {
+        log.debug("A worker asks for the public configuration");
         final PublicConfiguration config = publicConfigurationService.getPublicConfiguration();
         return ok(config);
     }
@@ -141,7 +142,7 @@ public class WorkerController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        log.info("Worker requests for computing tasks ids [workerAddress:{}]", workerWalletAddress);
+        log.debug("Worker requests for computing tasks ids [workerAddress:{}]", workerWalletAddress);
         return ok(workerService.getComputingTaskIds(workerWalletAddress));
     }
 
