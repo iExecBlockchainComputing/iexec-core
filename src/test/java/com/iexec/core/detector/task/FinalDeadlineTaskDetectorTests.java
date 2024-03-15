@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,45 +16,72 @@
 
 package com.iexec.core.detector.task;
 
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskRepository;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.task.TaskStatusChange;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.Date;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.when;
+import static com.iexec.core.task.TaskStatus.*;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+@Slf4j
+@DataMongoTest
+@Testcontainers
 class FinalDeadlineTaskDetectorTests {
 
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
+        registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
+    }
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private TaskRepository taskRepository;
+
     @Mock
-    private TaskService taskService;
+    private IexecHubService iexecHubService;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
-    @Mock private
-    TaskUpdateRequestManager taskUpdateRequestManager;
-
-    @InjectMocks
     private FinalDeadlineTaskDetector finalDeadlineTaskDetector;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        taskRepository.deleteAll();
+        final TaskService taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
+        finalDeadlineTaskDetector = new FinalDeadlineTaskDetector(taskService, applicationEventPublisher);
     }
 
     private Task getTask() {
         Task task = new Task("", "", 0);
-        task.changeStatus(TaskStatus.RUNNING);
+        task.setChainTaskId("0x1");
+        task.changeStatus(RUNNING);
         return task;
     }
 
@@ -62,25 +89,25 @@ class FinalDeadlineTaskDetectorTests {
     void shouldDetectTaskAfterFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
-
-        when(taskService.getTasksWhereFinalDeadlineIsPossible()).thenReturn(Collections.singletonList(task));
-
+        taskRepository.save(task);
         finalDeadlineTaskDetector.detect();
-
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
-                .publishRequest(any());
+        Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getDateStatusList()).isNotNull();
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .contains(FINAL_DEADLINE_REACHED, FAILED);
     }
 
     @Test
-    void shouldDetectTaskBeforeFinalDeadline() {
+    void shouldNotDetectTaskBeforeFinalDeadline() {
         Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
-
-        when(taskService.getTasksWhereFinalDeadlineIsPossible()).thenReturn(Collections.singletonList(task));
-
+        taskRepository.save(task);
         finalDeadlineTaskDetector.detect();
-
-        Mockito.verify(taskUpdateRequestManager, never())
-                .publishRequest(any());
+        Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getDateStatusList()).isNotNull();
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .doesNotContain(FINAL_DEADLINE_REACHED, FAILED);
     }
 }

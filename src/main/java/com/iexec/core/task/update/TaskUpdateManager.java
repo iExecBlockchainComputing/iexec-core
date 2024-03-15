@@ -79,22 +79,16 @@ class TaskUpdateManager {
     }
 
     void updateTask(String chainTaskId) {
-        Optional<Task> optional = taskService.getTaskByChainTaskId(chainTaskId);
-        if (optional.isEmpty()) {
+        log.debug("Task update process starts [chainTaskId:{}]", chainTaskId);
+        final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
+        if (task == null) {
             return;
         }
-        Task task = optional.get();
-        TaskStatus currentStatus = task.getCurrentStatus();
 
-        boolean isFinalDeadlinePossible =
-                !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(currentStatus);
-        if (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline())) {
-            // Eventually should fire a "final deadline reached" notification to worker,
-            // but here let's just trigger an toFailed(task) leading to a failed status
-            // which will itself fire a generic "abort" notification
-            toFailed(task, FINAL_DEADLINE_REACHED);
-            return;
-        }
+        final boolean isFinalDeadlinePossible =
+                !TaskStatus.getStatusesWhereFinalDeadlineIsImpossible().contains(task.getCurrentStatus());
+        final TaskStatus currentStatus = (isFinalDeadlinePossible && new Date().after(task.getFinalDeadline()))
+                ? FINAL_DEADLINE_REACHED : task.getCurrentStatus();
 
         switch (currentStatus) {
             case RECEIVED:
@@ -145,13 +139,19 @@ class TaskUpdateManager {
             case REOPEN_FAILED:
             case RESULT_UPLOAD_TIMEOUT:
             case FINALIZE_FAILED:
-            case FINAL_DEADLINE_REACHED:
                 toFailed(task);
+                break;
+            case FINAL_DEADLINE_REACHED:
+                // Eventually should fire a "final deadline reached" notification to worker,
+                // but here let's just trigger an toFailed(task) leading to a failed status
+                // which will itself fire a generic "abort" notification
+                toFailed(task, FINAL_DEADLINE_REACHED);
                 break;
             case COMPLETED:
             case FAILED:
                 break;
         }
+        log.debug("Task update process completed [chainTaskId:{}]", chainTaskId);
     }
 
     /**

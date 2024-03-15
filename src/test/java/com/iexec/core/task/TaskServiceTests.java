@@ -251,24 +251,6 @@ class TaskServiceTests {
     }
 
     @Test
-    void shouldGetTasksInNonFinalStatuses() {
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-        assertThat(taskService.getTasksInNonFinalStatuses())
-                .usingRecursiveComparison()
-                .isEqualTo(List.of(task));
-    }
-
-    @Test
-    void shouldGetTasksWhereFinalDeadlineIsPossible() {
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-        assertThat(taskService.getTasksWhereFinalDeadlineIsPossible())
-                .usingRecursiveComparison()
-                .isEqualTo(List.of(task));
-    }
-
-    @Test
     void shouldGetChainTaskIdsOfTasksExpiredBefore() {
         Date date = new Date();
         Task task = getStubTask(maxExecutionTime);

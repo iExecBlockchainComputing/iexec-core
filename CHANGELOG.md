@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Check for consensus early if a worker has already `CONTRIBUTED` when the task is updated to `RUNNING`. (#673)
 - Always provide a `WorkerpoolAuthorization` to a worker during its recovery. (#674)
 - Move task metrics from `TaskUpdateManager` to `TaskService`. (#676)
+- Fail fast when tasks are detected past their contribution or final deadline. (#677)
 
 ### Quality
 

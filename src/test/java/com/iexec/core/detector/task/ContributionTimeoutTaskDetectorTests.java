@@ -16,101 +16,129 @@
 
 package com.iexec.core.detector.task;
 
-import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.core.replicate.ReplicatesService;
-import com.iexec.core.task.Task;
-import com.iexec.core.task.TaskService;
-import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
-import com.iexec.core.worker.WorkerService;
+import com.iexec.core.chain.IexecHubService;
+import com.iexec.core.task.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static com.iexec.core.task.TaskStatus.*;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+@DataMongoTest
+@Testcontainers
 class ContributionTimeoutTaskDetectorTests {
 
     private final static String CHAIN_TASK_ID = "chainTaskId";
 
-    @Mock
-    private TaskService taskService;
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
+        registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
+    }
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private TaskRepository taskRepository;
 
     @Mock
-    private ReplicatesService replicatesService;
-
+    private IexecHubService iexecHubService;
     @Mock
-    private WorkerService workerService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
-    @Mock
-    private TaskUpdateRequestManager taskUpdateRequestManager;
-
-    @Spy
-    @InjectMocks
-    private ContributionTimeoutTaskDetector contributionDetector;
+    private ContributionTimeoutTaskDetector contributionTimeoutTaskDetector;
 
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        taskRepository.deleteAll();
+        final TaskService taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
+        contributionTimeoutTaskDetector = new ContributionTimeoutTaskDetector(taskService, applicationEventPublisher);
     }
 
     @Test
-    void shouldNotDetectAnyContributionTimeout() {
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.emptyList());
-        contributionDetector.detect();
+    void shouldNotDetectTaskAfterContributionDeadlineIfNotInitializedOrRunning() {
+        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
+        task.changeStatus(AT_LEAST_ONE_REVEALED);
+        task.setContributionDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
+        taskRepository.save(task);
 
-        Mockito.verify(workerService, Mockito.times(0))
-                .removeChainTaskIdFromWorker(any(), any());
+        contributionTimeoutTaskDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
-
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
-                .publishRequest(any());
+        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
+        assertThat(finalTask.getDateStatusList()).isNotNull();
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .doesNotContain(CONTRIBUTION_TIMEOUT, FAILED);
     }
 
     @Test
-    void shouldNotUpdateTaskIfBeforeTimeout() {
-        Date oneMinuteAfterNow = Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES));
-
+    void shouldNotDetectTaskIfBeforeTimeout() {
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
-        task.setContributionDeadline(oneMinuteAfterNow);
+        task.setContributionDeadline(Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES)));
+        taskRepository.save(task);
 
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
-        contributionDetector.detect();
+        contributionTimeoutTaskDetector.detect();
 
-        Mockito.verify(workerService, Mockito.times(0))
-                .removeChainTaskIdFromWorker(any(), any());
-
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
-
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(0))
-                .publishRequest(any());
+        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getCurrentStatus()).isEqualTo(RUNNING);
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .doesNotContain(CONTRIBUTION_TIMEOUT, FAILED);
     }
 
-
     @Test
-    void shouldUpdateIfIsTimeout() {
-        Date oneMinuteBeforeNow = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
-
+    void shouldDetectTaskIfBetweenContributionAndFinalDeadline() {
         Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
         task.changeStatus(TaskStatus.RUNNING);
-        task.setContributionDeadline(oneMinuteBeforeNow);
+        task.setContributionDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
+        task.setFinalDeadline(Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES)));
+        taskRepository.save(task);
 
-        when(taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))).thenReturn(Collections.singletonList(task));
+        contributionTimeoutTaskDetector.detect();
 
-        contributionDetector.detect();
+        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getCurrentStatus()).isEqualTo(FAILED);
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .contains(CONTRIBUTION_TIMEOUT, FAILED);
+    }
 
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(1))
-                .publishRequest(any());
+    @Test
+    void shouldNotDetectTaskIfAfterFinalDeadline() {
+        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
+        task.changeStatus(TaskStatus.RUNNING);
+        task.setContributionDeadline(Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES)));
+        task.setFinalDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
+        taskRepository.save(task);
+
+        contributionTimeoutTaskDetector.detect();
+
+        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        assertThat(finalTask).isNotNull();
+        assertThat(finalTask.getCurrentStatus()).isEqualTo(RUNNING);
+        assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
+                .doesNotContain(CONTRIBUTION_TIMEOUT, FAILED);
     }
 }

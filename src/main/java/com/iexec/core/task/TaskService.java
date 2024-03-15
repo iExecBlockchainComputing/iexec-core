@@ -274,12 +274,23 @@ public class TaskService {
         );
     }
 
-    public List<Task> getTasksInNonFinalStatuses() {
-        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses());
+    public List<String> failMultipleTasksByQuery(Update update, Query query) {
+        return mongoTemplate.find(query, Task.class).stream()
+                .map(task -> failSingleTask(update, task))
+                .collect(Collectors.toList());
     }
 
-    public List<Task> getTasksWhereFinalDeadlineIsPossible() {
-        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible());
+    private String failSingleTask(Update update, Task task) {
+        final TaskStatus beforeUpdate = task.getCurrentStatus();
+        final UpdateResult updateResult = mongoTemplate.updateFirst(
+                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(task.getChainTaskId())), update, Task.class);
+        if (updateResult.getModifiedCount() == 0) {
+            log.warn("The task was not updated [chainTaskId:{}]", task.getChainTaskId());
+            return "";
+        } else {
+            updateMetricsAfterStatusUpdate(beforeUpdate, FAILED);
+            return task.getChainDealId();
+        }
     }
 
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
