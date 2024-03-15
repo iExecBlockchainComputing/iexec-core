@@ -60,6 +60,7 @@ public class WorkerController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("Worker keepalive ping [workerAddress:{}]", workerWalletAddress);
         final String publicConfigurationHash = publicConfigurationService.getPublicConfigurationHash();
         workerService.updateLastAlive(workerWalletAddress);
         return ok(publicConfigurationHash);
@@ -70,6 +71,7 @@ public class WorkerController {
         if (!workerService.isAllowedToJoin(walletAddress)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("Worker challenge request [workerAddress:{}]", walletAddress);
         return ok(challengeService.getChallenge(walletAddress));
     }
 
@@ -80,6 +82,7 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        log.debug("Worker login attempt [workerAddress:{}]", walletAddress);
         String challenge = challengeService.getChallenge(walletAddress);
         byte[] hashToCheck = Hash.sha3(BytesUtils.stringToBytes(challenge));
 
@@ -87,9 +90,11 @@ public class WorkerController {
                 BytesUtils.bytesToString(hashToCheck), walletAddress)) {
             challengeService.removeChallenge(walletAddress, challenge);
             String token = jwtTokenProvider.getOrCreateToken(walletAddress);
+            log.debug("Worker has successfully logged on [workerAddress:{}]", walletAddress);
             return ok(token);
         }
 
+        log.debug("Worker has failed to log in [workerAddress:{}]", walletAddress);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -136,6 +141,7 @@ public class WorkerController {
         if (workerWalletAddress.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        log.info("Worker requests for computing tasks ids [workerAddress:{}]", workerWalletAddress);
         return ok(workerService.getComputingTaskIds(workerWalletAddress));
     }
 

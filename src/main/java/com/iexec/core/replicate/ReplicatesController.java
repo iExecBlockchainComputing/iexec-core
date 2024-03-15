@@ -70,8 +70,10 @@ public class ReplicatesController {
                     " [workerAddress: {}]", workerWalletAddress);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
+        log.debug("Worker requests replicate [workerAddress:{}]", workerWalletAddress);
 
         if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)) {
+            log.debug("Worker is not allowed to ask replicate [workerAddress:{}]", workerWalletAddress);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
@@ -92,6 +94,7 @@ public class ReplicatesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        log.debug("Worker asks for missed tasks [workerAddress:{}]", workerWalletAddress);
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, workerWalletAddress);
 
@@ -141,6 +144,8 @@ public class ReplicatesController {
                 computeLogs.setWalletAddress(walletAddress);
             }
         }
+
+        log.debug("Worker request to update a replicate status [workerAddress:{}, chainTaskId:{}, statusUpdate:{}]", walletAddress, chainTaskId, statusUpdate);
 
         final Either<ReplicateStatusUpdateError, TaskNotificationType> updateResult = replicatesService
                 .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
