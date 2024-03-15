@@ -16,9 +16,12 @@
 
 package com.iexec.core.worker;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
 public class WorkerUtils {
 
