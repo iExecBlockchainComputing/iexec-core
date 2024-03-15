@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,37 +17,43 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.Detector;
-import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
+import com.iexec.core.task.event.TaskFailedEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Slf4j
 @Service
 public class FinalDeadlineTaskDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateRequestManager taskUpdateRequestManager;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public FinalDeadlineTaskDetector(TaskService taskService, TaskUpdateRequestManager taskUpdateRequestManager) {
+    public FinalDeadlineTaskDetector(TaskService taskService, ApplicationEventPublisher applicationEventPublisher) {
         this.taskService = taskService;
-        this.taskUpdateRequestManager = taskUpdateRequestManager;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalDeadline()}")
     @Override
     public void detect() {
-        log.debug("Trying to detect final deadline");
-        for (Task task : taskService.getTasksWhereFinalDeadlineIsPossible()) {
-            Date now = new Date();
-            if (task.getFinalDeadline() != null && now.after(task.getFinalDeadline())) {
-                log.info("Task after final deadline found [chainTaskId:{}]", task.getChainTaskId());
-                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
-            }
-        }
+        log.debug("Detect tasks after final deadline");
+        final Query query = Query.query(Criteria.where("currentStatus").nin(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible())
+                .and("finalDeadline").lte(Instant.now()));
+        final Update update = Update.update("currentStatus", TaskStatus.FAILED)
+                .push("dateStatusList").each(
+                        TaskStatusChange.builder().status(TaskStatus.FINAL_DEADLINE_REACHED).build(),
+                        TaskStatusChange.builder().status(TaskStatus.FAILED).build());
+        taskService.failMultipleTasksByQuery(update, query)
+                .forEach(id -> applicationEventPublisher.publishEvent(new TaskFailedEvent(id)));
     }
 }

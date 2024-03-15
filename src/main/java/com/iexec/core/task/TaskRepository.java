@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-interface TaskRepository extends MongoRepository<Task, String> {
+public interface TaskRepository extends MongoRepository<Task, String> {
 
     Optional<Task> findByChainTaskId(String id);
 
-    Optional<Task> findByChainDealIdAndTaskIndex(String chainDealId, int taskIndex);
-
     @Query("{ 'chainTaskId': {$in: ?0} }")
     List<Task> findByChainTaskId(List<String> ids);
-
-    @Query("{ 'id': {$in: ?0} }")
-    List<Task> findById(List<String> ids);
 
     List<Task> findByCurrentStatus(TaskStatus status);
 
@@ -63,9 +58,6 @@ interface TaskRepository extends MongoRepository<Task, String> {
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
     Optional<Task> findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(List<TaskStatus> statuses, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
-
-    @Query("{ 'currentStatus': {$nin: ?0} }")
-    List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
 
     @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
