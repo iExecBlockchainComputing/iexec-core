@@ -59,9 +59,6 @@ public interface TaskRepository extends MongoRepository<Task, String> {
      */
     Optional<Task> findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(List<TaskStatus> statuses, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
 
-    @Query("{ 'currentStatus': {$nin: ?0} }")
-    List<Task> findByCurrentStatusNotIn(List<TaskStatus> statuses);
-
     @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);
 
