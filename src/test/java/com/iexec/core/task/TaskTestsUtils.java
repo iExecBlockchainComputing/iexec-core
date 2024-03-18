@@ -45,10 +45,7 @@ public class TaskTestsUtils {
     public static Task getStubTask(TaskStatus status) {
         final Task task = getStubTask();
         task.setCurrentStatus(status);
-        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
-                .status(status)
-                .build();
-        task.getDateStatusList().add(taskStatusChange);
+        task.getDateStatusList().add(TaskStatusChange.builder().status(status).build());
         return task;
     }
 }
