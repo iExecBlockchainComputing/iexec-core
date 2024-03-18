@@ -330,7 +330,7 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = getStubTask(5);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
@@ -568,7 +568,7 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = getStubTask(5);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));

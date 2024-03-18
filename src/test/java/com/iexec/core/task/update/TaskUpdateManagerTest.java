@@ -765,7 +765,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldNotUpdateRunning2ConsensusReachedSinceCannotGetChainTask() {
-        Task task = getStubTask(RUNNING);
+        final Task task = getStubTask(RUNNING);
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
 
@@ -788,7 +788,7 @@ class TaskUpdateManagerTest {
 
     @Test
     void shouldNotUpdateRunning2ConsensusReachedSinceWinnerContributorsDiffers() {
-        Task task = getStubTask(RUNNING);
+        final Task task = getStubTask(RUNNING);
 
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
@@ -1609,7 +1609,7 @@ class TaskUpdateManagerTest {
     // 2 replicates in RUNNING and 2 in COMPUTED
     @Test
     void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
-        Task task = getStubTask(INITIALIZED);
+        final Task task = getStubTask(INITIALIZED);
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         final List<Replicate> replicates = List.of(replicate);

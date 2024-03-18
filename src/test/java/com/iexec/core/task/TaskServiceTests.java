@@ -201,7 +201,7 @@ class TaskServiceTests {
         final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
-        List<Task> foundTasks = taskService.findByCurrentStatus(INITIALIZED);
+        final List<Task> foundTasks = taskService.findByCurrentStatus(INITIALIZED);
 
         assertThat(foundTasks).usingRecursiveComparison().isEqualTo(List.of(task));
         assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(INITIALIZED);

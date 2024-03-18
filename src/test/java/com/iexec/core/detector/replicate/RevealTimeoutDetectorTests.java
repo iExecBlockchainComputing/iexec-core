@@ -81,8 +81,7 @@ class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
-        List<TaskStatus> taskStatusList = Arrays.asList(AT_LEAST_ONE_REVEALED,
-                RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(taskList);
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
@@ -108,8 +107,7 @@ class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
-        List<TaskStatus> taskStatusList = Arrays.asList(AT_LEAST_ONE_REVEALED,
-                RESULT_UPLOADING, RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(Collections.emptyList());
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
@@ -123,8 +121,7 @@ class RevealTimeoutDetectorTests {
 
     @Test
     void shouldNotDetectAnyRevealTimeout() {
-        List<TaskStatus> taskStatusList = Arrays.asList(AT_LEAST_ONE_REVEALED,
-                RESULT_UPLOADING, RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList))
                 .thenReturn(Collections.emptyList());
@@ -168,10 +165,10 @@ class RevealTimeoutDetectorTests {
         final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(twoMinutesInFuture);
 
-        final Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate1.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
-        final Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
 
