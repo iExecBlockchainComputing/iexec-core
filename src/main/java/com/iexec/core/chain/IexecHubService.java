@@ -245,7 +245,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean hasEnoughGas() {
-        return hasEnoughGas(credentialsService.getCredentials().getAddress());
+        final boolean hasEnoughGas = hasEnoughGas(credentialsService.getCredentials().getAddress());
+        log.debug("Gas status [hasEnoughGas:{}]", hasEnoughGas);
+        return hasEnoughGas;
     }
 
     private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {
