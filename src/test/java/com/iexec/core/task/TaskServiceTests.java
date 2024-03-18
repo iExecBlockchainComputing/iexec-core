@@ -116,7 +116,7 @@ class TaskServiceTests {
 
     @Test
     void shouldGetOneTask() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         taskRepository.save(task);
         Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
         assertThat(optional).usingRecursiveComparison().isEqualTo(Optional.of(task));
@@ -126,7 +126,7 @@ class TaskServiceTests {
     // region addTask
     @Test
     void shouldAddTask() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setTrust(2);
         task.setContributionDeadline(contributionDeadline);
         task.setFinalDeadline(finalDeadline);
@@ -186,8 +186,7 @@ class TaskServiceTests {
 
     @Test
     void shouldNotAddTask() {
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(TaskStatus.INITIALIZED);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
@@ -199,16 +198,13 @@ class TaskServiceTests {
     // region findByCurrentStatus
     @Test
     void shouldFindByCurrentStatus() {
-        TaskStatus status = TaskStatus.INITIALIZED;
-
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(status);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
-        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+        List<Task> foundTasks = taskService.findByCurrentStatus(INITIALIZED);
 
         assertThat(foundTasks).usingRecursiveComparison().isEqualTo(List.of(task));
-        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(status);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     @Test
@@ -221,8 +217,7 @@ class TaskServiceTests {
     void shouldFindByCurrentStatusList() {
         List<TaskStatus> statusList = List.of(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(TaskStatus.INITIALIZED);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
@@ -241,7 +236,7 @@ class TaskServiceTests {
 
     @Test
     void shouldGetInitializedOrRunningTasks() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setCurrentStatus(INITIALIZED);
         taskRepository.save(task);
         assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
@@ -252,7 +247,7 @@ class TaskServiceTests {
     @Test
     void shouldGetChainTaskIdsOfTasksExpiredBefore() {
         Date date = new Date();
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         assertThat(taskService.getChainTaskIdsOfTasksExpiredBefore(date))
@@ -261,7 +256,7 @@ class TaskServiceTests {
 
     @Test
     void shouldFindTaskExpired() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
@@ -280,7 +275,7 @@ class TaskServiceTests {
 
     @Test
     void shouldConsensusNotBeReachedAsNotRevealing() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
 
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -297,7 +292,7 @@ class TaskServiceTests {
 
     @Test
     void shouldConsensusNotBeReachedAsOnChainWinnersHigherThanOffchainWinners() {
-        final Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -317,7 +312,7 @@ class TaskServiceTests {
 
     @Test
     void shouldConsensusBeReached() {
-        final Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -346,7 +341,8 @@ class TaskServiceTests {
             taskId = taskId.add(BigInteger.ONE);
             final Task task = new Task(Numeric.toHexStringWithPrefix(taskId), 0, "", "", 0, 0, "0x0");
             task.setChainTaskId(Numeric.toHexStringWithPrefix(taskId));
-            task.changeStatus(status);
+            task.setCurrentStatus(status);
+            task.getDateStatusList().add(TaskStatusChange.builder().status(status).build());
             tasks.add(task);
         }
         taskRepository.saveAll(tasks);

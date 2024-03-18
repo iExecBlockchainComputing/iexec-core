@@ -29,8 +29,6 @@ class TaskRepositoryTest {
     private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
     private static final Random generator = new Random();
 
-    private final long maxExecutionTime = 60000;
-
     @Container
     private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
 
@@ -66,8 +64,8 @@ class TaskRepositoryTest {
 
     @Test
     void shouldFailWithDuplicateUniqueDealIdx() {
-        Task task1 = getStubTask(maxExecutionTime);
-        Task task2 = getStubTask(maxExecutionTime);
+        final Task task1 = getStubTask();
+        final Task task2 = getStubTask();
         final List<Task> tasks = Arrays.asList(task1, task2);
         Assertions.assertThatThrownBy(() -> taskRepository.saveAll(tasks))
                 .isInstanceOf(DuplicateKeyException.class)
@@ -77,9 +75,9 @@ class TaskRepositoryTest {
 
     @Test
     void shouldFailWithDuplicateChainTaskId() {
-        Task task1 = getStubTask(maxExecutionTime);
+        final Task task1 = getStubTask();
         task1.setTaskIndex(0);
-        Task task2 = getStubTask(maxExecutionTime);
+        final Task task2 = getStubTask();
         task2.setTaskIndex(1);
         final List<Task> tasks = Arrays.asList(task1, task2);
         Assertions.assertThatThrownBy(() -> taskRepository.saveAll(tasks))
@@ -90,25 +88,25 @@ class TaskRepositoryTest {
 
     @Test
     void shouldFindTasksOrderedByCurrentStatusAndContributionDeadline() {
-        Task task1 = getStubTask(maxExecutionTime);
+        final Task task1 = getStubTask();
         task1.setChainTaskId(generateHexId());
         task1.setChainDealId(generateHexId());
         task1.setCurrentStatus(RUNNING);
         task1.setContributionDeadline(Date.from(Instant.now().plus(20, ChronoUnit.MINUTES)));
 
-        Task task2 = getStubTask(maxExecutionTime);
+        final Task task2 = getStubTask();
         task2.setChainDealId(generateHexId());
         task2.setChainTaskId(generateHexId());
         task2.setCurrentStatus(INITIALIZED);
         task2.setContributionDeadline(Date.from(Instant.now().plus(20, ChronoUnit.MINUTES)));
 
-        Task task3 = getStubTask(maxExecutionTime);
+        final Task task3 = getStubTask();
         task3.setChainDealId(generateHexId());
         task3.setChainTaskId(generateHexId());
         task3.setCurrentStatus(INITIALIZED);
         task3.setContributionDeadline(Date.from(Instant.now().plus(10, ChronoUnit.MINUTES)));
 
-        Task task4 = getStubTask(maxExecutionTime);
+        final Task task4 = getStubTask();
         task4.setChainDealId(generateHexId());
         task4.setChainTaskId(generateHexId());
         task4.setCurrentStatus(RUNNING);
@@ -128,7 +126,7 @@ class TaskRepositoryTest {
     void shouldFindTasksOrderedByCurrentStatusAndContributionDeadlineWithFuzzyData() {
         List<Task> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            Task task = getStubTask(maxExecutionTime);
+            final Task task = getStubTask();
             task.setChainDealId(generateHexId());
             task.setChainTaskId(generateHexId());
             task.setCurrentStatus(generator.nextInt(50) % 2 == 0 ? RUNNING : INITIALIZED);

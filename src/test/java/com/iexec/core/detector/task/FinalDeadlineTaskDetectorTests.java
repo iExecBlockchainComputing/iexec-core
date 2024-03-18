@@ -81,7 +81,8 @@ class FinalDeadlineTaskDetectorTests {
     private Task getTask() {
         Task task = new Task("", "", 0);
         task.setChainTaskId("0x1");
-        task.changeStatus(RUNNING);
+        task.setCurrentStatus(RUNNING);
+        task.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
         return task;
     }
 

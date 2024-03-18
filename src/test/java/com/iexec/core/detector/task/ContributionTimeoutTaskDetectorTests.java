@@ -17,7 +17,10 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.task.*;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskRepository;
+import com.iexec.core.task.TaskService;
+import com.iexec.core.task.TaskStatusChange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -38,13 +41,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import static com.iexec.core.task.TaskStatus.*;
+import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
+import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @DataMongoTest
 @Testcontainers
 class ContributionTimeoutTaskDetectorTests {
-
-    private final static String CHAIN_TASK_ID = "chainTaskId";
 
     @Container
     private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
@@ -77,8 +80,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldNotDetectTaskAfterContributionDeadlineIfNotInitializedOrRunning() {
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(AT_LEAST_ONE_REVEALED);
+        final Task task = getStubTask(AT_LEAST_ONE_REVEALED);
         task.setContributionDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
         taskRepository.save(task);
 
@@ -94,8 +96,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldNotDetectTaskIfBeforeTimeout() {
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.RUNNING);
+        final Task task = getStubTask(RUNNING);
         task.setContributionDeadline(Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES)));
         taskRepository.save(task);
 
@@ -110,8 +111,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldDetectTaskIfBetweenContributionAndFinalDeadline() {
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.RUNNING);
+        final Task task = getStubTask(RUNNING);
         task.setContributionDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
         task.setFinalDeadline(Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES)));
         taskRepository.save(task);
@@ -127,8 +127,7 @@ class ContributionTimeoutTaskDetectorTests {
 
     @Test
     void shouldNotDetectTaskIfAfterFinalDeadline() {
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.RUNNING);
+        final Task task = getStubTask(RUNNING);
         task.setContributionDeadline(Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES)));
         task.setFinalDeadline(Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES)));
         taskRepository.save(task);
