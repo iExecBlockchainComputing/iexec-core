@@ -24,7 +24,6 @@ import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.task.event.TaskCreatedEvent;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.mongodb.client.result.UpdateResult;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
@@ -53,13 +52,11 @@ import static com.iexec.core.task.TaskStatus.*;
 public class TaskService {
 
     private static final String CHAIN_TASK_ID_FIELD = "chainTaskId";
-    public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
     public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
     private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final Counter completedTasksCounter;
     private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
 
     public TaskService(MongoTemplate mongoTemplate,
@@ -85,12 +82,10 @@ public class TaskService {
                             "status", status.name()
                     ).register(Metrics.globalRegistry);
         }
-        this.completedTasksCounter = Metrics.counter(METRIC_TASKS_COMPLETED_COUNT);
     }
 
     @PostConstruct
     void init() {
-        completedTasksCounter.increment(findByCurrentStatus(TaskStatus.COMPLETED).size());
         final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
         taskStatusesCountExecutor.submit(this::initializeCurrentTaskStatusesCount);
         taskStatusesCountExecutor.shutdown();
@@ -154,26 +149,6 @@ public class TaskService {
                     chainDealId, taskIndex, imageName, commandLine, trust);
             return Optional.empty();
         }
-    }
-
-    /**
-     * Updates a task if it already exists in DB.
-     * Otherwise, will not do anything.
-     *
-     * @param task Task to update.
-     * @return An {@link Optional<Task>} if task exists, {@link Optional#empty()} otherwise.
-     */
-    public Optional<Task> updateTask(Task task) {
-
-        Optional<Task> optionalTask = taskRepository
-                .findByChainTaskId(task.getChainTaskId())
-                .map(existingTask -> taskRepository.save(task));
-
-        if (optionalTask.isPresent() && optionalTask.get().getCurrentStatus() == TaskStatus.COMPLETED) {
-            completedTasksCounter.increment();
-        }
-
-        return optionalTask;
     }
 
     public long updateTaskStatus(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
@@ -343,10 +318,6 @@ public class TaskService {
         log.debug("Returning off-chain and on-chain winners [offChainWinners:{}, onChainWinners:{}]",
                 offChainWinners, onChainWinners);
         return offChainWinners >= onChainWinners;
-    }
-
-    public long getCompletedTasksCount() {
-        return (long) completedTasksCounter.count();
     }
 
     public long countByCurrentStatus(TaskStatus status) {

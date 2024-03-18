@@ -22,7 +22,6 @@ import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -268,56 +267,6 @@ class TaskServiceTests {
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
     }
 
-    // region updateTask()
-    @Test
-    void shouldUpdateTaskAndMetrics() {
-        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-
-        Task task = getStubTask(maxExecutionTime);
-        task.setCurrentStatus(TaskStatus.COMPLETED);
-        taskRepository.save(task);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional)
-                .isPresent()
-                .isEqualTo(Optional.of(task));
-        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isOne();
-    }
-
-    @Test
-    void shouldUpdateTaskButNotMetricsWhenTaskIsNotCompleted() {
-        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional)
-                .isPresent()
-                .isEqualTo(Optional.of(task));
-        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-    }
-
-    @Test
-    void shouldNotUpdateTaskSinceUnknownTask() {
-        Task task = getStubTask(maxExecutionTime);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional).isEmpty();
-    }
-    // endregion
-
     // region isConsensusReached()
     @Test
     void shouldConsensusNotBeReachedAsUnknownTask() {
@@ -388,25 +337,6 @@ class TaskServiceTests {
     // endregion
 
     // region metrics
-    @Test
-    void shouldGet0CompletedTasksCountWhenNoTaskCompleted() {
-        final long completedTasksCount = taskService.getCompletedTasksCount();
-        assertThat(completedTasksCount).isZero();
-    }
-
-    @Test
-    void shouldGet3CompletedTasksCount() {
-        taskRepository.saveAll(List.of(
-                Task.builder().taskIndex(1).chainTaskId("0x1").currentStatus(COMPLETED).build(),
-                Task.builder().taskIndex(2).chainTaskId("0x2").currentStatus(COMPLETED).build(),
-                Task.builder().taskIndex(3).chainTaskId("0x3").currentStatus(COMPLETED).build()
-        ));
-        taskService.init();
-
-        final long completedTasksCount = taskService.getCompletedTasksCount();
-        assertThat(completedTasksCount).isEqualTo(3);
-    }
-
     @Test
     void shouldBuildGaugesAndFireEvent() {
         final List<Task> tasks = new ArrayList<>();
