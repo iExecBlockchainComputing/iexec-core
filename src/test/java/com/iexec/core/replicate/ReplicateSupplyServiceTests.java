@@ -32,6 +32,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -151,9 +152,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -188,9 +188,8 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, replicates)
         );
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -249,9 +248,8 @@ class ReplicateSupplyServiceTests {
                 .maxNbTasks(1)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -288,8 +286,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         int trust = 5;
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
-        runningTask.changeStatus(RUNNING);
+        final Task runningTask = getStubTask(trust);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
@@ -333,9 +330,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge("");
@@ -373,17 +369,17 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         int trust = 5;
-        Task task1 = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
+        final Task task1 = getStubTask(trust);
         task1.setMaxExecutionTime(maxExecutionTime);
         task1.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
-        task1.changeStatus(RUNNING);
         task1.setTag(NO_TEE_TAG);
         task1.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
+        final Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
         taskDeadlineReached.setMaxExecutionTime(maxExecutionTime);
         taskDeadlineReached.setContributionDeadline(Date.from(Instant.now().minus(60, ChronoUnit.MINUTES)));
-        taskDeadlineReached.changeStatus(RUNNING);
+        taskDeadlineReached.setCurrentStatus(RUNNING);
+        taskDeadlineReached.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
         taskDeadlineReached.setTag(NO_TEE_TAG);
         taskDeadlineReached.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
@@ -425,9 +421,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -457,9 +452,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -502,9 +496,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
@@ -547,9 +540,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
 
@@ -576,9 +568,8 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
@@ -1292,5 +1283,12 @@ class ReplicateSupplyServiceTests {
 
     WorkerpoolAuthorization getStubAuth() {
         return new WorkerpoolAuthorization();
+    }
+
+    Task getStubTask(int trust) {
+        final Task task = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
+        task.setCurrentStatus(RUNNING);
+        task.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
+        return task;
     }
 }

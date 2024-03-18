@@ -24,12 +24,11 @@ import java.util.Date;
 import java.util.List;
 
 import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
+import static com.iexec.core.task.TaskTestsUtils.COMMAND_LINE;
+import static com.iexec.core.task.TaskTestsUtils.DAPP_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TaskTests {
-
-    private final static String DAPP_NAME = "dappName";
-    private final static String COMMAND_LINE = "commandLine";
 
     @Test
     void shouldInitializeProperly() {
@@ -37,43 +36,6 @@ class TaskTests {
 
         assertThat(task.getDateStatusList()).hasSize(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
-    }
-
-    @Test
-    void shouldSetCurrentStatus() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        assertThat(task.getDateStatusList()).hasSize(1);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RECEIVED);
-
-        task.changeStatus(TaskStatus.INITIALIZED);
-        assertThat(task.getDateStatusList()).hasSize(2);
-        assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
-        assertThat(task.getDateStatusList().get(1).getStatus()).isEqualTo(TaskStatus.INITIALIZED);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.INITIALIZED);
-
-        task.changeStatus(TaskStatus.RUNNING);
-        assertThat(task.getDateStatusList()).hasSize(3);
-        assertThat(task.getDateStatusList().get(2).getStatus()).isEqualTo(TaskStatus.RUNNING);
-        assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
-    }
-
-    @Test
-    void shouldGetCorrectLastStatusChange() {
-        Task task = new Task(DAPP_NAME, COMMAND_LINE, 2);
-        Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
-
-        TaskStatusChange latestChange = task.getLatestStatusChange();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RECEIVED);
-
-        task.changeStatus(TaskStatus.INITIALIZED);
-        latestChange = task.getLatestStatusChange();
-        assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.INITIALIZED);
-
-        task.changeStatus(TaskStatus.RUNNING);
-        latestChange = task.getLatestStatusChange();
-        assertThat(latestChange.getDate().after(oneMinuteAgo)).isTrue();
-        assertThat(latestChange.getStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
     @Test

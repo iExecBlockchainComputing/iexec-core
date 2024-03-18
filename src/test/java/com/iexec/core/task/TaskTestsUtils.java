@@ -36,9 +36,16 @@ public class TaskTestsUtils {
     public final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     public final static String RESULT_LINK = "/ipfs/the_result_string";
 
-    public static Task getStubTask(long maxExecutionTime) {
-        Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 1, maxExecutionTime, NO_TEE_TAG);
+    public static Task getStubTask() {
+        final Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 1, 60000, NO_TEE_TAG);
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
-        return  task;
+        return task;
+    }
+
+    public static Task getStubTask(TaskStatus status) {
+        final Task task = getStubTask();
+        task.setCurrentStatus(status);
+        task.getDateStatusList().add(TaskStatusChange.builder().status(status).build());
+        return task;
     }
 }

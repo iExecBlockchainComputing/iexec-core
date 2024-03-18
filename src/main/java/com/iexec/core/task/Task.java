@@ -17,7 +17,6 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.commons.poco.dapp.DappType;
 import com.iexec.commons.poco.tee.TeeUtils;
@@ -118,19 +117,6 @@ public class Task {
         this.chainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
         this.maxExecutionTime = maxExecutionTime;
         this.tag = tag;
-    }
-
-    public void changeStatus(TaskStatus status) {
-        changeStatus(status, null);
-    }
-
-    public void changeStatus(TaskStatus status, ChainReceipt chainReceipt) {
-        setCurrentStatus(status);
-        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
-                .status(status)
-                .chainReceipt(chainReceipt)
-                .build();
-        this.getDateStatusList().add(taskStatusChange);
     }
 
     @JsonIgnore

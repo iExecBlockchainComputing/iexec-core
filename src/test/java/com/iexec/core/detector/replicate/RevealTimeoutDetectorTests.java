@@ -39,14 +39,16 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import static com.iexec.core.task.TaskStatus.*;
+import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
+import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class RevealTimeoutDetectorTests {
 
     private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private final static String WALLET_WORKER_2 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd249";
-    private final static String CHAIN_TASK_ID = "chainTaskId";
 
     @Mock
     private TaskService taskService;
@@ -66,11 +68,10 @@ class RevealTimeoutDetectorTests {
     }
 
     @Test
-    void souldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
+    void shouldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
         Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.CONSENSUS_REACHED);
+        final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(twoMinutesAgo);
         List<Task> taskList = Collections.singletonList(task);
 
@@ -80,28 +81,23 @@ class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
-        List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(taskList);
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
-        when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(Collections.emptyList());
+        when(taskService.findByCurrentStatus(CONSENSUS_REACHED)).thenReturn(Collections.emptyList());
 
         revealDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
-
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
     void shouldDetectTaskAfterRevealDealLineWithZero() {
         Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.CONSENSUS_REACHED);
+        final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(twoMinutesAgo);
         List<Task> taskList = Collections.singletonList(task);
 
@@ -111,42 +107,32 @@ class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
         List<Replicate> replicateList = Arrays.asList(replicate1, replicate2);
 
-        List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList)).thenReturn(Collections.emptyList());
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicateList);
-        when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(taskList);
+        when(taskService.findByCurrentStatus(CONSENSUS_REACHED)).thenReturn(taskList);
 
         revealDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
-
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
     void shouldNotDetectAnyRevealTimeout() {
-        List<TaskStatus> taskStatusList = Arrays.asList(TaskStatus.AT_LEAST_ONE_REVEALED,
-                TaskStatus.RESULT_UPLOADING, TaskStatus.RESULT_UPLOADED);
+        final List<TaskStatus> taskStatusList = List.of(AT_LEAST_ONE_REVEALED, RESULT_UPLOADING, RESULT_UPLOADED);
 
         when(taskService.findByCurrentStatus(taskStatusList))
                 .thenReturn(Collections.emptyList());
-        when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED))
+        when(taskService.findByCurrentStatus(CONSENSUS_REACHED))
                 .thenReturn(Collections.emptyList());
 
         revealDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .getReplicates(Mockito.any());
-
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
-
-        Mockito.verify(iexecHubService, Mockito.times(0))
-                .reOpen(Mockito.any());
+        verify(replicatesService, never()).getReplicates(Mockito.any());
+        verify(replicatesService, never()).updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
+        verify(iexecHubService, never()).reOpen(Mockito.any());
     }
 
 
@@ -154,8 +140,7 @@ class RevealTimeoutDetectorTests {
     void shouldUpdateOneReplicateToRevealTimeout() {
         Date twoMinutesAgo = Date.from(Instant.now().minus(2L, ChronoUnit.MINUTES));
 
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.CONSENSUS_REACHED);
+        final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(twoMinutesAgo);
 
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -164,25 +149,20 @@ class RevealTimeoutDetectorTests {
         Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
         replicate2.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
-
-        when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
+        when(taskService.findByCurrentStatus(CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
         when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1, replicate2));
 
         revealDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
-
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate1);
+        verify(replicatesService).setRevealTimeoutStatusIfNeeded(CHAIN_TASK_ID, replicate2);
     }
 
     @Test
     void shouldNotUpdateSinceTaskIsNotTimedout() {
         Date twoMinutesInFuture = Date.from(Instant.now().plus(2L, ChronoUnit.MINUTES));
 
-        Task task = new Task("dappName", "commandLine", 2, CHAIN_TASK_ID);
-        task.changeStatus(TaskStatus.CONSENSUS_REACHED);
+        final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(twoMinutesInFuture);
 
         Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -192,12 +172,11 @@ class RevealTimeoutDetectorTests {
         replicate2.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
 
 
-        when(taskService.findByCurrentStatus(TaskStatus.CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(Arrays.asList(replicate1, replicate2));
+        when(taskService.findByCurrentStatus(CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
+        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Arrays.asList(replicate1, replicate2));
 
         revealDetector.detect();
 
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
+        verify(replicatesService, never()).updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 }
