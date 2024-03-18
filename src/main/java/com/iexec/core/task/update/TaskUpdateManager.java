@@ -80,9 +80,13 @@ class TaskUpdateManager {
     void updateTask(String chainTaskId) {
         log.debug("Task update process starts [chainTaskId:{}]", chainTaskId);
         final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
+        if (task == null) {
+            log.warn("Model of off-chain and on-chain task could not be retrieved [chainTaskId:{}]", chainTaskId);
+            return;
+        }
         final ChainTask chainTask = iexecHubService.getChainTask(chainTaskId).orElse(null);
-        if (task == null || chainTask == null) {
-            log.warn("Models of off-chain and on-chain task could not be retrieved [chainTaskId:{}]", chainTaskId);
+        if (chainTask == null && (task.getCurrentStatus() == INITIALIZED || task.getCurrentStatus().ordinal() >= RUNNING.ordinal())) {
+            log.warn("Model on-chain task could not be retrieved [chainTaskId:{}]", chainTaskId);
             return;
         }
 
