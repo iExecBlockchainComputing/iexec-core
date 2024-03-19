@@ -71,7 +71,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(OutputCaptureExtension.class)
 class TaskUpdateManagerTest {
     private static final String smsUrl = "smsUrl";
-    private static final String ERROR_MSG = "Cannot initialize task [chainTaskId:%s, currentStatus:%s, expectedStatus:%s, method:%s]";
+    private static final String ERROR_MSG = "Cannot update task [chainTaskId:%s, currentStatus:%s, expectedStatus:%s, method:%s]";
 
     @Mock
     private WorkerService workerService;
@@ -120,6 +120,8 @@ class TaskUpdateManagerTest {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
+        ChainTask chainTask = ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
     }
 
     @AfterEach
@@ -227,7 +229,6 @@ class TaskUpdateManagerTest {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.ACTIVE)
                 .build()));
-        doNothing().when(revealTimeoutDetector).detect();
 
         taskUpdateManager.consensusReached2Reopening(task);
 
@@ -544,7 +545,7 @@ class TaskUpdateManagerTest {
     void shouldNotUpdateInitialized2RunningSinceNotInitialized(CapturedOutput output) {
         final Task task = getStubTask(INITIALIZING);
         task.setChainTaskId(CHAIN_TASK_ID);
-        taskUpdateManager.initialized2Running(task);
+        taskUpdateManager.initialized2Running(task, ChainTask.builder().build());
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZING);
         assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, INITIALIZING, INITIALIZED, "initialized2Running"));
     }
@@ -572,31 +573,8 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    // endregion
-
-    // region initializedOrRunning2ContributionTimeout
-
     @Test
-    void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceBeforeTimeout() {
-        Date timeoutInFuture = Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES));
-
-        final Task task = getStubTask(INITIALIZED);
-        task.setContributionDeadline(timeoutInFuture);
-
-        ChainTask chainTask = ChainTask.builder()
-                .contributionDeadline(timeoutInFuture.getTime())
-                .status(ChainTaskStatus.ACTIVE)
-                .build();
-
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
-        assertThat(task.getCurrentStatus()).isNotEqualTo(CONTRIBUTION_TIMEOUT);
-    }
-
-    @Test
-    void shouldNotUpdateInitializedOrRunning2ContributionTimeoutSinceChainTaskIsntActive() {
+    void shouldNotUpdateInitialized2ContributionTimeoutSinceChainTaskIsNotActive() {
         Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         final Task task = getStubTask(INITIALIZED);
@@ -607,6 +585,7 @@ class TaskUpdateManagerTest {
                 .status(ChainTaskStatus.REVEALING)
                 .build();
 
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -615,26 +594,7 @@ class TaskUpdateManagerTest {
     }
 
     @Test
-    void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
-        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
-
-        final Task task = getStubTask(CONTRIBUTION_TIMEOUT);
-        task.setContributionDeadline(timeoutInPast);
-
-        ChainTask chainTask = ChainTask.builder()
-                .contributionDeadline(timeoutInPast.getTime())
-                .status(ChainTaskStatus.ACTIVE)
-                .build();
-
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        Mockito.verify(applicationEventPublisher, Mockito.times(0))
-                .publishEvent(any());
-    }
-
-    @Test
-    void shouldUpdateFromInitializedOrRunning2ContributionTimeout() {
+    void shouldUpdateFromInitialized2ContributionTimeout() {
         Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         final Task task = getStubTask(INITIALIZED);
@@ -656,39 +616,73 @@ class TaskUpdateManagerTest {
 
     // endregion
 
-    // region running2Finalized2Completed
+    // region initializedOrRunning2ContributionTimeout
+
+    // TODO check this, it may not be this true
+    @Test
+    void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
+        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
+
+        final Task task = getStubTask(CONTRIBUTION_TIMEOUT);
+        task.setContributionDeadline(timeoutInPast);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInPast.getTime())
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        Mockito.verify(applicationEventPublisher, Mockito.times(0))
+                .publishEvent(any());
+    }
+
+    // endregion
+
+    // region transitionFromRunningState
 
     @Test
-    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskNotRunning() {
+    void shouldNotTransitionFromRunningStateWhenTaskNotRunning() {
         final Task task = getStubTask(INITIALIZED);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.running2Finalized2Completed(task);
+        taskUpdateManager.transitionFromRunningState(task, ChainTask.builder().build());
         assertThat(task.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     @Test
-    void shouldNotUpdateRunning2Finalized2CompletedWhenNoReplicates() {
+    void shouldTransitionFromRunningToContributionTimeout() {
+        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
+
+        final Task task = getStubTask(RUNNING);
+        task.setContributionDeadline(timeoutInPast);
+
+        ChainTask chainTask = ChainTask.builder()
+                .contributionDeadline(timeoutInPast.getTime())
+                .status(ChainTaskStatus.ACTIVE)
+                .build();
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+
+        assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
+        assertThat(task.getLastButOneStatus()).isEqualTo(CONTRIBUTION_TIMEOUT);
+    }
+
+    @Test
+    void shouldNotTransitionFromRunningStateWhenNoReplicates() {
         final Task task = getStubTask(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.running2Finalized2Completed(task);
-        assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
-    }
-
-    @Test
-    void shouldNotUpdateRunning2Finalized2CompletedWhenTaskIsNotTee() {
-        final Task task = getStubTask(RUNNING);
-        task.setTag(NO_TEE_TAG);
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
-
-        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        mockTaskDescriptionFromTask(task);
-        taskUpdateManager.running2Finalized2Completed(task);
+        taskUpdateManager.transitionFromRunningState(task,
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
@@ -697,13 +691,15 @@ class TaskUpdateManagerTest {
         final Task task = getStubTask(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
+        final List<Worker> workersList = List.of(Worker.builder().walletAddress(WALLET_WORKER_1).build());
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(0);
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.running2Finalized2Completed(task);
+        taskUpdateManager.transitionFromRunningState(task,
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
@@ -712,26 +708,22 @@ class TaskUpdateManagerTest {
         final Task task = getStubTask(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+        final ReplicatesList replicatesList = spy(new ReplicatesList(CHAIN_TASK_ID));
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(2);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.running2Finalized2Completed(task);
+        taskUpdateManager.transitionFromRunningState(task,
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
         assertThat(task.getCurrentStatus()).isEqualTo(FAILED);
     }
-
-    // endregion
-
-    // region running2ConsensusReached
 
     @Test
     void shouldUpdateRunning2ConsensusReached() {
         final Task task = getStubTask(RUNNING);
 
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+        final ReplicatesList replicatesList = spy(new ReplicatesList(CHAIN_TASK_ID));
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
@@ -742,7 +734,6 @@ class TaskUpdateManagerTest {
         when(web3jService.getLatestBlockNumber()).thenReturn(2L);
         when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         when(replicatesList.getNbValidContributedWinners(any())).thenReturn(2);
         mockTaskDescriptionFromTask(task);
 
@@ -799,10 +790,6 @@ class TaskUpdateManagerTest {
         assertThat(task.getCurrentStatus()).isEqualTo(RUNNING);
     }
 
-    // endregion
-
-    // region running2RunningFailed
-
     @Test
     void shouldUpdateRunning2RunningFailedOn1Worker() {
         final Task task = getStubTask(RUNNING);
@@ -814,7 +801,7 @@ class TaskUpdateManagerTest {
         replicate1.setStatusUpdateList(new ArrayList<>());
         replicate1.updateStatus(ReplicateStatus.COMPUTE_FAILED, ReplicateStatusModifier.WORKER);
 
-        final ReplicatesList replicatesList = new ReplicatesList();
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
         replicatesList.setReplicates(List.of(replicate1));
         final List<Worker> workersList = replicatesList
                 .getReplicates()
@@ -822,11 +809,9 @@ class TaskUpdateManagerTest {
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -850,7 +835,7 @@ class TaskUpdateManagerTest {
         replicate2.setStatusUpdateList(new ArrayList<>());
         replicate2.updateStatus(ReplicateStatus.APP_DOWNLOAD_FAILED, ReplicateStatusModifier.WORKER);
 
-        final ReplicatesList replicatesList = new ReplicatesList();
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
         replicatesList.setReplicates(List.of(replicate1, replicate2));
         final List<Worker> workersList = replicatesList
                 .getReplicates()
@@ -858,11 +843,9 @@ class TaskUpdateManagerTest {
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -893,7 +876,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -928,7 +910,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -963,7 +944,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -997,7 +977,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -1027,7 +1006,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
         when(workerService.getAliveWorkers()).thenReturn(workersList);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -1047,7 +1025,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED)).thenReturn(1);
         when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         assertThat(task.getUploadingWorkerWalletAddress()).isEqualTo(replicate.getWalletAddress());
@@ -1091,7 +1068,6 @@ class TaskUpdateManagerTest {
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1133,8 +1109,6 @@ class TaskUpdateManagerTest {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate1, replicate2));
-
-        doNothing().when(replicatesService).setRevealTimeoutStatusIfNeeded(eq(CHAIN_TASK_ID), any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1222,7 +1196,6 @@ class TaskUpdateManagerTest {
         task.setChainTaskId(CHAIN_TASK_ID);
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         assertThat(task.getCurrentStatus()).isEqualTo(COMPLETED);
@@ -1300,7 +1273,6 @@ class TaskUpdateManagerTest {
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId())).thenReturn(Optional.of(replicate));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1316,7 +1288,7 @@ class TaskUpdateManagerTest {
     void shouldNotUpdateResultUploading2UploadedSinceNotResultUploading(CapturedOutput output) {
         final Task task = getStubTask(CONSENSUS_REACHED);
         task.setChainTaskId(CHAIN_TASK_ID);
-        taskUpdateManager.resultUploading2Uploaded(task);
+        taskUpdateManager.resultUploading2Uploaded(ChainTask.builder().build(), task);
         assertThat(task.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
         assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, CONSENSUS_REACHED, RESULT_UPLOADING, "resultUploading2Uploaded"));
     }
@@ -1332,8 +1304,6 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicateWithResultUploadedStatus(CHAIN_TASK_ID)).thenReturn(Optional.empty());
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.empty());
         when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
-
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1391,8 +1361,6 @@ class TaskUpdateManagerTest {
         when(replicatesService.getReplicate(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(replicate));
         when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
 
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
         taskUpdateManager.updateTask(task.getChainTaskId());
 
         assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADING);
@@ -1402,19 +1370,17 @@ class TaskUpdateManagerTest {
     }
     // endregion
 
-    // Tests on resultUploading2UploadTimeout transition
     @Test
     void shouldUpdateResultUploading2UploadTimeout() {
         final Task task = getStubTask(RESULT_UPLOADING);
         task.setFinalDeadline(new Date(0));
 
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        taskUpdateManager.resultUploading2UploadTimeout(task);
+        taskUpdateManager.resultUploading2Uploaded(ChainTask.builder().build(), task);
 
         assertThat(task.getDateStatusList().get(task.getDateStatusList().size() - 2).getStatus()).isEqualTo(RESULT_UPLOAD_TIMEOUT);
         assertThat(task.getCurrentStatus()).isEqualTo(TaskStatus.FAILED);
     }
+    // endregion
 
     // region resultUploaded2Finalizing
     @Test
@@ -1433,7 +1399,6 @@ class TaskUpdateManagerTest {
         when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.of(CHAIN_TASK_ID));
 
         when(blockchainAdapterService.isFinalized(any())).thenReturn(Optional.of(true));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -1451,7 +1416,7 @@ class TaskUpdateManagerTest {
     void shouldNotUpdateResultUploaded2FinalizingSinceNotResultUploaded(CapturedOutput output) {
         final Task task = getStubTask(RESULT_UPLOADING);
         task.setChainTaskId(CHAIN_TASK_ID);
-        taskUpdateManager.resultUploaded2Finalizing(task);
+        taskUpdateManager.resultUploaded2Finalizing(ChainTask.builder().build(), task);
         assertThat(task.getCurrentStatus()).isEqualTo(RESULT_UPLOADING);
         assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RESULT_UPLOADING, RESULT_UPLOADED, "resultUploaded2Finalizing"));
     }
@@ -1591,6 +1556,19 @@ class TaskUpdateManagerTest {
 
     // endregion
 
+    // region finalizedToCompleted
+
+    @Test
+    void shouldNotUpdateFinalized2CompletedSinceNotFinalized(CapturedOutput output) {
+        final Task task = getStubTask(FINALIZING);
+        task.setChainTaskId(CHAIN_TASK_ID);
+        taskUpdateManager.finalizedToCompleted(task);
+        assertThat(task.getCurrentStatus()).isEqualTo(FINALIZING);
+        assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, FINALIZING, FINALIZED, "finalizedToCompleted"));
+    }
+
+    // endregion
+
     // 3 replicates in RUNNING 0 in COMPUTED
     @Test
     void shouldUpdateTaskToRunningFromWorkersInRunning() {
@@ -1693,11 +1671,10 @@ class TaskUpdateManagerTest {
         final Task task = getStubTask(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(CHAIN_TASK_ID));
+        final ReplicatesList replicatesList = spy(new ReplicatesList(CHAIN_TASK_ID));
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         mockTaskDescriptionFromTask(task);
@@ -1793,7 +1770,6 @@ class TaskUpdateManagerTest {
                 RESULT_UPLOAD_REQUESTED)
         ).thenReturn(0);
         when(replicatesService.getRandomReplicateWithRevealStatus(CHAIN_TASK_ID)).thenReturn(Optional.of(replicate));
-        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         taskUpdateManager.requestUpload(task);
 

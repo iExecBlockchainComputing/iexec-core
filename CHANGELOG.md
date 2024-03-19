@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Prepare migration to `java.time` package by building `Date` objects from `Instant` objects. (#671)
 - Add logs for better traceability. (#675)
 - Remove code only used in tests from `TaskService` and `Task`. (#678 #679)
+- Implement each task status transition in a single method. (#680)
 
 ## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
 
