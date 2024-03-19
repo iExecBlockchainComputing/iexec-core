@@ -81,12 +81,12 @@ class TaskUpdateManager {
         log.debug("Task update process starts [chainTaskId:{}]", chainTaskId);
         final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
         if (task == null) {
-            log.warn("Model of off-chain and on-chain task could not be retrieved [chainTaskId:{}]", chainTaskId);
+            log.warn("Off-chain task model could not be retrieved [chainTaskId:{}]", chainTaskId);
             return;
         }
         final ChainTask chainTask = iexecHubService.getChainTask(chainTaskId).orElse(null);
         if (chainTask == null && (task.getCurrentStatus() == INITIALIZED || task.getCurrentStatus().ordinal() >= RUNNING.ordinal())) {
-            log.warn("Model on-chain task could not be retrieved [chainTaskId:{}]", chainTaskId);
+            log.warn("On-chain task model could not be retrieved [chainTaskId:{}]", chainTaskId);
             return;
         }
 
@@ -375,7 +375,7 @@ class TaskUpdateManager {
             running2ConsensusReached(chainTask, task, replicatesList);
         }
 
-        // If task is till in RUNNING state, check if replicates have run on all alive workers
+        // If task is still in RUNNING state, check if replicates have run on all alive workers
         if (task.getCurrentStatus() == RUNNING) {
             running2RunningFailed(task, replicatesList);
         }
@@ -557,8 +557,7 @@ class TaskUpdateManager {
         }
 
         // check timeout first
-        boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null
-                && new Date().after(task.getFinalDeadline());
+        final boolean isNowAfterFinalDeadline = task.getFinalDeadline() != null && new Date().after(task.getFinalDeadline());
         if (isNowAfterFinalDeadline) {
             applicationEventPublisher.publishEvent(new ResultUploadTimeoutEvent(task.getChainTaskId()));
             toFailed(task, RESULT_UPLOAD_TIMEOUT);
