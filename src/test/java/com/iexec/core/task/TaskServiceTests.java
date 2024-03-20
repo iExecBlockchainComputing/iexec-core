@@ -40,7 +40,6 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,8 +57,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static com.iexec.core.task.Task.CURRENT_STATUS_FIELD_NAME;
-import static com.iexec.core.task.Task.DATE_STATUS_LIST_FIELD_NAME;
 import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
@@ -202,15 +199,24 @@ class TaskServiceTests {
     }
     // endregion
 
-    // region updateTask
+    // region updateTask & updateTaskStatus
     @Test
-    void shouldWarnNonUpdatedTask(CapturedOutput output) {
+    void shouldNotUpdateTaskStatusAndEmitWarning(CapturedOutput output) {
         final Task task = getStubTask();
         taskRepository.save(task);
-        final Update update = Update.update(CURRENT_STATUS_FIELD_NAME, INITIALIZING)
-                .push(DATE_STATUS_LIST_FIELD_NAME, TaskStatusChange.builder().status(INITIALIZING).build());
-        taskService.updateTask(CHAIN_TASK_ID, INITIALIZING, update);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZING,
+                List.of(TaskStatusChange.builder().status(INITIALIZING).build()));
+        assertThat(modifiedCount).isZero();
         assertThat(output.getOut()).contains("The task was not updated [chainTaskId:" + CHAIN_TASK_ID + "]");
+    }
+
+    @Test
+    void shouldUpdateTaskStatus() {
+        final Task task = getStubTask(INITIALIZING);
+        taskRepository.save(task);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZED,
+                List.of(TaskStatusChange.builder().status(INITIALIZED).build()));
+        assertThat(modifiedCount).isOne();
     }
     // endregion
 
