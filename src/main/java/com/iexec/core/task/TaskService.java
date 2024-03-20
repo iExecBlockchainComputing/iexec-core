@@ -156,7 +156,7 @@ public class TaskService {
      * @param currentStatus Expected {@code currentStatus} of the task when executing the update
      * @param targetStatus  Wished {@code currentStatus} the task should be updated to
      * @param statusChanges List of {@code TaskStatusChange} to append to the {@code dateStatusList} field
-     * @return The number of updated document in the task collection
+     * @return The number of updated documents in the task collection, should be {@literal 0} or {@literal 1} due to task ID uniqueness
      */
     public long updateTaskStatus(String chainTaskId, TaskStatus currentStatus, TaskStatus targetStatus, List<TaskStatusChange> statusChanges) {
         final Update update = Update.update(CURRENT_STATUS_FIELD_NAME, targetStatus)
