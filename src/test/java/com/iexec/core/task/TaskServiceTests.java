@@ -29,14 +29,18 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,6 +58,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static com.iexec.core.task.Task.CURRENT_STATUS_FIELD_NAME;
+import static com.iexec.core.task.Task.DATE_STATUS_LIST_FIELD_NAME;
 import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
 import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
@@ -64,6 +70,7 @@ import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
@@ -192,6 +199,18 @@ class TaskServiceTests {
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEmpty();
+    }
+    // endregion
+
+    // region updateTask
+    @Test
+    void shouldWarnNonUpdatedTask(CapturedOutput output) {
+        final Task task = getStubTask();
+        taskRepository.save(task);
+        final Update update = Update.update(CURRENT_STATUS_FIELD_NAME, INITIALIZING)
+                .push(DATE_STATUS_LIST_FIELD_NAME, TaskStatusChange.builder().status(INITIALIZING).build());
+        taskService.updateTask(CHAIN_TASK_ID, INITIALIZING, update);
+        assertThat(output.getOut()).contains("The task was not updated [chainTaskId:" + CHAIN_TASK_ID + "]");
     }
     // endregion
 
