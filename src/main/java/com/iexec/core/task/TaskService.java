@@ -27,6 +27,7 @@ import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DuplicateKeyException;
@@ -45,13 +46,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.iexec.core.task.Task.*;
 import static com.iexec.core.task.TaskStatus.*;
 
 @Slf4j
 @Service
 public class TaskService {
 
-    private static final String CHAIN_TASK_ID_FIELD = "chainTaskId";
     public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
     private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
@@ -106,21 +107,19 @@ public class TaskService {
     }
 
     /**
-     * Save task in database if it does not
-     * already exist.
+     * Save task in database if it does not already exist.
      *
-     * @param chainDealId
-     * @param taskIndex
-     * @param dealBlockNumber
-     * @param imageName
-     * @param commandLine
-     * @param trust
-     * @param maxExecutionTime
-     * @param tag
-     * @param contributionDeadline
-     * @param finalDeadline
-     * @return optional containing the saved
-     * task, {@link Optional#empty()} otherwise.
+     * @param chainDealId          on-chain deal id
+     * @param taskIndex            task index in deal
+     * @param dealBlockNumber      block number when orders were matched to produce the current deal
+     * @param imageName            OCI image to use for replicates computation
+     * @param commandLine          command that will be executed during replicates computation
+     * @param trust                trust level, impacts replication
+     * @param maxExecutionTime     execution time
+     * @param tag                  deal tag describing additional features like TEE framework
+     * @param contributionDeadline date after which a worker cannot contribute
+     * @param finalDeadline        date after which a task cannot be updated
+     * @return {@code Optional} containing the saved task, {@link Optional#empty()} otherwise.
      */
     public Optional<Task> addTask(
             String chainDealId,
@@ -134,40 +133,73 @@ public class TaskService {
             Date contributionDeadline,
             Date finalDeadline
     ) {
-        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                commandLine, trust, maxExecutionTime, tag);
+        Task newTask = new Task(chainDealId, taskIndex, imageName, commandLine, trust, maxExecutionTime, tag);
         newTask.setDealBlockNumber(dealBlockNumber);
         newTask.setFinalDeadline(finalDeadline);
         newTask.setContributionDeadline(contributionDeadline);
+        final String taskLogDetails = String.format("chainDealId:%s, taskIndex:%s, imageName:%s, commandLine:%s, trust:%s, contributionDeadline:%s, finalDeadline:%s",
+                chainDealId, taskIndex, imageName, commandLine, trust, contributionDeadline, finalDeadline);
         try {
             newTask = taskRepository.save(newTask);
-            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}, chainTaskId:{}]",
-                    chainDealId, taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+            log.info("Added new task [{}}, chainTaskId:{}]", taskLogDetails, newTask.getChainTaskId());
             return Optional.of(newTask);
         } catch (DuplicateKeyException e) {
-            log.info("Task already added [chainDealId:{}, taskIndex:{}, imageName:{}, commandLine:{}, trust:{}]",
-                    chainDealId, taskIndex, imageName, commandLine, trust);
+            log.info("Task already added [{}]", taskLogDetails);
             return Optional.empty();
         }
     }
 
-    public long updateTaskStatus(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
-        Update update = Update.update("currentStatus", task.getCurrentStatus());
-        update.push("dateStatusList").each(statusChanges);
-        UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(task.getChainTaskId())),
-                update,
-                Task.class);
-        log.debug("Updated chainTaskId [chainTaskId:{},  result:{}]", task.getChainTaskId(), result);
-        updateMetricsAfterStatusUpdate(currentStatus, task.getCurrentStatus());
+    /**
+     * Updates the status of a single task in the collection
+     *
+     * @param chainTaskId   On-chain ID of the task to update
+     * @param currentStatus Expected {@code currentStatus} of the task when executing the update
+     * @param targetStatus  Wished {@code currentStatus} the task should be updated to
+     * @param statusChanges List of {@code TaskStatusChange} to append to the {@code dateStatusList} field
+     * @return The number of updated documents in the task collection, should be {@literal 0} or {@literal 1} due to task ID uniqueness
+     */
+    public long updateTaskStatus(String chainTaskId, TaskStatus currentStatus, TaskStatus targetStatus, List<TaskStatusChange> statusChanges) {
+        final Update update = Update.update(CURRENT_STATUS_FIELD_NAME, targetStatus)
+                .push(DATE_STATUS_LIST_FIELD_NAME).each(statusChanges);
+        final UpdateResult result = updateTask(chainTaskId, currentStatus, update);
         return result.getModifiedCount();
     }
 
-    public void updateTask(String chainTaskId, Update update) {
-        UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(chainTaskId)),
-                update, Task.class);
-        log.debug("Updated chainTaskId [chainTaskId:{},  result{}]", chainTaskId, result);
+    /**
+     * Update a single task in the collection
+     *
+     * @param chainTaskId   On-chain ID of the task to update
+     * @param currentStatus Expected {@code currentStatus} of the task when executing the update
+     * @param update        Update to execute on the task if criteria are respected
+     * @return The result of the update execution on the task collection
+     */
+    public UpdateResult updateTask(String chainTaskId, TaskStatus currentStatus, Update update) {
+        final Criteria criteria = Criteria.where(CHAIN_TASK_ID_FIELD_NAME).is(chainTaskId)
+                .and(CURRENT_STATUS_FIELD_NAME).is(currentStatus);
+        // chainTaskId and currentStatus are part of the criteria, no need to add them explicitly
+        log.debug("Update request [criteria:{}, update:{}]",
+                criteria.getCriteriaObject(), update.getUpdateObject());
+        final UpdateResult result = mongoTemplate.updateFirst(Query.query(criteria), update, Task.class);
+        log.debug("Update execution result [chainTaskId:{}, result:{}]", chainTaskId, result);
+        if (result.getModifiedCount() == 0L) {
+            log.warn("The task was not updated [chainTaskId:{}]", chainTaskId);
+        } else if (isTaskCurrentStatusUpdated(update)) {
+            // A single document has been updated (chainTaskId uniqueness) and the currentStatus has been modified
+            updateMetricsAfterStatusUpdate(currentStatus, update.getUpdateObject().get("$set", Document.class)
+                    .get(CURRENT_STATUS_FIELD_NAME, TaskStatus.class));
+        }
+        return result;
+    }
+
+    /**
+     * Checks if provided MongoDB update has modified the {@code currentStatus} field of the task
+     *
+     * @param update The MongoDB request to check
+     * @return {@literal true} if the {@code currentStatus} was updated, {@literal false} otherwise
+     */
+    private boolean isTaskCurrentStatusUpdated(Update update) {
+        return update.getUpdateObject().containsKey("$set")
+                && update.getUpdateObject().get("$set", Document.class).containsKey(CURRENT_STATUS_FIELD_NAME);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -214,8 +246,8 @@ public class TaskService {
                 Arrays.asList(INITIALIZED, RUNNING),
                 excludedTags,
                 excludedChainTaskIds,
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
+                Sort.by(Sort.Order.desc(CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     /**
@@ -249,23 +281,29 @@ public class TaskService {
         );
     }
 
-    public List<String> failMultipleTasksByQuery(Update update, Query query) {
+    /**
+     * Updates task on a given MongoDB query.
+     *
+     * @param query  The query to perform to lookup for tasks in the collection
+     * @param update The update to execute on the tasks returned by the query
+     * @return The list of modified chain task ids
+     */
+    public List<String> updateMultipleTasksByQuery(Query query, Update update) {
         return mongoTemplate.find(query, Task.class).stream()
-                .map(task -> failSingleTask(update, task))
+                .map(task -> updateSingleTask(task, update))
                 .collect(Collectors.toList());
     }
 
-    private String failSingleTask(Update update, Task task) {
-        final TaskStatus beforeUpdate = task.getCurrentStatus();
-        final UpdateResult updateResult = mongoTemplate.updateFirst(
-                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(task.getChainTaskId())), update, Task.class);
-        if (updateResult.getModifiedCount() == 0) {
-            log.warn("The task was not updated [chainTaskId:{}]", task.getChainTaskId());
-            return "";
-        } else {
-            updateMetricsAfterStatusUpdate(beforeUpdate, FAILED);
-            return task.getChainDealId();
-        }
+    /**
+     * Updates a single task in the task collection
+     *
+     * @param task   The task to update
+     * @param update The update to perform
+     * @return The chain task id of the task
+     */
+    private String updateSingleTask(Task task, Update update) {
+        final UpdateResult updateResult = updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
+        return updateResult.getModifiedCount() == 0L ? "" : task.getChainTaskId();
     }
 
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
@@ -325,6 +363,7 @@ public class TaskService {
     }
 
     void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
+        log.debug("updateMetricsAfterStatusUpdate [prev:{}, next:{}]", previousStatus, newStatus);
         currentTaskStatusesCount.get(previousStatus).decrementAndGet();
         currentTaskStatusesCount.get(newStatus).incrementAndGet();
         publishTaskStatusesCountUpdate();

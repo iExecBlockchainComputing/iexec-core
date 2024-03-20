@@ -29,11 +29,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -64,6 +67,7 @@ import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
@@ -192,6 +196,27 @@ class TaskServiceTests {
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, "0x0", contributionDeadline, finalDeadline);
         assertThat(saved).isEmpty();
+    }
+    // endregion
+
+    // region updateTask & updateTaskStatus
+    @Test
+    void shouldNotUpdateTaskStatusAndEmitWarning(CapturedOutput output) {
+        final Task task = getStubTask();
+        taskRepository.save(task);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZING,
+                List.of(TaskStatusChange.builder().status(INITIALIZING).build()));
+        assertThat(modifiedCount).isZero();
+        assertThat(output.getOut()).contains("The task was not updated [chainTaskId:" + CHAIN_TASK_ID + "]");
+    }
+
+    @Test
+    void shouldUpdateTaskStatus() {
+        final Task task = getStubTask(INITIALIZING);
+        taskRepository.save(task);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZED,
+                List.of(TaskStatusChange.builder().status(INITIALIZED).build()));
+        assertThat(modifiedCount).isOne();
     }
     // endregion
 

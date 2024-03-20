@@ -53,7 +53,7 @@ public class FinalDeadlineTaskDetector implements Detector {
                 .push("dateStatusList").each(
                         TaskStatusChange.builder().status(TaskStatus.FINAL_DEADLINE_REACHED).build(),
                         TaskStatusChange.builder().status(TaskStatus.FAILED).build());
-        taskService.failMultipleTasksByQuery(update, query)
+        taskService.updateMultipleTasksByQuery(query, update)
                 .forEach(id -> applicationEventPublisher.publishEvent(new TaskFailedEvent(id)));
     }
 }

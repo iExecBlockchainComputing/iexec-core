@@ -36,9 +36,6 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     @Query("{ 'currentStatus': {$in: ?0} }")
     List<Task> findByCurrentStatus(List<TaskStatus> statuses);
 
-    @Query("{ 'currentStatus': {$in: ?0} }")
-    List<Task> findByCurrentStatus(List<TaskStatus> statuses, Sort sort);
-
     /**
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
