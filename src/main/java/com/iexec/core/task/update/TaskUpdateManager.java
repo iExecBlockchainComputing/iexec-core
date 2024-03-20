@@ -162,17 +162,18 @@ class TaskUpdateManager {
      * @param statuses List of statuses to append to the task {@code dateStatusList}
      */
     void updateTaskStatusesAndSave(Task task, TaskStatus... statuses) {
-        TaskStatus currentStatus = task.getCurrentStatus();
-        List<TaskStatusChange> statusChanges = new ArrayList<>();
+        final TaskStatus currentStatus = task.getCurrentStatus();
+        final List<TaskStatusChange> statusChanges = new ArrayList<>();
         for (TaskStatus newStatus : statuses) {
             log.info("Create TaskStatusChange succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
                     task.getChainTaskId(), task.getCurrentStatus(), newStatus);
             final TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).build();
+            // task update required by tests
             task.setCurrentStatus(newStatus);
             task.getDateStatusList().add(statusChange);
             statusChanges.add(statusChange);
         }
-        saveTask(task, currentStatus, statusChanges);
+        saveTask(task.getChainTaskId(), currentStatus, statuses[statuses.length - 1], statusChanges);
     }
 
     void updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
@@ -180,29 +181,31 @@ class TaskUpdateManager {
     }
 
     void updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
-        TaskStatus currentStatus = task.getCurrentStatus();
-        TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).chainReceipt(chainReceipt).build();
+        final TaskStatus currentStatus = task.getCurrentStatus();
+        final TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).chainReceipt(chainReceipt).build();
+        // task update required by tests
         task.setCurrentStatus(newStatus);
         task.getDateStatusList().add(statusChange);
-        saveTask(task, currentStatus, List.of(statusChange));
+        saveTask(task.getChainTaskId(), currentStatus, newStatus, List.of(statusChange));
     }
 
     /**
      * Saves the task to the database.
      *
-     * @param task          The task
+     * @param chainTaskId   ID of the task
      * @param currentStatus The current status in database
+     * @param wishedStatus  The status the task should have after the update
      * @param statusChanges List of changes
      */
-    void saveTask(Task task, TaskStatus currentStatus, List<TaskStatusChange> statusChanges) {
-        long updatedTaskCount = taskService.updateTaskStatus(task, currentStatus, statusChanges);
+    void saveTask(String chainTaskId, TaskStatus currentStatus, TaskStatus wishedStatus, List<TaskStatusChange> statusChanges) {
+        long updatedTaskCount = taskService.updateTaskStatus(chainTaskId, currentStatus, wishedStatus, statusChanges);
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (updatedTaskCount != 0L) {
             log.info("UpdateTaskStatus succeeded [chainTaskId:{}, currentStatus:{}, newStatus:{}]",
-                    task.getChainTaskId(), currentStatus, task.getCurrentStatus());
+                    chainTaskId, currentStatus, wishedStatus);
         } else {
             log.warn("UpdateTaskStatus failed. Chain Task is probably unknown [chainTaskId:{}, currentStatus:{}, wishedStatus:{}]",
-                    task.getChainTaskId(), currentStatus, task.getCurrentStatus());
+                    chainTaskId, currentStatus, wishedStatus);
         }
     }
     // endregion
@@ -244,7 +247,7 @@ class TaskUpdateManager {
         }
         task.setEnclaveChallenge(enclaveChallenge.get());
         update.set("enclaveChallenge", enclaveChallenge.get());
-        taskService.updateTask(task.getChainTaskId(), update);
+        taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
 
         blockchainAdapterService
                 .requestInitialize(task.getChainDealId(), task.getTaskIndex())
@@ -392,7 +395,7 @@ class TaskUpdateManager {
             task.setConsensus(chainTask.getConsensusValue());
             long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
             task.setConsensusReachedBlockNumber(consensusBlockNumber);
-            taskService.updateTask(task.getChainTaskId(),
+            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
                     Update.update("revealDeadline", task.getRevealDeadline())
                             .set("consensus", task.getConsensus())
                             .set("consensusReachedBlockNumber", task.getConsensusReachedBlockNumber()));
@@ -570,7 +573,7 @@ class TaskUpdateManager {
         if (uploadedReplicate != null) {
             task.setResultLink(uploadedReplicate.getResultLink());
             task.setChainCallbackData(uploadedReplicate.getChainCallbackData());
-            taskService.updateTask(task.getChainTaskId(),
+            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
                     Update.update("resultLink", uploadedReplicate.getResultLink())
                             .set("chainCallbackData", uploadedReplicate.getChainCallbackData()));
             updateTaskStatusAndSave(task, RESULT_UPLOADED);
@@ -616,7 +619,8 @@ class TaskUpdateManager {
         replicatesService.getRandomReplicateWithRevealStatus(task.getChainTaskId()).ifPresent(replicate -> {
             // save in the task the workerWallet that is in charge of uploading the result
             task.setUploadingWorkerWalletAddress(replicate.getWalletAddress());
-            taskService.updateTask(task.getChainTaskId(), Update.update("uploadingWorkerWalletAddress", replicate.getWalletAddress()));
+            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
+                    Update.update("uploadingWorkerWalletAddress", replicate.getWalletAddress()));
             updateTaskStatusAndSave(task, RESULT_UPLOADING);
             replicatesService.updateReplicateStatus(
                     task.getChainTaskId(), replicate.getWalletAddress(),

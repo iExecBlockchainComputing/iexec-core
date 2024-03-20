@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Always provide a `WorkerpoolAuthorization` to a worker during its recovery. (#674)
 - Move task metrics from `TaskUpdateManager` to `TaskService`. (#676)
 - Fail fast when tasks are detected past their contribution or final deadline. (#677)
+- Mitigate potential race conditions by enforcing `currentStatus` value when updating a task. (#681)
 
 ### Quality
 

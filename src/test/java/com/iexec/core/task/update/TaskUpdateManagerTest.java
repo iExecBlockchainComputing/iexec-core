@@ -27,9 +27,6 @@ import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.Web3jService;
-import com.iexec.core.configuration.ResultRepositoryConfiguration;
-import com.iexec.core.detector.replicate.RevealTimeoutDetector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.replicate.ReplicatesService;
@@ -86,22 +83,10 @@ class TaskUpdateManagerTest {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
-    private ResultRepositoryConfiguration resulRepositoryConfig;
-
-    @Mock
-    private Web3jService web3jService;
-
-    @Mock
-    private RevealTimeoutDetector revealTimeoutDetector;
-
-    @Mock
     private BlockchainAdapterService blockchainAdapterService;
 
     @Mock
     private TaskService taskService;
-
-    @Mock
-    private TaskUpdateRequestManager taskUpdateRequestManager;
 
     @Mock
     private SmsService smsService;
@@ -394,7 +379,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(0)).getVerifiedSmsUrl(anyString(), anyString());
-        verify(taskService, times(2)).updateTaskStatus(any(), any(), any()); // INITIALIZING & INITIALIZED
+        verify(taskService, times(2)).updateTaskStatus(any(), any(), any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -428,7 +413,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(task.getSmsUrl()).isEqualTo(smsUrl);
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
-        verify(taskService, times(2)).updateTaskStatus(any(), any(), any()); // INITIALIZING & INITIALIZED
+        verify(taskService, times(2)).updateTaskStatus(any(), any(), any(), any()); // INITIALIZING & INITIALIZED
     }
 
     @Test
@@ -462,7 +447,7 @@ class TaskUpdateManagerTest {
         assertThat(task.getSmsUrl()).isNull();
         verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
         verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
-        verify(taskService, times(1)).updateTaskStatus(any(), any(), any()); // INITIALIZE_FAILED & FAILED
+        verify(taskService, times(1)).updateTaskStatus(any(), any(), any(), any()); // INITIALIZE_FAILED & FAILED
     }
 
     // endregion
@@ -731,7 +716,6 @@ class TaskUpdateManagerTest {
                 .winnerCounter(2)
                 .build()));
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(web3jService.getLatestBlockNumber()).thenReturn(2L);
         when(taskService.isConsensusReached(any())).thenReturn(true);
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
         when(replicatesList.getNbValidContributedWinners(any())).thenReturn(2);
@@ -1168,7 +1152,6 @@ class TaskUpdateManagerTest {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isFinalized(any())).thenReturn(Optional.of(true));
-        when(resulRepositoryConfig.getResultRepositoryURL()).thenReturn("http://foo:bar");
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.COMPLETED)
                 .revealCounter(1)
@@ -1825,16 +1808,6 @@ class TaskUpdateManagerTest {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
         verify(applicationEventPublisher, Mockito.times(0))
                 .publishEvent(any(PleaseUploadEvent.class));
-    }
-
-    // endregion
-
-    // region publishRequest
-
-    @Test
-    void shouldTriggerUpdateTaskAsynchronously() {
-        taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
-        verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
 
     // endregion

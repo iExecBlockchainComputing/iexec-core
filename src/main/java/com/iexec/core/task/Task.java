@@ -54,8 +54,10 @@ import static com.iexec.core.task.TaskStatus.RECEIVED;
         unique = true)
 public class Task {
 
+    public static final String CHAIN_TASK_ID_FIELD_NAME = "chainTaskId";
     public static final String CURRENT_STATUS_FIELD_NAME = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
+    public static final String DATE_STATUS_LIST_FIELD_NAME = "dateStatusList";
 
     @Id
     private String id;
