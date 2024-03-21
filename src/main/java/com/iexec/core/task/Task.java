@@ -31,9 +31,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
-import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.task.TaskStatus.RECEIVED;
 
 @Document
@@ -124,31 +122,6 @@ public class Task {
     @JsonIgnore
     public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
-    }
-
-    @JsonIgnore
-    public TaskStatus getLastButOneStatus() {
-        return this.getDateStatusList().get(this.getDateStatusList().size() - 2).getStatus();
-    }
-
-    public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
-        Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
-        if (consensusReachedDate.isEmpty()) {
-            return false;
-        }
-        Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.maxExecutionTime);
-        Date now = new Date();
-
-        return now.after(onePeriodAfterConsensusReachedDate);
-    }
-
-    public Optional<Date> getDateOfStatus(TaskStatus taskStatus) {
-        for (TaskStatusChange taskStatusChange : this.dateStatusList) {
-            if (taskStatusChange.getStatus().equals(taskStatus)) {
-                return Optional.of(taskStatusChange.getDate());
-            }
-        }
-        return Optional.empty();
     }
 
     public boolean isContributionDeadlineReached() {

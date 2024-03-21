@@ -21,9 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
 
-import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.task.TaskTestsUtils.COMMAND_LINE;
 import static com.iexec.core.task.TaskTestsUtils.DAPP_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,34 +34,6 @@ class TaskTests {
 
         assertThat(task.getDateStatusList()).hasSize(1);
         assertThat(task.getDateStatusList().get(0).getStatus()).isEqualTo(TaskStatus.RECEIVED);
-    }
-
-    @Test
-    void shouldReturnTrueWhenConsensusReachedSinceAWhile() {
-        final long maxExecutionTime = 60;
-        Task task = new Task();
-        task.setMaxExecutionTime(maxExecutionTime);
-        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
-                .status(CONSENSUS_REACHED)
-                .date(Date.from(Instant.now().minus(2 * maxExecutionTime, ChronoUnit.MILLIS)))
-                .build();
-        task.setDateStatusList(List.of(taskStatusChange));
-
-        assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isTrue();
-    }
-
-    @Test
-    void shouldReturnFalseWhenConsensusReachedSinceNotLong() {
-        final long maxExecutionTime = 60;
-        Task task = new Task();
-        task.setMaxExecutionTime(maxExecutionTime);
-        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
-                .status(CONSENSUS_REACHED)
-                .date(Date.from(Instant.now().minus(10L, ChronoUnit.MILLIS)))
-                .build();
-        task.setDateStatusList(List.of(taskStatusChange));
-
-        assertThat(task.isConsensusReachedSinceMultiplePeriods(1)).isFalse();
     }
 
     @Test
