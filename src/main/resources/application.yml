@@ -27,6 +27,7 @@ cron:
       unstarted-tx: 300000  # 5m
       initialize: 30000   # 30s
       contribute: 30000   # 30s
+      consensus-reached: 30000 # 30s
       reveal: 30000   # 30s
       contribute-and-finalize: 30000   # 30s
       finalize: 30000   # 30s

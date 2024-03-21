@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### New Features
+
+- Add `ConsensusReachedTaskDetector` to detect missed `TaskConsensus` on-chain events. (#683)
+
 ### Bug Fixes
 
 - Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
