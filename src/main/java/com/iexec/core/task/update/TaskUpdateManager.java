@@ -546,6 +546,9 @@ class TaskUpdateManager {
 
             task.setConsensus(null);
             task.setRevealDeadline(new Date(0));
+            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
+                    Update.update("consensus", null)
+                            .set("revealDeadline", new Date(0)));
 
             updateTaskStatusAndSave(task, REOPENED, chainReceipt);
             updateTaskStatusAndSave(task, INITIALIZED, chainReceipt);
