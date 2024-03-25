@@ -46,7 +46,7 @@ public class FinalDeadlineTaskDetector implements Detector {
     @Scheduled(fixedRateString = "#{@cronConfiguration.getFinalDeadline()}")
     @Override
     public void detect() {
-        log.debug("Detect tasks after final deadline");
+        log.debug("Trying to detect tasks after final deadline");
         final Query query = Query.query(Criteria.where("currentStatus").nin(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible())
                 .and("finalDeadline").lte(Instant.now()));
         final Update update = Update.update("currentStatus", TaskStatus.FAILED)

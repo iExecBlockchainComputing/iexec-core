@@ -46,7 +46,7 @@ public class ContributionTimeoutTaskDetector implements Detector {
     @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
     @Override
     public void detect() {
-        log.debug("Detect tasks after contribution deadline");
+        log.debug("Trying to detect tasks after contribution deadline");
         final Instant now = Instant.now();
         final Query query = Query.query(Criteria.where("currentStatus").in(TaskStatus.INITIALIZED, TaskStatus.RUNNING)
                 .and("contributionDeadline").lte(now)
