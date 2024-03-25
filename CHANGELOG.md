@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
-- Add `ConsensusReachedTaskDetector` to detect missed `TaskConsensus` on-chain events. (#683)
+- Add `ConsensusReachedTaskDetector` to detect missed `TaskConsensus` on-chain events. (#683 #684)
 
 ### Bug Fixes
 
