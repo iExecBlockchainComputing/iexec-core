@@ -1,16 +1,36 @@
+/*
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.iexec.core.task.update;
 
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -18,14 +38,20 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.*;
 
+@Slf4j
+@ExtendWith(OutputCaptureExtension.class)
 class TaskUpdateRequestManagerTests {
 
     public static final String CHAIN_TASK_ID = "chainTaskId";
 
     @Mock
     private TaskService taskService;
+    @Mock
+    private TaskUpdateManager taskUpdateManager;
 
     @InjectMocks
     private TaskUpdateRequestManager taskUpdateRequestManager;
@@ -37,43 +63,69 @@ class TaskUpdateRequestManagerTests {
 
     // region publishRequest()
     @Test
-    void shouldPublishRequest() throws ExecutionException, InterruptedException {
+    void shouldPublishRequest(CapturedOutput output) {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
 
-        boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        final boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        await().atMost(5L, TimeUnit.SECONDS)
+                .until(() -> output.getOut().contains("Acquire lock for task update [chainTaskId:chainTaskId]")
+                        && output.getOut().contains("Release lock for task update [chainTaskId:chainTaskId]"));
 
-        Assertions.assertThat(publishRequestStatus).isTrue();
+        assertThat(publishRequestStatus).isTrue();
+        verify(taskUpdateManager).updateTask(CHAIN_TASK_ID);
     }
 
     @Test
-    void shouldNotPublishRequestSinceEmptyTaskId() throws ExecutionException, InterruptedException {
-        boolean publishRequestStatus = taskUpdateRequestManager.publishRequest("");
+    void shouldPublishRequestButNotAcquireLock(CapturedOutput output) {
+        final ExpiringMap<String, Semaphore> locks = ExpiringMap.builder()
+                .expiration(30L, TimeUnit.SECONDS)
+                .build();
+        locks.putIfAbsent(CHAIN_TASK_ID, new Semaphore(1));
+        assertThat(locks.get(CHAIN_TASK_ID).tryAcquire()).isTrue();
+        ReflectionTestUtils.setField(taskUpdateRequestManager, "taskExecutionLockRunner", locks);
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
+                .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
 
-        Assertions.assertThat(publishRequestStatus).isFalse();
+        final boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        await().atMost(5L, TimeUnit.SECONDS)
+                .until(() -> output.getOut().contains("Could not acquire lock for task update [chainTaskId:chainTaskId]"));
+
+        assertThat(publishRequestStatus).isTrue();
+        verifyNoInteractions(taskUpdateManager);
     }
 
     @Test
-    void shouldNotPublishRequestSinceItemAlreadyAdded() throws ExecutionException, InterruptedException {
+    void shouldNotPublishRequestSinceEmptyTaskId() {
+        final boolean publishRequestStatus = taskUpdateRequestManager.publishRequest("");
+
+        assertThat(publishRequestStatus).isFalse();
+        verifyNoInteractions(taskService, taskUpdateManager);
+    }
+
+    @Test
+    void shouldNotPublishRequestSinceItemAlreadyAdded() {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.of(Task.builder().chainTaskId(CHAIN_TASK_ID).build()));
         taskUpdateRequestManager.queue.add(
                 buildTaskUpdate(CHAIN_TASK_ID, null, null, null)
         );
 
-        boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        final boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(publishRequestStatus).isFalse();
+        assertThat(publishRequestStatus).isFalse();
+        verifyNoInteractions(taskUpdateManager);
     }
 
     @Test
-    void shouldNotPublishRequestSinceTaskDoesNotExist() throws ExecutionException, InterruptedException {
+    void shouldNotPublishRequestSinceTaskDoesNotExist() {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
 
-        boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
+        final boolean publishRequestStatus = taskUpdateRequestManager.publishRequest(CHAIN_TASK_ID);
 
-        Assertions.assertThat(publishRequestStatus).isFalse();
+        assertThat(publishRequestStatus).isFalse();
+        verifyNoInteractions(taskUpdateManager);
     }
     // endregion
 
@@ -110,12 +162,10 @@ class TaskUpdateRequestManagerTests {
                 .collect(Collectors.toList());
 
         updates.forEach(taskUpdateRequestManager.taskUpdateExecutor::execute);
-        Awaitility
-                .await()
-                .timeout(30, TimeUnit.SECONDS)
+        await().timeout(30, TimeUnit.SECONDS)
                 .until(() -> callsOrder.size() == callsPerUpdate * updates.size());
 
-        Assertions.assertThat(callsOrder).hasSize(callsPerUpdate * updates.size());
+        assertThat(callsOrder).hasSize(callsPerUpdate * updates.size());
 
         // We loop through calls order and see if all calls for a given update have finished
         // before another update starts for this task.
@@ -123,7 +173,7 @@ class TaskUpdateRequestManagerTests {
         Map<String, Map<Integer, Integer>> foundTaskUpdates = new HashMap<>();
 
         for (int updateId : callsOrder) {
-            System.out.println("[taskId:" + taskForUpdateId.get(updateId) + ", updateId:" + updateId + "]");
+            log.info("[taskId:{}, updateId:{}]", taskForUpdateId.get(updateId), updateId);
             final Map<Integer, Integer> foundOutputsForKeyGroup = foundTaskUpdates.computeIfAbsent(taskForUpdateId.get(updateId), (key) -> new HashMap<>());
             for (int alreadyFound : foundOutputsForKeyGroup.keySet()) {
                 if (!Objects.equals(alreadyFound, updateId) && foundOutputsForKeyGroup.get(alreadyFound) < callsPerUpdate) {
@@ -161,14 +211,12 @@ class TaskUpdateRequestManagerTests {
         queue.addAll(tasks);
 
         final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        Assertions.assertThat(prioritizedTasks)
-                .containsExactly(
-                        completedTask,
-                        consensusReachedTask,
-                        runningTask,
-                        initializedTask,
-                        initializingTask
-                );
+        assertThat(prioritizedTasks).containsExactly(
+                completedTask,
+                consensusReachedTask,
+                runningTask,
+                initializedTask,
+                initializingTask);
     }
 
     @Test
@@ -192,14 +240,8 @@ class TaskUpdateRequestManagerTests {
         queue.addAll(tasks);
 
         final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        Assertions.assertThat(prioritizedTasks)
-                .containsExactly(
-                        t1,
-                        t2,
-                        t3,
-                        t4,
-                        t5
-                );
+        assertThat(prioritizedTasks).containsExactly(
+                t1, t2, t3, t4, t5);
     }
 
     @Test
@@ -219,13 +261,8 @@ class TaskUpdateRequestManagerTests {
         queue.addAll(tasks);
 
         final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        Assertions.assertThat(prioritizedTasks)
-                .containsExactly(
-                        t3,
-                        t4,
-                        t1,
-                        t2
-                );
+        assertThat(prioritizedTasks).containsExactly(
+                t3, t4, t1, t2);
     }
     // endregion
 
@@ -234,12 +271,11 @@ class TaskUpdateRequestManagerTests {
                                        Date contributionDeadline,
                                        Consumer<String> taskUpdater) {
         return new TaskUpdate(
-                Task
-                        .builder()
+                Task.builder()
                         .chainTaskId(chainTaskId)
-                        .currentStatus(status).
-                        contributionDeadline(contributionDeadline).
-                        build(),
+                        .currentStatus(status)
+                        .contributionDeadline(contributionDeadline)
+                        .build(),
                 taskUpdater
         );
     }
