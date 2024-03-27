@@ -229,6 +229,7 @@ class TaskUpdateManager {
         }
 
         final Update update = new Update();
+        // First check on SMS URL before submitting transaction to fail fast
         if (task.isTeeTask()) {
             final Optional<String> smsUrl = smsService.getVerifiedSmsUrl(task.getChainTaskId(), task.getTag());
             if (smsUrl.isEmpty()) {
@@ -239,14 +240,6 @@ class TaskUpdateManager {
             task.setSmsUrl(smsUrl.get()); //SMS URL source of truth for the task
             update.set("smsUrl", smsUrl.get());
         }
-        final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(task.getChainTaskId(), task.getSmsUrl());
-        if (enclaveChallenge.isEmpty()) {
-            log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]", task.getChainTaskId());
-            toFailed(task, INITIALIZE_FAILED);
-            return;
-        }
-        task.setEnclaveChallenge(enclaveChallenge.get());
-        update.set("enclaveChallenge", enclaveChallenge.get());
         taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
 
         blockchainAdapterService
@@ -272,24 +265,34 @@ class TaskUpdateManager {
             return;
         }
         // TODO: the block where initialization happened can be found
-        blockchainAdapterService
-                .isInitialized(task.getChainTaskId())
-                .ifPresentOrElse(isSuccess -> {
-                    if (Boolean.TRUE.equals(isSuccess)) {
-                        log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]",
-                                task.getChainTaskId());
-                        //Without receipt, using deal block for initialization block
-                        task.setInitializationBlockNumber(task.getDealBlockNumber());
-                        replicatesService.createEmptyReplicateList(task.getChainTaskId());
-                        updateTaskStatusAndSave(task, INITIALIZED, null);
-                        return;
-                    }
-                    log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]",
-                            task.getChainTaskId());
-                    toFailed(task, INITIALIZE_FAILED);
-                }, () -> log.error("Unable to check initialization on blockchain " +
-                                "(likely too long), should use a detector [chainTaskId:{}]",
-                        task.getChainTaskId()));
+        final Optional<Boolean> isInitialized = blockchainAdapterService.isInitialized(task.getChainTaskId());
+        if (isInitialized.isEmpty()) {
+            log.error("Unable to check initialization on blockchain (likely too long), should use a detector [chainTaskId:{}]",
+                    task.getChainTaskId());
+        } else if (Boolean.TRUE.equals(isInitialized.get())) {
+            log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
+            final Update update = new Update();
+            // Without receipt, using deal block for initialization block
+            task.setInitializationBlockNumber(task.getDealBlockNumber());
+            update.set("initializationBlockNumber", task.getDealBlockNumber());
+
+            // Create enclave challenge after task has been initialized on-chain
+            final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(task.getChainTaskId(), task.getSmsUrl());
+            if (enclaveChallenge.isEmpty()) {
+                log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]", task.getChainTaskId());
+                toFailed(task, INITIALIZE_FAILED);
+                return;
+            }
+            task.setEnclaveChallenge(enclaveChallenge.get());
+            update.set("enclaveChallenge", enclaveChallenge.get());
+            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
+
+            replicatesService.createEmptyReplicateList(task.getChainTaskId());
+            updateTaskStatusAndSave(task, INITIALIZED, null);
+        } else {
+            log.error("Initialization failed on blockchain (tx reverted) [chainTaskId:{}]", task.getChainTaskId());
+            toFailed(task, INITIALIZE_FAILED);
+        }
     }
 
     void initialized2Running(Task task, ChainTask chainTask) {
@@ -676,21 +679,17 @@ class TaskUpdateManager {
             emitError(task, FINALIZING, "finalizing2Finalized2Completed");
             return;
         }
-        blockchainAdapterService
-                .isFinalized(task.getChainTaskId())
-                .ifPresentOrElse(isSuccess -> {
-                    if (Boolean.TRUE.equals(isSuccess)) {
-                        log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]",
-                                task.getChainTaskId());
-                        toFinalizedToCompleted(task);
-                        return;
-                    }
-                    log.error("Finalization failed on blockchain (tx reverted) [chainTaskId:{}]",
-                            task.getChainTaskId());
-                    toFailed(task, FINALIZE_FAILED);
-                }, () -> log.error("Unable to check finalization on blockchain " +
-                                "(likely too long), should use a detector [chainTaskId:{}]",
-                        task.getChainTaskId()));
+        final Optional<Boolean> isFinalized = blockchainAdapterService.isFinalized(task.getChainTaskId());
+        if (isFinalized.isEmpty()) {
+            log.error("Unable to check finalization on blockchain (likely too long), should use a detector [chainTaskId:{}]",
+                    task.getChainTaskId());
+        } else if (Boolean.TRUE.equals(isFinalized.get())) {
+            log.info("Finalized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
+            toFinalizedToCompleted(task);
+        } else {
+            log.error("Finalization failed on blockchain (tx reverted) [chainTaskId:{}]", task.getChainTaskId());
+            toFailed(task, FINALIZE_FAILED);
+        }
     }
 
     void finalizedToCompleted(Task task) {

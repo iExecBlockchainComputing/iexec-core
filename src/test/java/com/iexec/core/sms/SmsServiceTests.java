@@ -16,9 +16,12 @@
 
 package com.iexec.core.sms;
 
+import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
+import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.SignatureService;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
@@ -42,14 +45,16 @@ import static org.mockito.Mockito.*;
 
 class SmsServiceTests {
 
+    private static final String AUTHORIZATION = "authorization";
     private static final String GRAMINE_SMS_URL = "http://gramine-sms";
     private static final String SCONE_SMS_URL = "http://scone-sms";
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String url = "url";
 
     @Mock
+    private SignatureService signatureService;
+    @Mock
     private SmsClient smsClient;
-
     @Mock
     private SmsClientProvider smsClientProvider;
     @Mock
@@ -63,6 +68,8 @@ class SmsServiceTests {
         MockitoAnnotations.openMocks(this);
         when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
         when(registryConfiguration.getGramineSms()).thenReturn(GRAMINE_SMS_URL);
+        when(signatureService.createAuthorization("", CHAIN_TASK_ID, ""))
+                .thenReturn(WorkerpoolAuthorization.builder().signature(new Signature(AUTHORIZATION)).build());
     }
 
     // region isSmsClientReady
@@ -119,34 +126,30 @@ class SmsServiceTests {
     // region getEnclaveChallenge
     @Test
     void shouldGetEmptyAddressForStandardTask() {
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
-
         Assertions.assertThat(smsService.getEnclaveChallenge(CHAIN_TASK_ID, ""))
-                .get()
-                .isEqualTo(BytesUtils.EMPTY_ADDRESS);
-        verify(smsClient, never()).generateTeeChallenge(anyString());
+                .isEqualTo(Optional.of(BytesUtils.EMPTY_ADDRESS));
+
+        verifyNoInteractions(smsClientProvider, smsClient);
     }
 
     @Test
     void shouldGetEnclaveChallengeForTeeTask() {
         String expected = "challenge";
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, url);
-        verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
+        verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received)
-                .get()
-                .isEqualTo(expected);
+                .isEqualTo(Optional.of(expected));
     }
 
     @Test
     void shouldNotGetEnclaveChallengeForTeeTaskWhenEmptySmsResponse() {
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
         Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, url);
-        verify(smsClient).generateTeeChallenge(CHAIN_TASK_ID);
+        verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received).isEmpty();
     }
     // endregion
@@ -157,7 +160,7 @@ class SmsServiceTests {
         final String expected = "challenge";
 
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn(expected);
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
         Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
         Assertions.assertThat(received)
@@ -167,7 +170,7 @@ class SmsServiceTests {
     @Test
     void shouldNotGenerateEnclaveChallengeSinceNoPublicKeyReturned() {
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenReturn("");
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
 
         Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
         Assertions.assertThat(received)
@@ -177,7 +180,7 @@ class SmsServiceTests {
     @Test
     void shouldNotGenerateEnclaveChallengeSinceFeignException() {
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenThrow(FeignException.GatewayTimeout.class);
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(FeignException.GatewayTimeout.class);
 
         Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
         Assertions.assertThat(received)
@@ -187,7 +190,7 @@ class SmsServiceTests {
     @Test
     void shouldNotGenerateEnclaveChallengeSinceRuntimeException() {
         when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
-        when(smsClient.generateTeeChallenge(CHAIN_TASK_ID)).thenThrow(RuntimeException.class);
+        when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(RuntimeException.class);
 
         Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
         Assertions.assertThat(received)
