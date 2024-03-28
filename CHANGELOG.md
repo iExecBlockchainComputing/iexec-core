@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### New Features
 
 - Add `ConsensusReachedTaskDetector` to detect missed `TaskConsensus` on-chain events. (#683 #684)
+- Generate enclave challenge with `Authorization` header after on-chain task has been initialized. (#686)
 
 ### Bug Fixes
 
