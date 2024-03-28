@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 package com.iexec.core.task.update;
 
-import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import lombok.extern.slf4j.Slf4j;
+import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -42,8 +42,10 @@ public class TaskUpdateRequestManager {
      */
     private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    private final ContextualLockRunner<String> taskExecutionLockRunner =
-            new ContextualLockRunner<>(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+    // Working with semaphore to guarantee at most 1 item in queue and 1 running thread
+    private final ExpiringMap<String, Semaphore> taskExecutionLockRunner = ExpiringMap.builder()
+            .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+            .build();
 
     final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
     // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
@@ -86,24 +88,32 @@ public class TaskUpdateRequestManager {
             log.debug("Request already published [chainTaskId:{}]", chainTaskId);
             return false;
         }
-        final Optional<Task> oTask = taskService.getTaskByChainTaskId(chainTaskId);
-        if (oTask.isEmpty()) {
-            log.warn("No such task. [chainTaskId: {}]", chainTaskId);
+        final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
+        if (task == null) {
+            log.warn("No such task [chainTaskId: {}]", chainTaskId);
             return false;
         }
 
-        final Task task = oTask.get();
+        // Add semaphore to expiring map if missing
+        taskExecutionLockRunner.putIfAbsent(chainTaskId, new Semaphore(1));
+
         taskUpdateExecutor.execute(new TaskUpdate(task, this::updateTask));
-        log.debug("Published task update request" +
-                        " [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
+        log.debug("Published task update request [chainTaskId:{}, currentStatus:{}, contributionDeadline:{}, queueSize:{}]",
                 chainTaskId, task.getCurrentStatus(), task.getContributionDeadline(), queue.size());
         return true;
     }
 
     private void updateTask(String chainTaskId) {
-        taskExecutionLockRunner.acceptWithLock(
-                chainTaskId,
-                taskUpdateManager::updateTask
-        );
+        if (!taskExecutionLockRunner.get(chainTaskId).tryAcquire()) {
+            log.debug("Could not acquire lock for task update [chainTaskId:{}]", chainTaskId);
+            return;
+        }
+        try {
+            log.debug("Acquire lock for task update [chainTaskId:{}]", chainTaskId);
+            taskUpdateManager.updateTask(chainTaskId);
+        } finally {
+            log.debug("Release lock for task update [chainTaskId:{}]", chainTaskId);
+            taskExecutionLockRunner.get(chainTaskId).release();
+        }
     }
 }
