@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 - Implement each task status transition in a single method. (#680)
 - Execute `TaskUpdateManager` tests on a running MongoDB container. (#682)
 
-### Dependecy Upgrades
+### Dependency Upgrades
 
 - Upgrade to `iexec-sms-library` 8.5.1. (#687)
 
