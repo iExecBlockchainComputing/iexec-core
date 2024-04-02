@@ -28,6 +28,10 @@ All notable changes to this project will be documented in this file.
 - Implement each task status transition in a single method. (#680)
 - Execute `TaskUpdateManager` tests on a running MongoDB container. (#682)
 
+### Dependecy Upgrades
+
+- Upgrade to `iexec-sms-library` 8.5.1. (#687)
+
 ## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
 
 ### New Features
@@ -47,9 +51,9 @@ All notable changes to this project will be documented in this file.
 ### Dependency Upgrades
 
 - Upgrade to `iexec-common` 8.4.0. (#666)
-- Upgrade to `iexec-blockchain-adapter` 8.4.0. (#667)
-- Upgrade to `iexec-result-proxy` 8.4.0. (#667)
-- Upgrade to `iexec-sms` 8.5.0. (#667)
+- Upgrade to `iexec-blockchain-adapter-library` 8.4.0. (#667)
+- Upgrade to `iexec-result-proxy-library` 8.4.0. (#667)
+- Upgrade to `iexec-sms-library` 8.5.0. (#667)
 
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 
