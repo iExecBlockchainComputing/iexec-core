@@ -18,6 +18,7 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainContributionStatus;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.core.chain.IexecHubService;
@@ -185,7 +186,8 @@ public abstract class UnnotifiedAbstractDetector {
                     // by default, no need to retrieve anything
                     break;
             }
-            replicatesService.updateReplicateStatus(chainTaskId, wallet, statusToUpdate, details);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(statusToUpdate, details);
+            replicatesService.updateReplicateStatus(chainTaskId, wallet, statusUpdate);
         }
     }
 }

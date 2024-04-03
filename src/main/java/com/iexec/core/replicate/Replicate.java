@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import static com.iexec.common.replicate.ReplicateStatus.CREATED;
 import static com.iexec.common.replicate.ReplicateStatus.WORKER_LOST;
 import static com.iexec.common.replicate.ReplicateStatusUpdate.poolManagerRequest;
-
 
 @Data
 @NoArgsConstructor
@@ -83,11 +82,6 @@ public class Replicate {
         }
 
         throw new NoReplicateStatusException(chainTaskId);
-    }
-
-    @JsonIgnore
-    public ReplicateStatus getLastButOneStatus() {
-        return statusUpdateList.get(statusUpdateList.size() - 2).getStatus();
     }
 
     @JsonIgnore

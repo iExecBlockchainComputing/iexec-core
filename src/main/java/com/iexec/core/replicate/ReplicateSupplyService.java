@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
-
+@Slf4j
 @Service
 public class ReplicateSupplyService implements Purgeable {
 
@@ -207,8 +208,8 @@ public class ReplicateSupplyService implements Purgeable {
      * tries to accept the task - i.e. create a new {@link Replicate}
      * for that task on that worker.
      *
-     * @param task          {@link Task} needing at least one new {@link Replicate}.
-     * @param walletAddress Wallet address of a worker looking for new {@link Task}.
+     * @param task           {@link Task} needing at least one new {@link Replicate}.
+     * @param walletAddress  Wallet address of a worker looking for new {@link Task}.
      * @param replicatesList Replicates of given {@link Task}.
      * @return {@literal true} if the task has been accepted,
      * {@literal false} otherwise.
@@ -251,51 +252,56 @@ public class ReplicateSupplyService implements Purgeable {
         for (Task task : tasksWithWorkerParticipation) {
             String chainTaskId = task.getChainTaskId();
 
-            Optional<Replicate> oReplicate = replicatesService.getReplicate(chainTaskId, walletAddress);
-            if (oReplicate.isEmpty()) {
+            final Replicate replicate = replicatesService.getReplicate(chainTaskId, walletAddress).orElse(null);
+            if (replicate == null) {
+                log.debug("no replicate [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
                 continue;
             }
-            Replicate replicate = oReplicate.get();
-            boolean isRecoverable = replicate.isRecoverable();
+            final boolean isRecoverable = replicate.isRecoverable();
             if (!isRecoverable) {
+                log.debug("not recoverable [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
                 continue;
             }
-            String enclaveChallenge = task.getEnclaveChallenge();
+            final String enclaveChallenge = task.getEnclaveChallenge();
             if (task.isTeeTask() && enclaveChallenge.isEmpty()) {
+                log.debug("empty enclave challenge [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
                 continue;
             }
-            Optional<TaskNotificationType> taskNotificationType = getTaskNotificationType(task, replicate, blockNumber);
-            if (taskNotificationType.isEmpty()) {
+            final TaskNotificationType taskNotificationType = getTaskNotificationType(task, replicate, blockNumber).orElse(null);
+            if (taskNotificationType == null) {
+                log.debug("no task notification [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
                 continue;
             }
-            TaskNotificationExtra taskNotificationExtra =
-                    getTaskNotificationExtra(task, taskNotificationType.get(), walletAddress, enclaveChallenge);
+            log.debug("task notification type {}", taskNotificationType);
 
-            TaskNotification taskNotification = TaskNotification.builder()
+            final TaskNotificationExtra taskNotificationExtra =
+                    getTaskNotificationExtra(task, taskNotificationType, walletAddress);
+
+            final TaskNotification taskNotification = TaskNotification.builder()
                     .chainTaskId(chainTaskId)
                     .workersAddress(Collections.singletonList(walletAddress))
-                    .taskNotificationType(taskNotificationType.get())
+                    .taskNotificationType(taskNotificationType)
                     .taskNotificationExtra(taskNotificationExtra)
                     .build();
 
             // change replicate status
-            ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RECOVERING);
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
-
+            replicatesService.updateReplicateStatus(
+                    chainTaskId, walletAddress, ReplicateStatusUpdate.poolManagerRequest(RECOVERING));
             taskNotifications.add(taskNotification);
         }
 
         return taskNotifications;
     }
 
-    private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress, String enclaveChallenge) {
-        TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder().build();
+    private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress) {
+        final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
+                walletAddress, task.getChainTaskId(), task.getEnclaveChallenge());
+        final TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder()
+                .workerpoolAuthorization(authorization)
+                .build();
 
         switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
-                WorkerpoolAuthorization authorization = signatureService.createAuthorization(
-                        walletAddress, task.getChainTaskId(), enclaveChallenge);
-                taskNotificationExtra.setWorkerpoolAuthorization(authorization);
                 break;
             case PLEASE_REVEAL:
                 taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
@@ -364,7 +370,8 @@ public class ReplicateSupplyService implements Purgeable {
 
         if (didReplicateStartContributing && didReplicateContributeOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, CONTRIBUTED, details);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(CONTRIBUTED, details);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
         }
 
         // we read the replicate from db to consider the changes added in the previous case
@@ -419,7 +426,8 @@ public class ReplicateSupplyService implements Purgeable {
 
         if (didReplicateStartRevealing && didReplicateRevealOnChain) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, REVEALED, details);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(REVEALED, details);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
             taskUpdateRequestManager.publishRequest(chainTaskId);
         }
 
@@ -474,7 +482,8 @@ public class ReplicateSupplyService implements Purgeable {
         }
 
         if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
-            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, RESULT_UPLOADED);
+            final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED);
+            replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
             taskUpdateRequestManager.publishRequest(chainTaskId);
             return Optional.of(TaskNotificationType.PLEASE_WAIT);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.iexec.common.utils.DateTimeUtils.now;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
@@ -160,18 +160,17 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean canFinalize(String chainTaskId) {
-        Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (optional.isEmpty()) {
+        final ChainTask chainTask = getChainTask(chainTaskId).orElse(null);
+        if (chainTask == null) {
             return false;
         }
-        ChainTask chainTask = optional.get();
 
-        boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean isFinalDeadlineInFuture = now() < chainTask.getFinalDeadline();
-        boolean hasEnoughRevealors = (chainTask.getRevealCounter() == chainTask.getWinnerCounter())
-                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= now());
+        final boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
+        final boolean isFinalDeadlineInFuture = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
+        final boolean hasEnoughRevealors = chainTask.getRevealCounter() == chainTask.getWinnerCounter()
+                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= Instant.now().toEpochMilli());
+        final boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
 
-        boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
         if (ret) {
             log.info("Finalizable onchain [chainTaskId:{}]", chainTaskId);
         } else {
@@ -183,15 +182,14 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean canReopen(String chainTaskId) {
-        Optional<ChainTask> optional = getChainTask(chainTaskId);
-        if (optional.isEmpty()) {
+        final ChainTask chainTask = getChainTask(chainTaskId).orElse(null);
+        if (chainTask == null) {
             return false;
         }
-        ChainTask chainTask = optional.get();
 
-        boolean isChainTaskStatusRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
-        boolean isBeforeFinalDeadline = now() < chainTask.getFinalDeadline();
-        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= now();
+        boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
+        boolean isBeforeFinalDeadline = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
+        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= Instant.now().toEpochMilli();
         boolean revealCounterEqualsZero = chainTask.getRevealCounter() == 0;
 
         boolean check = isChainTaskStatusRevealing && isBeforeFinalDeadline && isAfterRevealDeadline
@@ -247,7 +245,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean hasEnoughGas() {
-        return hasEnoughGas(credentialsService.getCredentials().getAddress());
+        final boolean hasEnoughGas = hasEnoughGas(credentialsService.getCredentials().getAddress());
+        log.debug("Gas status [hasEnoughGas:{}]", hasEnoughGas);
+        return hasEnoughGas;
     }
 
     private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {

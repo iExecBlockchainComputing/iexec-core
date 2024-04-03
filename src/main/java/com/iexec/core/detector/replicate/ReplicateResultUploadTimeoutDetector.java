@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.iexec.core.detector.replicate;
 
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.Detector;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -27,11 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.Optional;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
-import static com.iexec.common.utils.DateTimeUtils.addMinutesToDate;
 
 @Slf4j
 @Service
@@ -62,14 +62,13 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             String chainTaskId = task.getChainTaskId();
             String uploadingWallet = task.getUploadingWorkerWalletAddress();
 
-            Optional<Replicate> oUploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet);
-            if (oUploadingReplicate.isEmpty()) {
+            final Replicate uploadingReplicate = replicatesService.getReplicate(chainTaskId, uploadingWallet).orElse(null);
+            if (uploadingReplicate == null) {
                 return;
             }
 
-            Replicate uploadingReplicate = oUploadingReplicate.get();
-
-            boolean startedUploadLongAgo = new Date().after(addMinutesToDate(task.getLatestStatusChange().getDate(), 2));
+            boolean startedUploadLongAgo = Instant.now().isAfter(
+                    Instant.ofEpochMilli(task.getLatestStatusChange().getDate().getTime()).plus(2L, ChronoUnit.MINUTES));
             boolean hasReplicateAlreadyFailedToUpload = uploadingReplicate.containsStatus(RESULT_UPLOAD_FAILED);
 
             if (!startedUploadLongAgo) {
@@ -84,8 +83,8 @@ public class ReplicateResultUploadTimeoutDetector implements Detector {
             log.info("detected replicate with resultUploadTimeout [chainTaskId:{}, replicate:{}, currentStatus:{}]",
                     chainTaskId, uploadingReplicate.getWalletAddress(), uploadingReplicate.getCurrentStatus());
 
-            replicatesService.updateReplicateStatus(chainTaskId, uploadingReplicate.getWalletAddress(),
-                    RESULT_UPLOAD_FAILED);
+            replicatesService.updateReplicateStatus(
+                    chainTaskId, uploadingReplicate.getWalletAddress(), ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOAD_FAILED));
             taskUpdateRequestManager.publishRequest(task.getChainTaskId());
         }
     }

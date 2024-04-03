@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.iexec.core.chain;
 
 import com.iexec.commons.poco.chain.*;
@@ -16,6 +32,8 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.methods.response.Log;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
@@ -29,6 +47,7 @@ import static org.mockito.Mockito.*;
 class IexecHubServiceTests {
 
     private static final String TRANSACTION_HASH = "transactionHash";
+    private static final long TIME_INTERVAL_IN_MS = 100L;
 
     @Mock
     private CredentialsService credentialsService;
@@ -54,7 +73,7 @@ class IexecHubServiceTests {
         iexecHubService = spy(new IexecHubService(credentialsService, web3jService, chainConfig));
     }
 
-
+    // region isTaskInCompletedStatusOnChain
     @Test
     void shouldTaskBeInCompletedStatusOnChain() {
         final ChainTask task = ChainTask.builder().status(ChainTaskStatus.COMPLETED).build();
@@ -70,8 +89,137 @@ class IexecHubServiceTests {
 
         assertThat(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).isFalse();
     }
+    // endregion
 
-    // region check contribution status
+    // region canFinalize
+    @Test
+    void canNotFinalizeWhenChainTaskNotFound() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenNotRevealing() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenFinalDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotFinalizeWhenNotEnoughReveals() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(2)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canFinalizeWhenRevealDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(2)
+                .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isTrue();
+    }
+
+    @Test
+    void canFinalizeWhenAllWinnersRevealed() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .winnerCounter(1)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canFinalize(CHAIN_TASK_ID)).isTrue();
+    }
+    // endregion
+
+    // region canReopen
+    @Test
+    void canNotRepoenWhenChainTaskNotFound() {
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenNotRevealing() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.ACTIVE)
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenFinalDeadlineReached() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenBeforeRevealDeadline() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canNotReopenWhenSomeWinnersRevealed() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealCounter(1)
+                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
+    }
+
+    @Test
+    void canReopenWhenRevealDeadlineReachedAndNoReveal() {
+        final ChainTask chainTask = ChainTask.builder()
+                .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
+                .build();
+        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
+        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isTrue();
+    }
+    // endregion
+
+    // region isContributed
     @ParameterizedTest
     @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"CONTRIBUTED", "REVEALED"})
     void shouldBeContributed(ChainContributionStatus status) {
@@ -87,7 +235,9 @@ class IexecHubServiceTests {
         when(iexecHubService.getChainContribution(anyString(), anyString())).thenReturn(Optional.of(chainContribution));
         assertThat(iexecHubService.isContributed(CHAIN_TASK_ID, WORKER_ADDRESS)).isFalse();
     }
+    // endregion
 
+    // region isRevealed
     @ParameterizedTest
     @EnumSource(value = ChainContributionStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"REVEALED"})
     void shouldBeRevealed(ChainContributionStatus status) {

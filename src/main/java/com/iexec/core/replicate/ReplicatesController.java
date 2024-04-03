@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
+import com.iexec.core.worker.WorkerUtils;
 import feign.FeignException;
 import io.vavr.control.Either;
 import lombok.extern.slf4j.Slf4j;
@@ -58,10 +59,11 @@ public class ReplicatesController {
 
     @GetMapping("/replicates/available")
     public ResponseEntity<ReplicateTaskSummary> getAvailableReplicateTaskSummary(
-        @RequestParam(name = "blockNumber") long blockNumber,
-        @RequestHeader("Authorization") String bearerToken) {
+            @RequestParam(name = "blockNumber") long blockNumber,
+            @RequestHeader("Authorization") String bearerToken) {
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -70,8 +72,10 @@ public class ReplicatesController {
                     " [workerAddress: {}]", workerWalletAddress);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
+        log.debug("Worker requests replicate [workerAddress:{}]", workerWalletAddress);
 
         if (!workerService.isWorkerAllowedToAskReplicate(workerWalletAddress)) {
+            log.debug("Worker is not allowed to ask replicate [workerAddress:{}]", workerWalletAddress);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         workerService.updateLastReplicateDemandDate(workerWalletAddress);
@@ -89,9 +93,11 @@ public class ReplicatesController {
 
         String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        log.debug("Worker asks for missed tasks [workerAddress:{}]", workerWalletAddress);
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, workerWalletAddress);
 
@@ -106,8 +112,8 @@ public class ReplicatesController {
      * To avoid body deserialization from a {@link FeignException}, a notification with a non-null body
      * is sent with a 2XX HTTP status code.
      *
-     * @param bearerToken Authentication token of a worker.
-     * @param chainTaskId ID of the task on which the worker has an update.
+     * @param bearerToken  Authentication token of a worker.
+     * @param chainTaskId  ID of the task on which the worker has an update.
      * @param statusUpdate Status update sent by the worker.
      * @return A notification to the worker. A notification is implemented in {@code TaskNotificationType}.
      */
@@ -120,6 +126,7 @@ public class ReplicatesController {
         String walletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
 
         if (walletAddress.isEmpty()) {
+            WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -142,13 +149,10 @@ public class ReplicatesController {
             }
         }
 
-        final UpdateReplicateStatusArgs updateReplicateStatusArgs = replicatesService.computeUpdateReplicateStatusArgs(
-                chainTaskId,
-                walletAddress,
-                statusUpdate);
+        log.debug("Worker request to update a replicate status [workerAddress:{}, chainTaskId:{}, statusUpdate:{}]", walletAddress, chainTaskId, statusUpdate);
 
         final Either<ReplicateStatusUpdateError, TaskNotificationType> updateResult = replicatesService
-                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate, updateReplicateStatusArgs);
+                .updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
         if (updateResult.isRight()) {
             return ResponseEntity.ok(updateResult.get());
         }
@@ -159,7 +163,7 @@ public class ReplicatesController {
                         .body(TaskNotificationType.PLEASE_WAIT);
             case NO_ERROR:
                 log.warn("An error has been detected on replicate update but no error is returned" +
-                                " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
+                        " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
                 return ResponseEntity.internalServerError().build();
             case UNKNOWN_REPLICATE:
             case UNKNOWN_TASK:

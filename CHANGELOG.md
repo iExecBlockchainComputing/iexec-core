@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.4.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.1) 2024-04-03
+
+### New Features
+
+- Add `ConsensusReachedTaskDetector` to detect missed `TaskConsensus` on-chain events. (#683 #684)
+- Generate enclave challenge with `Authorization` header after on-chain task has been initialized. (#686)
+
+### Bug Fixes
+
+- Keep a single `updateReplicateStatus` method in `ReplicatesService`. (#670)
+- Check result has been uploaded for TEE tasks. (#672)
+- Check for consensus early if a worker has already `CONTRIBUTED` when the task is updated to `RUNNING`. (#673)
+- Always provide a `WorkerpoolAuthorization` to a worker during its recovery. (#674)
+- Move task metrics from `TaskUpdateManager` to `TaskService`. (#676)
+- Fail fast when tasks are detected past their contribution or final deadline. (#677)
+- Mitigate potential race conditions by enforcing `currentStatus` value when updating a task. (#681)
+- Use semaphores in `TaskUpdateRequestManager` to avoid blocking task update threads. (#685)
+
+### Quality
+
+- Prepare migration to `java.time` package by building `Date` objects from `Instant` objects. (#671)
+- Add logs for better traceability. (#675)
+- Remove code only used in tests from `TaskService` and `Task`. (#678 #679)
+- Implement each task status transition in a single method. (#680)
+- Execute `TaskUpdateManager` tests on a running MongoDB container. (#682)
+
+### Dependency Upgrades
+
+- Upgrade to `iexec-sms-library` 8.5.1. (#687)
+
 ## [[8.4.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.0) 2024-02-29
 
 ### New Features
@@ -21,9 +51,9 @@ All notable changes to this project will be documented in this file.
 ### Dependency Upgrades
 
 - Upgrade to `iexec-common` 8.4.0. (#666)
-- Upgrade to `iexec-blockchain-adapter` 8.4.0. (#667)
-- Upgrade to `iexec-result-proxy` 8.4.0. (#667)
-- Upgrade to `iexec-sms` 8.5.0. (#667)
+- Upgrade to `iexec-blockchain-adapter-library` 8.4.0. (#667)
+- Upgrade to `iexec-result-proxy-library` 8.4.0. (#667)
+- Upgrade to `iexec-sms-library` 8.5.0. (#667)
 
 ## [[8.3.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.3.0) 2024-01-11
 

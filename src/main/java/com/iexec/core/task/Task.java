@@ -17,7 +17,6 @@
 package com.iexec.core.task;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.commons.poco.dapp.DappType;
 import com.iexec.commons.poco.tee.TeeUtils;
@@ -32,9 +31,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
-import static com.iexec.core.task.TaskStatus.CONSENSUS_REACHED;
 import static com.iexec.core.task.TaskStatus.RECEIVED;
 
 @Document
@@ -55,8 +52,10 @@ import static com.iexec.core.task.TaskStatus.RECEIVED;
         unique = true)
 public class Task {
 
+    public static final String CHAIN_TASK_ID_FIELD_NAME = "chainTaskId";
     public static final String CURRENT_STATUS_FIELD_NAME = "currentStatus";
     public static final String CONTRIBUTION_DEADLINE_FIELD_NAME = "contributionDeadline";
+    public static final String DATE_STATUS_LIST_FIELD_NAME = "dateStatusList";
 
     @Id
     private String id;
@@ -120,47 +119,9 @@ public class Task {
         this.tag = tag;
     }
 
-    public void changeStatus(TaskStatus status) {
-        changeStatus(status, null);
-    }
-
-    public void changeStatus(TaskStatus status, ChainReceipt chainReceipt) {
-        setCurrentStatus(status);
-        TaskStatusChange taskStatusChange = TaskStatusChange.builder()
-                .status(status)
-                .chainReceipt(chainReceipt)
-                .build();
-        this.getDateStatusList().add(taskStatusChange);
-    }
-
     @JsonIgnore
     public TaskStatusChange getLatestStatusChange() {
         return this.getDateStatusList().get(this.getDateStatusList().size() - 1);
-    }
-
-    @JsonIgnore
-    public TaskStatus getLastButOneStatus() {
-        return this.getDateStatusList().get(this.getDateStatusList().size() - 2).getStatus();
-    }
-
-    public boolean isConsensusReachedSinceMultiplePeriods(int nbOfPeriods) {
-        Optional<Date> consensusReachedDate = this.getDateOfStatus(CONSENSUS_REACHED);
-        if (consensusReachedDate.isEmpty()) {
-            return false;
-        }
-        Date onePeriodAfterConsensusReachedDate = new Date(consensusReachedDate.get().getTime() + nbOfPeriods * this.maxExecutionTime);
-        Date now = new Date();
-
-        return now.after(onePeriodAfterConsensusReachedDate);
-    }
-
-    public Optional<Date> getDateOfStatus(TaskStatus taskStatus) {
-        for (TaskStatusChange taskStatusChange : this.dateStatusList) {
-            if (taskStatusChange.getStatus().equals(taskStatus)) {
-                return Optional.of(taskStatusChange.getDate());
-            }
-        }
-        return Optional.empty();
     }
 
     public boolean isContributionDeadlineReached() {

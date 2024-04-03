@@ -21,47 +21,53 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.chain.ChainUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
-import com.iexec.core.replicate.ReplicatesService;
-import io.micrometer.core.instrument.Counter;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.web3j.utils.Numeric;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static com.iexec.core.task.TaskStatus.COMPLETED;
-import static com.iexec.core.task.TaskStatus.INITIALIZED;
+import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
+import static com.iexec.core.task.TaskStatus.*;
 import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
     private final Date contributionDeadline = new Date();
@@ -82,8 +88,7 @@ class TaskServiceTests {
     private TaskRepository taskRepository;
 
     @Mock
-    private ReplicatesService replicatesService;
-
+    private ApplicationEventPublisher applicationEventPublisher;
     @Mock
     private IexecHubService iexecHubService;
 
@@ -97,9 +102,8 @@ class TaskServiceTests {
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
-        taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService);
-        taskService.init();
         taskRepository.deleteAll();
+        taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
     }
 
     @AfterEach
@@ -116,7 +120,7 @@ class TaskServiceTests {
 
     @Test
     void shouldGetOneTask() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         taskRepository.save(task);
         Optional<Task> optional = taskService.getTaskByChainTaskId(CHAIN_TASK_ID);
         assertThat(optional).usingRecursiveComparison().isEqualTo(Optional.of(task));
@@ -126,7 +130,7 @@ class TaskServiceTests {
     // region addTask
     @Test
     void shouldAddTask() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setTrust(2);
         task.setContributionDeadline(contributionDeadline);
         task.setFinalDeadline(finalDeadline);
@@ -186,8 +190,7 @@ class TaskServiceTests {
 
     @Test
     void shouldNotAddTask() {
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(TaskStatus.INITIALIZED);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
         Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
@@ -196,19 +199,37 @@ class TaskServiceTests {
     }
     // endregion
 
+    // region updateTask & updateTaskStatus
+    @Test
+    void shouldNotUpdateTaskStatusAndEmitWarning(CapturedOutput output) {
+        final Task task = getStubTask();
+        taskRepository.save(task);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZING,
+                List.of(TaskStatusChange.builder().status(INITIALIZING).build()));
+        assertThat(modifiedCount).isZero();
+        assertThat(output.getOut()).contains("The task was not updated [chainTaskId:" + CHAIN_TASK_ID + "]");
+    }
+
+    @Test
+    void shouldUpdateTaskStatus() {
+        final Task task = getStubTask(INITIALIZING);
+        taskRepository.save(task);
+        final long modifiedCount = taskService.updateTaskStatus(CHAIN_TASK_ID, INITIALIZING, INITIALIZED,
+                List.of(TaskStatusChange.builder().status(INITIALIZED).build()));
+        assertThat(modifiedCount).isOne();
+    }
+    // endregion
+
     // region findByCurrentStatus
     @Test
     void shouldFindByCurrentStatus() {
-        TaskStatus status = TaskStatus.INITIALIZED;
-
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(status);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
-        List<Task> foundTasks = taskService.findByCurrentStatus(status);
+        final List<Task> foundTasks = taskService.findByCurrentStatus(INITIALIZED);
 
         assertThat(foundTasks).usingRecursiveComparison().isEqualTo(List.of(task));
-        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(status);
+        assertThat(foundTasks.get(0).getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
     @Test
@@ -221,8 +242,7 @@ class TaskServiceTests {
     void shouldFindByCurrentStatusList() {
         List<TaskStatus> statusList = List.of(TaskStatus.INITIALIZED, TaskStatus.COMPLETED);
 
-        Task task = getStubTask(maxExecutionTime);
-        task.changeStatus(TaskStatus.INITIALIZED);
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
         List<Task> foundTasks = taskService.findByCurrentStatus(statusList);
@@ -241,7 +261,7 @@ class TaskServiceTests {
 
     @Test
     void shouldGetInitializedOrRunningTasks() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setCurrentStatus(INITIALIZED);
         taskRepository.save(task);
         assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
@@ -250,27 +270,9 @@ class TaskServiceTests {
     }
 
     @Test
-    void shouldGetTasksInNonFinalStatuses() {
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-        assertThat(taskService.getTasksInNonFinalStatuses())
-                .usingRecursiveComparison()
-                .isEqualTo(List.of(task));
-    }
-
-    @Test
-    void shouldGetTasksWhereFinalDeadlineIsPossible() {
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-        assertThat(taskService.getTasksWhereFinalDeadlineIsPossible())
-                .usingRecursiveComparison()
-                .isEqualTo(List.of(task));
-    }
-
-    @Test
     void shouldGetChainTaskIdsOfTasksExpiredBefore() {
         Date date = new Date();
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         assertThat(taskService.getChainTaskIdsOfTasksExpiredBefore(date))
@@ -279,61 +281,11 @@ class TaskServiceTests {
 
     @Test
     void shouldFindTaskExpired() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         assertThat(taskService.isExpired(CHAIN_TASK_ID)).isTrue();
     }
-
-    // region updateTask()
-    @Test
-    void shouldUpdateTaskAndMetrics() {
-        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-
-        Task task = getStubTask(maxExecutionTime);
-        task.setCurrentStatus(TaskStatus.COMPLETED);
-        taskRepository.save(task);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional)
-                .isPresent()
-                .isEqualTo(Optional.of(task));
-        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isOne();
-    }
-
-    @Test
-    void shouldUpdateTaskButNotMetricsWhenTaskIsNotCompleted() {
-        Counter counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-
-        Task task = getStubTask(maxExecutionTime);
-        taskRepository.save(task);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional)
-                .isPresent()
-                .isEqualTo(Optional.of(task));
-        counter = Metrics.globalRegistry.find(TaskService.METRIC_TASKS_COMPLETED_COUNT).counter();
-        assertThat(counter).isNotNull();
-        assertThat(counter.count()).isZero();
-    }
-
-    @Test
-    void shouldNotUpdateTaskSinceUnknownTask() {
-        Task task = getStubTask(maxExecutionTime);
-
-        Optional<Task> optional = taskService.updateTask(task);
-
-        assertThat(optional).isEmpty();
-    }
-    // endregion
 
     // region isConsensusReached()
     @Test
@@ -344,12 +296,11 @@ class TaskServiceTests {
                 .isFalse();
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verifyNoInteractions(replicatesService);
     }
 
     @Test
     void shouldConsensusNotBeReachedAsNotRevealing() {
-        Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
 
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -362,12 +313,11 @@ class TaskServiceTests {
                 .isFalse();
 
         Mockito.verify(iexecHubService).getChainTask(any());
-        Mockito.verifyNoInteractions(replicatesService);
     }
 
     @Test
     void shouldConsensusNotBeReachedAsOnChainWinnersHigherThanOffchainWinners() {
-        final Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -387,7 +337,7 @@ class TaskServiceTests {
 
     @Test
     void shouldConsensusBeReached() {
-        final Task task = getStubTask(maxExecutionTime);
+        final Task task = getStubTask();
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
@@ -406,24 +356,93 @@ class TaskServiceTests {
     }
     // endregion
 
-    // region getCompletedTasksCount
+    // region metrics
     @Test
-    void shouldGet0CompletedTasksCountWhenNoTaskCompleted() {
-        final long completedTasksCount = taskService.getCompletedTasksCount();
-        assertThat(completedTasksCount).isZero();
-    }
+    void shouldBuildGaugesAndFireEvent() {
+        final List<Task> tasks = new ArrayList<>();
+        BigInteger taskId = BigInteger.ZERO;
+        for (final TaskStatus status : TaskStatus.values()) {
+            // Give a unique initial count for each status
+            taskId = taskId.add(BigInteger.ONE);
+            final Task task = new Task(Numeric.toHexStringWithPrefix(taskId), 0, "", "", 0, 0, "0x0");
+            task.setChainTaskId(Numeric.toHexStringWithPrefix(taskId));
+            task.setCurrentStatus(status);
+            task.getDateStatusList().add(TaskStatusChange.builder().status(status).build());
+            tasks.add(task);
+        }
+        taskRepository.saveAll(tasks);
 
-    @Test
-    void shouldGet3CompletedTasksCount() {
-        taskRepository.saveAll(List.of(
-                Task.builder().taskIndex(1).chainTaskId("0x1").currentStatus(COMPLETED).build(),
-                Task.builder().taskIndex(2).chainTaskId("0x2").currentStatus(COMPLETED).build(),
-                Task.builder().taskIndex(3).chainTaskId("0x3").currentStatus(COMPLETED).build()
-        ));
         taskService.init();
 
-        final long completedTasksCount = taskService.getCompletedTasksCount();
-        assertThat(completedTasksCount).isEqualTo(3);
+        verify(applicationEventPublisher, timeout(1000L)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+        for (final TaskStatus status : TaskStatus.values()) {
+            final Gauge gauge = getCurrentTasksCountGauge(status);
+            assertThat(gauge).isNotNull()
+                    // Check the gauge value is equal to the unique count for each status
+                    .extracting(Gauge::value)
+                    .isEqualTo(1.0);
+        }
     }
     // endregion
+
+    // region onTaskCreatedEvent
+    @Test
+    void shouldIncrementCurrentReceivedGaugeWhenTaskReceived() {
+        taskService.init();
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        assertThat(currentReceivedTasks.value()).isZero();
+        taskService.onTaskCreatedEvent();
+        assertThat(currentReceivedTasks.value()).isOne();
+    }
+
+    @Test
+    void shouldUpdateCurrentReceivedCountAndFireEvent() {
+        final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount = new LinkedHashMap<>();
+        currentTaskStatusesCount.put(RECEIVED, new AtomicLong(0L));
+        ReflectionTestUtils.setField(taskService, "currentTaskStatusesCount", currentTaskStatusesCount);
+
+        taskService.onTaskCreatedEvent();
+
+        assertThat(currentTaskStatusesCount.get(RECEIVED).get()).isOne();
+        verify(applicationEventPublisher).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region updateMetricsAfterStatusUpdate
+    @Test
+    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
+        Task receivedTask = new Task("", "", 0);
+        taskRepository.save(receivedTask);
+
+        // Init gauges
+        taskService.init();
+        // Called a first time during init
+        verify(applicationEventPublisher, timeout(1000L)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+
+        final Gauge currentReceivedTasks = getCurrentTasksCountGauge(RECEIVED);
+        final Gauge currentInitializingTasks = getCurrentTasksCountGauge(INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isOne();
+        assertThat(currentInitializingTasks.value()).isZero();
+
+        taskService.updateMetricsAfterStatusUpdate(RECEIVED, INITIALIZING);
+
+        assertThat(currentReceivedTasks.value()).isZero();
+        assertThat(currentInitializingTasks.value()).isOne();
+        // Called a second time during update
+        verify(applicationEventPublisher, times(2)).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+    }
+    // endregion
+
+    // region util
+    Gauge getCurrentTasksCountGauge(TaskStatus status) {
+        return Metrics.globalRegistry
+                .find(METRIC_TASKS_STATUSES_COUNT)
+                .tags(
+                        "period", "current",
+                        "status", status.name()
+                ).gauge();
+    }
+    // endregion
+
 }

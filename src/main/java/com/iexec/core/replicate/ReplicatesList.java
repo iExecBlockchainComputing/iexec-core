@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,18 +83,6 @@ public class ReplicatesList {
         for (Replicate replicate : replicates) {
             for (ReplicateStatus status : listStatus) {
                 if (replicate.getCurrentStatus().equals(status)) {
-                    nbReplicates++;
-                }
-            }
-        }
-        return nbReplicates;
-    }
-
-    public int getNbReplicatesWithLastRelevantStatus(ReplicateStatus... listStatus) {
-        int nbReplicates = 0;
-        for (Replicate replicate : replicates) {
-            for (ReplicateStatus status : listStatus) {
-                if (replicate.getLastRelevantStatus() == status) {
                     nbReplicates++;
                 }
             }

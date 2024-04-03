@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,9 +57,6 @@ class ReplicateControllerTests {
             .build();
     private static final ReplicateStatusUpdate UPDATE = ReplicateStatusUpdate.builder()
             .status(ReplicateStatus.STARTED)
-            .build();
-    private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
-            .workerWeight(1)
             .build();
 
     @Mock
@@ -227,11 +224,7 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(blockchainConnectionHealthIndicator.isUp())
                 .thenReturn(true);
-        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(new Replicate(CHAIN_TASK_ID, WALLET_ADDRESS), UPDATE, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(Either.right(TaskNotificationType.PLEASE_DOWNLOAD_APP));
 
         ResponseEntity<TaskNotificationType> response =
@@ -256,11 +249,7 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(blockchainConnectionHealthIndicator.isUp())
                 .thenReturn(true);
-        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs))
-                .thenReturn(UPDATE_ARGS);
-        when(replicatesService.canUpdateReplicateStatus(new Replicate(CHAIN_TASK_ID, WALLET_ADDRESS), updateWithLogs, UPDATE_ARGS))
-                .thenReturn(ReplicateStatusUpdateError.NO_ERROR);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs, UPDATE_ARGS))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, updateWithLogs))
                 .thenReturn(Either.right((TaskNotificationType.PLEASE_DOWNLOAD_APP)));
 
         ResponseEntity<TaskNotificationType> response =
@@ -317,9 +306,7 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(blockchainConnectionHealthIndicator.isUp())
                 .thenReturn(true);
-        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(UPDATE_ARGS);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(Either.left(error));
 
         ResponseEntity<TaskNotificationType> response =
@@ -337,9 +324,7 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(blockchainConnectionHealthIndicator.isUp())
                 .thenReturn(true);
-        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(UPDATE_ARGS);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(Either.left(ReplicateStatusUpdateError.ALREADY_REPORTED));
 
         ResponseEntity<TaskNotificationType> response =
@@ -358,9 +343,7 @@ class ReplicateControllerTests {
                 .thenReturn(WALLET_ADDRESS);
         when(blockchainConnectionHealthIndicator.isUp())
                 .thenReturn(true);
-        when(replicatesService.computeUpdateReplicateStatusArgs(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
-                .thenReturn(UPDATE_ARGS);
-        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE, UPDATE_ARGS))
+        when(replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_ADDRESS, UPDATE))
                 .thenReturn(Either.left(ReplicateStatusUpdateError.NO_ERROR));
 
         ResponseEntity<TaskNotificationType> response =

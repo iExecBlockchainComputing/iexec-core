@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,40 +17,45 @@
 package com.iexec.core.detector.task;
 
 import com.iexec.core.detector.Detector;
-import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
+import com.iexec.core.task.TaskStatusChange;
+import com.iexec.core.task.event.ContributionTimeoutEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Date;
+import java.time.Instant;
 
 @Slf4j
 @Service
 public class ContributionTimeoutTaskDetector implements Detector {
 
     private final TaskService taskService;
-    private final TaskUpdateRequestManager taskUpdateRequestManager;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public ContributionTimeoutTaskDetector(TaskService taskService,
-                                           TaskUpdateRequestManager taskUpdateRequestManager) {
+    public ContributionTimeoutTaskDetector(TaskService taskService, ApplicationEventPublisher applicationEventPublisher) {
         this.taskService = taskService;
-        this.taskUpdateRequestManager = taskUpdateRequestManager;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Scheduled(fixedRateString = "#{@cronConfiguration.getContribute()}")
     @Override
     public void detect() {
-        log.debug("Trying to detect contribution timeout");
-        for (Task task : taskService.findByCurrentStatus(Arrays.asList(TaskStatus.INITIALIZED, TaskStatus.RUNNING))) {
-            Date now = new Date();
-            if (now.after(task.getContributionDeadline())) {
-                log.info("Task with contribution timeout found [chainTaskId:{}]", task.getChainTaskId());
-                taskUpdateRequestManager.publishRequest(task.getChainTaskId());
-            }
-        }
+        log.debug("Trying to detect tasks after contribution deadline");
+        final Instant now = Instant.now();
+        final Query query = Query.query(Criteria.where("currentStatus").in(TaskStatus.INITIALIZED, TaskStatus.RUNNING)
+                .and("contributionDeadline").lte(now)
+                .and("finalDeadline").gt(now));
+        final Update update = Update.update("currentStatus", TaskStatus.FAILED)
+                .push("dateStatusList").each(
+                        TaskStatusChange.builder().status(TaskStatus.CONTRIBUTION_TIMEOUT).build(),
+                        TaskStatusChange.builder().status(TaskStatus.FAILED).build());
+        taskService.updateMultipleTasksByQuery(query, update)
+                .forEach(id -> applicationEventPublisher.publishEvent(new ContributionTimeoutEvent(id)));
     }
 }

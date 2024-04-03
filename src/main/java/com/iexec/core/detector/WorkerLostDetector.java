@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.iexec.core.detector;
 
 import com.google.common.collect.ImmutableSet;
 import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.worker.Worker;
@@ -69,7 +70,7 @@ public class WorkerLostDetector implements Detector {
                                 replicatesService.updateReplicateStatus(
                                         chainTaskId,
                                         workerWallet,
-                                        WORKER_LOST
+                                        ReplicateStatusUpdate.poolManagerRequest(WORKER_LOST)
                                 );
                             }
                         });

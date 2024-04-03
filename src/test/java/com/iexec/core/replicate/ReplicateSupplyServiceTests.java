@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.replicate.*;
-import com.iexec.common.utils.DateTimeUtils;
+import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
+import com.iexec.common.replicate.ReplicateTaskSummary;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.notification.TaskNotification;
 import com.iexec.commons.poco.notification.TaskNotificationExtra;
@@ -30,6 +32,7 @@ import com.iexec.core.chain.Web3jService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -38,11 +41,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
@@ -51,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
-
 
 class ReplicateSupplyServiceTests {
 
@@ -147,11 +152,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
@@ -184,11 +188,10 @@ class ReplicateSupplyServiceTests {
                 new ReplicatesList(CHAIN_TASK_ID, replicates)
         );
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_2)).thenReturn(true);
@@ -245,11 +248,10 @@ class ReplicateSupplyServiceTests {
                 .maxNbTasks(1)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(
@@ -284,11 +286,10 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         int trust = 5;
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
-        runningTask.changeStatus(RUNNING);
+        final Task runningTask = getStubTask(trust);
         runningTask.setMaxExecutionTime(maxExecutionTime);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         // Replicate already scheduled and contributed on worker1
@@ -329,11 +330,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge("");
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -369,17 +369,17 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         int trust = 5;
-        Task task1 = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
+        final Task task1 = getStubTask(trust);
         task1.setMaxExecutionTime(maxExecutionTime);
-        task1.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
-        task1.changeStatus(RUNNING);
+        task1.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         task1.setTag(NO_TEE_TAG);
         task1.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
+        final Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
         taskDeadlineReached.setMaxExecutionTime(maxExecutionTime);
-        taskDeadlineReached.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), -60));
-        taskDeadlineReached.changeStatus(RUNNING);
+        taskDeadlineReached.setContributionDeadline(Date.from(Instant.now().minus(60, ChronoUnit.MINUTES)));
+        taskDeadlineReached.setCurrentStatus(RUNNING);
+        taskDeadlineReached.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
         taskDeadlineReached.setTag(NO_TEE_TAG);
         taskDeadlineReached.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
@@ -421,11 +421,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
@@ -453,11 +452,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(NO_TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -498,11 +496,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -543,11 +540,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(false)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
 
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
@@ -572,11 +568,10 @@ class ReplicateSupplyServiceTests {
                 .teeEnabled(true)
                 .build();
 
-        Task runningTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
+        final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(maxExecutionTime);
-        runningTask.changeStatus(RUNNING);
         runningTask.setTag(TEE_TAG);
-        runningTask.setContributionDeadline(DateTimeUtils.addMinutesToDate(new Date(), 60));
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
         final ReplicatesList replicatesList = Mockito.spy(
@@ -646,7 +641,7 @@ class ReplicateSupplyServiceTests {
 
         assertThat(list).isEmpty();
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -668,7 +663,7 @@ class ReplicateSupplyServiceTests {
         assertThat(taskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     /**
@@ -760,11 +755,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // CONTRIBUTED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -826,15 +818,12 @@ class ReplicateSupplyServiceTests {
         List<TaskNotification> missedTaskNotifications =
                 replicateSupplyService.getMissedTaskNotifications(blockNumber, WALLET_WORKER_1);
 
-        assertThat(missedTaskNotifications).isNotEmpty();
+        assertThat(missedTaskNotifications).hasSize(1);
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_REVEAL);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // RECOVERING
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -953,11 +942,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -991,11 +977,8 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_UPLOAD);
 
-        Mockito.verify(replicatesService, times(1))
+        Mockito.verify(replicatesService, times(2))
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatus.class), // REVEALED
-                        any(ReplicateStatusDetails.class));
     }
 
     /**
@@ -1077,11 +1060,13 @@ class ReplicateSupplyServiceTests {
         TaskNotificationType taskNotificationType = missedTaskNotifications.get(0).getTaskNotificationType();
         assertThat(taskNotificationType).isEqualTo(TaskNotificationType.PLEASE_WAIT);
 
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
-
-        Mockito.verify(replicatesService, times(1))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
+        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
+        Mockito.verify(replicatesService, times(2))
+                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture()); //RESULT UPLOADED
+        final List<ReplicateStatus> statuses = statusUpdate.getAllValues().stream()
+                .map(ReplicateStatusUpdate::getStatus)
+                .collect(Collectors.toList());
+        assertThat(statuses).isEqualTo(List.of(RESULT_UPLOADED, RECOVERING));
     }
 
     /**
@@ -1112,7 +1097,7 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class)); // RECOVERING
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RESULT_UPLOADED);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED));
     }
 
     /**
@@ -1224,7 +1209,7 @@ class ReplicateSupplyServiceTests {
         assertThat(missedTaskNotifications).isEmpty();
 
         Mockito.verify(replicatesService, times(0))
-                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, RECOVERING);
+                .updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, ReplicateStatusUpdate.poolManagerRequest(RECOVERING));
     }
 
     // region purgeTask
@@ -1298,5 +1283,12 @@ class ReplicateSupplyServiceTests {
 
     WorkerpoolAuthorization getStubAuth() {
         return new WorkerpoolAuthorization();
+    }
+
+    Task getStubTask(int trust) {
+        final Task task = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID);
+        task.setCurrentStatus(RUNNING);
+        task.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
+        return task;
     }
 }

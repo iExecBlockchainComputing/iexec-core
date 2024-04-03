@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,15 @@ import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
+import com.iexec.core.task.event.TaskCreatedEvent;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.mongodb.client.result.UpdateResult;
-import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -34,55 +39,87 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.iexec.core.task.Task.*;
 import static com.iexec.core.task.TaskStatus.*;
 
 @Slf4j
 @Service
 public class TaskService {
 
-    private static final String CHAIN_TASK_ID_FIELD = "chainTaskId";
-    public static final String METRIC_TASKS_COMPLETED_COUNT = "iexec.core.tasks.completed";
+    public static final String METRIC_TASKS_STATUSES_COUNT = "iexec.core.tasks.count";
     private final MongoTemplate mongoTemplate;
     private final TaskRepository taskRepository;
     private final IexecHubService iexecHubService;
-    private final Counter completedTasksCounter;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final LinkedHashMap<TaskStatus, AtomicLong> currentTaskStatusesCount;
 
     public TaskService(MongoTemplate mongoTemplate,
                        TaskRepository taskRepository,
-                       IexecHubService iexecHubService) {
+                       IexecHubService iexecHubService,
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.mongoTemplate = mongoTemplate;
         this.taskRepository = taskRepository;
         this.iexecHubService = iexecHubService;
-        this.completedTasksCounter = Metrics.counter(METRIC_TASKS_COMPLETED_COUNT);
+        this.applicationEventPublisher = applicationEventPublisher;
+
+        this.currentTaskStatusesCount = Arrays.stream(TaskStatus.values())
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        status -> new AtomicLong(),
+                        (a, b) -> b,
+                        LinkedHashMap::new));
+
+        for (TaskStatus status : TaskStatus.values()) {
+            Gauge.builder(METRIC_TASKS_STATUSES_COUNT, () -> currentTaskStatusesCount.get(status).get())
+                    .tags(
+                            "period", "current",
+                            "status", status.name()
+                    ).register(Metrics.globalRegistry);
+        }
     }
 
     @PostConstruct
     void init() {
-        completedTasksCounter.increment(findByCurrentStatus(TaskStatus.COMPLETED).size());
+        final ExecutorService taskStatusesCountExecutor = Executors.newSingleThreadExecutor();
+        taskStatusesCountExecutor.submit(this::initializeCurrentTaskStatusesCount);
+        taskStatusesCountExecutor.shutdown();
     }
 
     /**
-     * Save task in database if it does not
-     * already exist.
+     * The following could take a bit of time, depending on how many tasks are in DB.
+     * It is expected to take ~1.7s for 1,000,000 tasks and to be linear (so, ~17s for 10,000,000 tasks).
+     * As we use AtomicLongs, the final count should be accurate - no race conditions to expect,
+     * even though new deals are detected during the count.
+     */
+    private void initializeCurrentTaskStatusesCount() {
+        currentTaskStatusesCount
+                .entrySet()
+                .parallelStream()
+                .forEach(entry -> entry.getValue().addAndGet(countByCurrentStatus(entry.getKey())));
+        publishTaskStatusesCountUpdate();
+    }
+
+    /**
+     * Save task in database if it does not already exist.
      *
-     * @param chainDealId
-     * @param taskIndex
-     * @param dealBlockNumber
-     * @param imageName
-     * @param commandLine
-     * @param trust
-     * @param maxExecutionTime
-     * @param tag
-     * @param contributionDeadline
-     * @param finalDeadline
-     * @return optional containing the saved
-     * task, {@link Optional#empty()} otherwise.
+     * @param chainDealId          on-chain deal id
+     * @param taskIndex            task index in deal
+     * @param dealBlockNumber      block number when orders were matched to produce the current deal
+     * @param imageName            OCI image to use for replicates computation
+     * @param commandLine          command that will be executed during replicates computation
+     * @param trust                trust level, impacts replication
+     * @param maxExecutionTime     execution time
+     * @param tag                  deal tag describing additional features like TEE framework
+     * @param contributionDeadline date after which a worker cannot contribute
+     * @param finalDeadline        date after which a task cannot be updated
+     * @return {@code Optional} containing the saved task, {@link Optional#empty()} otherwise.
      */
     public Optional<Task> addTask(
             String chainDealId,
@@ -96,61 +133,73 @@ public class TaskService {
             Date contributionDeadline,
             Date finalDeadline
     ) {
-        Task newTask = new Task(chainDealId, taskIndex, imageName,
-                commandLine, trust, maxExecutionTime, tag);
+        Task newTask = new Task(chainDealId, taskIndex, imageName, commandLine, trust, maxExecutionTime, tag);
         newTask.setDealBlockNumber(dealBlockNumber);
         newTask.setFinalDeadline(finalDeadline);
         newTask.setContributionDeadline(contributionDeadline);
+        final String taskLogDetails = String.format("chainDealId:%s, taskIndex:%s, imageName:%s, commandLine:%s, trust:%s, contributionDeadline:%s, finalDeadline:%s",
+                chainDealId, taskIndex, imageName, commandLine, trust, contributionDeadline, finalDeadline);
         try {
             newTask = taskRepository.save(newTask);
-            log.info("Added new task [chainDealId:{}, taskIndex:{}, imageName:{}, " +
-                            "commandLine:{}, trust:{}, chainTaskId:{}]", chainDealId,
-                    taskIndex, imageName, commandLine, trust, newTask.getChainTaskId());
+            log.info("Added new task [{}}, chainTaskId:{}]", taskLogDetails, newTask.getChainTaskId());
             return Optional.of(newTask);
         } catch (DuplicateKeyException e) {
-            log.info("Task already added [chainDealId:{}, taskIndex:{}, " +
-                            "imageName:{}, commandLine:{}, trust:{}]", chainDealId,
-                    taskIndex, imageName, commandLine, trust);
+            log.info("Task already added [{}]", taskLogDetails);
             return Optional.empty();
         }
     }
 
     /**
-     * Updates a task if it already exists in DB.
-     * Otherwise, will not do anything.
+     * Updates the status of a single task in the collection
      *
-     * @param task Task to update.
-     * @return An {@link Optional<Task>} if task exists, {@link Optional#empty()} otherwise.
+     * @param chainTaskId   On-chain ID of the task to update
+     * @param currentStatus Expected {@code currentStatus} of the task when executing the update
+     * @param targetStatus  Wished {@code currentStatus} the task should be updated to
+     * @param statusChanges List of {@code TaskStatusChange} to append to the {@code dateStatusList} field
+     * @return The number of updated documents in the task collection, should be {@literal 0} or {@literal 1} due to task ID uniqueness
      */
-    public Optional<Task> updateTask(Task task) {
+    public long updateTaskStatus(String chainTaskId, TaskStatus currentStatus, TaskStatus targetStatus, List<TaskStatusChange> statusChanges) {
+        final Update update = Update.update(CURRENT_STATUS_FIELD_NAME, targetStatus)
+                .push(DATE_STATUS_LIST_FIELD_NAME).each(statusChanges);
+        final UpdateResult result = updateTask(chainTaskId, currentStatus, update);
+        return result.getModifiedCount();
+    }
 
-        Optional<Task> optionalTask = taskRepository
-                .findByChainTaskId(task.getChainTaskId())
-                .map(existingTask -> taskRepository.save(task));
-
-        if (optionalTask.isPresent() && optionalTask.get().getCurrentStatus() == TaskStatus.COMPLETED) {
-            completedTasksCounter.increment();
+    /**
+     * Update a single task in the collection
+     *
+     * @param chainTaskId   On-chain ID of the task to update
+     * @param currentStatus Expected {@code currentStatus} of the task when executing the update
+     * @param update        Update to execute on the task if criteria are respected
+     * @return The result of the update execution on the task collection
+     */
+    public UpdateResult updateTask(String chainTaskId, TaskStatus currentStatus, Update update) {
+        final Criteria criteria = Criteria.where(CHAIN_TASK_ID_FIELD_NAME).is(chainTaskId)
+                .and(CURRENT_STATUS_FIELD_NAME).is(currentStatus);
+        // chainTaskId and currentStatus are part of the criteria, no need to add them explicitly
+        log.debug("Update request [criteria:{}, update:{}]",
+                criteria.getCriteriaObject(), update.getUpdateObject());
+        final UpdateResult result = mongoTemplate.updateFirst(Query.query(criteria), update, Task.class);
+        log.debug("Update execution result [chainTaskId:{}, result:{}]", chainTaskId, result);
+        if (result.getModifiedCount() == 0L) {
+            log.warn("The task was not updated [chainTaskId:{}]", chainTaskId);
+        } else if (isTaskCurrentStatusUpdated(update)) {
+            // A single document has been updated (chainTaskId uniqueness) and the currentStatus has been modified
+            updateMetricsAfterStatusUpdate(currentStatus, update.getUpdateObject().get("$set", Document.class)
+                    .get(CURRENT_STATUS_FIELD_NAME, TaskStatus.class));
         }
-
-        return optionalTask;
+        return result;
     }
 
-    public Optional<Task> updateTaskStatus(Task task, List<TaskStatusChange> statusChanges) {
-        Update update = Update.update("currentStatus", task.getCurrentStatus());
-        update.push("dateStatusList").each(statusChanges);
-        UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(task.getChainTaskId())),
-                update,
-                Task.class);
-        log.debug("Updated chainTaskId [chainTaskId:{},  result:{}]", task.getChainTaskId(), result);
-        return getTaskByChainTaskId(task.getChainTaskId());
-    }
-
-    public void updateTask(String chainTaskId, Update update) {
-        UpdateResult result = mongoTemplate.updateFirst(
-                Query.query(Criteria.where(CHAIN_TASK_ID_FIELD).is(chainTaskId)),
-                update, Task.class);
-        log.debug("Updated chainTaskId [chainTaskId:{},  result{}]", chainTaskId, result);
+    /**
+     * Checks if provided MongoDB update has modified the {@code currentStatus} field of the task
+     *
+     * @param update The MongoDB request to check
+     * @return {@literal true} if the {@code currentStatus} was updated, {@literal false} otherwise
+     */
+    private boolean isTaskCurrentStatusUpdated(Update update) {
+        return update.getUpdateObject().containsKey("$set")
+                && update.getUpdateObject().get("$set", Document.class).containsKey(CURRENT_STATUS_FIELD_NAME);
     }
 
     public Optional<Task> getTaskByChainTaskId(String chainTaskId) {
@@ -197,8 +246,8 @@ public class TaskService {
                 Arrays.asList(INITIALIZED, RUNNING),
                 excludedTags,
                 excludedChainTaskIds,
-                Sort.by(Sort.Order.desc(Task.CURRENT_STATUS_FIELD_NAME),
-                        Sort.Order.asc(Task.CONTRIBUTION_DEADLINE_FIELD_NAME)));
+                Sort.by(Sort.Order.desc(CURRENT_STATUS_FIELD_NAME),
+                        Sort.Order.asc(CONTRIBUTION_DEADLINE_FIELD_NAME)));
     }
 
     /**
@@ -232,12 +281,29 @@ public class TaskService {
         );
     }
 
-    public List<Task> getTasksInNonFinalStatuses() {
-        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getFinalStatuses());
+    /**
+     * Updates task on a given MongoDB query.
+     *
+     * @param query  The query to perform to lookup for tasks in the collection
+     * @param update The update to execute on the tasks returned by the query
+     * @return The list of modified chain task ids
+     */
+    public List<String> updateMultipleTasksByQuery(Query query, Update update) {
+        return mongoTemplate.find(query, Task.class).stream()
+                .map(task -> updateSingleTask(task, update))
+                .collect(Collectors.toList());
     }
 
-    public List<Task> getTasksWhereFinalDeadlineIsPossible() {
-        return taskRepository.findByCurrentStatusNotIn(TaskStatus.getStatusesWhereFinalDeadlineIsImpossible());
+    /**
+     * Updates a single task in the task collection
+     *
+     * @param task   The task to update
+     * @param update The update to perform
+     * @return The chain task id of the task
+     */
+    private String updateSingleTask(Task task, Update update) {
+        final UpdateResult updateResult = updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
+        return updateResult.getModifiedCount() == 0L ? "" : task.getChainTaskId();
     }
 
     public List<String> getChainTaskIdsOfTasksExpiredBefore(Date expirationDate) {
@@ -272,27 +338,56 @@ public class TaskService {
     }
 
     public boolean isConsensusReached(ReplicatesList replicatesList) {
-        Optional<ChainTask> optional = iexecHubService.getChainTask(replicatesList.getChainTaskId());
-        if (optional.isEmpty()) {
+        final ChainTask chainTask = iexecHubService.getChainTask(replicatesList.getChainTaskId()).orElse(null);
+        if (chainTask == null) {
+            log.error("Consensus not reached, task not found on-chain [chainTaskId:{}]", replicatesList.getChainTaskId());
             return false;
         }
 
-        final ChainTask chainTask = optional.get();
-        boolean isChainTaskRevealing = chainTask.getStatus().equals(ChainTaskStatus.REVEALING);
+        boolean isChainTaskRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
         if (!isChainTaskRevealing) {
+            log.debug("Consensus not reached, on-chain task is not in REVEALING status [chainTaskId:{}]",
+                    replicatesList.getChainTaskId());
             return false;
         }
 
         int onChainWinners = chainTask.getWinnerCounter();
         int offChainWinners = replicatesList.getNbValidContributedWinners(chainTask.getConsensusValue());
+        log.debug("Returning off-chain and on-chain winners [offChainWinners:{}, onChainWinners:{}]",
+                offChainWinners, onChainWinners);
         return offChainWinners >= onChainWinners;
-    }
-
-    public long getCompletedTasksCount() {
-        return (long) completedTasksCounter.count();
     }
 
     public long countByCurrentStatus(TaskStatus status) {
         return taskRepository.countByCurrentStatus(status);
+    }
+
+    void updateMetricsAfterStatusUpdate(TaskStatus previousStatus, TaskStatus newStatus) {
+        log.debug("updateMetricsAfterStatusUpdate [prev:{}, next:{}]", previousStatus, newStatus);
+        currentTaskStatusesCount.get(previousStatus).decrementAndGet();
+        currentTaskStatusesCount.get(newStatus).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    @EventListener(TaskCreatedEvent.class)
+    void onTaskCreatedEvent() {
+        currentTaskStatusesCount.get(RECEIVED).incrementAndGet();
+        publishTaskStatusesCountUpdate();
+    }
+
+    private void publishTaskStatusesCountUpdate() {
+        // Copying the map here ensures the original values can't be updated from outside this class.
+        // As this data should be read only, no need for any atomic class.
+        final LinkedHashMap<TaskStatus, Long> currentTaskStatusesCountToPublish = currentTaskStatusesCount
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entrySet -> entrySet.getValue().get(),
+                        (a, b) -> b,
+                        LinkedHashMap::new
+                ));
+        final TaskStatusesCountUpdatedEvent event = new TaskStatusesCountUpdatedEvent(currentTaskStatusesCountToPublish);
+        applicationEventPublisher.publishEvent(event);
     }
 }

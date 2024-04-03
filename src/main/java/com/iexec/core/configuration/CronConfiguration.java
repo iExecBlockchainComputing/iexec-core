@@ -23,6 +23,9 @@ public class CronConfiguration {
     @Value("${cron.detector.chain.contribute}")
     private int contribute;
 
+    @Value("${cron.detector.chain.consensus-reached}")
+    private int consensusReached;
+
     @Value("${cron.detector.chain.reveal}")
     private int reveal;
 
@@ -42,5 +45,5 @@ public class CronConfiguration {
     private int revealTimeout;
 
     @Value("${cron.detector.timeout.result-upload}")
-    private int resultUploadTimeout;  
+    private int resultUploadTimeout;
 }

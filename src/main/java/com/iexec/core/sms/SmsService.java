@@ -19,6 +19,7 @@ package com.iexec.core.sms;
 import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.SignatureService;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
@@ -29,16 +30,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-
 @Slf4j
 @Service
 public class SmsService {
     private final PlatformRegistryConfiguration registryConfiguration;
+    private final SignatureService signatureService;
     private final SmsClientProvider smsClientProvider;
 
     public SmsService(PlatformRegistryConfiguration registryConfiguration,
+                      SignatureService signatureService,
                       SmsClientProvider smsClientProvider) {
         this.registryConfiguration = registryConfiguration;
+        this.signatureService = signatureService;
         this.smsClientProvider = smsClientProvider;
     }
 
@@ -54,7 +57,7 @@ public class SmsService {
      *
      * @param chainTaskId ID of the on-chain task.
      * @param tag         Tag of the deal.
-     * @return SMS url if TEE types of tag & SMS match.
+     * @return SMS url if TEE types of tag &amp; SMS match.
      */
     public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
         final TeeFramework teeFrameworkForDeal = TeeUtils.getTeeFramework(tag);
@@ -124,11 +127,13 @@ public class SmsService {
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl);
 
         try {
-            final String teeChallengePublicKey = smsClient.generateTeeChallenge(chainTaskId);
+            final String teeChallengePublicKey = smsClient.generateTeeChallenge(
+                    signatureService.createAuthorization("", chainTaskId, "").getSignature().getValue(),
+                    chainTaskId);
 
             if (StringUtils.isEmpty(teeChallengePublicKey)) {
-                log.error("An error occurred while getting teeChallengePublicKey "
-                        + "[chainTaskId:{}, smsUrl:{}]", chainTaskId, smsUrl);
+                log.error("An error occurred while getting teeChallengePublicKey [chainTaskId:{}, smsUrl:{}]",
+                        chainTaskId, smsUrl);
                 return Optional.empty();
             }
 

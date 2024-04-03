@@ -17,7 +17,6 @@
 package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
-import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
@@ -37,9 +36,12 @@ import org.mockito.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -87,7 +89,7 @@ class RevealUnnotifiedDetectorTests {
 
     /**
      * When running {@link RevealUnnotifiedDetector#detectOnChainChanges} 10 times,
-     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatus, ReplicateStatusDetails)} should be called 11 times:
+     * {@link ReplicatesService#updateReplicateStatus(String, String, ReplicateStatusUpdate)} should be called 11 times:
      * <ol>
      *     <li>10 times from {@link RevealUnnotifiedDetector#detectOnchainDoneWhenOffchainOngoing()};</li>
      *     <li>1 time from {@link RevealUnnotifiedDetector#detectOnchainDone()}</li>
@@ -112,7 +114,7 @@ class RevealUnnotifiedDetectorTests {
         }
 
         Mockito.verify(replicatesService, Mockito.times(11))
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     // endregion
@@ -136,7 +138,7 @@ class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -150,7 +152,7 @@ class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     @Test
@@ -164,7 +166,7 @@ class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     // endregion
@@ -188,8 +190,14 @@ class RevealUnnotifiedDetectorTests {
 
         revealDetector.detectOnchainDone();
 
-        Mockito.verify(replicatesService, Mockito.times(1))//Missed REVEALED
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
+        final List<ReplicateStatus> missingStatuses = ReplicateStatus.getMissingStatuses(replicateStatus, REVEALED);
+        Mockito.verify(replicatesService, Mockito.times(missingStatuses.size()))//Missed REVEALED
+                .updateReplicateStatus(any(), any(), statusUpdate.capture());
+        final List<ReplicateStatus> newStatuses = statusUpdate.getAllValues().stream()
+                .map(ReplicateStatusUpdate::getStatus)
+                .collect(Collectors.toList());
+        assertThat(newStatuses).isEqualTo(missingStatuses);
     }
 
     @Test
@@ -203,7 +211,7 @@ class RevealUnnotifiedDetectorTests {
         revealDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(), any(ReplicateStatusDetails.class));
+                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
     // endregion
