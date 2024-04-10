@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,27 +23,31 @@ import com.iexec.commons.poco.utils.HashUtils;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Sign;
 
-
 @Service
 public class SignatureService {
 
-    private CredentialsService credentialsService;
+    private final CredentialsService credentialsService;
 
     public SignatureService(CredentialsService credentialsService) {
         this.credentialsService = credentialsService;
     }
 
+    public String getAddress() {
+        return credentialsService.getCredentials().getAddress();
+    }
+
+    public Signature sign(String hash) {
+        return new Signature(Sign.signPrefixedMessage(
+                BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair()));
+    }
+
     public WorkerpoolAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveChallenge) {
         String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
-
-        Sign.SignatureData sign = Sign.signPrefixedMessage(
-                BytesUtils.stringToBytes(hash), credentialsService.getCredentials().getEcKeyPair());
-
         return WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
                 .enclaveChallenge(enclaveChallenge)
-                .signature(new Signature(sign))
+                .signature(sign(hash))
                 .build();
     }
 }

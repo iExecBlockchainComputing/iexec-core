@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### Bug Fixes
+
+- Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
+
 ## [[8.4.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.1) 2024-04-03
 
 ### New Features
