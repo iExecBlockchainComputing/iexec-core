@@ -99,22 +99,6 @@ dependencies {
 
     // vavr
     implementation 'io.vavr:vavr:0.10.4'
-
-    // tests
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    // awaitility
-    testImplementation 'org.awaitility:awaitility'
-
-    // mongo
-    testImplementation "org.testcontainers:junit-jupiter:$testContainersVersion"
-    testImplementation "org.testcontainers:mongodb:$testContainersVersion"
-}
-
-jar {
-    enabled = true
-    archiveClassifier.set('library')
 }
 
 springBoot {
@@ -128,8 +112,26 @@ tasks.named("bootJar") {
     }
 }
 
-test {
-    useJUnitPlatform()
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+            dependencies {
+                implementation 'org.springframework.boot:spring-boot-starter-test'
+
+                // awaitility
+                implementation 'org.awaitility:awaitility'
+
+                // mongo
+                implementation "org.testcontainers:junit-jupiter:$testContainersVersion"
+                implementation "org.testcontainers:mongodb:$testContainersVersion"
+            }
+        }
+    }
+}
+
+tasks.withType(Test).configureEach {
+    finalizedBy jacocoTestReport
     systemProperty "mongo.image", "mongo:4.4.28-focal"
 }
 
@@ -144,7 +146,6 @@ jacocoTestReport {
         xml.required = true
     }
 }
-tasks.test.finalizedBy tasks.jacocoTestReport
 tasks.sonarqube.dependsOn tasks.jacocoTestReport
 
 publishing {
