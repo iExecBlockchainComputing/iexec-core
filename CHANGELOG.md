@@ -10,7 +10,11 @@ All notable changes to this project will be documented in this file.
 
 ### Quality
 
--Configure Gradle JVM Test Suite Plugin. (#691)
+- Configure Gradle JVM Test Suite Plugin. (#691)
+
+### Dependency Upgrades
+
+- Upgrade to Gradle 8.7. (#692)
 
 ## [[8.4.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.1) 2024-04-03
 
