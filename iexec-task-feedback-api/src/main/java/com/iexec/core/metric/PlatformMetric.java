@@ -25,10 +25,6 @@ import lombok.Value;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 
-/**
- * @deprecated Use iexec-task-feedback-api
- */
-@Deprecated(forRemoval = true)
 @Value
 @Builder
 @JsonDeserialize(builder = PlatformMetric.PlatformMetricBuilder.class)

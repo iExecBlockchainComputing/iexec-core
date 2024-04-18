@@ -22,10 +22,6 @@ import lombok.*;
 
 import java.util.List;
 
-/**
- * @deprecated Use iexec-task-feedback-api
- */
-@Deprecated(forRemoval = true)
 @Getter
 @Setter
 @Builder

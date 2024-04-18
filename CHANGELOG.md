@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### New Features
+
+- Create `iexec-task-feedback-api` to access task feedback API. (#692)
+
 ### Bug Fixes
 
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)

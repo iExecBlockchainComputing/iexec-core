@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task;
+package com.iexec.core.logs;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.iexec.commons.poco.chain.ChainReceipt;
+import com.iexec.common.replicate.ComputeLogs;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * @deprecated Use iexec-task-feedback-api
- */
-@Deprecated(forRemoval = true)
 @Data
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class TaskStatusChange {
+public class TaskLogsModel {
+    String chainTaskId;
     @Builder.Default
-    private Date date = new Date();
-    private TaskStatus status;
-    @Builder.Default
-    private ChainReceipt chainReceipt = null;
+    List<ComputeLogs> computeLogsList = new ArrayList<>();
 }

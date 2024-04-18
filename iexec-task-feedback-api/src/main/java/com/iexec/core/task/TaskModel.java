@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,37 @@
  * limitations under the License.
  */
 
-package com.iexec.core.replicate;
+package com.iexec.core.task;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.iexec.common.replicate.ReplicateStatus;
+import com.iexec.commons.poco.dapp.DappType;
+import com.iexec.core.replicate.ReplicateModel;
 import lombok.*;
 
+import java.util.Date;
 import java.util.List;
 
-/**
- * @deprecated Use iexec-task-feedback-api
- */
-@Deprecated(forRemoval = true)
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class ReplicateModel {
-    private String self;
+@Builder
+public class TaskModel {
     private String chainTaskId;
-    private String walletAddress;
-    private ReplicateStatus currentStatus;
-    private List<ReplicateStatusUpdateModel> statusUpdateList;
+    private List<ReplicateModel> replicates;
+    private long maxExecutionTime;
+    private String tag;
+    private DappType dappType;
+    private String dappName;
+    private String commandLine;
+    private long initializationBlockNumber;
+    private TaskStatus currentStatus;
+    private int trust;
+    private String uploadingWorkerWalletAddress;
+    private String consensus;
+    private Date contributionDeadline;
+    private Date revealDeadline;
+    private Date finalDeadline;
     private String resultLink;
     private String chainCallbackData;
-    private String contributionHash;
-    private String appLogs;
-    private Integer appExitCode; //null means unset
-    private String teeSessionGenerationError; // null means unset
+    private List<TaskStatusChange> dateStatusList;
 }

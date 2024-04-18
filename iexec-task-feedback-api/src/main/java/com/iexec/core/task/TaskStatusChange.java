@@ -25,10 +25,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
-/**
- * @deprecated Use iexec-task-feedback-api
- */
-@Deprecated(forRemoval = true)
 @Data
 @NoArgsConstructor
 @Builder
