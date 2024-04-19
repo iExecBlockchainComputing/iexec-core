@@ -16,7 +16,10 @@
 
 package com.iexec.core.task;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public enum TaskStatus {
     RECEIVED,
@@ -52,10 +55,10 @@ public enum TaskStatus {
 
     public static List<TaskStatus> getWaitingRevealStatuses() {
         return Arrays.asList(
-            CONSENSUS_REACHED,
-            AT_LEAST_ONE_REVEALED,
-            RESULT_UPLOADING,
-            RESULT_UPLOADED
+                CONSENSUS_REACHED,
+                AT_LEAST_ONE_REVEALED,
+                RESULT_UPLOADING,
+                RESULT_UPLOADED
         );
     }
 
@@ -83,9 +86,9 @@ public enum TaskStatus {
 
     public static boolean isInCompletionPhase(TaskStatus status) {
         return Arrays.asList(
-            FINALIZING,
-            FINALIZED,
-            COMPLETED
+                FINALIZING,
+                FINALIZED,
+                COMPLETED
         ).contains(status);
     }
 
