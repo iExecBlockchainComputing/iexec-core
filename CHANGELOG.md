@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
-- Create `iexec-task-feedback-api` to access task feedback API. (#695)
+- Create `iexec-task-api` to access task feedback API. (#695)
 
 ### Bug Fixes
 
