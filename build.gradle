@@ -59,7 +59,7 @@ dependencies {
     implementation "com.iexec.result-proxy:iexec-result-proxy-library:$iexecResultVersion"
     implementation "com.iexec.sms:iexec-sms-library:$iexecSmsVersion"
     implementation project(':iexec-core-library')
-    implementation project(':iexec-task-feedback-api')
+    implementation project(':iexec-task-api')
 
     // spring
     implementation "org.springframework.boot:spring-boot-starter"

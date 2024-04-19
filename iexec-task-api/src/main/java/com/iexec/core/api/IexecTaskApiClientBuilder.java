@@ -16,13 +16,15 @@
 
 package com.iexec.core.api;
 
+import com.iexec.common.utils.FeignBuilder;
 import feign.Logger;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-class IexecTaskApiTests {
-    @Test
-    void instantiationTest() {
-        Assertions.assertNotNull(IexecTaskApiBuilder.getInstance(Logger.Level.FULL, "localhost"));
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class IexecTaskApiClientBuilder {
+    public static IexecTaskApiClient getInstance(Logger.Level logLevel, String url) {
+        return FeignBuilder.createBuilder(logLevel)
+                .target(IexecTaskApiClient.class, url);
     }
 }
