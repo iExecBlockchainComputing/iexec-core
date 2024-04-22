@@ -296,23 +296,22 @@ public class ReplicateSupplyService implements Purgeable {
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress) {
         final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                 walletAddress, task.getChainTaskId(), task.getEnclaveChallenge());
-        final TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder()
-                .workerpoolAuthorization(authorization)
-                .build();
+        final TaskNotificationExtra.TaskNotificationExtraBuilder taskNotificationExtra =
+                TaskNotificationExtra.builder().workerpoolAuthorization(authorization);
 
         switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
                 break;
             case PLEASE_REVEAL:
-                taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
+                taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
                 break;
             case PLEASE_ABORT:
-                taskNotificationExtra.setTaskAbortCause(getTaskAbortCause(task));
+                taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
                 break;
             default:
                 break;
         }
-        return taskNotificationExtra;
+        return taskNotificationExtra.build();
     }
 
     public Optional<TaskNotificationType> getTaskNotificationType(Task task, Replicate replicate, long blockNumber) {

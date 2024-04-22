@@ -17,7 +17,6 @@
 package com.iexec.core.notification;
 
 public enum TaskNotificationType {
-
     PLEASE_CONTINUE,
     PLEASE_WAIT,                    // subscribe & do nothing (wait)
     PLEASE_START,
@@ -30,5 +29,4 @@ public enum TaskNotificationType {
     PLEASE_CONTRIBUTE_AND_FINALIZE, // contribute & finalize on-chain
     PLEASE_COMPLETE,                // complete + unsubscribe
     PLEASE_ABORT,                   // abort + unsubscribe
-
 }

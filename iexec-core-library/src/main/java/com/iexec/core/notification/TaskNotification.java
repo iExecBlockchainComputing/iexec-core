@@ -16,20 +16,18 @@
 
 package com.iexec.core.notification;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.iexec.commons.poco.task.TaskAbortCause;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import java.util.List;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Value
 @Builder
+@JsonDeserialize(builder = TaskNotification.TaskNotificationBuilder.class)
 public class TaskNotification {
-
     // Id of the task concerned by the notification.
     String chainTaskId;
 
@@ -51,5 +49,9 @@ public class TaskNotification {
         return taskNotificationExtra != null && taskNotificationExtra.getTaskAbortCause() != null
                 ? taskNotificationExtra.getTaskAbortCause()
                 : TaskAbortCause.UNKNOWN;
+    }
+
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class TaskNotificationBuilder {
     }
 }

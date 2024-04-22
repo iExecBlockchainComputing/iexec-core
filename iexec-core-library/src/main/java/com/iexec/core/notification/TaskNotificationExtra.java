@@ -16,28 +16,29 @@
 
 package com.iexec.core.notification;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.task.TaskAbortCause;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Value
 @Builder
+@JsonDeserialize(builder = TaskNotificationExtra.TaskNotificationExtraBuilder.class)
 public class TaskNotificationExtra {
-
-    private WorkerpoolAuthorization workerpoolAuthorization;
-    private String smsUrl;
+    WorkerpoolAuthorization workerpoolAuthorization;
+    String smsUrl;
 
     // block number from which this notification makes sense
     // (it is not used for all notification types)
-    private long blockNumber;
+    long blockNumber;
 
     // The reason behind an "Abort" notification. Used only for
     // Abort notifications.
-    private TaskAbortCause taskAbortCause;
+    TaskAbortCause taskAbortCause;
+
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class TaskNotificationExtraBuilder {
+    }
 }
