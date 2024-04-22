@@ -58,7 +58,7 @@ public interface SchedulerClient {
 
     @RequestLine("POST /workers/register")
     @Headers("Authorization: {authorization}")
-    void registerWorker(@Param("authorization") String authorization, WorkerModel model);
+    Void registerWorker(@Param("authorization") String authorization, WorkerModel model);
 
     @RequestLine("GET /workers/config")
     PublicConfiguration getPublicConfiguration();

@@ -22,9 +22,9 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class IexecTaskApiClientBuilder {
-    public static IexecTaskApiClient getInstance(Logger.Level logLevel, String url) {
+public class TaskApiClientBuilder {
+    public static TaskApiClient getInstance(Logger.Level logLevel, String url) {
         return FeignBuilder.createBuilder(logLevel)
-                .target(IexecTaskApiClient.class, url);
+                .target(TaskApiClient.class, url);
     }
 }
