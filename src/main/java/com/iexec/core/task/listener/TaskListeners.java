@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.lifecycle.purge.PurgeService;
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.commons.poco.notification.TaskNotificationExtra;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskAbortCause;
+import com.iexec.core.notification.TaskNotification;
+import com.iexec.core.notification.TaskNotificationExtra;
+import com.iexec.core.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -57,7 +57,6 @@ public class TaskListeners {
         this.workerService = workerService;
         this.purgeService = purgeService;
     }
-
 
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {

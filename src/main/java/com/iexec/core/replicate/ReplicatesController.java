@@ -17,9 +17,9 @@
 package com.iexec.core.replicate;
 
 import com.iexec.common.replicate.*;
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
+import com.iexec.core.notification.TaskNotification;
+import com.iexec.core.notification.TaskNotificationType;
 import com.iexec.core.security.JwtTokenProvider;
 import com.iexec.core.worker.WorkerService;
 import com.iexec.core.worker.WorkerUtils;

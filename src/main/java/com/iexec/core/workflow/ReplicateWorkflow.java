@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package com.iexec.core.workflow;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.core.notification.TaskNotificationType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.commons.poco.notification.TaskNotificationType.*;
+import static com.iexec.core.notification.TaskNotificationType.*;
 
 @Slf4j
 public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
