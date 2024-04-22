@@ -25,7 +25,7 @@ import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
 
-public interface IexecTaskApiClient {
+public interface TaskApiClient {
     @RequestLine("GET /metrics")
     PlatformMetric getMetrics();
 

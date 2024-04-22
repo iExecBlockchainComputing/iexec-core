@@ -20,9 +20,9 @@ import feign.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class IexecTaskApiClientTests {
+class TaskApiClientTests {
     @Test
     void instantiationTest() {
-        Assertions.assertNotNull(IexecTaskApiClientBuilder.getInstance(Logger.Level.FULL, "localhost"));
+        Assertions.assertNotNull(TaskApiClientBuilder.getInstance(Logger.Level.FULL, "localhost"));
     }
 }

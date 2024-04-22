@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 ### Quality
 
 - Configure Gradle JVM Test Suite Plugin. (#691)
+- Rename `IexecTaskApiClient` to `TaskApiClient`. (#696)
 
 ### Dependency Upgrades
 
