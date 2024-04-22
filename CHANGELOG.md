@@ -7,10 +7,12 @@ All notable changes to this project will be documented in this file.
 ### New Features
 
 - Create `iexec-task-api` to access task feedback API. (#695)
+- Move `notification` package from `iexec-commons-poco` to `iexec-core-library`. (#697)
 
 ### Bug Fixes
 
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
+- Use correct `Signature` import in `SchedulerClient`. (#697)
 
 ### Quality
 

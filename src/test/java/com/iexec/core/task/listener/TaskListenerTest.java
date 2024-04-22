@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.lifecycle.purge.PurgeService;
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskAbortCause;
+import com.iexec.core.notification.TaskNotification;
+import com.iexec.core.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -83,7 +83,7 @@ class TaskListenerTest {
         List<Replicate> replicates = List.of(replicate1, replicate2);
         when(replicatesService.getReplicates(event.getChainTaskId()))
                 .thenReturn(replicates);
-        
+
         taskListeners.onTaskContributionTimeout(event);
         // Should remove taskId from workers
         verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WALLET1);
@@ -112,7 +112,7 @@ class TaskListenerTest {
         List<Replicate> replicates = List.of(replicate1, replicate2);
         when(replicatesService.getReplicates(event.getChainTaskId()))
                 .thenReturn(replicates);
-        
+
         taskListeners.onTaskConsensusReached(event);
         // Should send 2 notifications
         verify(notificationService, times(2)).sendTaskNotification(notificationCaptor.capture());
