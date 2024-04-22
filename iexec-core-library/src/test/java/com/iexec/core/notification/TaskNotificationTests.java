@@ -18,10 +18,20 @@ package com.iexec.core.notification;
 
 import com.iexec.commons.poco.task.TaskAbortCause;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 class TaskNotificationTests {
+    @ParameterizedTest
+    @EnumSource(value = TaskNotificationType.class)
+    void shouldBuildTaskNotification(TaskNotificationType notificationType) {
+        final TaskNotification notification = TaskNotification.builder()
+                .taskNotificationType(notificationType)
+                .build();
+        assertThat(notification.getTaskNotificationType()).isEqualTo(notificationType);
+    }
 
     @Test
     void shouldGetAbortNotificationCause() {
@@ -31,12 +41,12 @@ class TaskNotificationTests {
                         .taskAbortCause(TaskAbortCause.CONTRIBUTION_TIMEOUT)
                         .build())
                 .build();
-        assertEquals(TaskAbortCause.CONTRIBUTION_TIMEOUT, notif1.getTaskAbortCause());
+        assertThat(notif1.getTaskAbortCause()).isEqualTo(TaskAbortCause.CONTRIBUTION_TIMEOUT);
 
         TaskNotification notif2 = TaskNotification.builder()
                 .chainTaskId("chainTaskId")
                 // Reason not specified
                 .build();
-        assertEquals(TaskAbortCause.UNKNOWN, notif2.getTaskAbortCause());
+        assertThat(notif2.getTaskAbortCause()).isEqualTo(TaskAbortCause.UNKNOWN);
     }
 }
