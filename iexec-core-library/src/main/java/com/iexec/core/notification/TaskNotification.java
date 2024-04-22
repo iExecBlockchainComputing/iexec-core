@@ -43,10 +43,9 @@ public class TaskNotification {
     TaskNotificationExtra taskNotificationExtra;
 
     /**
-     * Get the abort cause of this task. If the cause is not defined by
-     * the notification sender, {@code TaskAbortCause#UNKNOWN} is returned.
+     * Gets the abort cause of this task.
      *
-     * @return
+     * @return the cause from the notification details if defined, {@code TaskAbortCause.UNKNOWN otherwise}
      */
     public TaskAbortCause getTaskAbortCause() {
         return taskNotificationExtra != null && taskNotificationExtra.getTaskAbortCause() != null
