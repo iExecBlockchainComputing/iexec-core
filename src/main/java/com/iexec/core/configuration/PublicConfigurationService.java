@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ public class PublicConfigurationService {
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
     private final BlockchainAdapterClientConfig blockchainAdapterClientConfig;
+    private final ConfigServerClientConfig configServerClientConfig;
 
     private PublicConfiguration publicConfiguration = null;
     /**
@@ -51,12 +52,14 @@ public class PublicConfigurationService {
                                       CredentialsService credentialsService,
                                       WorkerConfiguration workerConfiguration,
                                       ResultRepositoryConfiguration resultRepoConfig,
-                                      BlockchainAdapterClientConfig blockchainAdapterClientConfig) {
+                                      BlockchainAdapterClientConfig blockchainAdapterClientConfig,
+                                      ConfigServerClientConfig configServerClientConfig) {
         this.chainConfig = chainConfig;
         this.credentialsService = credentialsService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
         this.blockchainAdapterClientConfig = blockchainAdapterClientConfig;
+        this.configServerClientConfig = configServerClientConfig;
     }
 
     @PostConstruct
@@ -64,6 +67,7 @@ public class PublicConfigurationService {
         this.publicConfiguration = PublicConfiguration.builder()
                 .workerPoolAddress(chainConfig.getPoolAddress())
                 .blockchainAdapterUrl(blockchainAdapterClientConfig.getUrl())
+                .configServerUrl(configServerClientConfig.getUrl())
                 .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
