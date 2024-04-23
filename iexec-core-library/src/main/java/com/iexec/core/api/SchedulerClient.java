@@ -16,13 +16,13 @@
 
 package com.iexec.core.api;
 
-import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.common.replicate.ReplicateTaskSummary;
 import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.security.Signature;
+import com.iexec.core.config.PublicConfiguration;
 import com.iexec.core.logs.TaskLogsModel;
 import com.iexec.core.metric.PlatformMetric;
 import com.iexec.core.notification.TaskNotification;

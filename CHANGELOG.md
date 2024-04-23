@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Create `iexec-task-api` to access task feedback API. (#695)
 - Move `notification` package from `iexec-commons-poco` to `iexec-core-library`. (#697 #698)
+- Move `PublicConfiguration` class from `iexec-common` to `iexec-core-library`. (#699)
 
 ### Bug Fixes
 

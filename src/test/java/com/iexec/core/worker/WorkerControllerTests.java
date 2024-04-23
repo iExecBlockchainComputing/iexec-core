@@ -16,9 +16,9 @@
 
 package com.iexec.core.worker;
 
-import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
 import com.iexec.commons.poco.security.Signature;
+import com.iexec.core.config.PublicConfiguration;
 import com.iexec.core.configuration.PublicConfigurationService;
 import com.iexec.core.security.ChallengeService;
 import com.iexec.core.security.JwtTokenProvider;
@@ -182,7 +182,7 @@ class WorkerControllerTests {
     void shouldNotGetTokenSinceSignatureNotValid() {
         when(workerService.isAllowedToJoin(WALLET)).thenReturn(true);
         when(challengeService.getChallenge(WALLET)).thenReturn(CHALLENGE);
-        
+
         ResponseEntity<String> response = workerController.getToken(WALLET, INVALID_SIGNATURE);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
