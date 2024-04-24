@@ -18,7 +18,6 @@ package com.iexec.core.configuration;
 
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.CredentialsService;
-import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -41,7 +40,7 @@ class PublicConfigurationServiceTests {
     @Mock
     private ResultRepositoryConfiguration resultRepoConfig;
     @Mock
-    private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
+    private ConfigServerClientConfig configServerClientConfig;
 
     @InjectMocks
     private PublicConfigurationService publicConfigurationService;

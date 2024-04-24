@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package com.iexec.core.chain.adapter;
 import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterApiClientBuilder;
 import com.iexec.blockchain.api.BlockchainAdapterService;
-import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,10 +45,6 @@ public class BlockchainAdapterClientConfig {
     @Value("${blockchain-adapter.user.password}")
     private final String password;
 
-    public String getUrl() {
-        return buildHostUrl(protocol, host, port);
-    }
-
     private String buildHostUrl(String protocol, String host, int port) {
         return protocol + "://" + host + ":" + port;
     }
@@ -57,22 +52,11 @@ public class BlockchainAdapterClientConfig {
     @Bean
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
-                Logger.Level.NONE, getUrl(), username, password);
+                Logger.Level.NONE, buildHostUrl(protocol, host, port), username, password);
     }
 
     @Bean
     public BlockchainAdapterService blockchainAdapterService(BlockchainAdapterApiClient blockchainAdapterClient) {
         return new BlockchainAdapterService(blockchainAdapterClient, Duration.ofSeconds(WATCH_PERIOD_SECONDS), MAX_ATTEMPTS);
     }
-
-    @Bean
-    public PublicChainConfig publicChainConfig(BlockchainAdapterApiClient apiClient) {
-        return apiClient.getPublicChainConfig();
-    }
-
-    @Bean
-    public int getChainId(PublicChainConfig publicChainConfig) {
-        return publicChainConfig.getChainId();
-    }
-
 }
