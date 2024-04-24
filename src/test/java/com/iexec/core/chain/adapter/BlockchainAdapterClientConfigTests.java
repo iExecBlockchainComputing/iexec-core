@@ -18,17 +18,37 @@ package com.iexec.core.chain.adapter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @Slf4j
+@ExtendWith(SpringExtension.class)
 @EnableConfigurationProperties(value = BlockchainAdapterClientConfig.class)
 class BlockchainAdapterClientConfigTests {
 
+    @Autowired
+    private ApplicationContext context;
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("blockchain-adapter.protocol", () -> "http");
+        registry.add("blockchain-adapter.host", () -> "localhost");
+        registry.add("blockchain-adapter.port", () -> "13010");
+    }
+
     @Test
-    void checkURL() {
-        final BlockchainAdapterClientConfig blockchainAdapterClientConfig = new BlockchainAdapterClientConfig("http", "localhost", 8080, "", "");
-        assertThat(blockchainAdapterClientConfig.getUrl()).isEqualTo("http://localhost:8080");
+    void shouldCreateBeanInstance() {
+        assertAll(
+                () -> assertThat(context.containsBean("blockchainAdapterClient")).isTrue(),
+                () -> assertThat(context.containsBean("blockchainAdapterService")).isTrue()
+        );
     }
 }

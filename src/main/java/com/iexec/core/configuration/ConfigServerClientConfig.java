@@ -35,10 +35,6 @@ public class ConfigServerClientConfig {
     private final int port;
 
     public String getUrl() {
-        return buildHostUrl(protocol, host, port);
-    }
-
-    private String buildHostUrl(String protocol, String host, int port) {
         return protocol + "://" + host + ":" + port;
     }
 

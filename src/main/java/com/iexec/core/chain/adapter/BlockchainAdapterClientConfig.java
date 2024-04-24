@@ -45,10 +45,6 @@ public class BlockchainAdapterClientConfig {
     @Value("${blockchain-adapter.user.password}")
     private final String password;
 
-    public String getUrl() {
-        return buildHostUrl(protocol, host, port);
-    }
-
     private String buildHostUrl(String protocol, String host, int port) {
         return protocol + "://" + host + ":" + port;
     }
@@ -56,7 +52,7 @@ public class BlockchainAdapterClientConfig {
     @Bean
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
-                Logger.Level.NONE, getUrl(), username, password);
+                Logger.Level.NONE, buildHostUrl(protocol, host, port), username, password);
     }
 
     @Bean
