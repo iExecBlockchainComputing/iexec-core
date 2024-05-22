@@ -87,8 +87,8 @@ class TaskControllerTests {
     //region utilities
     @SneakyThrows
     String generateWalletAddress() {
-        ECKeyPair ecKeyPair = Keys.createEcKeyPair();
-        return Credentials.create(ecKeyPair).getAddress();
+        final ECKeyPair otherKeyPair = Keys.createEcKeyPair();
+        return Credentials.create(otherKeyPair).getAddress();
     }
     //endregion
 
