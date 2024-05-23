@@ -95,7 +95,7 @@ class TaskControllerTests {
     // region deprecated methods, to remove in future version
     @Test
     void shouldCallGetTaskLogs() {
-        final TaskController controller = spy(new TaskController(challengeService, iexecHubService, replicatesService, taskLogsService, taskService));
+        final TaskController controller = spy(taskController);
         final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         controller.getTaskLogsLegacy(TASK_ID, authorization);
         verify(controller).getTaskLogs(TASK_ID, authorization);
@@ -103,7 +103,7 @@ class TaskControllerTests {
 
     @Test
     void shouldCallGetComputeLogs() {
-        final TaskController controller = spy(new TaskController(challengeService, iexecHubService, replicatesService, taskLogsService, taskService));
+        final TaskController controller = spy(taskController);
         final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         controller.getComputeLogsLegacy(TASK_ID, WORKER_ADDRESS, authorization);
         verify(controller).getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
