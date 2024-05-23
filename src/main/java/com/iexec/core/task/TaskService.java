@@ -251,7 +251,7 @@ public class TaskService {
     }
 
     /**
-     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn}.
+     * Shortcut for {@link TaskRepository#findFirstByCurrentStatusInAndContributionDeadlineAfterAndTagNotInAndChainTaskIdNotIn}.
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
      *     <li>Task is in one of given {@code statuses};</li>
@@ -273,8 +273,9 @@ public class TaskService {
                                                List<String> excludedTags,
                                                List<String> excludedChainTaskIds,
                                                Sort sort) {
-        return taskRepository.findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(
+        return taskRepository.findFirstByCurrentStatusInAndContributionDeadlineAfterAndTagNotInAndChainTaskIdNotIn(
                 statuses,
+                new Date(),
                 excludedTags,
                 excludedChainTaskIds,
                 sort

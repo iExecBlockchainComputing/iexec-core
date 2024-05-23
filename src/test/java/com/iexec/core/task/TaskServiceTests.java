@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -67,6 +67,7 @@ import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
 class TaskServiceTests {
     private final long maxExecutionTime = 60000;
@@ -101,7 +102,6 @@ class TaskServiceTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         taskRepository.deleteAll();
         taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
     }
@@ -259,6 +259,7 @@ class TaskServiceTests {
     }
     // endregion
 
+    // region getPrioritizedInitializedOrRunningTask
     @Test
     void shouldGetInitializedOrRunningTasks() {
         final Task task = getStubTask();
@@ -268,6 +269,17 @@ class TaskServiceTests {
                 .usingRecursiveComparison()
                 .isEqualTo(Optional.of(task));
     }
+
+    @Test
+    void shouldNotGetTaskPastContributionDeadline() {
+        final Task task = getStubTask();
+        task.setContributionDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
+        taskRepository.save(task);
+        assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
+                .usingRecursiveComparison()
+                .isEqualTo(Optional.empty());
+    }
+    // endregion
 
     @Test
     void shouldGetChainTaskIdsOfTasksExpiredBefore() {

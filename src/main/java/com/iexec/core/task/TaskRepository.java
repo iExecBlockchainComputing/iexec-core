@@ -39,22 +39,23 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     /**
      * Retrieves the prioritized task matching with given criteria:
      * <ul>
-     *     <li>Task is in one of given {@code statuses};</li>
-     *     <li>Task has not given {@code excludedTag}
-     *          - this is mainly used to exclude TEE tasks;
-     *     </li>
-     *     <li>Chain task ID is not one of the given {@code excludedChainTaskIds};</li>
-     *     <li>Tasks are prioritized according to the {@code sort} parameter.</li>
+     *     <li>Task is in one of given {@code statuses}
+     *     <li>Task contribution deadline is after a provided {@code timestamp}
+     *     <li>Task has not given {@code excludedTags}, this is mainly used to exclude TEE tasks
+     *     <li>Chain task ID is not one of the given {@code excludedChainTaskIds}
+     *     <li>Tasks are prioritized according to the {@code sort} parameter
      * </ul>
      *
      * @param statuses             The task status should be one of this list.
+     * @param timestamp            The task contribution deadline should be after the provided timestamp.
      * @param excludedTags         The task tag should not be one this tag list
      *                             - use {@literal null} if no tag should be excluded.
      * @param excludedChainTaskIds The chain task ID should not be one of this list.
      * @param sort                 How to prioritize tasks.
      * @return The first task matching with the criteria, according to the {@code sort} parameter.
      */
-    Optional<Task> findFirstByCurrentStatusInAndTagNotInAndChainTaskIdNotIn(List<TaskStatus> statuses, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
+    Optional<Task> findFirstByCurrentStatusInAndContributionDeadlineAfterAndTagNotInAndChainTaskIdNotIn(
+            List<TaskStatus> statuses, Date timestamp, List<String> excludedTags, List<String> excludedChainTaskIds, Sort sort);
 
     @Query(value = "{ finalDeadline: {$lt : ?0} }", fields = "{ chainTaskId: true }")
     List<Task> findChainTaskIdsByFinalDeadlineBefore(Date date);

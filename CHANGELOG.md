@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### Deprecation Notices
+
+- Deprecate legacy task feedback API endpoints. (#701)
+
 ### New Features
 
 - Create `iexec-task-api` to access task feedback API. (#695)
@@ -15,7 +19,7 @@ All notable changes to this project will be documented in this file.
 
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
 - Use correct `Signature` import in `SchedulerClient`. (#697)
-- Deprecate legacy task feedback API endpoints. (#701)
+- Do not supply replicates past their contribution deadline to workers. (#702)
 
 ### Quality
 
