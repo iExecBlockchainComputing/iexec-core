@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
 - Use correct `Signature` import in `SchedulerClient`. (#697)
 - Do not supply replicates past their contribution deadline to workers. (#702)
+- Remove upper limit on task update thread pool size. (#703)
 
 ### Quality
 
