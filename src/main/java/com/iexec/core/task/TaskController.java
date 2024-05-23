@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,10 +120,18 @@ public class TaskController {
         return replicateModel;
     }
 
-    @GetMapping(path = {
-            "/tasks/{chainTaskId}/stdout",  // @Deprecated
-            "/tasks/{chainTaskId}/logs"
-    })
+    /**
+     * @deprecated Use {@code /tasks/{chainTaskId}/logs} instead
+     */
+    @Deprecated(forRemoval = true)
+    @GetMapping("/tasks/{chainTaskId}/stdout")
+    public ResponseEntity<TaskLogsModel> getTaskLogsLegacy(
+            @PathVariable("chainTaskId") String chainTaskId,
+            @RequestHeader("Authorization") String authorization) {
+        return getTaskLogs(chainTaskId, authorization);
+    }
+
+    @GetMapping("/tasks/{chainTaskId}/logs")
     public ResponseEntity<TaskLogsModel> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @RequestHeader("Authorization") String authorization) {
@@ -147,10 +155,19 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping(path = {
-            "/tasks/{chainTaskId}/replicates/{walletAddress}/stdout",   // @Deprecated
-            "/tasks/{chainTaskId}/replicates/{walletAddress}/logs"
-    })
+    /**
+     * @deprecated Use {@code /tasks/{chainTaskId}/replicates/{walletAddress}/logs} instead
+     */
+    @Deprecated(forRemoval = true)
+    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
+    public ResponseEntity<ComputeLogs> getComputeLogsLegacy(
+            @PathVariable("chainTaskId") String chainTaskId,
+            @PathVariable("walletAddress") String walletAddress,
+            @RequestHeader("Authorization") String authorization) {
+        return getComputeLogs(chainTaskId, walletAddress, authorization);
+    }
+
+    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/logs")
     public ResponseEntity<ComputeLogs> getComputeLogs(
             @PathVariable("chainTaskId") String chainTaskId,
             @PathVariable("walletAddress") String walletAddress,

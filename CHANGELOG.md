@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
 - Use correct `Signature` import in `SchedulerClient`. (#697)
+- Deprecate legacy task feedback API endpoints. (#701)
 
 ### Quality
 
