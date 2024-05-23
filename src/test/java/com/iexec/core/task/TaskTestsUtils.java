@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ public class TaskTestsUtils {
 
     public static Task getStubTask() {
         final Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 1, 60000, NO_TEE_TAG);
+        task.setContributionDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
         return task;
     }
