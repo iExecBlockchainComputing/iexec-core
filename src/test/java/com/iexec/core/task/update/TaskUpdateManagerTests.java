@@ -540,7 +540,7 @@ class TaskUpdateManagerTests {
     }
 
     @Test
-    void shouldNotUpdateInitialized2RunningSinceNoRunningOrComputedReplicates() {
+    void shouldNotUpdateInitialized2RunningSinceNoReplicates() {
         final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
@@ -550,13 +550,19 @@ class TaskUpdateManagerTests {
     }
 
     @Test
-    void shouldNotUpdateInitialized2RunningSinceComputedIsMoreThanNeeded() {
+    void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
         final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
 
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        final List<Replicate> replicates = List.of(
+                new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID), new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID));
+
+        mockChainTask();
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicates);
+
+        taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(INITIALIZED);
+        assertThat(resultTask.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
     @Test
@@ -1587,23 +1593,6 @@ class TaskUpdateManagerTests {
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
-    }
-
-    // all replicates in CREATED
-    @Test
-    void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
-        final Task task = getStubTask(INITIALIZED);
-        taskRepository.save(task);
-
-        final List<Replicate> replicates = List.of(
-                new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID), new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID));
-
-        mockChainTask();
-        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicates);
-
-        taskUpdateManager.updateTask(task.getChainTaskId());
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isNotEqualTo(TaskStatus.RUNNING);
     }
 
     // Two replicates in COMPUTED BUT numWorkersNeeded = 2, so the task should not be able to move directly from
