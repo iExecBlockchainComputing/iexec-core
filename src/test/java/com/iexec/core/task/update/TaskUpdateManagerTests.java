@@ -875,7 +875,10 @@ class TaskUpdateManagerTests {
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        mockChainTask();
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -907,7 +910,10 @@ class TaskUpdateManagerTests {
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        mockChainTask();
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -939,7 +945,10 @@ class TaskUpdateManagerTests {
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
                 .collect(Collectors.toList());
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        mockChainTask();
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -970,7 +979,10 @@ class TaskUpdateManagerTests {
                 Worker.builder().walletAddress(replicate2.getWalletAddress()).build()
         );
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        mockChainTask();
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -997,7 +1009,10 @@ class TaskUpdateManagerTests {
                 Worker.builder().walletAddress(WALLET_WORKER_2).build()
         );
 
-        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.empty());
+        mockChainTask();
+        when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
+        when(workerService.getAliveWorkers()).thenReturn(workersList);
+        mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
