@@ -1481,7 +1481,7 @@ class TaskUpdateManagerTests {
     }
 
     @Test
-    void shouldUpdateFinalizing2FinalizeFailed() {
+    void shouldUpdateFinalizing2FinalizeFailedSinceNotFinalized() {
         final Task task = getStubTask(FINALIZING);
         taskRepository.save(task);
 
@@ -1518,19 +1518,6 @@ class TaskUpdateManagerTests {
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
         assertThat(output.getOut()).contains(String.format(ERROR_MSG, CHAIN_TASK_ID, RESULT_UPLOADED, FINALIZING, "finalizing2Finalized2Completed"));
-    }
-
-    @Test
-    void shouldNotUpdateFinalizing2FinalizedSinceNotFinalized() {
-        final Task task = getStubTask(FINALIZING);
-        taskRepository.save(task);
-
-        mockChainTask();
-        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThatTaskContainsStatuses(resultTask, FAILED, List.of(RECEIVED, FINALIZING, FINALIZE_FAILED, FAILED));
     }
 
     @Test
