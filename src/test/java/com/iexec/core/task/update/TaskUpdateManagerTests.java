@@ -42,6 +42,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -68,6 +71,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUESTED;
 import static com.iexec.core.task.TaskStatus.*;
@@ -268,49 +272,28 @@ class TaskUpdateManagerTests {
         assertThat(resultTask.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
 
-    @Test
-    void shouldNotUpdateReceived2InitializingSinceNoEnoughGas() {
+    @ParameterizedTest
+    @MethodSource("provideOnChainConditions")
+    void shouldNotUpdateReceived2InitializingSinceConditionsNotMet(boolean hasEnoughGas, boolean isTaskInUnsetStatus, boolean isBeforeContributionDeadline) {
         final Task task = getStubTask();
         taskRepository.save(task);
 
-        when(iexecHubService.hasEnoughGas()).thenReturn(false);
-        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
+        when(iexecHubService.hasEnoughGas()).thenReturn(hasEnoughGas);
+        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(isTaskInUnsetStatus);
         when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
-                .thenReturn(true);
+                .thenReturn(isBeforeContributionDeadline);
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(RECEIVED);
     }
 
-    @Test
-    void shouldNotUpdateReceived2InitializingSinceTaskNotInUnsetStatusOnChain() {
-        final Task task = getStubTask();
-        taskRepository.save(task);
-
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(false);
-        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
-                .thenReturn(true);
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(RECEIVED);
-    }
-
-    @Test
-    void shouldNotUpdateReceived2InitializingSinceAfterContributionDeadline() {
-        final Task task = getStubTask();
-        taskRepository.save(task);
-
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.isTaskInUnsetStatusOnChain(CHAIN_DEAL_ID, 0)).thenReturn(true);
-        when(iexecHubService.isBeforeContributionDeadline(task.getChainDealId()))
-                .thenReturn(false);
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(RECEIVED);
+    private static Stream<Arguments> provideOnChainConditions() {
+        return Stream.of(
+                Arguments.of(false, true, true),
+                Arguments.of(true, false, true),
+                Arguments.of(true, true, false)
+        );
     }
 
     @Test
