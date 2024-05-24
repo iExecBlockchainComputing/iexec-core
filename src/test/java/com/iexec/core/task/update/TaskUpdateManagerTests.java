@@ -869,15 +869,9 @@ class TaskUpdateManagerTests {
 
         final ReplicatesList replicatesList = new ReplicatesList();
         replicatesList.setReplicates(List.of(replicate1));
-        final List<Worker> workersList = replicatesList
-                .getReplicates()
-                .stream()
-                .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
-                .collect(Collectors.toList());
 
         mockChainTask();
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
-        when(workerService.getAliveWorkers()).thenReturn(workersList);
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
@@ -904,15 +898,9 @@ class TaskUpdateManagerTests {
 
         final ReplicatesList replicatesList = new ReplicatesList();
         replicatesList.setReplicates(List.of(replicate1, replicate2));
-        final List<Worker> workersList = replicatesList
-                .getReplicates()
-                .stream()
-                .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
-                .collect(Collectors.toList());
 
         mockChainTask();
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
-        when(workerService.getAliveWorkers()).thenReturn(workersList);
         mockTaskDescriptionFromTask(task);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
