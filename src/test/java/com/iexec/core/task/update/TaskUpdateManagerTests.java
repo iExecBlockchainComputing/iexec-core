@@ -1178,35 +1178,6 @@ class TaskUpdateManagerTests {
 
     // endregion
 
-    // region finalizing2Finalized
-
-    @Test
-    void shouldUpdateFinalized2Completed() {
-        final Task task = getStubTask(FINALIZED);
-        taskRepository.save(task);
-
-        mockChainTask();
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(COMPLETED);
-    }
-
-    @Test
-    void shouldUpdateFinalizing2FinalizedFailed() {
-        final Task task = getStubTask(FINALIZING);
-        taskRepository.save(task);
-
-        mockChainTask();
-        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThatTaskContainsStatuses(resultTask, FAILED, List.of(RECEIVED, FINALIZING, FINALIZE_FAILED, FAILED));
-    }
-
-    // endregion
-
     // region resultUploading2Uploaded
     @Test
     void shouldUpdateResultUploading2UploadedButNot2Finalizing() { //one worker uploaded
@@ -1489,6 +1460,35 @@ class TaskUpdateManagerTests {
 
     // endregion
 
+    // region finalizing2Finalized
+
+    @Test
+    void shouldUpdateFinalized2Completed() {
+        final Task task = getStubTask(FINALIZED);
+        taskRepository.save(task);
+
+        mockChainTask();
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
+        assertThat(resultTask.getCurrentStatus()).isEqualTo(COMPLETED);
+    }
+
+    @Test
+    void shouldUpdateFinalizing2FinalizeFailed() {
+        final Task task = getStubTask(FINALIZING);
+        taskRepository.save(task);
+
+        mockChainTask();
+        when(blockchainAdapterService.isFinalized(CHAIN_TASK_ID)).thenReturn(Optional.of(false));
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
+        assertThatTaskContainsStatuses(resultTask, FAILED, List.of(RECEIVED, FINALIZING, FINALIZE_FAILED, FAILED));
+    }
+
+    // endregion
+
     // region finalizingToFinalizedToCompleted
 
     @Test
@@ -1558,6 +1558,7 @@ class TaskUpdateManagerTests {
     void shouldUpdateTaskToRunningFromWorkersInRunning() {
         final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
+
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
         final List<Replicate> replicates = List.of(replicate);
@@ -1575,6 +1576,7 @@ class TaskUpdateManagerTests {
     void shouldUpdateTaskToRunningFromWorkersInRunningAndComputed() {
         final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
+
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
         final List<Replicate> replicates = List.of(replicate);
@@ -1587,11 +1589,17 @@ class TaskUpdateManagerTests {
         assertThat(resultTask.getCurrentStatus()).isEqualTo(TaskStatus.RUNNING);
     }
 
-    // all replicates in INITIALIZED
+    // all replicates in CREATED
     @Test
     void shouldNotUpdateToRunningSinceAllReplicatesInCreated() {
-        final Task task = getStubTask();
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
+
+        final List<Replicate> replicates = List.of(
+                new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID), new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID));
+
+        mockChainTask();
+        when(replicatesService.getReplicates(task.getChainTaskId())).thenReturn(replicates);
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -1602,8 +1610,10 @@ class TaskUpdateManagerTests {
     // INITIALIZED to COMPUTED
     @Test
     void shouldNotUpdateToRunningCase2() {
-        final Task task = getStubTask();
+        final Task task = getStubTask(INITIALIZED);
         taskRepository.save(task);
+
+        mockChainTask();
 
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
