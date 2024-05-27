@@ -14,13 +14,13 @@ All notable changes to this project will be documented in this file.
 - Move `notification` package from `iexec-commons-poco` to `iexec-core-library`. (#697 #698)
 - Move `PublicConfiguration` class from `iexec-common` to `iexec-core-library`. (#699)
 - Create `ConfigServerClient` instance and use it. (#700)
+- Allow up to 32 task updates at a given time. (#703)
 
 ### Bug Fixes
 
 - Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
 - Use correct `Signature` import in `SchedulerClient`. (#697)
 - Do not supply replicates past their contribution deadline to workers. (#702)
-- Remove upper limit on task update thread pool size. (#703)
 
 ### Quality
 
