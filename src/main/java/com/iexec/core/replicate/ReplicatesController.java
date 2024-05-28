@@ -16,7 +16,9 @@
 
 package com.iexec.core.replicate;
 
-import com.iexec.common.replicate.*;
+import com.iexec.common.replicate.ReplicateStatusDetails;
+import com.iexec.common.replicate.ReplicateStatusModifier;
+import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.chain.BlockchainConnectionHealthIndicator;
 import com.iexec.core.notification.TaskNotification;
 import com.iexec.core.notification.TaskNotificationType;
@@ -139,14 +141,10 @@ public class ReplicatesController {
         statusUpdate.setModifier(ReplicateStatusModifier.WORKER);
         statusUpdate.setDate(new Date());
 
-        // Assuming wallet address sent by the worker is correct
-        // would be a security issue. Let's replace it.
+        // Assuming wallet address sent by the worker is correct would be a security issue. Let's replace it.
         final ReplicateStatusDetails details = statusUpdate.getDetails();
-        if (details != null) {
-            final ComputeLogs computeLogs = details.getComputeLogs();
-            if (computeLogs != null) {
-                computeLogs.setWalletAddress(walletAddress);
-            }
+        if (details != null && details.getComputeLogs() != null) {
+            details.getComputeLogs().setWalletAddress(walletAddress);
         }
 
         log.debug("Worker request to update a replicate status [workerAddress:{}, chainTaskId:{}, statusUpdate:{}]", walletAddress, chainTaskId, statusUpdate);
