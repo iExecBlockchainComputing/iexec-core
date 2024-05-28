@@ -19,7 +19,6 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.replicate.ReplicateTaskSummary;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.task.TaskAbortCause;
 import com.iexec.commons.poco.tee.TeeUtils;
