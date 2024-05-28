@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Move `notification` package from `iexec-commons-poco` to `iexec-core-library`. (#697 #698)
 - Move `PublicConfiguration` class from `iexec-common` to `iexec-core-library`. (#699)
 - Create `ConfigServerClient` instance and use it. (#700)
+- Allow up to 32 task updates at a given time. (#703)
 
 ### Bug Fixes
 
