@@ -27,6 +27,7 @@ All notable changes to this project will be documented in this file.
 - Configure Gradle JVM Test Suite Plugin. (#691)
 - Rename `IexecTaskApiClient` to `TaskApiClient`. (#696)
 - Move `ReplicateTaskSummary` from `iexec-common` to `iexec-core`. (#704)
+- Use `@MockitoExtension` in `ReplicateSupplyServiceTests`. (#705)
 
 ### Dependency Upgrades
 
