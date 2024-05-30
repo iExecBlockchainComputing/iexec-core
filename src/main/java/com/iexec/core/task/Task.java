@@ -75,6 +75,7 @@ public class Task {
     private String dappName;
     private String commandLine;
     private long initializationBlockNumber;
+    @Indexed
     @Field(CURRENT_STATUS_FIELD_NAME)
     private TaskStatus currentStatus;
     private int trust;
