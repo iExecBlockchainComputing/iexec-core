@@ -33,8 +33,9 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "blockchain-adapter")
 public class BlockchainAdapterClientConfig {
 
-    public static final int WATCH_PERIOD_SECONDS = 1;//To tune
-    public static final int MAX_ATTEMPTS = 50;
+    // TODO add configuration parameters for next major version
+    public static final int WATCH_PERIOD_SECONDS = 2;
+    public static final int MAX_ATTEMPTS = 25;
 
     private final String protocol;
     private final String host;
