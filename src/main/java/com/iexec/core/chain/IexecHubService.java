@@ -49,17 +49,17 @@ import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 public class IexecHubService extends IexecHubAbstractService implements Purgeable {
 
     private final ThreadPoolExecutor executor;
-    private final CredentialsService credentialsService;
+    private final SignerService signerService;
     private final Web3jService web3jService;
 
-    public IexecHubService(CredentialsService credentialsService,
+    public IexecHubService(SignerService signerService,
                            Web3jService web3jService,
                            ChainConfig chainConfig) {
         super(
-                credentialsService.getCredentials(),
+                signerService.getCredentials(),
                 web3jService,
                 chainConfig.getHubAddress());
-        this.credentialsService = credentialsService;
+        this.signerService = signerService;
         this.web3jService = web3jService;
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         if (!hasEnoughGas()) {
@@ -209,7 +209,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         log.info("Requested reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
         try {
             return CompletableFuture.supplyAsync(() -> sendReopenTransaction(chainTaskId), executor).get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
             log.error("reOpen asynchronous execution did not complete", e);
         }
         return Optional.empty();
@@ -245,7 +247,7 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     }
 
     public boolean hasEnoughGas() {
-        final boolean hasEnoughGas = hasEnoughGas(credentialsService.getCredentials().getAddress());
+        final boolean hasEnoughGas = hasEnoughGas(signerService.getAddress());
         log.debug("Gas status [hasEnoughGas:{}]", hasEnoughGas);
         return hasEnoughGas;
     }

@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Create `ConfigServerClient` instance and use it. (#700)
 - Allow up to 32 task updates at a given time. (#703)
 - Index `currentStatus` field in `task` collection. (#707)
+- Replace `CredentialsService` with `SignerService`. (#708)
 
 ### Bug Fixes
 

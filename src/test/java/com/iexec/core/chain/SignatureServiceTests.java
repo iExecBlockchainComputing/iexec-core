@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,30 @@
 
 package com.iexec.core.chain;
 
+import com.iexec.commons.poco.chain.SignerService;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.commons.poco.utils.HashUtils;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
 
 import static org.mockito.Mockito.when;
 
-
+@ExtendWith(MockitoExtension.class)
 class SignatureServiceTests {
 
-    @Mock private CredentialsService credentialsService;
+    @Mock
+    private SignerService signerService;
 
     @InjectMocks
     private SignatureService signatureService;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void shouldAuthorizationHashBeValid() {
@@ -59,24 +57,26 @@ class SignatureServiceTests {
     void shouldCreateCorrectAuthorization() {
         // input
         String workerWallet = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
-        String chainTaskid = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";
+        String chainTaskId = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";
         String enclaveChallenge = "0x9a43BB008b7A657e1936ebf5d8e28e5c5E021596";
         String privateKey = "0x2a46e8c1535792f6689b10d5c882c9363910c30751ec193ae71ec71630077909";
+        String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
 
-        when(credentialsService.getCredentials()).thenReturn(Credentials.create(privateKey));
+        ReflectionTestUtils.setField(signerService, "credentials", Credentials.create(privateKey));
+        when(signerService.signMessageHash(hash)).thenCallRealMethod();
 
         // creation
-        WorkerpoolAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskid, enclaveChallenge);
+        WorkerpoolAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskId, enclaveChallenge);
 
         // check
         WorkerpoolAuthorization expected = WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
-                .chainTaskId(chainTaskid)
+                .chainTaskId(chainTaskId)
                 .enclaveChallenge(enclaveChallenge)
                 .signature(new Signature(
                         BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
                         BytesUtils.stringToBytes("0x737747b747bc6c7d42cba859fdd030b1bed8b2513699ba78ac67dab5b785fda5"),
-                        new byte[]{(byte)28}))
+                        new byte[]{(byte) 28}))
                 .build();
 
         Assertions.assertEquals(authorization, expected);

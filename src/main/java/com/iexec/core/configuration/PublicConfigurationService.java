@@ -16,8 +16,8 @@
 
 package com.iexec.core.configuration;
 
+import com.iexec.commons.poco.chain.SignerService;
 import com.iexec.core.chain.ChainConfig;
-import com.iexec.core.chain.CredentialsService;
 import com.iexec.core.config.PublicConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ import javax.annotation.PostConstruct;
 @Service
 public class PublicConfigurationService {
     private final ChainConfig chainConfig;
-    private final CredentialsService credentialsService;
+    private final SignerService signerService;
     private final WorkerConfiguration workerConfiguration;
     private final ResultRepositoryConfiguration resultRepoConfig;
     private final ConfigServerClientConfig configServerClientConfig;
@@ -47,12 +47,12 @@ public class PublicConfigurationService {
     private String publicConfigurationHash = null;
 
     public PublicConfigurationService(ChainConfig chainConfig,
-                                      CredentialsService credentialsService,
+                                      SignerService signerService,
                                       WorkerConfiguration workerConfiguration,
                                       ResultRepositoryConfiguration resultRepoConfig,
                                       ConfigServerClientConfig configServerClientConfig) {
         this.chainConfig = chainConfig;
-        this.credentialsService = credentialsService;
+        this.signerService = signerService;
         this.workerConfiguration = workerConfiguration;
         this.resultRepoConfig = resultRepoConfig;
         this.configServerClientConfig = configServerClientConfig;
@@ -64,7 +64,7 @@ public class PublicConfigurationService {
                 .workerPoolAddress(chainConfig.getPoolAddress())
                 .blockchainAdapterUrl(configServerClientConfig.getUrl())
                 .configServerUrl(configServerClientConfig.getUrl())
-                .schedulerPublicAddress(credentialsService.getCredentials().getAddress())
+                .schedulerPublicAddress(signerService.getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())

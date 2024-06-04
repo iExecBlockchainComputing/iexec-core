@@ -33,6 +33,8 @@ import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.*;
 import com.iexec.core.task.event.PleaseUploadEvent;
+import com.iexec.core.task.event.TaskFailedEvent;
+import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import io.micrometer.core.instrument.Metrics;
@@ -596,13 +598,13 @@ class TaskUpdateManagerTests {
     // TODO check this, it may not be this true
     @Test
     void shouldNotReSendNotificationWhenAlreadyInContributionTimeout() {
-        Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
+        final Date timeoutInPast = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
 
         final Task task = getStubTask(CONTRIBUTION_TIMEOUT);
         task.setContributionDeadline(timeoutInPast);
         taskRepository.save(task);
 
-        ChainTask chainTask = ChainTask.builder()
+        final ChainTask chainTask = ChainTask.builder()
                 .contributionDeadline(timeoutInPast.getTime())
                 .status(ChainTaskStatus.ACTIVE)
                 .build();
@@ -610,8 +612,8 @@ class TaskUpdateManagerTests {
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(chainTask));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        Mockito.verify(applicationEventPublisher, Mockito.times(0))
-                .publishEvent(any());
+        verify(applicationEventPublisher).publishEvent(any(TaskStatusesCountUpdatedEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(TaskFailedEvent.class));
     }
 
     // endregion
@@ -1201,7 +1203,7 @@ class TaskUpdateManagerTests {
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
         when(blockchainAdapterService.requestFinalize(any(), any(), any())).thenReturn(Optional.empty());
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .status(ChainTaskStatus.FAILLED)
+                .status(ChainTaskStatus.FAILED)
                 .revealCounter(1)
                 .build()));
 
