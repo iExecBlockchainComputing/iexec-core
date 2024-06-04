@@ -21,7 +21,6 @@ import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.commons.poco.utils.HashUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +28,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Keys;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,14 +44,13 @@ class SignatureServiceTests {
 
     @Test
     void shouldAuthorizationHashBeValid() {
-
         String workerWallet = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
         String chainTaskid = "0xd94b63fc2d3ec4b96daf84b403bbafdc8c8517e8e2addd51fec0fa4e67801be8";
         String enclaveWallet = "0x9a43BB008b7A657e1936ebf5d8e28e5c5E021596";
 
         String expected = "0x54a76d209e8167e1ffa3bde8e3e7b30068423ca9554e1d605d8ee8fd0f165562";
 
-        Assertions.assertEquals(expected, HashUtils.concatenateAndHash(workerWallet, chainTaskid, enclaveWallet));
+        assertThat(HashUtils.concatenateAndHash(workerWallet, chainTaskid, enclaveWallet)).isEqualTo(expected);
     }
 
     @Test
@@ -79,7 +79,14 @@ class SignatureServiceTests {
                         new byte[]{(byte) 28}))
                 .build();
 
-        Assertions.assertEquals(authorization, expected);
+        assertThat(authorization).isEqualTo(expected);
+    }
 
+    @Test
+    void shouldReadAddress() throws Exception {
+        final Credentials credentials = Credentials.create(Keys.createEcKeyPair());
+        ReflectionTestUtils.setField(signerService, "credentials", credentials);
+        when(signerService.getAddress()).thenCallRealMethod();
+        assertThat(signatureService.getAddress()).isEqualTo(credentials.getAddress());
     }
 }
