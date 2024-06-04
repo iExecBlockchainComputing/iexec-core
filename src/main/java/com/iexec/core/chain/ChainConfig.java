@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class ChainConfig {
     @Value("#{publicChainConfig.chainId}")
     private int chainId;
 
-    @Value("#{publicChainConfig.isSidechain()}")
+    @Value("#{publicChainConfig.sidechain}")
     private boolean isSidechain;
 
     @Value("#{publicChainConfig.iexecHubContractAddress}")
