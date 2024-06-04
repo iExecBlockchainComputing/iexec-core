@@ -40,7 +40,7 @@ public class SignatureService {
     }
 
     public WorkerpoolAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveChallenge) {
-        String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
+        final String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
         return WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
