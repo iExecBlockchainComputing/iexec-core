@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,11 @@
 
 package com.iexec.core.pubsub;
 
+import com.iexec.core.notification.TaskNotification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-
-import com.iexec.commons.poco.notification.TaskNotification;
 
 class NotificationServiceTests {
 
@@ -37,20 +32,22 @@ class NotificationServiceTests {
     private NotificationService notificationService;
 
     @BeforeEach
-    void init() { MockitoAnnotations.openMocks(this); }
+    void init() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     void shouldSendTaskNotification() {
         String chainTaskId = "chainTaskId";
         TaskNotification taskNotification = TaskNotification.builder()
-            .chainTaskId(chainTaskId)
-            .build();
+                .chainTaskId(chainTaskId)
+                .build();
 
         notificationService.sendTaskNotification(taskNotification);
 
         String destination = "/topic/task/" + taskNotification.getChainTaskId();
 
         Mockito.verify(sender, Mockito.times(1))
-            .convertAndSend(destination, taskNotification);
+                .convertAndSend(destination, taskNotification);
     }
 }

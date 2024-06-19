@@ -8,8 +8,8 @@ plugins {
 dependencies {
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // TODO remove this later when migration has been done
+    implementation project(':iexec-task-api')
 }
 
 java {
@@ -19,10 +19,20 @@ java {
     withSourcesJar()
 }
 
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+            dependencies {
+                implementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+                implementation 'org.assertj:assertj-core:3.22.0'
+            }
+        }
+    }
+}
 
 tasks.withType(Test).configureEach {
     finalizedBy tasks.jacocoTestReport
-    useJUnitPlatform()
 }
 
 // sonarqube code coverage requires jacoco XML report
@@ -44,7 +54,7 @@ publishing {
                 username nexusUser
                 password nexusPassword
             }
-            url = project.hasProperty("nexusUrl")? project.nexusUrl: ''
+            url = project.hasProperty("nexusUrl") ? project.nexusUrl : ''
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,41 +16,32 @@
 
 package com.iexec.core.configuration;
 
+import com.iexec.commons.poco.chain.SignerService;
 import com.iexec.core.chain.ChainConfig;
-import com.iexec.core.chain.CredentialsService;
-import com.iexec.core.chain.adapter.BlockchainAdapterClientConfig;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.web3j.crypto.Credentials;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class PublicConfigurationServiceTests {
     @Mock
     private ChainConfig chainConfig;
     @Mock
-    private CredentialsService credentialsService;
+    private SignerService signerService;
     @Mock
     private WorkerConfiguration workerConfiguration;
     @Mock
     private ResultRepositoryConfiguration resultRepoConfig;
     @Mock
-    private BlockchainAdapterClientConfig blockchainAdapterClientConfig;
+    private ConfigServerClientConfig configServerClientConfig;
 
     @InjectMocks
     private PublicConfigurationService publicConfigurationService;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-        when(credentialsService.getCredentials()).thenReturn(mock(Credentials.class));
-    }
 
     // region getPublicConfiguration
     @Test

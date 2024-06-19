@@ -1,0 +1,57 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+    id 'jacoco'
+    id 'maven-publish'
+}
+
+dependencies {
+    implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
+    implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
+}
+
+java {
+    sourceCompatibility = "11"
+    targetCompatibility = "11"
+    withJavadocJar()
+    withSourcesJar()
+}
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+            dependencies {
+                implementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+            }
+        }
+    }
+}
+
+tasks.withType(Test).configureEach {
+    finalizedBy tasks.jacocoTestReport
+}
+
+// sonarqube code coverage requires jacoco XML report
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username nexusUser
+                password nexusPassword
+            }
+            url = project.hasProperty("nexusUrl") ? project.nexusUrl : ''
+        }
+    }
+}

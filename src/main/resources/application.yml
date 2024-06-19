@@ -68,6 +68,11 @@ blockchain-adapter:
     name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
     password: ${IEXEC_CORE_CHAIN_ADAPTER_PASSWORD:whatever}
 
+config-server:
+  protocol: ${IEXEC_CONFIG_SERVER_PROTOCOL:http}
+  host: ${IEXEC_CONFIG_SERVER_HOST:localhost}
+  port: ${IEXEC_CONFIG_SERVER_PORT:8888}
+
 resultRepository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}

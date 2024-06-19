@@ -21,16 +21,15 @@ import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.replicate.ReplicateTaskSummary;
-import com.iexec.common.replicate.ReplicateTaskSummary.ReplicateTaskSummaryBuilder;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.commons.poco.notification.TaskNotificationExtra;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.contribution.ConsensusHelper;
+import com.iexec.core.notification.TaskNotification;
+import com.iexec.core.notification.TaskNotificationExtra;
+import com.iexec.core.notification.TaskNotificationType;
+import com.iexec.core.replicate.ReplicateTaskSummary.ReplicateTaskSummaryBuilder;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
@@ -296,23 +295,22 @@ public class ReplicateSupplyService implements Purgeable {
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress) {
         final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                 walletAddress, task.getChainTaskId(), task.getEnclaveChallenge());
-        final TaskNotificationExtra taskNotificationExtra = TaskNotificationExtra.builder()
-                .workerpoolAuthorization(authorization)
-                .build();
+        final TaskNotificationExtra.TaskNotificationExtraBuilder taskNotificationExtra =
+                TaskNotificationExtra.builder().workerpoolAuthorization(authorization);
 
         switch (taskNotificationType) {
             case PLEASE_CONTRIBUTE:
                 break;
             case PLEASE_REVEAL:
-                taskNotificationExtra.setBlockNumber(task.getConsensusReachedBlockNumber());
+                taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
                 break;
             case PLEASE_ABORT:
-                taskNotificationExtra.setTaskAbortCause(getTaskAbortCause(task));
+                taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
                 break;
             default:
                 break;
         }
-        return taskNotificationExtra;
+        return taskNotificationExtra.build();
     }
 
     public Optional<TaskNotificationType> getTaskNotificationType(Task task, Replicate replicate, long blockNumber) {

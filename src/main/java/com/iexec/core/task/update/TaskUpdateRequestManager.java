@@ -40,7 +40,7 @@ public class TaskUpdateRequestManager {
     /**
      * Max number of threads to update task for each core.
      */
-    private static final int TASK_UPDATE_THREADS_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
+    private static final int TASK_UPDATE_THREADS_POOL_SIZE = 32;
 
     // Working with semaphore to guarantee at most 1 item in queue and 1 running thread
     private final ExpiringMap<String, Semaphore> taskExecutionLockRunner = ExpiringMap.builder()

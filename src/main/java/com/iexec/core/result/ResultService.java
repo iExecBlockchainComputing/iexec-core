@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package com.iexec.core.result;
 
-import com.iexec.commons.poco.eip712.EIP712Domain;
-import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
-import com.iexec.core.chain.ChainConfig;
-import com.iexec.core.chain.CredentialsService;
+import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
+import com.iexec.core.chain.SignatureService;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskService;
 import com.iexec.resultproxy.api.ResultProxyClient;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
@@ -27,28 +27,27 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
-import java.util.Optional;
-
+import static com.iexec.commons.poco.utils.BytesUtils.EMPTY_ADDRESS;
 
 @Slf4j
 @Service
 public class ResultService {
 
-    private final ChainConfig chainConfig;
-    private final CredentialsService credentialsService;
     private final ResultProxyClient resultProxyClient;
+    private final SignatureService signatureService;
+    private final TaskService taskService;
 
-    public ResultService(ChainConfig chainConfig, CredentialsService credentialsService,
-                         ResultProxyClient resultProxyClient) {
-        this.chainConfig = chainConfig;
-        this.credentialsService = credentialsService;
+    public ResultService(final ResultProxyClient resultProxyClient, final SignatureService signatureService, final TaskService taskService) {
         this.resultProxyClient = resultProxyClient;
+        this.signatureService = signatureService;
+        this.taskService = taskService;
     }
 
     @Retryable(value = FeignException.class)
-    public boolean isResultUploaded(String chainTaskId) {
-        String resultProxyToken = getResultProxyToken();
+    public boolean isResultUploaded(final String chainTaskId) {
+        final String enclaveChallenge = taskService.getTaskByChainTaskId(chainTaskId).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
+        final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), chainTaskId, enclaveChallenge);
+        final String resultProxyToken = resultProxyClient.getJwt(workerpoolAuthorization.getSignature().getValue(), workerpoolAuthorization);
         if (resultProxyToken.isEmpty()) {
             log.error("isResultUploaded failed (getResultProxyToken) [chainTaskId:{}]", chainTaskId);
             return false;
@@ -59,77 +58,8 @@ public class ResultService {
     }
 
     @Recover
-    private boolean isResultUploaded(FeignException e, String chainTaskId) {
-        log.error("Cant check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId, e);
+    private boolean isResultUploaded(final FeignException e, final String chainTaskId) {
+        log.error("Cannot check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId, e);
         return false;
-    }
-
-    // TODO Move this to iexec-result-proxy-library since widely used by all iexec services
-    private String getResultProxyToken() {
-        Optional<EIP712Challenge> oEip712Challenge = getChallenge();
-        if (oEip712Challenge.isEmpty()) {
-            return "";
-        }
-
-        EIP712Challenge eip712Challenge = oEip712Challenge.get();
-
-        final EIP712Domain domain = eip712Challenge.getDomain();
-        if (domain == null) {
-            log.error("Couldn't get a correct domain from EIP712Challenge " +
-                            "retrieved from Result Proxy [eip712Challenge:{}]",
-                    eip712Challenge);
-            return "";
-        }
-
-        final String expectedDomainName = "iExec Result Repository";
-        final String actualDomainName = domain.getName();
-        if (!Objects.equals(actualDomainName, expectedDomainName)) {
-            log.error("Domain name does not match expected name" +
-                            " [expected:{}, actual:{}]",
-                    expectedDomainName, actualDomainName);
-            return "";
-        }
-
-        final Integer chainId = chainConfig.getChainId();
-        final long domainChainId = domain.getChainId();
-        if (!Objects.equals(domainChainId, chainId.longValue())) {
-            log.error("Domain chain id does not match expected chain id" +
-                            " [expected:{}, actual:{}]",
-                    chainId, domainChainId);
-            return "";
-        }
-        String signedEip712Challenge = credentialsService.signEIP712EntityAndBuildToken(eip712Challenge);
-
-        if (signedEip712Challenge.isEmpty()) {
-            return "";
-        }
-
-        String token = login(signedEip712Challenge);
-
-        if (token.isEmpty()) {
-            return "";
-        }
-        return token;
-    }
-
-    private Optional<EIP712Challenge> getChallenge() {
-        try {
-            EIP712Challenge challenge = resultProxyClient.getChallenge(chainConfig.getChainId());
-            if (challenge != null) {
-                return Optional.of(challenge);
-            }
-        } catch (RuntimeException e) {
-            log.error("Failed to get challenge", e);
-        }
-        return Optional.empty();
-    }
-
-    private String login(String token) {
-        try {
-            return resultProxyClient.login(chainConfig.getChainId(), token);
-        } catch (RuntimeException e) {
-            log.error("Login failed", e);
-        }
-        return "";
     }
 }

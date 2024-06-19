@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.5.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.5.0) 2024-06-19
+
+### Deprecation Notices
+
+- Deprecate legacy task feedback API endpoints. (#701)
+
+### New Features
+
+- Create `iexec-task-api` to access task feedback API. (#695)
+- Move `notification` package from `iexec-commons-poco` to `iexec-core-library`. (#697 #698)
+- Move `PublicConfiguration` class from `iexec-common` to `iexec-core-library`. (#699)
+- Create `ConfigServerClient` instance and use it. (#700)
+- Allow up to 32 task updates at a given time. (#703)
+- Index `currentStatus` field in `task` collection. (#707)
+- Replace `CredentialsService` with `SignerService`. (#708)
+
+### Bug Fixes
+
+- Always use `WorkerpoolAuthorization` to retrieve JWT and check result upload on Result Proxy. (#690)
+- Use correct `Signature` import in `SchedulerClient`. (#697)
+- Do not supply replicates past their contribution deadline to workers. (#702)
+- Query blockchain adapter every 2s instead of every second. (#706)
+
+### Quality
+
+- Configure Gradle JVM Test Suite Plugin. (#691)
+- Rename `IexecTaskApiClient` to `TaskApiClient`. (#696)
+- Move `ReplicateTaskSummary` from `iexec-common` to `iexec-core`. (#704 #705)
+
+### Dependency Upgrades
+
+- Upgrade to Gradle 8.7. (#692)
+- Upgrade to `eclipse-temurin:11.0.22_7-jre-focal`. (#693)
+- Upgrade to Spring Boot 2.7.18. (#694)
+- Upgrade to `iexec-commons-poco` 4.1.0. (#709)
+- Upgrade to `iexec-common` 8.5.0. (#709)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.5.0. (#709)
+- Upgrade to `iexec-result-proxy-library` 8.5.0. (#709)
+- Upgrade to `iexec-sms-library` 8.6.0. (#709)
+
 ## [[8.4.1]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.4.1) 2024-04-03
 
 ### New Features

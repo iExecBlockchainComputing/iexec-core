@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,29 @@
 
 package com.iexec.core.api;
 
-import com.iexec.common.config.PublicConfiguration;
 import com.iexec.common.config.WorkerModel;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.common.replicate.ReplicateTaskSummary;
 import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
-import com.iexec.commons.poco.notification.TaskNotification;
-import com.iexec.commons.poco.notification.TaskNotificationType;
+import com.iexec.commons.poco.security.Signature;
+import com.iexec.core.config.PublicConfiguration;
 import com.iexec.core.logs.TaskLogsModel;
 import com.iexec.core.metric.PlatformMetric;
+import com.iexec.core.notification.TaskNotification;
+import com.iexec.core.notification.TaskNotificationType;
+import com.iexec.core.replicate.ReplicateTaskSummary;
 import com.iexec.core.task.TaskModel;
 import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
 
-import java.security.Signature;
 import java.util.List;
 
 public interface SchedulerClient {
+    /**
+     * @deprecated Use iexec-task-feedback-api
+     */
+    @Deprecated(forRemoval = true)
     @RequestLine("GET /metrics")
     PlatformMetric getMetrics();
 
@@ -54,7 +58,7 @@ public interface SchedulerClient {
 
     @RequestLine("POST /workers/register")
     @Headers("Authorization: {authorization}")
-    void registerWorker(@Param("authorization") String authorization, WorkerModel model);
+    Void registerWorker(@Param("authorization") String authorization, WorkerModel model);
 
     @RequestLine("GET /workers/config")
     PublicConfiguration getPublicConfiguration();
@@ -85,18 +89,35 @@ public interface SchedulerClient {
     // endregion
 
     // region /tasks
+
+    /**
+     * @deprecated Use iexec-task-feedback-api
+     */
+    @Deprecated(forRemoval = true)
     @RequestLine("GET /tasks/{chainTaskId}")
     TaskModel getTask(@Param("chainTaskId") String chainTaskId);
 
+    /**
+     * @deprecated Use iexec-task-feedback-api
+     */
+    @Deprecated(forRemoval = true)
     @RequestLine("GET /tasks/logs/challenge?address={address}")
     EIP712Challenge getTaskLogsChallenge(@Param("address") String address);
 
+    /**
+     * @deprecated Use iexec-task-feedback-api
+     */
+    @Deprecated(forRemoval = true)
     @Headers("Authorization: {authorization}")
     @RequestLine("GET /tasks/{chainTaskId}/logs")
     TaskLogsModel getTaskLogs(
             @Param("chainTaskId") String chainTaskId,
             @Param("authorization") String authorization);
 
+    /**
+     * @deprecated Use iexec-task-feedback-api
+     */
+    @Deprecated(forRemoval = true)
     @Headers("Authorization: {authorization}")
     @RequestLine("GET /tasks/{chainTaskId}/replicates/{walletAddress}/logs")
     ComputeLogs getComputeLogs(

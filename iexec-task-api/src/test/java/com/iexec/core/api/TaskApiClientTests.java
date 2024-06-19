@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package com.iexec.core.chain;
+package com.iexec.core.api;
 
-import com.iexec.common.chain.CredentialsAbstractService;
+import feign.Logger;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-@Service
-public class CredentialsService extends CredentialsAbstractService {
-
-    public CredentialsService(
-            @Value("${wallet.password}") String walletPassword,
-            @Value("${wallet.encryptedFilePath}") String walletPath
-    ) throws Exception {
-        super(walletPassword, walletPath);
+class TaskApiClientTests {
+    @Test
+    void instantiationTest() {
+        Assertions.assertNotNull(TaskApiClientBuilder.getInstance(Logger.Level.FULL, "localhost"));
     }
 }

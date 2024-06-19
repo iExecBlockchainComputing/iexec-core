@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package com.iexec.core.workflow;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
-import com.iexec.commons.poco.notification.TaskNotificationType;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.notification.TaskNotificationType;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,13 +38,13 @@ import java.util.List;
 import java.util.Map;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.commons.poco.notification.TaskNotificationType.*;
+import static com.iexec.core.notification.TaskNotificationType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReplicateWorkflowTests {
 
     @Rule
-    public TemporaryFolder folder= new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder();
 
     private ReplicateWorkflow replicateWorkflow;
 
@@ -54,20 +54,20 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldNotGetNextActionWhenStatusSinceStatusIsNull(){
+    void shouldNotGetNextActionWhenStatusSinceStatusIsNull() {
         assertThat(replicateWorkflow
                 .getNextActionWhenStatus(null)).isNull();
     }
 
     @Test
-    void shouldNotGetNextActionWhenStatusSinceStatusIsUnknown(){
+    void shouldNotGetNextActionWhenStatusSinceStatusIsUnknown() {
         assertThat(replicateWorkflow
                 .getNextActionWhenStatus(ReplicateStatus.ABORTED)) //unknown
                 .isNull();
     }
 
     @Test
-    void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull(){
+    void shouldNotGetNextActionWhenStatusAndCauseSinceCauseIsNull() {
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(null,
                         ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
@@ -76,7 +76,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown(){
+    void shouldNotGetNextActionWhenStatusAndCauseSinceStatusIsUnknown() {
         assertThat(replicateWorkflow
                 .getNextActionWhenStatusAndCause(ReplicateStatus.ABORTED, //unknown
                         ReplicateStatusCause.ABORTED_BY_WORKER,
@@ -87,7 +87,7 @@ class ReplicateWorkflowTests {
     // app
 
     @Test
-    void shouldGetNextActionOnAppDownloadFailed(){
+    void shouldGetNextActionOnAppDownloadFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         null,
@@ -96,7 +96,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed(){
+    void shouldGetNextActionOnAppDownloadFailedWithPostComputeFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
@@ -105,7 +105,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed(){
+    void shouldGetNextActionOnAppDownloadFailedWithAppImageDownloadFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.APP_DOWNLOAD_FAILED,
                         ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED,
@@ -116,7 +116,7 @@ class ReplicateWorkflowTests {
     // data
 
     @Test
-    void shouldGetNextActionOnDataDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         null,
@@ -125,7 +125,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithPostComputeFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.POST_COMPUTE_FAILED_UNKNOWN_ISSUE,
@@ -134,7 +134,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithDatasetDownloadFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED,
@@ -143,7 +143,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum(){
+    void shouldGetNextActionOnDataDownloadFailedWithDatasetBadChecksum() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM,
@@ -152,7 +152,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed(){
+    void shouldGetNextActionOnDataDownloadFailedWithInputFilesDownloadFailed() {
         assertThat(replicateWorkflow
                 .getNextAction(ReplicateStatus.DATA_DOWNLOAD_FAILED,
                         ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED,
@@ -163,7 +163,7 @@ class ReplicateWorkflowTests {
     // region computed
 
     @Test
-    void shouldGetNextActionOnComputedWithTeeTaskShouldBePleaseContributeAndFinalize(){
+    void shouldGetNextActionOnComputedWithTeeTaskShouldBePleaseContributeAndFinalize() {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
@@ -172,7 +172,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnComputedWithStandardTaskShouldBePleaseContribute(){
+    void shouldGetNextActionOnComputedWithStandardTaskShouldBePleaseContribute() {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
@@ -181,7 +181,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnComputedWithoutTaskDescriptionShouldBePleaseAbort(){
+    void shouldGetNextActionOnComputedWithoutTaskDescriptionShouldBePleaseAbort() {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
@@ -190,7 +190,7 @@ class ReplicateWorkflowTests {
     }
 
     @Test
-    void shouldGetNextActionOnComputedWithTeeTaskAndCallBackShouldBePlease(){
+    void shouldGetNextActionOnComputedWithTeeTaskAndCallBackShouldBePlease() {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,10 @@ import com.iexec.core.security.EIP712ChallengeService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.web3j.crypto.Credentials;
@@ -47,6 +48,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TaskControllerTests {
 
     private static final String TASK_ID = "0xtask";
@@ -74,7 +76,6 @@ class TaskControllerTests {
     @BeforeEach
     @SneakyThrows
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         EIP712Domain domain = new EIP712Domain();
         challenge = new EIP712Challenge(domain, Challenge.builder().challenge("challenge").build());
         badChallenge = new EIP712Challenge(domain, Challenge.builder().challenge("bad-challenge").build());
@@ -86,10 +87,28 @@ class TaskControllerTests {
     //region utilities
     @SneakyThrows
     String generateWalletAddress() {
-        ECKeyPair ecKeyPair = Keys.createEcKeyPair();
-        return Credentials.create(ecKeyPair).getAddress();
+        final ECKeyPair otherKeyPair = Keys.createEcKeyPair();
+        return Credentials.create(otherKeyPair).getAddress();
     }
     //endregion
+
+    // region deprecated methods, to remove in future version
+    @Test
+    void shouldCallGetTaskLogs() {
+        final TaskController controller = spy(taskController);
+        final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
+        controller.getTaskLogsLegacy(TASK_ID, authorization);
+        verify(controller).getTaskLogs(TASK_ID, authorization);
+    }
+
+    @Test
+    void shouldCallGetComputeLogs() {
+        final TaskController controller = spy(taskController);
+        final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
+        controller.getComputeLogsLegacy(TASK_ID, WORKER_ADDRESS, authorization);
+        verify(controller).getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
+    }
+    // endregion
 
     //region getChallenge
     @Test
@@ -193,7 +212,7 @@ class TaskControllerTests {
         ReplicateModel dto = taskController.buildReplicateModel(entity);
         assertEquals(TASK_ID, dto.getChainTaskId());
         assertTrue(dto.getSelf().endsWith("/tasks/0xtask/replicates/0xworker"));
-        assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/stdout"));
+        assertTrue(dto.getAppLogs().endsWith("/tasks/0xtask/replicates/0xworker/logs"));
     }
     //endregion
 
@@ -235,7 +254,6 @@ class TaskControllerTests {
                 .build();
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.empty());
         ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
@@ -256,7 +274,6 @@ class TaskControllerTests {
                 .build();
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         ResponseEntity<TaskLogsModel> response = taskController.getTaskLogs(TASK_ID, authorization);
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
@@ -301,7 +318,6 @@ class TaskControllerTests {
                 .build();
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
         when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
-        when(taskLogsService.getComputeLogs(TASK_ID, WORKER_ADDRESS)).thenReturn(Optional.empty());
         ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);
@@ -322,7 +338,6 @@ class TaskControllerTests {
                 .build();
         String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
-        when(challengeService.getChallenge(requesterAddress)).thenReturn(challenge);
         ResponseEntity<ComputeLogs> response = taskController.getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(iexecHubService).getTaskDescription(TASK_ID);

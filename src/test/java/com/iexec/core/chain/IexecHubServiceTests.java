@@ -50,7 +50,7 @@ class IexecHubServiceTests {
     private static final long TIME_INTERVAL_IN_MS = 100L;
 
     @Mock
-    private CredentialsService credentialsService;
+    private SignerService signerService;
 
     @Mock
     private Web3jService web3jService;
@@ -66,11 +66,11 @@ class IexecHubServiceTests {
 
         final Credentials credentials = Credentials.create(Keys.createEcKeyPair());
 
-        when(credentialsService.getCredentials()).thenReturn(credentials);
+        when(signerService.getCredentials()).thenReturn(credentials);
         when(web3jService.hasEnoughGas(any())).thenReturn(true);
         when(chainConfig.getHubAddress()).thenReturn("0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860");
 
-        iexecHubService = spy(new IexecHubService(credentialsService, web3jService, chainConfig));
+        iexecHubService = spy(new IexecHubService(signerService, web3jService, chainConfig));
     }
 
     // region isTaskInCompletedStatusOnChain
