@@ -147,6 +147,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                     "This Scheduler is now OUT-OF-SERVICE until communication is restored." +
                     " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
             if (!outOfService) {
+                log.debug("Publishing ChainDisconnectedEvent");
                 outOfService = true;
                 applicationEventPublisher.publishEvent(new ChainDisconnectedEvent(this));
             }
@@ -180,6 +181,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
             consecutiveFailures = 0;
         }
         if (outOfService) {
+            log.debug("Publishing ChainConnectedEvent");
             outOfService = false;
             applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
         }
