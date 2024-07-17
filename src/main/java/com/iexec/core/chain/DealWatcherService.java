@@ -31,7 +31,6 @@ import io.micrometer.core.instrument.Metrics;
 import io.reactivex.disposables.Disposable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -108,7 +107,7 @@ public class DealWatcherService {
      * a large number of tasks (BoT).
      */
     @Async
-    @EventListener({ApplicationReadyEvent.class, ChainConnectedEvent.class})
+    @EventListener(ChainConnectedEvent.class)
     public void run() {
         outOfService = false;
         disposeSubscription(dealEventsSubscription);
