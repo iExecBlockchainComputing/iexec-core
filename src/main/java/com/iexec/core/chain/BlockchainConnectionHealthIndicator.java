@@ -25,10 +25,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -101,7 +102,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         this.clock = clock;
     }
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     void scheduleMonitoring() {
         monitoringExecutor.scheduleAtFixedRate(this::checkConnection, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
     }
