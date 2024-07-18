@@ -310,6 +310,7 @@ class DealWatcherServiceTests {
     // region replayDealEvent
     @Test
     void shouldReplayAllEventInRange() {
+        ReflectionTestUtils.setField(dealWatcherService, "outOfService", false);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
         IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
 

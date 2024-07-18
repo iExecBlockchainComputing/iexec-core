@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -60,7 +61,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     @Getter
     private LocalDateTime firstFailure = null;
     @Getter
-    private boolean outOfService = false;
+    private boolean outOfService = true;
 
     /**
      * Required for test purposes.
@@ -101,7 +102,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
         this.clock = clock;
     }
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     void scheduleMonitoring() {
         monitoringExecutor.scheduleAtFixedRate(this::checkConnection, 0, pollingInterval.toSeconds(), TimeUnit.SECONDS);
     }
@@ -141,11 +142,13 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      */
     private void connectionFailed() {
         ++consecutiveFailures;
+        log.debug("connection failure [attempts:{}, threshold:{}]", consecutiveFailures, outOfServiceThreshold);
         if (consecutiveFailures >= outOfServiceThreshold) {
             log.error("Blockchain hasn't been accessed for a long period. " +
                     "This Scheduler is now OUT-OF-SERVICE until communication is restored." +
                     " [unavailabilityPeriod:{}]", pollingInterval.multipliedBy(outOfServiceThreshold));
             if (!outOfService) {
+                log.debug("Publishing ChainDisconnectedEvent");
                 outOfService = true;
                 applicationEventPublisher.publishEvent(new ChainDisconnectedEvent(this));
             }
@@ -173,14 +176,15 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private void connectionSucceeded(long latestBlockNumber) {
         if (consecutiveFailures > 0) {
             log.info("Blockchain connection is now restored after a period of unavailability." +
-                    " [block:{}, unavailabilityPeriod:{}]",
+                            " [block:{}, unavailabilityPeriod:{}]",
                     latestBlockNumber, pollingInterval.multipliedBy(consecutiveFailures));
             firstFailure = null;
             consecutiveFailures = 0;
-            if (outOfService) {
-                outOfService = false;
-                applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
-            }
+        }
+        if (outOfService) {
+            log.debug("Publishing ChainConnectedEvent");
+            outOfService = false;
+            applicationEventPublisher.publishEvent(new ChainConnectedEvent(this));
         }
     }
 
