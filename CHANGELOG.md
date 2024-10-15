@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 
 ### Dependency Upgrades
 
+- Upgrade java image to eclipse-temurin 11.0.24_8 #713
 - Upgrade to Gradle 8.7. (#692)
 - Upgrade to `eclipse-temurin:11.0.22_7-jre-focal`. (#693)
 - Upgrade to Spring Boot 2.7.18. (#694)
