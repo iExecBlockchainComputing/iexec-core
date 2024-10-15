@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### Dependency Upgrades
+
+- Upgrade to `eclipse-temurin 11.0.24_8-jre-focal`. #713
+
 ### Bug Fixes
 
 - Start scheduler in out-of-service mode. (#712)
@@ -39,8 +43,6 @@ All notable changes to this project will be documented in this file.
 
 ### Dependency Upgrades
 
-
-- Upgrade to `eclipse-temurin 11.0.24_8`. #713
 - Upgrade to Gradle 8.7. (#692)
 - Upgrade to `eclipse-temurin:11.0.22_7-jre-focal`. (#693)
 - Upgrade to Spring Boot 2.7.18. (#694)
