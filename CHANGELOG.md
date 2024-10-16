@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Dependency Upgrades
 
-- Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. #713
+- Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. (#713)
 
 ### Bug Fixes
 
