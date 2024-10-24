@@ -4,14 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### Bug Fixes
+
+- Start scheduler in out-of-service mode. (#712)
+- Scheduler needs to enter out-of-service mode on first blockchain communication loss. (#715)
+  This is due to Nethermind v1.14.7+99775bf7 where filters are lots on restart.
+
 ### Dependency Upgrades
 
 - Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. (#713)
 - Upgrade to Gradle 8.10.2. (#714)
-
-### Bug Fixes
-
-- Start scheduler in out-of-service mode. (#712)
 
 ## [[8.5.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.5.0) 2024-06-19
 
