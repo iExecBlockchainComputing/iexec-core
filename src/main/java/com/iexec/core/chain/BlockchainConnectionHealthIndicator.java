@@ -52,10 +52,9 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private final ScheduledExecutorService monitoringExecutor;
 
     /**
-     * Current number of consecutive failures.
+     * Current number of consecutive failures. Startup value is greater than {@literal 0} to be out-of-service.
      */
-    @Getter
-    private int consecutiveFailures = 0;
+    private int consecutiveFailures = 1;
     @Getter
     private LocalDateTime firstFailure = null;
 
@@ -127,7 +126,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * </ul>
      */
     private void connectionFailed() {
-        if (consecutiveFailures == 0) {
+        if (!isOutOfService()) {
             log.error("Blockchain communication failed, this Scheduler is now OUT-OF-SERVICE until communication is restored.");
             log.debug("Publishing ChainDisconnectedEvent");
             applicationEventPublisher.publishEvent(new ChainDisconnectedEvent(this));
@@ -147,7 +146,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * </ul>
      */
     private void connectionSucceeded(long latestBlockNumber) {
-        if (consecutiveFailures > 0) {
+        if (isOutOfService()) {
             log.info("Blockchain connection is now restored after a period of unavailability." +
                             " [block:{}, unavailabilityPeriod:{}]",
                     latestBlockNumber, pollingInterval.multipliedBy(consecutiveFailures));
@@ -160,7 +159,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        final Health.Builder healthBuilder = consecutiveFailures > 0
+        final Health.Builder healthBuilder = isOutOfService()
                 ? Health.outOfService()
                 : Health.up();
 
@@ -174,6 +173,20 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
                 .build();
     }
 
+    /**
+     * Returns whether the scheduler should be considered out-of-service.
+     *
+     * @return {@literal true} in case of at least one consecutive failures, {@literal false} otherwise.
+     */
+    public boolean isOutOfService() {
+        return consecutiveFailures > 0;
+    }
+
+    /**
+     * Returns whether the scheduler is up or not.
+     *
+     * @return {@literal true} if the scheduler is up, {@literal false} otherwise.
+     */
     public boolean isUp() {
         return health().getStatus() == Status.UP;
     }
