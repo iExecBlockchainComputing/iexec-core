@@ -101,14 +101,14 @@ class BlockchainConnectionHealthIndicatorTests {
      */
     static Stream<Arguments> checkConnectionParameters() {
         return Stream.of(
-                // Should get latest block number and reset `firstFailure`
+                // Should get latest block number and stay OUT-OF-SERVICE
                 Arguments.of(0, null, 1L, false, null),
                 Arguments.of(0, null, 5L, false, null),
                 Arguments.of(0, null, 100L, false, null),
                 Arguments.of(0, null, 5_000L, false, null),
-                Arguments.of(1, LocalDateTime.now(CLOCK), 1L, false, null),
 
                 // Should not get latest block number and become OUT-OF-SERVICE
+                // This will set firstFailure
                 Arguments.of(0, null, 0L, true, LocalDateTime.now(CLOCK)),
                 Arguments.of(1, LocalDateTime.now(CLOCK), 0L, true, LocalDateTime.now(CLOCK)),
                 Arguments.of(2, LocalDateTime.now(CLOCK), 0L, true, LocalDateTime.now(CLOCK)),
@@ -117,6 +117,8 @@ class BlockchainConnectionHealthIndicatorTests {
                 Arguments.of(50, LocalDateTime.now(CLOCK), 0L, true, LocalDateTime.now(CLOCK)),
 
                 // Should get latest block number and exit OUT-OF-SERVICE
+                // This will reset firstFailure and consecutiveFailures
+                Arguments.of(1, LocalDateTime.now(CLOCK), 1L, false, null),
                 Arguments.of(4, LocalDateTime.now(CLOCK), 1L, false, null),
                 Arguments.of(5, LocalDateTime.now(CLOCK), 1L, false, null),
                 Arguments.of(50, LocalDateTime.now(CLOCK), 1L, false, null)

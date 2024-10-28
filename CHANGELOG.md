@@ -7,8 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Start scheduler in out-of-service mode. (#712)
-- Scheduler needs to enter out-of-service mode on first blockchain communication loss. (#715)
-  This is due to Nethermind v1.14.7+99775bf7 where filters are lots on restart.
+- Scheduler needs to enter out-of-service mode on first blockchain communication loss.
+  This is due to **Nethermind v1.14.7+99775bf7** where filters are lost on restart. (#715)
 
 ### Dependency Upgrades
 
