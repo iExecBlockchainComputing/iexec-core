@@ -47,8 +47,6 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CONFIG_SERVER_PROTOCOL` | _iExec Config Server_ communication protocol. | String | `http` |
 | `IEXEC_CONFIG_SERVER_HOST` | _iExec Config Server_ host. | String | `localhost` |
 | `IEXEC_CONFIG_SERVER_PORT` | _iExec Config Server_ port. | Positive integer | `8888` |
-| `IEXEC_CHAIN_HEALTH_POLLING_INTERVAL_IN_BLOCKS` | Polling interval (in blocks) on the blockchain to check this _Scheduler_ can communicate with it. | Positive integer | 3 |
-| `IEXEC_CHAIN_HEALTH_OUT_OF_SERVICE_THRESHOLD` | Max number of consecutive failures of blockchain connection attempts before this _Scheduler_ is declared as OUT-OF-SERVICE. | Positive integer | 4 |
 | `IEXEC_RESULT_REPOSITORY_PROTOCOL` | _iExec Result Proxy_ server communication protocol. | String | `http` |
 | `IEXEC_RESULT_REPOSITORY_HOST` | _iExec Result Proxy_ server host. | String | `localhost` |
 | `IEXEC_RESULT_REPOSITORY_PORT` | _iExec Result Proxy_ server port. | Positive integer | `13200` |
