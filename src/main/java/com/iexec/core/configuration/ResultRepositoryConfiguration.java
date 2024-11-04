@@ -46,11 +46,6 @@ public class ResultRepositoryConfiguration {
             urlToUse = getResultRepositoryURL();
             log.debug("Using default result repository URL: {}", urlToUse);
         }
-        try {
-            return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, urlToUse);
-        } catch (Exception e) {
-            log.error("Failed to create ResultProxyClient with URL: {}", urlToUse, e);
-            throw e;
-        }
+        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, urlToUse);
     }
 }

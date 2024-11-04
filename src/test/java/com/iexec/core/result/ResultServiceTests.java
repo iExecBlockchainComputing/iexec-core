@@ -31,8 +31,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResultServiceTests {
@@ -136,6 +135,20 @@ class ResultServiceTests {
 
         assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, proxyUrl)).isTrue();
         verify(resultRepositoryConfiguration).createResultProxyClient(proxyUrl);
+    }
+
+    @Test
+    void shouldUseDefaultUrlIfProxyUrlIsNull() {
+        Task task = getStubTask();
+        task.setEnclaveChallenge(EMPTY_ADDRESS);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
+                .thenReturn(workerpoolAuthorization);
+        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
+
+        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, null)).isTrue();
+        verify(resultRepositoryConfiguration).createResultProxyClient(null);
     }
 
     @SneakyThrows
