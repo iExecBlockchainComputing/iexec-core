@@ -1,19 +1,3 @@
-/*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.iexec.core.result;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
@@ -21,6 +5,7 @@ import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.commons.poco.utils.HashUtils;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.resultproxy.api.ResultProxyClient;
@@ -28,9 +13,10 @@ import feign.FeignException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.crypto.Sign;
@@ -48,9 +34,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ResultServiceTests {
     @Mock
     private ResultProxyClient resultProxyClient;
+    @Mock
+    private ResultRepositoryConfiguration resultRepositoryConfiguration;
     @Mock
     private SignatureService signatureService;
     @Mock
@@ -66,7 +55,6 @@ class ResultServiceTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         enclaveCreds = createCredentials();
         schedulerCreds = createCredentials();
         final String hash = HashUtils.concatenateAndHash(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
@@ -78,6 +66,7 @@ class ResultServiceTests {
                 .signature(signature)
                 .build();
         when(signatureService.getAddress()).thenReturn(schedulerCreds.getAddress());
+        when(resultRepositoryConfiguration.createResultProxyClient(any())).thenReturn(resultProxyClient);
     }
 
     @Test
@@ -131,6 +120,22 @@ class ResultServiceTests {
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
         assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isTrue();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
+    }
+
+    @Test
+    void shouldUseProxyUrlIfProvided() {
+        String proxyUrl = "https://custom-proxy.com";
+        Task task = getStubTask();
+        task.setEnclaveChallenge(EMPTY_ADDRESS);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
+                .thenReturn(workerpoolAuthorization);
+        when(resultRepositoryConfiguration.createResultProxyClient(proxyUrl)).thenReturn(resultProxyClient);
+        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
+
+        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, proxyUrl)).isTrue();
+        verify(resultRepositoryConfiguration).createResultProxyClient(proxyUrl);
     }
 
     @SneakyThrows

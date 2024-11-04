@@ -20,13 +20,14 @@ import com.iexec.resultproxy.api.ResultProxyClient;
 import com.iexec.resultproxy.api.ResultProxyClientBuilder;
 import feign.Logger;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
-import org.springframework.context.annotation.Bean;
 
 @Value
 @ConstructorBinding
 @ConfigurationProperties(prefix = "result-repository")
+@Slf4j
 public class ResultRepositoryConfiguration {
     String protocol;
     String host;
@@ -36,8 +37,20 @@ public class ResultRepositoryConfiguration {
         return protocol + "://" + host + ":" + port;
     }
 
-    @Bean
-    public ResultProxyClient resultProxyClient() {
-        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, getResultRepositoryURL());
+    public ResultProxyClient createResultProxyClient(final String proxyUrl) {
+        String urlToUse;
+        if (proxyUrl != null && !proxyUrl.isEmpty()) {
+            urlToUse = proxyUrl;
+            log.debug("Using overridden proxy URL: {}", urlToUse);
+        } else {
+            urlToUse = getResultRepositoryURL();
+            log.debug("Using default result repository URL: {}", urlToUse);
+        }
+        try {
+            return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, urlToUse);
+        } catch (Exception e) {
+            log.error("Failed to create ResultProxyClient with URL: {}", urlToUse, e);
+            throw e;
+        }
     }
 }
