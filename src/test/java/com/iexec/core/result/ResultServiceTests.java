@@ -130,7 +130,6 @@ class ResultServiceTests {
         when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
                 .thenReturn(workerpoolAuthorization);
-        when(resultRepositoryConfiguration.createResultProxyClient(proxyUrl)).thenReturn(resultProxyClient);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
 
         assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, proxyUrl)).isTrue();
@@ -149,6 +148,20 @@ class ResultServiceTests {
 
         assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, null)).isTrue();
         verify(resultRepositoryConfiguration).createResultProxyClient(null);
+    }
+
+    @Test
+    void shouldUseDefaultUrlIfProxyUrlIsEmpty() {
+        Task task = getStubTask();
+        task.setEnclaveChallenge(EMPTY_ADDRESS);
+
+        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
+        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
+                .thenReturn(workerpoolAuthorization);
+        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
+
+        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, "")).isTrue();
+        verify(resultRepositoryConfiguration).createResultProxyClient("");
     }
 
     @SneakyThrows

@@ -38,14 +38,10 @@ public class ResultRepositoryConfiguration {
     }
 
     public ResultProxyClient createResultProxyClient(final String proxyUrl) {
-        String urlToUse;
-        if (proxyUrl != null && !proxyUrl.isEmpty()) {
-            urlToUse = proxyUrl;
-            log.debug("Using overridden proxy URL: {}", urlToUse);
-        } else {
-            urlToUse = getResultRepositoryURL();
-            log.debug("Using default result repository URL: {}", urlToUse);
-        }
+        String urlToUse = (proxyUrl != null && !proxyUrl.isEmpty()) ? proxyUrl : getResultRepositoryURL();
+        log.debug("Using {} result repository URL: {}", (proxyUrl != null && !proxyUrl.isEmpty()) ? "overridden" : "default", urlToUse);
+
         return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, urlToUse);
     }
+
 }
