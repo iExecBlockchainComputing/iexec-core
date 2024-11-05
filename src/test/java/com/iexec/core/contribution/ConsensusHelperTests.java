@@ -29,8 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConsensusHelperTests {
 
-    private final static String CHAIN_TASK_ID = "0xtaskId";
-    private final static long MAX_EXECUTION_TIME = 60000;
+    private static final String CHAIN_TASK_ID = "0xtaskId";
+    private static final long MAX_EXECUTION_TIME = 60000;
 
     /*
     *

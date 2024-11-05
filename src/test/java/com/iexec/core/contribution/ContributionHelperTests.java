@@ -31,9 +31,9 @@ import static org.mockito.Mockito.when;
 
 class ContributionHelperTests {
 
-    private final static String A = "0xA";
-    private final static String B = "0xB";
-    private final static long MAX_EXECUTION_TIME = 60000;
+    private static final String A = "0xA";
+    private static final String B = "0xB";
+    private static final long MAX_EXECUTION_TIME = 60000;
 
     @Test
     void shouldGetContributedWeight() {
