@@ -21,6 +21,7 @@ import com.iexec.resultproxy.api.ResultProxyClientBuilder;
 import feign.Logger;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 
@@ -37,11 +38,11 @@ public class ResultRepositoryConfiguration {
         return protocol + "://" + host + ":" + port;
     }
 
-    public ResultProxyClient createResultProxyClient(final String proxyUrl) {
-        String urlToUse = (proxyUrl != null && !proxyUrl.isEmpty()) ? proxyUrl : getResultRepositoryURL();
-        log.debug("Using {} result repository URL: {}", (proxyUrl != null && !proxyUrl.isEmpty()) ? "overridden" : "default", urlToUse);
-
-        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, urlToUse);
+    public ResultProxyClient createProxyClientFromURL(final String url) {
+        final boolean shouldOverride = StringUtils.isBlank(url);
+        final String resultProxyClientURL = shouldOverride ? getResultRepositoryURL() : url;
+        log.debug("result-proxy URL [url:{}, task-override:{}]", resultProxyClientURL, shouldOverride);
+        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, resultProxyClientURL);
     }
 
 }

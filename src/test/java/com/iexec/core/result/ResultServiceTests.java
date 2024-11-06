@@ -18,6 +18,7 @@ package com.iexec.core.result;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.commons.poco.utils.HashUtils;
 import com.iexec.core.chain.SignatureService;
@@ -39,6 +40,7 @@ import org.web3j.crypto.Sign;
 
 import java.util.Optional;
 
+import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
 import static com.iexec.commons.poco.utils.BytesUtils.EMPTY_ADDRESS;
 import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
@@ -47,7 +49,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ResultServiceTests {
@@ -67,6 +70,7 @@ class ResultServiceTests {
     private Credentials schedulerCreds;
     private Signature signature;
     private WorkerpoolAuthorization workerpoolAuthorization;
+    private TaskDescription taskDescription;
 
     @BeforeEach
     void init() {
@@ -80,8 +84,13 @@ class ResultServiceTests {
                 .enclaveChallenge(enclaveCreds.getAddress())
                 .signature(signature)
                 .build();
+        taskDescription = TaskDescription
+                .builder()
+                .chainTaskId(CHAIN_TASK_ID)
+                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
         when(signatureService.getAddress()).thenReturn(schedulerCreds.getAddress());
-        when(resultRepositoryConfiguration.createResultProxyClient(any())).thenReturn(resultProxyClient);
+        when(resultRepositoryConfiguration.createProxyClientFromURL(any())).thenReturn(resultProxyClient);
     }
 
     @Test
@@ -92,7 +101,7 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isFalse();
+        assertThat(resultService.isResultUploaded(taskDescription)).isFalse();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS);
         verify(resultProxyClient).getJwt(signature.getValue(), workerpoolAuthorization);
     }
@@ -107,7 +116,7 @@ class ResultServiceTests {
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
         when(resultProxyClient.isResultUploaded("token", CHAIN_TASK_ID)).thenThrow(FeignException.Unauthorized.class);
-        assertThatThrownBy(() -> resultService.isResultUploaded(CHAIN_TASK_ID))
+        assertThatThrownBy(() -> resultService.isResultUploaded(taskDescription))
                 .isInstanceOf(FeignException.Unauthorized.class);
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
     }
@@ -120,7 +129,7 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isTrue();
+        assertThat(resultService.isResultUploaded(taskDescription)).isTrue();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS);
     }
 
@@ -133,51 +142,8 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress()))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isTrue();
+        assertThat(resultService.isResultUploaded(taskDescription)).isTrue();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
-    }
-
-    @Test
-    void shouldUseProxyUrlIfProvided() {
-        String proxyUrl = "https://custom-proxy.com";
-        Task task = getStubTask();
-        task.setEnclaveChallenge(EMPTY_ADDRESS);
-
-        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
-                .thenReturn(workerpoolAuthorization);
-        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, proxyUrl)).isTrue();
-        verify(resultRepositoryConfiguration).createResultProxyClient(proxyUrl);
-    }
-
-    @Test
-    void shouldUseDefaultUrlIfProxyUrlIsNull() {
-        Task task = getStubTask();
-        task.setEnclaveChallenge(EMPTY_ADDRESS);
-
-        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
-                .thenReturn(workerpoolAuthorization);
-        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, null)).isTrue();
-        verify(resultRepositoryConfiguration).createResultProxyClient(null);
-    }
-
-    @Test
-    void shouldUseDefaultUrlIfProxyUrlIsEmpty() {
-        Task task = getStubTask();
-        task.setEnclaveChallenge(EMPTY_ADDRESS);
-
-        when(taskService.getTaskByChainTaskId(CHAIN_TASK_ID)).thenReturn(Optional.of(task));
-        when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
-                .thenReturn(workerpoolAuthorization);
-        when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID, "")).isTrue();
-        verify(resultRepositoryConfiguration).createResultProxyClient("");
     }
 
     @SneakyThrows

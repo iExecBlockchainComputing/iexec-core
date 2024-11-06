@@ -17,6 +17,7 @@
 package com.iexec.core.result;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.task.Task;
@@ -45,22 +46,18 @@ public class ResultService {
     }
 
     @Retryable(value = FeignException.class)
-    public boolean isResultUploaded(final String chainTaskId, final String proxyUrl) {
-        final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClient(proxyUrl);
-        final String enclaveChallenge = taskService.getTaskByChainTaskId(chainTaskId).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
-        final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), chainTaskId, enclaveChallenge);
+    public boolean isResultUploaded(final TaskDescription task) {
+        final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createProxyClientFromURL(task.getResultStorageProxy());
+        final String enclaveChallenge = taskService.getTaskByChainTaskId(task.getChainTaskId()).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
+        final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), task.getChainTaskId(), enclaveChallenge);
         final String resultProxyToken = resultProxyClient.getJwt(workerpoolAuthorization.getSignature().getValue(), workerpoolAuthorization);
         if (resultProxyToken.isEmpty()) {
-            log.error("isResultUploaded failed (getResultProxyToken) [chainTaskId:{}]", chainTaskId);
+            log.error("isResultUploaded failed (getResultProxyToken) [chainTaskId:{}]", task.getChainTaskId());
             return false;
         }
 
-        resultProxyClient.isResultUploaded(resultProxyToken, chainTaskId);
+        resultProxyClient.isResultUploaded(resultProxyToken, task.getChainTaskId());
         return true;
-    }
-
-    public boolean isResultUploaded(final String chainTaskId) {
-        return isResultUploaded(chainTaskId, null);
     }
 
     @Recover

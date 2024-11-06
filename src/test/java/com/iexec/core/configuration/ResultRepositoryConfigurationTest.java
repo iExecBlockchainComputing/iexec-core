@@ -59,10 +59,10 @@ class ResultRepositoryConfigurationTest {
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(defaultUrl)))
                     .thenReturn(mockClient);
 
-            ResultProxyClient clientWithNull = config.createResultProxyClient(null);
+            ResultProxyClient clientWithNull = config.createProxyClientFromURL(null);
             assertNotNull(clientWithNull);
 
-            ResultProxyClient clientWithEmpty = config.createResultProxyClient("");
+            ResultProxyClient clientWithEmpty = config.createProxyClientFromURL("");
             assertNotNull(clientWithEmpty);
 
             mockedBuilder.verify(() -> ResultProxyClientBuilder.getInstance(Logger.Level.NONE, defaultUrl), times(2));
@@ -78,7 +78,7 @@ class ResultRepositoryConfigurationTest {
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(proxyUrl)))
                     .thenReturn(mockClient);
 
-            ResultProxyClient client = config.createResultProxyClient(proxyUrl);
+            ResultProxyClient client = config.createProxyClientFromURL(proxyUrl);
             assertNotNull(client);
 
             mockedBuilder.verify(() -> ResultProxyClientBuilder.getInstance(Logger.Level.NONE, proxyUrl));
