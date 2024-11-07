@@ -33,16 +33,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ResultRepositoryConfigurationTest {
 
-    private ResultRepositoryConfiguration config;
+    private final ResultRepositoryConfiguration config = new ResultRepositoryConfiguration(PROTOCOL, HOST, PORT);
 
     private static final String PROTOCOL = "http";
     private static final String HOST = "localhost";
     private static final String PORT = "8080";
-
-    @BeforeEach
-    void setUp() {
-        config = new ResultRepositoryConfiguration(PROTOCOL, HOST, PORT);
-    }
 
     @Test
     void shouldReturnCorrectResultRepositoryURL() {

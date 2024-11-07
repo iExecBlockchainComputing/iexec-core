@@ -62,8 +62,8 @@ public class ResultService {
     }
 
     @Recover
-    private boolean isResultUploaded(final FeignException e, final String chainTaskId) {
-        log.error("Cannot check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId, e);
+    private boolean isResultUploaded(final FeignException e, final TaskDescription taskDescription) {
+        log.error("Cannot check isResultUploaded after multiple retries [chainTaskId:{}]", taskDescription.getChainTaskId(), e);
         return false;
     }
 }
