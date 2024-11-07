@@ -73,7 +73,7 @@ class ResultServiceTests {
     private final TaskDescription taskDescription = TaskDescription.builder()
             .chainTaskId(CHAIN_TASK_ID)
             .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
-            .build();;
+            .build();
 
     @BeforeEach
     void init() {
