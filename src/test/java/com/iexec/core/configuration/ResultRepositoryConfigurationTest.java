@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,10 +59,10 @@ class ResultRepositoryConfigurationTest {
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(defaultUrl)))
                     .thenReturn(mockClient);
 
-            ResultProxyClient clientWithNull = config.createProxyClientFromURL(null);
+            ResultProxyClient clientWithNull = config.createResultProxyClientFromURL(null);
             assertNotNull(clientWithNull);
 
-            ResultProxyClient clientWithEmpty = config.createProxyClientFromURL("");
+            ResultProxyClient clientWithEmpty = config.createResultProxyClientFromURL("");
             assertNotNull(clientWithEmpty);
 
             mockedBuilder.verify(() -> ResultProxyClientBuilder.getInstance(Logger.Level.NONE, defaultUrl), times(2));
@@ -78,7 +78,7 @@ class ResultRepositoryConfigurationTest {
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(proxyUrl)))
                     .thenReturn(mockClient);
 
-            ResultProxyClient client = config.createProxyClientFromURL(proxyUrl);
+            ResultProxyClient client = config.createResultProxyClientFromURL(proxyUrl);
             assertNotNull(client);
 
             mockedBuilder.verify(() -> ResultProxyClientBuilder.getInstance(Logger.Level.NONE, proxyUrl));

@@ -70,7 +70,10 @@ class ResultServiceTests {
     private Credentials schedulerCreds;
     private Signature signature;
     private WorkerpoolAuthorization workerpoolAuthorization;
-    private TaskDescription taskDescription;
+    private final TaskDescription taskDescription = TaskDescription.builder()
+            .chainTaskId(CHAIN_TASK_ID)
+            .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+            .build();;
 
     @BeforeEach
     void init() {
@@ -84,13 +87,8 @@ class ResultServiceTests {
                 .enclaveChallenge(enclaveCreds.getAddress())
                 .signature(signature)
                 .build();
-        taskDescription = TaskDescription
-                .builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
-                .build();
         when(signatureService.getAddress()).thenReturn(schedulerCreds.getAddress());
-        when(resultRepositoryConfiguration.createProxyClientFromURL(any())).thenReturn(resultProxyClient);
+        when(resultRepositoryConfiguration.createResultProxyClientFromURL(any())).thenReturn(resultProxyClient);
     }
 
     @Test

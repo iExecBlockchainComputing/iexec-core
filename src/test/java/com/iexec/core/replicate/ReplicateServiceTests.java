@@ -778,11 +778,11 @@ class ReplicateServiceTests {
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
-        when(resultService.isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID))).thenReturn(false);
+        when(resultService.isResultUploaded(taskDescription)).thenReturn(false);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isFalse();
-        verify(resultService).isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID));
+        verify(resultService).isResultUploaded(taskDescription);
     }
 
     @Test
@@ -792,7 +792,7 @@ class ReplicateServiceTests {
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isFalse();
-        verify(resultService, never()).isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID));
+        verifyNoInteractions(resultService);
     }
 
     @ParameterizedTest
@@ -808,7 +808,7 @@ class ReplicateServiceTests {
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
-        verify(resultService, never()).isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID));
+        verifyNoInteractions(resultService);
     }
 
     @Test
@@ -1111,7 +1111,6 @@ class ReplicateServiceTests {
                 .taskDescription(TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build())
                 .build();
 
-        when(resultService.isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID))).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, updateArgs))
                 .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
@@ -1170,7 +1169,7 @@ class ReplicateServiceTests {
                 .thenReturn(true);
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(task);
         when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(true);
-        when(resultService.isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID))).thenReturn(true);
+        when(resultService.isResultUploaded(task)).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, null))
                 .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
@@ -1219,7 +1218,7 @@ class ReplicateServiceTests {
 
         verify(iexecHubService).repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1);
         verify(iexecHubService).getTaskDescription(CHAIN_TASK_ID);
-        verify(resultService).isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID));
+        verify(resultService).isResultUploaded(task);
     }
 
     @Test

@@ -38,7 +38,7 @@ public class ResultRepositoryConfiguration {
         return protocol + "://" + host + ":" + port;
     }
 
-    public ResultProxyClient createProxyClientFromURL(final String url) {
+    public ResultProxyClient createResultProxyClientFromURL(final String url) {
         final boolean shouldOverride = StringUtils.isBlank(url);
         final String resultProxyClientURL = shouldOverride ? getResultRepositoryURL() : url;
         log.debug("result-proxy URL [url:{}, task-override:{}]", resultProxyClientURL, shouldOverride);
