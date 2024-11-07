@@ -39,9 +39,9 @@ public class ResultRepositoryConfiguration {
     }
 
     public ResultProxyClient createResultProxyClientFromURL(final String url) {
-        final boolean UseDefaultUrl = StringUtils.isBlank(url);
-        final String resultProxyClientURL = UseDefaultUrl ? getResultRepositoryURL() : url;
-        log.debug("result-proxy URL [url:{}, default-url:{}]", resultProxyClientURL, UseDefaultUrl);
+        final boolean useDefaultUrl = StringUtils.isBlank(url);
+        final String resultProxyClientURL = useDefaultUrl ? getResultRepositoryURL() : url;
+        log.debug("result-proxy URL [url:{}, default-url:{}]", resultProxyClientURL, useDefaultUrl);
         return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, resultProxyClientURL);
     }
 
