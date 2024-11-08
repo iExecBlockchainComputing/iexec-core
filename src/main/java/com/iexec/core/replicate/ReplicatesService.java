@@ -554,7 +554,7 @@ public class ReplicatesService {
         }
 
         // Cloud computing, upload to IPFS - basic & TEE
-        return resultService.isResultUploaded(task.getChainTaskId());
+        return resultService.isResultUploaded(task);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {

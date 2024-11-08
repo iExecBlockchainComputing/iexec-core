@@ -18,9 +18,11 @@ package com.iexec.core.result;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.commons.poco.utils.HashUtils;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.resultproxy.api.ResultProxyClient;
@@ -28,15 +30,17 @@ import feign.FeignException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.crypto.Sign;
 
 import java.util.Optional;
 
+import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
 import static com.iexec.commons.poco.utils.BytesUtils.EMPTY_ADDRESS;
 import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
@@ -48,9 +52,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ResultServiceTests {
     @Mock
     private ResultProxyClient resultProxyClient;
+    @Mock
+    private ResultRepositoryConfiguration resultRepositoryConfiguration;
     @Mock
     private SignatureService signatureService;
     @Mock
@@ -63,10 +70,13 @@ class ResultServiceTests {
     private Credentials schedulerCreds;
     private Signature signature;
     private WorkerpoolAuthorization workerpoolAuthorization;
+    private final TaskDescription taskDescription = TaskDescription.builder()
+            .chainTaskId(CHAIN_TASK_ID)
+            .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+            .build();
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         enclaveCreds = createCredentials();
         schedulerCreds = createCredentials();
         final String hash = HashUtils.concatenateAndHash(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
@@ -78,6 +88,7 @@ class ResultServiceTests {
                 .signature(signature)
                 .build();
         when(signatureService.getAddress()).thenReturn(schedulerCreds.getAddress());
+        when(resultRepositoryConfiguration.createResultProxyClientFromURL(any())).thenReturn(resultProxyClient);
     }
 
     @Test
@@ -88,7 +99,7 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isFalse();
+        assertThat(resultService.isResultUploaded(taskDescription)).isFalse();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS);
         verify(resultProxyClient).getJwt(signature.getValue(), workerpoolAuthorization);
     }
@@ -103,7 +114,7 @@ class ResultServiceTests {
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
         when(resultProxyClient.isResultUploaded("token", CHAIN_TASK_ID)).thenThrow(FeignException.Unauthorized.class);
-        assertThatThrownBy(() -> resultService.isResultUploaded(CHAIN_TASK_ID))
+        assertThatThrownBy(() -> resultService.isResultUploaded(taskDescription))
                 .isInstanceOf(FeignException.Unauthorized.class);
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
     }
@@ -116,7 +127,7 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isTrue();
+        assertThat(resultService.isResultUploaded(taskDescription)).isTrue();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, EMPTY_ADDRESS);
     }
 
@@ -129,7 +140,7 @@ class ResultServiceTests {
         when(signatureService.createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress()))
                 .thenReturn(workerpoolAuthorization);
         when(resultProxyClient.getJwt(anyString(), any())).thenReturn("token");
-        assertThat(resultService.isResultUploaded(CHAIN_TASK_ID)).isTrue();
+        assertThat(resultService.isResultUploaded(taskDescription)).isTrue();
         verify(signatureService).createAuthorization(schedulerCreds.getAddress(), CHAIN_TASK_ID, enclaveCreds.getAddress());
     }
 

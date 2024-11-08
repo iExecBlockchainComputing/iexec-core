@@ -20,13 +20,15 @@ import com.iexec.resultproxy.api.ResultProxyClient;
 import com.iexec.resultproxy.api.ResultProxyClientBuilder;
 import feign.Logger;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
-import org.springframework.context.annotation.Bean;
 
 @Value
 @ConstructorBinding
 @ConfigurationProperties(prefix = "result-repository")
+@Slf4j
 public class ResultRepositoryConfiguration {
     String protocol;
     String host;
@@ -36,8 +38,11 @@ public class ResultRepositoryConfiguration {
         return protocol + "://" + host + ":" + port;
     }
 
-    @Bean
-    public ResultProxyClient resultProxyClient() {
-        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, getResultRepositoryURL());
+    public ResultProxyClient createResultProxyClientFromURL(final String url) {
+        final boolean useDefaultUrl = StringUtils.isBlank(url);
+        final String resultProxyClientURL = useDefaultUrl ? getResultRepositoryURL() : url;
+        log.debug("result-proxy URL [url:{}, default-url:{}]", resultProxyClientURL, useDefaultUrl);
+        return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, resultProxyClientURL);
     }
+
 }
