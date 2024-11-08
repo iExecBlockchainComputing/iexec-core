@@ -760,11 +760,11 @@ class ReplicateServiceTests {
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
-        when(resultService.isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID))).thenReturn(true);
+        when(resultService.isResultUploaded(taskDescription)).thenReturn(true);
 
         boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
-        verify(resultService).isResultUploaded(iexecHubService.getTaskDescription(CHAIN_TASK_ID));
+        verify(resultService).isResultUploaded(taskDescription);
     }
 
     @ParameterizedTest
