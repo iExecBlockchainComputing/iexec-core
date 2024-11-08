@@ -40,8 +40,8 @@ import static org.mockito.ArgumentMatchers.*;
 
 class ReplicateListenersTests {
 
-    private final static String CHAIN_TASK_ID = "chainTaskId";
-    private final static String WORKER_WALLET = "0xwallet1";
+    private static final String CHAIN_TASK_ID = "chainTaskId";
+    private static final String WORKER_WALLET = "0xwallet1";
 
     @Mock
     private WorkerService workerService;

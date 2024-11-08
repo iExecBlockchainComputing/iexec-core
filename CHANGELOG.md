@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
   This is due to **Nethermind v1.14.7+99775bf7** where filters are lost on restart. (#715)
 - Use Result Proxy URL defined in deal parameters if any, fall back to scheduler default one otherwise. (#716)
 
+### Quality
+
+- Reorder static and final keywords. (#717)
+
 ### Dependency Upgrades
 
 - Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. (#713)
