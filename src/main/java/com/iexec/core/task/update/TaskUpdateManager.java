@@ -286,6 +286,8 @@ class TaskUpdateManager {
             task.setEnclaveChallenge(enclaveChallenge.get());
             update.set("enclaveChallenge", enclaveChallenge.get());
             taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(), update);
+            // Send TaskInitializedEvent to trigger Result Proxy URL publishing to SMS
+            applicationEventPublisher.publishEvent(new TaskInitializedEvent(task.getChainTaskId()));
 
             replicatesService.createEmptyReplicateList(task.getChainTaskId());
             updateTaskStatusAndSave(task, INITIALIZED, null);
