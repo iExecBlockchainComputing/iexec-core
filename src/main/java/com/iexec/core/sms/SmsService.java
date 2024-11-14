@@ -16,33 +16,57 @@
 
 package com.iexec.core.sms;
 
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.commons.poco.utils.HashUtils;
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
+import com.iexec.core.task.event.TaskInitializedEvent;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.web3j.crypto.Hash;
 
 import java.util.Optional;
+
+import static com.iexec.sms.secret.ReservedSecretKeyName.IEXEC_RESULT_IEXEC_RESULT_PROXY_URL;
 
 @Slf4j
 @Service
 public class SmsService {
+    private final IexecHubService iexecHubService;
     private final PlatformRegistryConfiguration registryConfiguration;
+    private final ResultRepositoryConfiguration resultRepositoryConfiguration;
     private final SignatureService signatureService;
     private final SmsClientProvider smsClientProvider;
 
-    public SmsService(PlatformRegistryConfiguration registryConfiguration,
-                      SignatureService signatureService,
-                      SmsClientProvider smsClientProvider) {
+    public SmsService(final IexecHubService iexecHubService,
+                      final PlatformRegistryConfiguration registryConfiguration,
+                      final ResultRepositoryConfiguration resultRepositoryConfiguration,
+                      final SignatureService signatureService,
+                      final SmsClientProvider smsClientProvider) {
+        this.iexecHubService = iexecHubService;
         this.registryConfiguration = registryConfiguration;
+        this.resultRepositoryConfiguration = resultRepositoryConfiguration;
         this.signatureService = signatureService;
         this.smsClientProvider = smsClientProvider;
+    }
+
+    private Optional<String> getVerifiedSmsUrl(String chainTaskId) {
+        final TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
+        return getVerifiedSmsUrl(chainTaskId, taskDescription.getTeeFramework());
+    }
+
+    public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
+        return getVerifiedSmsUrl(chainTaskId, TeeUtils.getTeeFramework(tag));
     }
 
     /**
@@ -55,12 +79,11 @@ public class SmsService {
      * <p>
      * If any of these conditions is wrong, then the {@link SmsClient} is considered to be not-ready.
      *
-     * @param chainTaskId ID of the on-chain task.
-     * @param tag         Tag of the deal.
+     * @param chainTaskId         ID of the on-chain task.
+     * @param teeFrameworkForDeal Tag of the deal.
      * @return SMS url if TEE types of tag &amp; SMS match.
      */
-    public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
-        final TeeFramework teeFrameworkForDeal = TeeUtils.getTeeFramework(tag);
+    Optional<String> getVerifiedSmsUrl(String chainTaskId, TeeFramework teeFrameworkForDeal) {
         if (teeFrameworkForDeal == null) {
             log.error("Can't get verified SMS url with invalid TEE framework " +
                     "from tag [chainTaskId:{}]", chainTaskId);
@@ -146,5 +169,52 @@ public class SmsService {
                     chainTaskId, smsUrl, e);
         }
         return Optional.empty();
+    }
+
+    /**
+     * Checks if default Result Proxy URL is present in SMS.
+     *
+     * @param smsURL The SMS URL to check.
+     * @return {@literal true} if the URL is present, {@literal false} otherwise.
+     * @throws FeignException runtime exception if {@code isWeb2SecretSet} HTTP return code differs from 2XX or 404.
+     */
+    private boolean isWorkerpoolResultProxyUrlPresent(final String smsURL) {
+        try {
+            final SmsClient smsClient = smsClientProvider.getSmsClient(smsURL);
+            smsClient.isWeb2SecretSet(signatureService.getAddress(), IEXEC_RESULT_IEXEC_RESULT_PROXY_URL);
+            return true;
+        } catch (FeignException.NotFound e) {
+            log.info("Worker pool default Result Proxy URL does not exist in SMS");
+        }
+        return false;
+    }
+
+    /**
+     * Pushes worker pool default Result Proxy URL to SMS.
+     *
+     * @param event The default result-proxy URL.
+     */
+    @EventListener
+    public void pushWorkerpoolResultProxyUrl(final TaskInitializedEvent event) {
+        log.debug("pushWorkerpoolResultProxyUrl");
+        try {
+            final String resultProxyURL = resultRepositoryConfiguration.getResultRepositoryURL();
+            final String smsURL = getVerifiedSmsUrl(event.getChainTaskId()).orElseThrow();
+            log.debug("Pushing result-proxy default URL to SMS [sms:{}, result-proxy:{}]", smsURL, resultProxyURL);
+            final SmsClient smsClient = smsClientProvider.getSmsClient(smsURL);
+            final String challenge = HashUtils.concatenateAndHash(
+                    Hash.sha3String("IEXEC_SMS_DOMAIN"),
+                    signatureService.getAddress(),
+                    Hash.sha3String(IEXEC_RESULT_IEXEC_RESULT_PROXY_URL),
+                    Hash.sha3String(resultProxyURL));
+            final String authorization = signatureService.sign(challenge).getValue();
+            if (isWorkerpoolResultProxyUrlPresent(smsURL)) {
+                smsClient.updateWeb2Secret(authorization, signatureService.getAddress(), IEXEC_RESULT_IEXEC_RESULT_PROXY_URL, resultProxyURL);
+            } else {
+                smsClient.setWeb2Secret(authorization, signatureService.getAddress(), IEXEC_RESULT_IEXEC_RESULT_PROXY_URL, resultProxyURL);
+            }
+        } catch (Exception e) {
+            log.error("Failed to push default result-proxy URL to SMS", e);
+        }
     }
 }
