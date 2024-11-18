@@ -84,6 +84,7 @@ public class SmsService {
      * @return SMS url if TEE types of tag &amp; SMS match.
      */
     Optional<String> getVerifiedSmsUrl(final String chainTaskId, final TeeFramework teeFrameworkForDeal) {
+        log.debug("getVerifiedSmsUrl [chainTaskId:{}, teeFrameworkForDeal:{}]", chainTaskId, teeFrameworkForDeal);
         if (teeFrameworkForDeal == null) {
             log.error("Can't get verified SMS url with invalid TEE framework " +
                     "from tag [chainTaskId:{}]", chainTaskId);
@@ -196,7 +197,7 @@ public class SmsService {
      */
     @EventListener
     public void pushWorkerpoolResultProxyUrl(final TaskInitializedEvent event) {
-        log.debug("pushWorkerpoolResultProxyUrl");
+        log.debug("pushWorkerpoolResultProxyUrl [event:{}]", event);
         try {
             final String resultProxyURL = resultRepositoryConfiguration.getResultRepositoryURL();
             final String smsURL = getVerifiedSmsUrl(event.getChainTaskId()).orElseThrow();
