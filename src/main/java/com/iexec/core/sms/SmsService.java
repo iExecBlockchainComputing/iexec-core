@@ -60,12 +60,12 @@ public class SmsService {
         this.smsClientProvider = smsClientProvider;
     }
 
-    private Optional<String> getVerifiedSmsUrl(String chainTaskId) {
+    private Optional<String> getVerifiedSmsUrl(final String chainTaskId) {
         final TaskDescription taskDescription = iexecHubService.getTaskDescription(chainTaskId);
         return getVerifiedSmsUrl(chainTaskId, taskDescription.getTeeFramework());
     }
 
-    public Optional<String> getVerifiedSmsUrl(String chainTaskId, String tag) {
+    public Optional<String> getVerifiedSmsUrl(final String chainTaskId, final String tag) {
         return getVerifiedSmsUrl(chainTaskId, TeeUtils.getTeeFramework(tag));
     }
 
@@ -83,7 +83,7 @@ public class SmsService {
      * @param teeFrameworkForDeal Tag of the deal.
      * @return SMS url if TEE types of tag &amp; SMS match.
      */
-    Optional<String> getVerifiedSmsUrl(String chainTaskId, TeeFramework teeFrameworkForDeal) {
+    Optional<String> getVerifiedSmsUrl(final String chainTaskId, final TeeFramework teeFrameworkForDeal) {
         if (teeFrameworkForDeal == null) {
             log.error("Can't get verified SMS url with invalid TEE framework " +
                     "from tag [chainTaskId:{}]", chainTaskId);
