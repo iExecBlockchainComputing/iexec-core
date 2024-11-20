@@ -34,6 +34,7 @@ import com.iexec.core.sms.SmsService;
 import com.iexec.core.task.*;
 import com.iexec.core.task.event.PleaseUploadEvent;
 import com.iexec.core.task.event.TaskFailedEvent;
+import com.iexec.core.task.event.TaskInitializedEvent;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
@@ -87,7 +88,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
 class TaskUpdateManagerTests {
-    private static final String smsUrl = "smsUrl";
+    private static final String SMS_URL = "smsUrl";
     private static final String ERROR_MSG = "Cannot update task [chainTaskId:%s, currentStatus:%s, expectedStatus:%s, method:%s]";
 
     @Container
@@ -348,8 +349,8 @@ class TaskUpdateManagerTests {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
-        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TEE_TAG)).thenReturn(Optional.of(smsUrl));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.empty());
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TEE_TAG)).thenReturn(Optional.of(SMS_URL));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, SMS_URL)).thenReturn(Optional.empty());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -360,8 +361,7 @@ class TaskUpdateManagerTests {
     @Test
     void shouldUpdateReceived2Initializing2InitializedOnStandard() {
         final Task task = getStubTask();
-        String tag = NO_TEE_TAG;
-        task.setTag(tag);
+        task.setTag(NO_TEE_TAG);
         taskRepository.save(task);
 
         when(iexecHubService.hasEnoughGas()).thenReturn(true);
@@ -382,7 +382,7 @@ class TaskUpdateManagerTests {
         assertThatTaskContainsStatuses(resultTask, INITIALIZED, List.of(RECEIVED, INITIALIZING, INITIALIZED));
         assertThat(resultTask.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
         assertThat(resultTask.getSmsUrl()).isNull();
-        verify(smsService, times(0)).getVerifiedSmsUrl(anyString(), anyString());
+        verify(applicationEventPublisher).publishEvent(new TaskInitializedEvent(CHAIN_TASK_ID));
     }
 
     @Test
@@ -402,17 +402,16 @@ class TaskUpdateManagerTests {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
                 .contributionDeadline(Instant.now().plus(60L, ChronoUnit.MINUTES).toEpochMilli())
                 .build()));
-        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag))
-                .thenReturn(Optional.of(smsUrl));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, smsUrl)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(Optional.of(SMS_URL));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, SMS_URL)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getChainDealId()).isEqualTo(CHAIN_DEAL_ID);
         assertThatTaskContainsStatuses(resultTask, INITIALIZED, List.of(RECEIVED, INITIALIZING, INITIALIZED));
         assertThat(resultTask.getEnclaveChallenge()).isEqualTo(BytesUtils.EMPTY_ADDRESS);
-        assertThat(resultTask.getSmsUrl()).isEqualTo(smsUrl);
-        verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
+        assertThat(resultTask.getSmsUrl()).isEqualTo(SMS_URL);
+        verify(applicationEventPublisher).publishEvent(new TaskInitializedEvent(CHAIN_TASK_ID));
     }
 
     @Test

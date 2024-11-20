@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2024
 
+### New Features
+
+- Push scheduler Result Proxy URL as Web2 secret to SMS. (#718)
+
 ### Bug Fixes
 
 - Start scheduler in out-of-service mode. (#712)
