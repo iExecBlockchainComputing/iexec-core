@@ -84,6 +84,16 @@ class ContributionUnnotifiedDetectorTests {
         return replicate;
     }
 
+    // Helper method to avoid redundancy
+    private void mockTaskAndTaskDescription() {
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(false)
+                .build());
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+    }
+
     // region detectOnChainChanges
 
     /**
@@ -96,13 +106,7 @@ class ContributionUnnotifiedDetectorTests {
      */
     @Test
     void shouldDetectBothChangesOnChain() {
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(false)
-                .build());
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
+        mockTaskAndTaskDescription();
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);
@@ -125,13 +129,7 @@ class ContributionUnnotifiedDetectorTests {
 
     @Test
     void shouldDetectMissedUpdateSinceOffChainOngoing() {
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(false)
-                .build());
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
+        mockTaskAndTaskDescription();
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);
@@ -160,13 +158,7 @@ class ContributionUnnotifiedDetectorTests {
 
     @Test
     void shouldNotDetectMissedUpdateSinceNotOnChainDone() {
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(false)
-                .build());
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
+        mockTaskAndTaskDescription();
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(false);
@@ -183,13 +175,7 @@ class ContributionUnnotifiedDetectorTests {
     @ParameterizedTest
     @EnumSource(value = ReplicateStatus.class, names = {"COMPUTED", "CONTRIBUTING"})
     void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(ReplicateStatus replicateStatus) {
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(false)
-                .build());
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
+        mockTaskAndTaskDescription();
         Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);

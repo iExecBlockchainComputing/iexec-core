@@ -18,7 +18,8 @@ All notable changes to this project will be documented in this file.
 ### Quality
 
 - Reorder static and final keywords. (#717)
-- Update contribution detector tests to reflect new TEE task flow changes. (#719)
+- Update `contribution` and `contributionAndFinalize` detector tests.
+  TEE tasks with callback are now eligible to `contributeAndFinalize` flow. (#719)
 
 ### Dependency Upgrades
 

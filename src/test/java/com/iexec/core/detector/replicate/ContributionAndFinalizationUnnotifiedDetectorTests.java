@@ -88,7 +88,8 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     }
 
     // Helper method to avoid redundancy
-    private void mockTaskDescription(final String callback) {
+    private void mockTaskAndTaskDecription(final String callback) {
+        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(iexecHubService.getTaskDescription(anyString())).thenReturn(
                 TaskDescription.builder()
                         .trust(BigInteger.ONE)
@@ -96,6 +97,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                         .callback(callback)
                         .build()
         );
+        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
     }
 
     // region detectOnChainChanges
@@ -111,9 +113,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldDetectBothChangesOnChain(final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        mockTaskDescription(callback);
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+        mockTaskAndTaskDecription(callback);
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -138,9 +138,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldDetectMissedUpdateSinceOffChainOngoing(final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        mockTaskDescription(callback);
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+        mockTaskAndTaskDecription(callback);
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -168,9 +166,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldNotDetectMissedUpdateSinceNotOnChainDone(final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        mockTaskDescription(callback);
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+        mockTaskAndTaskDecription(callback);
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -197,9 +193,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @MethodSource("provideReplicateStatusAndCallback")
     void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(final ReplicateStatus replicateStatus, final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        mockTaskDescription(callback);
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
+        mockTaskAndTaskDecription(callback);
 
         Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
