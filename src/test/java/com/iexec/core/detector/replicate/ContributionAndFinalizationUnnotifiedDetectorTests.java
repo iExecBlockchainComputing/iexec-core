@@ -18,10 +18,8 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -37,8 +35,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
@@ -54,7 +50,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class ContributionAndFinalizationUnnotifiedDetectorTests {
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET_ADDRESS = "0x1";
@@ -71,9 +66,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     @Mock
     private CronConfiguration cronConfiguration;
-
-    @Mock
-    private Web3jService web3jService;
 
     @Spy
     @InjectMocks
@@ -126,13 +118,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0))
-                .thenReturn(ChainReceipt.builder()
-                        .blockNumber(10L)
-                        .txHash("0xabcef")
-                        .build()
-                );
 
         for (int i = 0; i < 10; i++) {
             detector.detectOnChainChanges();
@@ -160,13 +145,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0))
-                .thenReturn(ChainReceipt.builder()
-                        .blockNumber(10L)
-                        .txHash("0xabcef")
-                        .build()
-                );
 
         detector.detectOnchainDoneWhenOffchainOngoing();
 
@@ -181,14 +159,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldNotDetectMissedUpdateSinceNotOffChainOngoing(final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        mockTaskDescription(callback);
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
-        Replicate replicate = getReplicateWithStatus(COMPUTED);
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
-
         detector.detectOnchainDoneWhenOffchainOngoing();
 
         Mockito.verify(replicatesService, never())
@@ -234,11 +204,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
         Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, 0)).thenReturn(ChainReceipt.builder()
-                .blockNumber(10L)
-                .txHash("0xabcef")
-                .build());
 
         detector.detectOnchainDone();
 
@@ -259,7 +224,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_DONE);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
         detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())
@@ -275,12 +239,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
-                .blockNumber(10L)
-                .txHash("0xabcef")
-                .build());
 
         detector.detectOnchainDone();
 

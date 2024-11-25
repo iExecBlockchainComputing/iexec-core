@@ -22,7 +22,6 @@ import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
-import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -36,8 +35,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
@@ -53,7 +50,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class ContributionUnnotifiedDetectorTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
@@ -71,9 +67,6 @@ class ContributionUnnotifiedDetectorTests {
     @Mock
     private CronConfiguration cronConfiguration;
 
-    @Mock
-    private Web3jService web3jService;
-
     @Spy
     @InjectMocks
     private ContributionUnnotifiedDetector contributionDetector;
@@ -81,10 +74,6 @@ class ContributionUnnotifiedDetectorTests {
     @BeforeEach
     void init() {
         ReflectionTestUtils.setField(contributionDetector, "detectorRate", 1000);
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(false)
-                .build());
     }
 
     private Replicate getReplicateWithStatus(final ReplicateStatus replicateStatus) {
@@ -107,13 +96,16 @@ class ContributionUnnotifiedDetectorTests {
      */
     @Test
     void shouldDetectBothChangesOnChain() {
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(false)
+                .build());
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
                 .txHash("0xabcef")
@@ -133,13 +125,16 @@ class ContributionUnnotifiedDetectorTests {
 
     @Test
     void shouldDetectMissedUpdateSinceOffChainOngoing() {
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(false)
+                .build());
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong()))
                 .thenReturn(ChainReceipt.builder().blockNumber(10L).txHash("0xabcef").build());
 
@@ -156,7 +151,6 @@ class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate = getReplicateWithStatus(COMPUTED);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
 
         contributionDetector.detectOnchainDoneWhenOffchainOngoing();
 
@@ -166,6 +160,10 @@ class ContributionUnnotifiedDetectorTests {
 
     @Test
     void shouldNotDetectMissedUpdateSinceNotOnChainDone() {
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(false)
+                .build());
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
@@ -185,13 +183,16 @@ class ContributionUnnotifiedDetectorTests {
     @ParameterizedTest
     @EnumSource(value = ReplicateStatus.class, names = {"COMPUTED", "CONTRIBUTING"})
     void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(ReplicateStatus replicateStatus) {
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
+                .trust(BigInteger.ONE)
+                .isTeeTask(false)
+                .build());
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isContributed(any(), any())).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
         when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
                 .blockNumber(10L)
                 .txHash("0xabcef")
@@ -216,7 +217,6 @@ class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTED);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
         contributionDetector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())
@@ -232,12 +232,6 @@ class ContributionUnnotifiedDetectorTests {
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-        when(iexecHubService.isContributed(any(), any())).thenReturn(true);
-        when(web3jService.getLatestBlockNumber()).thenReturn(11L);
-        when(iexecHubService.getContributionBlock(anyString(), anyString(), anyLong())).thenReturn(ChainReceipt.builder()
-                .blockNumber(10L)
-                .txHash("0xabcef")
-                .build());
 
         contributionDetector.detectOnchainDone();
 
