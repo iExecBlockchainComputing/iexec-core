@@ -20,7 +20,6 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
-import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.configuration.CronConfiguration;
@@ -31,14 +30,21 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
@@ -47,9 +53,12 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ContributionAndFinalizationUnnotifiedDetectorTests {
     private static final String CHAIN_TASK_ID = "chainTaskId";
     private static final String WALLET_ADDRESS = "0x1";
+    private static final String CALLBACK = "callback";
 
     @Mock
     private TaskService taskService;
@@ -75,21 +84,26 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         ReflectionTestUtils.setField(detector, "detectorRate", 1000);
-        when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
-                .trust(BigInteger.ONE)
-                .isTeeTask(true)
-                .callback(BytesUtils.EMPTY_ADDRESS)
-                .build());
     }
 
-    private Replicate getReplicateWithStatus(ReplicateStatus replicateStatus) {
+    private Replicate getReplicateWithStatus(final ReplicateStatus replicateStatus) {
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER).status(replicateStatus).build();
         replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
         return replicate;
+    }
+
+    // Helper method to avoid redundancy
+    private void mockTaskDescription(final String callback) {
+        when(iexecHubService.getTaskDescription(anyString())).thenReturn(
+                TaskDescription.builder()
+                        .trust(BigInteger.ONE)
+                        .isTeeTask(true)
+                        .callback(callback)
+                        .build()
+        );
     }
 
     // region detectOnChainChanges
@@ -102,9 +116,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
      *     <li>1 time from {@link ContributionAndFinalizationUnnotifiedDetector#detectOnchainDone()}</li>
      * </ol>
      */
-    @Test
-    void shouldDetectBothChangesOnChain() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", CALLBACK})
+    void shouldDetectBothChangesOnChain(final String callback) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        mockTaskDescription(callback);
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
@@ -134,9 +150,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     // region detectOnchainDoneWhenOffchainOngoing (ContributeAndFinalizeOngoing)
 
-    @Test
-    void shouldDetectMissedUpdateSinceOffChainOngoing() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", CALLBACK})
+    void shouldDetectMissedUpdateSinceOffChainOngoing(final String callback) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        mockTaskDescription(callback);
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
@@ -160,9 +178,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 );
     }
 
-    @Test
-    void shouldNotDetectMissedUpdateSinceNotOffChainOngoing() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", CALLBACK})
+    void shouldNotDetectMissedUpdateSinceNotOffChainOngoing(final String callback) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        mockTaskDescription(callback);
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(COMPUTED);
@@ -175,9 +195,11 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
-    @Test
-    void shouldNotDetectMissedUpdateSinceNotOnChainDone() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", CALLBACK})
+    void shouldNotDetectMissedUpdateSinceNotOnChainDone(final String callback) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        mockTaskDescription(callback);
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
@@ -193,10 +215,20 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     // region detectOnchainDone (REVEALED)
 
+    static Stream<Arguments> provideReplicateStatusAndCallback() {
+        return Stream.of(
+                Arguments.of(ReplicateStatus.COMPUTED, ""),
+                Arguments.of(ReplicateStatus.COMPUTED, CALLBACK),
+                Arguments.of(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_ONGOING, ""),
+                Arguments.of(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_ONGOING, CALLBACK)
+        );
+    }
+
     @ParameterizedTest
-    @EnumSource(value = ReplicateStatus.class, names = {"COMPUTED", "CONTRIBUTE_AND_FINALIZE_ONGOING"})
-    void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(ReplicateStatus replicateStatus) {
+    @MethodSource("provideReplicateStatusAndCallback")
+    void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(final ReplicateStatus replicateStatus, final String callback) {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        mockTaskDescription(callback);
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
         Replicate replicate = getReplicateWithStatus(replicateStatus);

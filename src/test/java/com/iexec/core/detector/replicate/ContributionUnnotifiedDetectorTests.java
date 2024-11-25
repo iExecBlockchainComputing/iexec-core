@@ -31,9 +31,13 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigInteger;
@@ -48,6 +52,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ContributionUnnotifiedDetectorTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
@@ -74,16 +80,14 @@ class ContributionUnnotifiedDetectorTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         ReflectionTestUtils.setField(contributionDetector, "detectorRate", 1000);
         when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
                 .trust(BigInteger.ONE)
-                .isTeeTask(true)
-                .callback("0x1")
+                .isTeeTask(false)
                 .build());
     }
 
-    private Replicate getReplicateWithStatus(ReplicateStatus replicateStatus) {
+    private Replicate getReplicateWithStatus(final ReplicateStatus replicateStatus) {
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
         ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER).status(replicateStatus).build();
