@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 ### Quality
 
 - Reorder static and final keywords. (#717)
+- Update contribution detector tests to reflect new TEE task flow changes. (#719)
 
 ### Dependency Upgrades
 
