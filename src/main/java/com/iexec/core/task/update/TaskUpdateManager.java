@@ -49,8 +49,11 @@ import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 
-@Service
+/**
+ * Class to update off-chain {@link Task task} model on notification from {@link TaskUpdateRequestManager}.
+ */
 @Slf4j
+@Service
 class TaskUpdateManager {
 
     private final TaskService taskService;
@@ -106,7 +109,7 @@ class TaskUpdateManager {
                 initialized2Running(task, chainTask);
                 break;
             case RUNNING:
-                transitionFromRunningState(task, chainTask);
+                transitionFromRunningState(chainTask, task);
                 break;
             case CONSENSUS_REACHED:
                 consensusReached2AtLeastOneReveal2ResultUploading(task);
@@ -155,6 +158,7 @@ class TaskUpdateManager {
     }
 
     // region database
+
     /**
      * Creates one or several task status changes for the task before committing all of them to the database.
      *
@@ -208,6 +212,7 @@ class TaskUpdateManager {
                     chainTaskId, currentStatus, wishedStatus);
         }
     }
+
     // endregion
 
     // region status transitions
@@ -348,7 +353,18 @@ class TaskUpdateManager {
         }
     }
 
-    void transitionFromRunningState(Task task, ChainTask chainTask) {
+    // region transitionFromRunningState
+
+    /**
+     * Handle transition when an off-chain task in the {@code RUNNING} state.
+     * <p>
+     * This method handles contribution timeouts, whether replicates list is empty and task transition to the next state
+     * depending on the task eligibility to {@code contributeAndFinalize} flow.
+     *
+     * @param chainTask On-chain task
+     * @param task      Off-chain task model of the on-chain task
+     */
+    void transitionFromRunningState(final ChainTask chainTask, final Task task) {
         log.debug("transitionFromRunningState [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != RUNNING) {
             emitError(task, RUNNING, "transitionFromRunningState");
@@ -377,9 +393,9 @@ class TaskUpdateManager {
             // running2Finalized2Completed must be the first call to prevent other transition execution
             log.debug("Task is running in a TEE without callback, flow contributeAndFinalize is possible [chainTaskId:{}]",
                     chainTaskId);
-            running2Finalized2Completed(task, replicatesList);
+            running2Finalized2Completed(chainTask, task, replicatesList);
         } else {
-            // Task is either TEE with callback or non-TEE task
+            // Task is a non-TEE task
             running2ConsensusReached(chainTask, task, replicatesList);
         }
 
@@ -389,32 +405,79 @@ class TaskUpdateManager {
         }
     }
 
-    private void running2ConsensusReached(ChainTask chainTask, Task task, ReplicatesList replicatesList) {
+    /**
+     * Update off-chain task model with on-chain task consensus related data.
+     *
+     * @param chainTask On-chain task
+     * @param task      Off-chain task model of the on-chain task
+     * @return The updated off-chain task model containing consensus data from the on-chain task
+     */
+    private Task updateConsensusDataFromChainTask(final ChainTask chainTask, final Task task) {
+        task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
+        task.setConsensus(chainTask.getConsensusValue());
+        final long consensusBlockNumber = iexecHubService.getConsensusBlock(task.getChainTaskId(), task.getInitializationBlockNumber()).getBlockNumber();
+        task.setConsensusReachedBlockNumber(consensusBlockNumber);
+        taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
+                Update.update("revealDeadline", task.getRevealDeadline())
+                        .set("consensus", task.getConsensus())
+                        .set("consensusReachedBlockNumber", task.getConsensusReachedBlockNumber()));
+        return task;
+    }
+
+    /**
+     * Check if an on-chain task not eligible to {@code contributeAndFinalize} exits its {@code RUNNING} state.
+     * <p>
+     * When such a task exits the {@code RUNNING} state, the {@code contributeAndFinalize} method from the PoCo has been
+     * executed. The {@code contribute} and {@code checkConsensus} methods have been executed and on-chain data
+     * should have the following properties:
+     * <ul>
+     * <li>The on-chain task status is {@code REVEALING}
+     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
+     * </ul>
+     *
+     * @param chainTask      On-chain task
+     * @param task           Off-chain task model of the on-chain task
+     * @param replicatesList List of off-chain replicates
+     * @see <a href="https://github.com/iExecBlockchainComputing/PoCo/blob/main/contracts/modules/delegates/IexecPoco2Delegate.sol">
+     * IexecPoco2Delegate Smart Contract</a>
+     */
+    private void running2ConsensusReached(final ChainTask chainTask, final Task task, final ReplicatesList replicatesList) {
         log.debug("running2ConsensusReached [chainTaskId:{}]", task.getChainTaskId());
         final String chainTaskId = task.getChainTaskId();
         final boolean isConsensusReached = taskService.isConsensusReached(replicatesList);
 
         if (isConsensusReached) {
-            // change the revealDeadline and consensus of the task from the chainTask info
-            task.setRevealDeadline(new Date(chainTask.getRevealDeadline()));
-            task.setConsensus(chainTask.getConsensusValue());
-            long consensusBlockNumber = iexecHubService.getConsensusBlock(chainTaskId, task.getInitializationBlockNumber()).getBlockNumber();
-            task.setConsensusReachedBlockNumber(consensusBlockNumber);
-            taskService.updateTask(task.getChainTaskId(), task.getCurrentStatus(),
-                    Update.update("revealDeadline", task.getRevealDeadline())
-                            .set("consensus", task.getConsensus())
-                            .set("consensusReachedBlockNumber", task.getConsensusReachedBlockNumber()));
-            updateTaskStatusAndSave(task, CONSENSUS_REACHED);
+            final Task taskWithConsensus = updateConsensusDataFromChainTask(chainTask, task);
+            updateTaskStatusAndSave(taskWithConsensus, CONSENSUS_REACHED);
 
             applicationEventPublisher.publishEvent(ConsensusReachedEvent.builder()
                     .chainTaskId(chainTaskId)
-                    .consensus(task.getConsensus())
-                    .blockNumber(task.getConsensusReachedBlockNumber())
+                    .consensus(taskWithConsensus.getConsensus())
+                    .blockNumber(taskWithConsensus.getConsensusReachedBlockNumber())
                     .build());
         }
     }
 
-    private void running2Finalized2Completed(Task task, ReplicatesList replicatesList) {
+    /**
+     * Check if an on-chain task eligible to {@code contributeAndFinalize} exits its {@code RUNNING} state.
+     * <p>
+     * When such a task exits the {@code RUNNING} state, the {@code contributeAndFinalize} method from the PoCo has been
+     * executed. The {@code contributeAndFinalize} method has been executed and on-chain data
+     * should have the following properties:
+     * <ul>
+     * <li>The on-chain task status is {@code COMPLETED}
+     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
+     * </ul>
+     *
+     * @param chainTask      On-chain task
+     * @param task           Off-chain task model of the on-chain task
+     * @param replicatesList List of off-chain replicates
+     * @see <a href="https://github.com/iExecBlockchainComputing/PoCo/blob/main/contracts/modules/delegates/IexecPoco2Delegate.sol">
+     * IexecPoco2Delegate Smart Contract</a>
+     */
+    private void running2Finalized2Completed(final ChainTask chainTask, final Task task, final ReplicatesList replicatesList) {
         log.debug("running2Finalized2Completed [chainTaskId:{}]", task.getChainTaskId());
         final String chainTaskId = task.getChainTaskId();
         final int nbReplicatesWithContributeAndFinalizeStatus = replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE);
@@ -430,7 +493,8 @@ class TaskUpdateManager {
             return;
         }
 
-        toFinalizedToCompleted(task);
+        final Task taskWithConsensus = updateConsensusDataFromChainTask(chainTask, task);
+        toFinalizedToCompleted(taskWithConsensus);
     }
 
     /**
@@ -442,7 +506,7 @@ class TaskUpdateManager {
      *
      * @param task Task to check and to make become {@link TaskStatus#RUNNING_FAILED}.
      */
-    private void running2RunningFailed(Task task, ReplicatesList replicatesList) {
+    private void running2RunningFailed(final Task task, final ReplicatesList replicatesList) {
         log.debug("running2RunningFailed [chainTaskId:{}]", task.getChainTaskId());
         if (!task.isTeeTask()) {
             log.debug("This flow only applies to TEE tasks [chainTaskId:{}]", task.getChainTaskId());
@@ -482,6 +546,8 @@ class TaskUpdateManager {
         updateTaskStatusesAndSave(task, RUNNING_FAILED, FAILED);
         applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
     }
+
+    // endregion
 
     void consensusReached2AtLeastOneReveal2ResultUploading(Task task) {
         log.debug("consensusReached2AtLeastOneReveal2ResultUploading [chainTaskId:{}]", task.getChainTaskId());
