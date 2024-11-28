@@ -389,8 +389,8 @@ class TaskUpdateManager {
 
         final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
 
-        log.debug("Task eligibility to contributeAndFinalize flow [chainTaskId:{}, contributeAndFinalize:{}]"
-            chainTaskId, taskDescription.isEligibleToContributeAndFinalize());
+        log.debug("Task eligibility to contributeAndFinalize flow [chainTaskId:{}, contributeAndFinalize:{}]",
+                chainTaskId, taskDescription.isEligibleToContributeAndFinalize());
         if (taskDescription.isEligibleToContributeAndFinalize()) {
             // running2Finalized2Completed must be the first call to prevent other transition execution
             running2Finalized2Completed(chainTask, task, replicatesList);
