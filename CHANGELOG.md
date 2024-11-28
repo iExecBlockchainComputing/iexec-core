@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Scheduler needs to enter out-of-service mode on first blockchain communication loss.
   This is due to **Nethermind v1.14.7+99775bf7** where filters are lost on restart. (#715)
 - Use Result Proxy URL defined in deal parameters if any, fall back to scheduler default one otherwise. (#716)
+- Update off-chain task model with on-chain task consensus data in all workflows. (#720)
 
 ### Quality
 

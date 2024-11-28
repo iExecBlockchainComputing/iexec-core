@@ -625,7 +625,7 @@ class TaskUpdateManagerTests {
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         taskRepository.save(task);
 
-        taskUpdateManager.transitionFromRunningState(task, ChainTask.builder().build());
+        taskUpdateManager.transitionFromRunningState(ChainTask.builder().build(), task);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(INITIALIZED);
     }
@@ -659,8 +659,8 @@ class TaskUpdateManagerTests {
 
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
-        taskUpdateManager.transitionFromRunningState(task,
-                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
+        taskUpdateManager.transitionFromRunningState(
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build(), task);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(RUNNING);
     }
@@ -678,8 +678,8 @@ class TaskUpdateManagerTests {
         when(workerService.getAliveWorkers()).thenReturn(workersList);
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.transitionFromRunningState(task,
-                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
+        taskUpdateManager.transitionFromRunningState(
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build(), task);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(RUNNING);
     }
@@ -696,14 +696,15 @@ class TaskUpdateManagerTests {
         when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(2);
         mockTaskDescriptionFromTask(task);
 
-        taskUpdateManager.transitionFromRunningState(task,
-                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build());
+        taskUpdateManager.transitionFromRunningState(
+                ChainTask.builder().chainTaskId(CHAIN_TASK_ID).status(ChainTaskStatus.ACTIVE).build(), task);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(FAILED);
     }
 
     @Test
-    void shouldUpdateRunning2ConsensusReached() {
+    void shouldUpdateRunning2ConsensusReached(final CapturedOutput output) {
+        final Instant start = Instant.now();
         final Task task = getStubTask(RUNNING);
         taskRepository.save(task);
 
@@ -712,6 +713,7 @@ class TaskUpdateManagerTests {
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
                 .status(ChainTaskStatus.REVEALING)
+                .revealDeadline(Instant.now().toEpochMilli())
                 .winnerCounter(2)
                 .build()));
         when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
@@ -721,6 +723,40 @@ class TaskUpdateManagerTests {
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
+        assertThat(resultTask.getConsensusReachedBlockNumber()).isOne();
+        assertThat(resultTask.getRevealDeadline()).isBetween(Date.from(start), task.getFinalDeadline());
+        assertThat(output.getOut()).contains(
+                String.format("Task eligibility to contributeAndFinalize flow [chainTaskId:%s, contributeAndFinalize:%s]",
+                        CHAIN_TASK_ID, false));
+    }
+
+    @Test
+    void shouldUpdateTaskRunning2Finalized2Completed(final CapturedOutput output) {
+        final Instant start = Instant.now();
+        final Task task = getStubTask(RUNNING);
+        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
+        taskRepository.save(task);
+
+        final ReplicatesList replicatesList = spy(new ReplicatesList(CHAIN_TASK_ID));
+
+        mockChainTask();
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
+        when(iexecHubService.getChainTask(task.getChainTaskId())).thenReturn(Optional.of(ChainTask.builder()
+                .status(ChainTaskStatus.COMPLETED)
+                .revealDeadline(Instant.now().toEpochMilli())
+                .build()));
+        when(iexecHubService.getConsensusBlock(anyString(), anyLong())).thenReturn(ChainReceipt.builder().blockNumber(1L).build());
+        mockTaskDescriptionFromTask(task);
+
+        taskUpdateManager.updateTask(CHAIN_TASK_ID);
+        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
+        assertThatTaskContainsStatuses(resultTask, COMPLETED, List.of(RECEIVED, RUNNING, FINALIZED, COMPLETED));
+        assertThat(resultTask.getConsensusReachedBlockNumber()).isOne();
+        assertThat(resultTask.getRevealDeadline()).isBetween(Date.from(start), task.getFinalDeadline());
+        assertThat(output.getOut()).contains(
+                String.format("Task eligibility to contributeAndFinalize flow [chainTaskId:%s, contributeAndFinalize:%s]",
+                        CHAIN_TASK_ID, true));
     }
 
     @Test
@@ -1625,25 +1661,6 @@ class TaskUpdateManagerTests {
         taskUpdateManager.updateTask(task.getChainTaskId());
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThat(resultTask.getCurrentStatus()).isEqualTo(RESULT_UPLOADED);
-    }
-
-    @Test
-    void shouldUpdateTaskRunning2Finalized2Completed() {
-        final Task task = getStubTask(RUNNING);
-        task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        taskRepository.save(task);
-
-        final ReplicatesList replicatesList = spy(new ReplicatesList(CHAIN_TASK_ID));
-
-        mockChainTask();
-        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(replicatesList.getNbReplicatesWithCurrentStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE)).thenReturn(1);
-
-        mockTaskDescriptionFromTask(task);
-
-        taskUpdateManager.updateTask(CHAIN_TASK_ID);
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThatTaskContainsStatuses(resultTask, COMPLETED, List.of(RECEIVED, RUNNING, FINALIZED, COMPLETED));
     }
 
     @Test
