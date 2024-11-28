@@ -389,10 +389,10 @@ class TaskUpdateManager {
 
         final TaskDescription taskDescription = iexecHubService.getTaskDescription(task.getChainTaskId());
 
+        log.debug("Task eligibility to contributeAndFinalize flow [chainTaskId:{}, contributeAndFinalize:{}]"
+            chainTaskId, taskDescription.isEligibleToContributeAndFinalize());
         if (taskDescription.isEligibleToContributeAndFinalize()) {
             // running2Finalized2Completed must be the first call to prevent other transition execution
-            log.debug("Task is running in a TEE without callback, flow contributeAndFinalize is possible [chainTaskId:{}]",
-                    chainTaskId);
             running2Finalized2Completed(chainTask, task, replicatesList);
         } else {
             // Task is a non-TEE task

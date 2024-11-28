@@ -703,7 +703,7 @@ class TaskUpdateManagerTests {
     }
 
     @Test
-    void shouldUpdateRunning2ConsensusReached() {
+    void shouldUpdateRunning2ConsensusReached(final CapturedOutput output) {
         final Instant start = Instant.now();
         final Task task = getStubTask(RUNNING);
         taskRepository.save(task);
@@ -725,10 +725,13 @@ class TaskUpdateManagerTests {
         assertThat(resultTask.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
         assertThat(resultTask.getConsensusReachedBlockNumber()).isOne();
         assertThat(resultTask.getRevealDeadline()).isBetween(Date.from(start), task.getFinalDeadline());
+        assertThat(output.getOut()).contains(
+                String.format("Task eligibility to contributeAndFinalize flow [chainTaskId:%s, contributeAndFinalize:%s]",
+                        CHAIN_TASK_ID, false));
     }
 
     @Test
-    void shouldUpdateTaskRunning2Finalized2Completed() {
+    void shouldUpdateTaskRunning2Finalized2Completed(final CapturedOutput output) {
         final Instant start = Instant.now();
         final Task task = getStubTask(RUNNING);
         task.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
@@ -751,6 +754,9 @@ class TaskUpdateManagerTests {
         assertThatTaskContainsStatuses(resultTask, COMPLETED, List.of(RECEIVED, RUNNING, FINALIZED, COMPLETED));
         assertThat(resultTask.getConsensusReachedBlockNumber()).isOne();
         assertThat(resultTask.getRevealDeadline()).isBetween(Date.from(start), task.getFinalDeadline());
+        assertThat(output.getOut()).contains(
+                String.format("Task eligibility to contributeAndFinalize flow [chainTaskId:%s, contributeAndFinalize:%s]",
+                        CHAIN_TASK_ID, true));
     }
 
     @Test
