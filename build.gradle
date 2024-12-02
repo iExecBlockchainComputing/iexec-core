@@ -12,7 +12,7 @@ ext {
     springCloudVersion = '2021.0.8'
     jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
-    testContainersVersion = '1.19.0'
+    testContainersVersion = '1.20.4'
 }
 
 if (!project.hasProperty('gitBranch')) {
