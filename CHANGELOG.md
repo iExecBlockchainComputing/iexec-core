@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 
 - Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. (#713)
 - Upgrade to Gradle 8.10.2. (#714)
+- Upgrade to `testcontainers` 1.20.4. (#721)
 
 ## [[8.5.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.5.0) 2024-06-19
 
@@ -139,7 +140,8 @@ All notable changes to this project will be documented in this file.
 - Replace single thread executor with synchronized keyword. (#633)
 - Move contribution status checks from `iexec-commons-poco`. (#636)
 - Use `BlockchainAdapterService` from `iexec-blockchain-adapter-api-library`. (#641)
-- `ResultRepositoryConfiguration` and `WorkerConfiguration` classes are now immutable with `@Value` lombok annotation. (#650)
+- `ResultRepositoryConfiguration` and `WorkerConfiguration` classes are now immutable with `@Value` lombok annotation. (
+  #650)
 
 ### Bug Fixes
 
@@ -150,7 +152,8 @@ All notable changes to this project will be documented in this file.
 - Use less MongoDB calls when updating a task to a final status. (#649)
 - Save contribution and result updload replicate data when `CONTRIBUTE_AND_FINALIZE_DONE`. (#651)
 - Fix potential `NullPointerException` during first worker replicate request. (#652)
-- Fix missed replicate status update detectors to avoid false positives by mixing `CONTRIBUTE-REVEAL-FINALIZE` and `CONTRIBUTE_AND_FINALIZE` workflows. (#653)
+- Fix missed replicate status update detectors to avoid false positives by mixing `CONTRIBUTE-REVEAL-FINALIZE` and
+  `CONTRIBUTE_AND_FINALIZE` workflows. (#653)
 
 ### Dependency Upgrades
 
