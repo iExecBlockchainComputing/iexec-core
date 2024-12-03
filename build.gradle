@@ -133,7 +133,7 @@ testing {
 
 tasks.withType(Test).configureEach {
     finalizedBy jacocoTestReport
-    systemProperty "mongo.image", "mongo:4.4.28-focal"
+    systemProperty "mongo.image", "mongo:7.0.15-jammy"
 }
 
 tasks.register('itest') {
