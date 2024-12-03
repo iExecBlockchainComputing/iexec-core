@@ -252,7 +252,9 @@ class WorkerServiceTests {
                 .walletAddress(wallet)
                 .build();
         workerRepository.save(worker);
-        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new);
+        workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new)
+                .setLastReplicateDemandDate(Date.from(Instant.now().minusSeconds(10L)));
+        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }
