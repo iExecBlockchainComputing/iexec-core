@@ -25,8 +25,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -55,6 +56,7 @@ import static org.mockito.Mockito.when;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
 class WorkerServiceTests {
 
     private static final String WORKER1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
@@ -97,7 +99,6 @@ class WorkerServiceTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         workerService = new WorkerService(mongoTemplate, workerRepository, workerConfiguration);
         workerRepository.deleteAll();
     }
@@ -252,7 +253,6 @@ class WorkerServiceTests {
                 .build();
         workerRepository.save(worker);
         workerService.getWorkerStatsMap().computeIfAbsent(wallet, WorkerService.WorkerStats::new);
-        when(workerConfiguration.getAskForReplicatePeriod()).thenReturn(5000L);
 
         assertThat(workerService.isWorkerAllowedToAskReplicate(wallet)).isTrue();
     }

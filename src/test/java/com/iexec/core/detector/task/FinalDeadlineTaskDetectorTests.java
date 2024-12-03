@@ -24,8 +24,9 @@ import com.iexec.core.task.TaskStatusChange;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,6 +48,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 @Slf4j
 @DataMongoTest
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
 class FinalDeadlineTaskDetectorTests {
 
     @Container
@@ -72,7 +74,6 @@ class FinalDeadlineTaskDetectorTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         taskRepository.deleteAll();
         final TaskService taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
         finalDeadlineTaskDetector = new FinalDeadlineTaskDetector(taskService, applicationEventPublisher);
@@ -88,11 +89,11 @@ class FinalDeadlineTaskDetectorTests {
 
     @Test
     void shouldDetectTaskAfterFinalDeadline() {
-        Task task = getTask();
+        final Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         finalDeadlineTaskDetector.detect();
-        Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getDateStatusList()).isNotNull();
         assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
@@ -101,11 +102,11 @@ class FinalDeadlineTaskDetectorTests {
 
     @Test
     void shouldNotDetectTaskBeforeFinalDeadline() {
-        Task task = getTask();
+        final Task task = getTask();
         task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
         taskRepository.save(task);
         finalDeadlineTaskDetector.detect();
-        Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId("0x1").orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getDateStatusList()).isNotNull();
         assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))

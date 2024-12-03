@@ -30,12 +30,13 @@ import com.iexec.core.result.ResultService;
 import io.vavr.control.Either;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -62,6 +63,7 @@ import static org.mockito.Mockito.*;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
 class ReplicateServiceTests {
 
     private static final UpdateReplicateStatusArgs UPDATE_ARGS = UpdateReplicateStatusArgs.builder()
@@ -72,7 +74,7 @@ class ReplicateServiceTests {
     private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
 
     @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
+    static void registerProperties(final DynamicPropertyRegistry registry) {
         registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
         registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
     }
@@ -96,7 +98,6 @@ class ReplicateServiceTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         TaskLogsService taskLogsService = new TaskLogsService(taskLogsRepository);
         replicatesService = new ReplicatesService(mongoTemplate, replicatesRepository, iexecHubService,
                 applicationEventPublisher, web3jService, resultService, taskLogsService);
@@ -675,9 +676,6 @@ class ReplicateServiceTests {
 
         when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
         when(iexecHubService.repeatIsRevealedTrue(anyString(), anyString())).thenReturn(true);
-        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1)).thenReturn(Optional.of(ChainContribution.builder()
-                .resultHash("hash")
-                .build()));
 
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
         ReplicateStatusDetails details = new ReplicateStatusDetails(10L);
@@ -1072,9 +1070,6 @@ class ReplicateServiceTests {
                 .taskDescription(TaskDescription.builder().callback("callback").build())
                 .build();
 
-        when(web3jService.isBlockAvailable(anyLong())).thenReturn(true);
-        when(iexecHubService.repeatIsContributedTrue(anyString(), anyString())).thenReturn(true);
-
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, updateArgs))
                 .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
     }
@@ -1169,7 +1164,6 @@ class ReplicateServiceTests {
                 .thenReturn(true);
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(task);
         when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(true);
-        when(resultService.isResultUploaded(task)).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, null))
                 .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
@@ -1187,7 +1181,6 @@ class ReplicateServiceTests {
 
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(false);
-        when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(true);
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, null))
                 .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
@@ -1233,7 +1226,6 @@ class ReplicateServiceTests {
 
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(true);
-        when(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).thenReturn(false);
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, null))
                 .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
@@ -1379,8 +1371,6 @@ class ReplicateServiceTests {
 
     @Test
     void computeUpdateReplicateStatusArgsResultUploadFailed() {
-        final int unexpectedWorkerWeight = 1;
-        final ChainContribution unexpectedChainContribution = ChainContribution.builder().build();
         final String unexpectedResultLink = "resultLink";
         final String unexpectedChainCallbackData = "chainCallbackData";
         final TaskDescription expectedTaskDescription = TaskDescription.builder().build();
@@ -1395,9 +1385,6 @@ class ReplicateServiceTests {
                 .details(details)
                 .build();
 
-        when(iexecHubService.getWorkerWeight(WALLET_WORKER_1)).thenReturn(unexpectedWorkerWeight);
-        when(iexecHubService.getChainContribution(CHAIN_TASK_ID, WALLET_WORKER_1))
-                .thenReturn(Optional.of(unexpectedChainContribution));
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(expectedTaskDescription);
 
