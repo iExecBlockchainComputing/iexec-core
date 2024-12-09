@@ -16,6 +16,7 @@
 
 package com.iexec.core.result;
 
+import com.iexec.commons.poco.chain.DealParams;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.commons.poco.task.TaskDescription;
@@ -70,9 +71,12 @@ class ResultServiceTests {
     private Credentials schedulerCreds;
     private Signature signature;
     private WorkerpoolAuthorization workerpoolAuthorization;
+    private final DealParams dealParams = DealParams.builder()
+            .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+            .build();
     private final TaskDescription taskDescription = TaskDescription.builder()
             .chainTaskId(CHAIN_TASK_ID)
-            .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+            .dealParams(dealParams)
             .build();
 
     @BeforeEach
