@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Reorder static and final keywords. (#717)
 - Update `contribution` and `contributionAndFinalize` detector tests.
   TEE tasks with callback are now eligible to `contributeAndFinalize` flow. (#719)
+- Resolve deprecations caused by `TaskDescription` in `ReplicatesService` and `ResultService`. (#723)
 
 ### Dependency Upgrades
 

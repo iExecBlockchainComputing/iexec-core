@@ -19,6 +19,7 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.*;
 import com.iexec.commons.poco.chain.ChainContribution;
 import com.iexec.commons.poco.chain.ChainTask;
+import com.iexec.commons.poco.chain.DealParams;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
@@ -749,36 +750,42 @@ class ReplicateServiceTests {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void shouldCheckResultServiceAndReturnTrue(boolean isTeeTask) {
+    void shouldCheckResultServiceAndReturnTrue(final boolean isTeeTask) {
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(isTeeTask)
-                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
         when(resultService.isResultUploaded(taskDescription)).thenReturn(true);
 
-        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        final boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
         verify(resultService).isResultUploaded(taskDescription);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void shouldCheckResultServiceAndReturnFalse(boolean isTeeTask) {
-        TaskDescription taskDescription = TaskDescription.builder()
+    void shouldCheckResultServiceAndReturnFalse(final boolean isTeeTask) {
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(isTeeTask)
-                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
         when(resultService.isResultUploaded(taskDescription)).thenReturn(false);
 
-        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        final boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isFalse();
         verify(resultService).isResultUploaded(taskDescription);
     }
@@ -811,16 +818,19 @@ class ReplicateServiceTests {
 
     @Test
     void shouldReturnTrueIfPrivateStorageForTeeTask() {
-        TaskDescription taskDescription = TaskDescription.builder()
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(DROPBOX_RESULT_STORAGE_PROVIDER)
+                .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
                 .isTeeTask(true)
-                .resultStorageProvider(DROPBOX_RESULT_STORAGE_PROVIDER)
+                .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
 
-        boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
+        final boolean isResultUploaded = replicatesService.isResultUploaded(CHAIN_TASK_ID);
         assertThat(isResultUploaded).isTrue();
         verify(resultService, never()).isResultUploaded(any());
     }
@@ -912,10 +922,10 @@ class ReplicateServiceTests {
 
     @Test
     void shouldNotAuthorizeUpdateSinceContributeFailed() {
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTING, ReplicateStatusModifier.WORKER);
 
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(CONTRIBUTE_FAILED)
                 .build();
@@ -926,10 +936,10 @@ class ReplicateServiceTests {
 
     @Test
     void shouldNotAuthorizeUpdateSinceRevealFailed() {
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(REVEALING, ReplicateStatusModifier.WORKER);
 
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(REVEAL_FAILED)
                 .build();
@@ -940,16 +950,19 @@ class ReplicateServiceTests {
 
     @Test
     void shouldAuthorizeUpdateOnResultUploadFailed() {
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOAD_FAILED)
                 .build();
-        UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
+        final UpdateReplicateStatusArgs updateReplicateStatusArgs = UpdateReplicateStatusArgs
                 .builder()
-                .taskDescription(TaskDescription.builder().resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER).build())
+                .taskDescription(TaskDescription.builder().dealParams(dealParams).build())
                 .build();
 
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, updateReplicateStatusArgs))
@@ -958,10 +971,10 @@ class ReplicateServiceTests {
 
     @Test
     void shouldNotAuthorizeUpdateOnResultUploadFailedSinceResultUploadedWithCallback() {
-        Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOAD_FAILED)
                 .build();
@@ -1188,6 +1201,9 @@ class ReplicateServiceTests {
 
     @Test
     void shouldNotAuthorizeUpdateOnContributeAndFinalizeDoneWhenNotUploaded() {
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTE_AND_FINALIZE_ONGOING, ReplicateStatusModifier.WORKER);
 
@@ -1198,7 +1214,7 @@ class ReplicateServiceTests {
         final TaskDescription task = TaskDescription
                 .builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .resultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .dealParams(dealParams)
                 .build();
 
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))

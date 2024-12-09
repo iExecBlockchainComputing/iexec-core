@@ -48,7 +48,7 @@ public class ResultService {
     @Retryable(value = FeignException.class)
     public boolean isResultUploaded(final TaskDescription taskDescription) {
         final String chainTaskId = taskDescription.getChainTaskId();
-        final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClientFromURL(taskDescription.getResultStorageProxy());
+        final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClientFromURL(taskDescription.getDealParams().getIexecResultStorageProxy());
         final String enclaveChallenge = taskService.getTaskByChainTaskId(chainTaskId).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
         final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), chainTaskId, enclaveChallenge);
         final String resultProxyToken = resultProxyClient.getJwt(workerpoolAuthorization.getSignature().getValue(), workerpoolAuthorization);
