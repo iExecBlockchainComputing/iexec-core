@@ -29,6 +29,7 @@ import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import javax.annotation.PreDestroy;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Date;
@@ -411,11 +412,12 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     // endregion
 
     @Override
-    public boolean purgeTask(String chainTaskId) {
+    public boolean purgeTask(final String chainTaskId) {
         return super.purgeTask(chainTaskId);
     }
 
     @Override
+    @PreDestroy
     public void purgeAllTasksData() {
         super.purgeAllTasksData();
     }
