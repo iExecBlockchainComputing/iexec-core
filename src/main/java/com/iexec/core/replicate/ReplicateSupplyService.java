@@ -533,6 +533,7 @@ public class ReplicateSupplyService implements Purgeable {
     // region purge locks
     @Override
     public boolean purgeTask(final String chainTaskId) {
+        log.debug("purgeTask [chainTaskId: {}]", chainTaskId);
         taskAccessForNewReplicateLocks.remove(chainTaskId);
         return !taskAccessForNewReplicateLocks.containsKey(chainTaskId);
     }
@@ -540,6 +541,7 @@ public class ReplicateSupplyService implements Purgeable {
     @Override
     @PreDestroy
     public void purgeAllTasksData() {
+        log.info("Method purgeAllTasksData() called to perform task data cleanup.");
         taskAccessForNewReplicateLocks.clear();
     }
     // endregion
