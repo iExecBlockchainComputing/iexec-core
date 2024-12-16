@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - Update `contribution` and `contributionAndFinalize` detector tests.
   TEE tasks with callback are now eligible to `contributeAndFinalize` flow. (#719)
 - Resolve deprecations caused by `TaskDescription` in `ReplicatesService` and `ResultService`. (#723)
+- Add missing `@PreDestroy` annotation in services implementing `Purgeable`. (#724)
 
 ### Dependency Upgrades
 

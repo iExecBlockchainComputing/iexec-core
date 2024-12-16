@@ -164,7 +164,7 @@ class TaskUpdateManagerTests {
     @Test
     void shouldNotUpgrade2ReopenedSinceNotAfterRevealDeadline() {
         final Task task = getStubTask(CONSENSUS_REACHED);
-        task.setRevealDeadline(new Date(new Date().getTime() + 100));
+        task.setRevealDeadline(new Date(new Date().getTime() + 500));
         taskRepository.save(task);
         when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
 

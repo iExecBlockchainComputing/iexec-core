@@ -41,6 +41,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -531,13 +532,16 @@ public class ReplicateSupplyService implements Purgeable {
 
     // region purge locks
     @Override
-    public boolean purgeTask(String chainTaskId) {
+    public boolean purgeTask(final String chainTaskId) {
+        log.debug("purgeTask [chainTaskId: {}]", chainTaskId);
         taskAccessForNewReplicateLocks.remove(chainTaskId);
         return !taskAccessForNewReplicateLocks.containsKey(chainTaskId);
     }
 
     @Override
+    @PreDestroy
     public void purgeAllTasksData() {
+        log.info("Method purgeAllTasksData() called to perform task data cleanup.");
         taskAccessForNewReplicateLocks.clear();
     }
     // endregion
