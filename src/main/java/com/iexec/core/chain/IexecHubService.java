@@ -413,12 +413,14 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
 
     @Override
     public boolean purgeTask(final String chainTaskId) {
+        log.debug("purgeTask [chainTaskId: {}]", chainTaskId);
         return super.purgeTask(chainTaskId);
     }
 
     @Override
     @PreDestroy
     public void purgeAllTasksData() {
+        log.info("Method purgeAllTasksData() called to perform task data cleanup.");
         super.purgeAllTasksData();
     }
 }
