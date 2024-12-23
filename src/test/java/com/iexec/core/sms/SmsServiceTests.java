@@ -18,86 +18,83 @@ package com.iexec.core.sms;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.security.Signature;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.registry.PlatformRegistryConfiguration;
+import com.iexec.core.task.event.TaskInitializedEvent;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static com.iexec.sms.secret.ReservedSecretKeyName.IEXEC_RESULT_IEXEC_RESULT_PROXY_URL;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(OutputCaptureExtension.class)
 class SmsServiceTests {
 
+    private static final String ADDRESS = "address";
     private static final String AUTHORIZATION = "authorization";
+    private static final String RESULT_PROXY_URL = "http://result-proxy";
     private static final String GRAMINE_SMS_URL = "http://gramine-sms";
     private static final String SCONE_SMS_URL = "http://scone-sms";
     private static final String CHAIN_TASK_ID = "chainTaskId";
-    private static final String url = "url";
+    private static final String URL = "url";
 
+    @Mock
+    private IexecHubService iexecHubService;
+    @Mock
+    private PlatformRegistryConfiguration registryConfiguration;
+    @Mock
+    private ResultRepositoryConfiguration resultRepositoryConfiguration;
     @Mock
     private SignatureService signatureService;
     @Mock
     private SmsClient smsClient;
     @Mock
     private SmsClientProvider smsClientProvider;
-    @Mock
-    private PlatformRegistryConfiguration registryConfiguration;
 
     @InjectMocks
     private SmsService smsService;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-        when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
+    @Test
+    void shouldGetVerifiedGramineSmsUrl() {
         when(registryConfiguration.getGramineSms()).thenReturn(GRAMINE_SMS_URL);
-        when(signatureService.createAuthorization("", CHAIN_TASK_ID, ""))
-                .thenReturn(WorkerpoolAuthorization.builder().signature(new Signature(AUTHORIZATION)).build());
+        when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
+        when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(TeeUtils.TEE_GRAMINE_ONLY_TAG));
+
+        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_GRAMINE_ONLY_TAG))
+                .isEqualTo(Optional.of(GRAMINE_SMS_URL));
+
+        verify(smsClientProvider).getSmsClient(GRAMINE_SMS_URL);
+        verify(smsClient).getTeeFramework();
     }
 
-    // region isSmsClientReady
-    static Stream<Arguments> validData() {
-        List<String> supportedTeeTags =
-                List.of(
-                        TeeUtils.TEE_SCONE_ONLY_TAG,
-                        TeeUtils.TEE_GRAMINE_ONLY_TAG);
-        //Ensure all TeeEnclaveProvider are handled
-        // (adding a new one would break assertion)
-        Assertions.assertThat(supportedTeeTags)
-                .hasSize(TeeFramework.values().length);
-        return Stream.of(
-                Arguments.of(supportedTeeTags.get(0), SCONE_SMS_URL),
-                Arguments.of(supportedTeeTags.get(1), GRAMINE_SMS_URL)
-        );
-    }
+    @Test
+    void shouldGetVerifiedSconeSmsUrl() {
+        when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
+        when(smsClientProvider.getSmsClient(SCONE_SMS_URL)).thenReturn(smsClient);
+        when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(TeeUtils.TEE_SCONE_ONLY_TAG));
 
-    @ParameterizedTest
-    @MethodSource("validData")
-    void shouldGetVerifiedSmsUrl(String inputTag, String expectedSmsUrl) {
-        when(smsClientProvider.getSmsClient(expectedSmsUrl)).thenReturn(smsClient);
-        when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(inputTag));
+        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TeeUtils.TEE_SCONE_ONLY_TAG))
+                .isEqualTo(Optional.of(SCONE_SMS_URL));
 
-        Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, inputTag))
-                .isEqualTo(Optional.of(expectedSmsUrl));
-
-        verify(smsClientProvider).getSmsClient(expectedSmsUrl);
+        verify(smsClientProvider).getSmsClient(SCONE_SMS_URL);
         verify(smsClient).getTeeFramework();
     }
 
@@ -106,12 +103,12 @@ class SmsServiceTests {
         Assertions.assertThat(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, "0xabc"))
                 .isEmpty();
 
-        verify(smsClientProvider, times(0)).getSmsClient(anyString());
-        verify(smsClient, times(0)).getTeeFramework();
+        verifyNoInteractions(smsClientProvider, smsClient);
     }
 
     @Test
     void shouldNotGetVerifiedSmsUrlSinceWrongTeeEnclaveProviderOnRemoteSms() {
+        when(registryConfiguration.getGramineSms()).thenReturn(GRAMINE_SMS_URL);
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
 
@@ -134,11 +131,11 @@ class SmsServiceTests {
 
     @Test
     void shouldGetEnclaveChallengeForTeeTask() {
-        String expected = "challenge";
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        final String expected = "challenge";
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
-        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, URL);
         verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received)
                 .isEqualTo(Optional.of(expected));
@@ -146,9 +143,9 @@ class SmsServiceTests {
 
     @Test
     void shouldNotGetEnclaveChallengeForTeeTaskWhenEmptySmsResponse() {
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
-        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, URL);
         verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received).isEmpty();
     }
@@ -159,42 +156,90 @@ class SmsServiceTests {
     void shouldGenerateEnclaveChallenge() {
         final String expected = "challenge";
 
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
         Assertions.assertThat(received)
                 .contains(expected);
     }
 
     @Test
     void shouldNotGenerateEnclaveChallengeSinceNoPublicKeyReturned() {
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
         Assertions.assertThat(received)
                 .isEmpty();
     }
 
     @Test
     void shouldNotGenerateEnclaveChallengeSinceFeignException() {
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(FeignException.GatewayTimeout.class);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
         Assertions.assertThat(received)
                 .isEmpty();
     }
 
     @Test
     void shouldNotGenerateEnclaveChallengeSinceRuntimeException() {
-        when(smsClientProvider.getSmsClient(url)).thenReturn(smsClient);
+        initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(RuntimeException.class);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, url);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
         Assertions.assertThat(received)
                 .isEmpty();
+    }
+    // endregion
+
+    // region pushWorkerpoolResultProxyUrl
+    @Test
+    void shouldDoNothingWhenSmsCommunicationFails(CapturedOutput output) {
+        initResultProxyStubs();
+        when(smsClient.getTeeFramework()).thenThrow(FeignException.class);
+        smsService.pushWorkerpoolResultProxyUrl(new TaskInitializedEvent(CHAIN_TASK_ID));
+        Assertions.assertThat(output.getOut()).contains("Failed to push default result-proxy URL to SMS");
+    }
+
+    @Test
+    void shouldAddWorkerPoolResultProxyUrl() {
+        initResultProxyStubs();
+        when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
+        when(signatureService.getAddress()).thenReturn(ADDRESS);
+        when(signatureService.sign(anyString())).thenReturn(new Signature(AUTHORIZATION));
+        doThrow(FeignException.NotFound.class).when(smsClient).isWeb2SecretSet(ADDRESS, IEXEC_RESULT_IEXEC_RESULT_PROXY_URL);
+        smsService.pushWorkerpoolResultProxyUrl(new TaskInitializedEvent(CHAIN_TASK_ID));
+        verify(smsClient).setWeb2Secret(AUTHORIZATION, ADDRESS, IEXEC_RESULT_IEXEC_RESULT_PROXY_URL, RESULT_PROXY_URL);
+    }
+
+    @Test
+    void shouldUpdateWorkerPoolResultProxyUrl() {
+        initResultProxyStubs();
+        when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
+        when(signatureService.getAddress()).thenReturn(ADDRESS);
+        when(signatureService.sign(anyString())).thenReturn(new Signature(AUTHORIZATION));
+        doNothing().when(smsClient).isWeb2SecretSet(ADDRESS, IEXEC_RESULT_IEXEC_RESULT_PROXY_URL);
+        smsService.pushWorkerpoolResultProxyUrl(new TaskInitializedEvent(CHAIN_TASK_ID));
+        verify(smsClient).updateWeb2Secret(AUTHORIZATION, ADDRESS, IEXEC_RESULT_IEXEC_RESULT_PROXY_URL, RESULT_PROXY_URL);
+    }
+    // endregion
+
+    // region utils
+    private void initEnclaveChallengeStubs() {
+        when(smsClientProvider.getSmsClient(URL)).thenReturn(smsClient);
+        when(signatureService.createAuthorization("", CHAIN_TASK_ID, ""))
+                .thenReturn(WorkerpoolAuthorization.builder().signature(new Signature(AUTHORIZATION)).build());
+    }
+
+    private void initResultProxyStubs() {
+        when(resultRepositoryConfiguration.getResultRepositoryURL()).thenReturn(RESULT_PROXY_URL);
+        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
+                TaskDescription.builder().teeFramework(TeeFramework.SCONE).build());
+        when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
+        when(smsClientProvider.getSmsClient(SCONE_SMS_URL)).thenReturn(smsClient);
     }
     // endregion
 }

@@ -17,7 +17,9 @@
 package com.iexec.core.result;
 
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
+import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.chain.SignatureService;
+import com.iexec.core.configuration.ResultRepositoryConfiguration;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.resultproxy.api.ResultProxyClient;
@@ -33,18 +35,20 @@ import static com.iexec.commons.poco.utils.BytesUtils.EMPTY_ADDRESS;
 @Service
 public class ResultService {
 
-    private final ResultProxyClient resultProxyClient;
+    private final ResultRepositoryConfiguration resultRepositoryConfiguration;
     private final SignatureService signatureService;
     private final TaskService taskService;
 
-    public ResultService(final ResultProxyClient resultProxyClient, final SignatureService signatureService, final TaskService taskService) {
-        this.resultProxyClient = resultProxyClient;
+    public ResultService(final ResultRepositoryConfiguration resultRepositoryConfiguration, final SignatureService signatureService, final TaskService taskService) {
+        this.resultRepositoryConfiguration = resultRepositoryConfiguration;
         this.signatureService = signatureService;
         this.taskService = taskService;
     }
 
     @Retryable(value = FeignException.class)
-    public boolean isResultUploaded(final String chainTaskId) {
+    public boolean isResultUploaded(final TaskDescription taskDescription) {
+        final String chainTaskId = taskDescription.getChainTaskId();
+        final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClientFromURL(taskDescription.getDealParams().getIexecResultStorageProxy());
         final String enclaveChallenge = taskService.getTaskByChainTaskId(chainTaskId).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
         final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), chainTaskId, enclaveChallenge);
         final String resultProxyToken = resultProxyClient.getJwt(workerpoolAuthorization.getSignature().getValue(), workerpoolAuthorization);
@@ -58,8 +62,8 @@ public class ResultService {
     }
 
     @Recover
-    private boolean isResultUploaded(final FeignException e, final String chainTaskId) {
-        log.error("Cannot check isResultUploaded after multiple retries [chainTaskId:{}]", chainTaskId, e);
+    private boolean isResultUploaded(final FeignException e, final TaskDescription taskDescription) {
+        log.error("Cannot check isResultUploaded after multiple retries [chainTaskId:{}]", taskDescription.getChainTaskId(), e);
         return false;
     }
 }

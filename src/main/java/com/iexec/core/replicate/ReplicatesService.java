@@ -545,8 +545,8 @@ public class ReplicatesService {
         return isResultUploaded(task);
     }
 
-    public boolean isResultUploaded(TaskDescription task) {
-        final boolean hasIpfsStorageProvider = IPFS_RESULT_STORAGE_PROVIDER.equals(task.getResultStorageProvider());
+    public boolean isResultUploaded(final TaskDescription task) {
+        final boolean hasIpfsStorageProvider = IPFS_RESULT_STORAGE_PROVIDER.equals(task.getDealParams().getIexecResultStorageProvider());
 
         // Offchain computing or TEE task with private storage
         if (task.containsCallback() || (task.isTeeTask() && !hasIpfsStorageProvider)) {
@@ -554,7 +554,7 @@ public class ReplicatesService {
         }
 
         // Cloud computing, upload to IPFS - basic & TEE
-        return resultService.isResultUploaded(task.getChainTaskId());
+        return resultService.isResultUploaded(task);
     }
 
     public boolean didReplicateContributeOnchain(String chainTaskId, String walletAddress) {

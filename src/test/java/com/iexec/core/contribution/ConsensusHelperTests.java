@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConsensusHelperTests {
 
-    private final static String CHAIN_TASK_ID = "0xtaskId";
-    private final static long MAX_EXECUTION_TIME = 60000;
+    private static final String CHAIN_TASK_ID = "0xtaskId";
+    private static final long MAX_EXECUTION_TIME = 60000;
 
     /*
     *

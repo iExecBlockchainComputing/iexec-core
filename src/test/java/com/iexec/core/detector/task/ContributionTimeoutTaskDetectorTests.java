@@ -23,8 +23,9 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatusChange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,6 +48,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @DataMongoTest
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
 class ContributionTimeoutTaskDetectorTests {
 
     @Container
@@ -72,7 +74,6 @@ class ContributionTimeoutTaskDetectorTests {
 
     @BeforeEach
     void init() {
-        MockitoAnnotations.openMocks(this);
         taskRepository.deleteAll();
         final TaskService taskService = new TaskService(mongoTemplate, taskRepository, iexecHubService, applicationEventPublisher);
         contributionTimeoutTaskDetector = new ContributionTimeoutTaskDetector(taskService, applicationEventPublisher);
@@ -86,7 +87,7 @@ class ContributionTimeoutTaskDetectorTests {
 
         contributionTimeoutTaskDetector.detect();
 
-        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getCurrentStatus()).isEqualTo(AT_LEAST_ONE_REVEALED);
         assertThat(finalTask.getDateStatusList()).isNotNull();
@@ -102,7 +103,7 @@ class ContributionTimeoutTaskDetectorTests {
 
         contributionTimeoutTaskDetector.detect();
 
-        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getCurrentStatus()).isEqualTo(RUNNING);
         assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
@@ -118,7 +119,7 @@ class ContributionTimeoutTaskDetectorTests {
 
         contributionTimeoutTaskDetector.detect();
 
-        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getCurrentStatus()).isEqualTo(FAILED);
         assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))
@@ -134,7 +135,7 @@ class ContributionTimeoutTaskDetectorTests {
 
         contributionTimeoutTaskDetector.detect();
 
-        Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
+        final Task finalTask = taskRepository.findByChainTaskId(CHAIN_TASK_ID).orElse(null);
         assertThat(finalTask).isNotNull();
         assertThat(finalTask.getCurrentStatus()).isEqualTo(RUNNING);
         assertThat(finalTask.getDateStatusList().stream().map(TaskStatusChange::getStatus))

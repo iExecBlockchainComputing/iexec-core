@@ -60,18 +60,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReplicateSupplyServiceTests {
 
-    private final static String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    private final static String WALLET_WORKER_2 = "0xdcfeffee1443fbf9277e6fa3b50cf3b38f7101af";
+    private static final String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final String WALLET_WORKER_2 = "0xdcfeffee1443fbf9277e6fa3b50cf3b38f7101af";
 
-    private final static String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
-    private final static String CHAIN_TASK_ID_2 = "0xc536af16737e02bb28100452a932056d499be3c462619751a9ed36515de64d50";
+    private static final String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
+    private static final String CHAIN_TASK_ID_2 = "0xc536af16737e02bb28100452a932056d499be3c462619751a9ed36515de64d50";
 
-    private final static String DAPP_NAME = "dappName";
-    private final static String COMMAND_LINE = "commandLine";
-    private final static String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    private final static String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
-    private final static String ENCLAVE_CHALLENGE = "dummyEnclave";
-    private final static long maxExecutionTime = 60000;
+    private static final String DAPP_NAME = "dappName";
+    private static final String COMMAND_LINE = "commandLine";
+    private static final String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
+    private static final String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
+    private static final String ENCLAVE_CHALLENGE = "dummyEnclave";
+    private static final long maxExecutionTime = 60000;
     long workerLastBlock = 12;
 
     @Mock

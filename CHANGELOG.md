@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
+
+### New Features
+
+- Push scheduler Result Proxy URL as Web2 secret to SMS. (#718)
+
+### Bug Fixes
+
+- Start scheduler in out-of-service mode. (#712)
+- Scheduler needs to enter out-of-service mode on first blockchain communication loss.
+  This is due to **Nethermind v1.14.7+99775bf7** where filters are lost on restart. (#715)
+- Use Result Proxy URL defined in deal parameters if any, fall back to scheduler default one otherwise. (#716)
+- Update off-chain task model with on-chain task consensus data in all workflows. (#720)
+
+### Quality
+
+- Reorder static and final keywords. (#717)
+- Update `contribution` and `contributionAndFinalize` detector tests.
+  TEE tasks with callback are now eligible to `contributeAndFinalize` flow. (#719)
+- Resolve deprecations caused by `TaskDescription` in `ReplicatesService` and `ResultService`. (#723)
+- Add missing `@PreDestroy` annotation in services implementing `Purgeable`. (#724)
+
+### Dependency Upgrades
+
+- Upgrade to `eclipse-temurin:11.0.24_8-jre-focal`. (#713)
+- Upgrade to Gradle 8.10.2. (#714)
+- Upgrade to `testcontainers` 1.20.4. (#721)
+- Upgrade to `mongo:7.0.15-jammy`. (#722)
+- Upgrade to `iexec-commons-poco` 4.2.0. (#725)
+- Upgrade to `iexec-common` 8.6.0. (#725)
+- Upgrade to `iexec-blockchain-adapter-api-library` 8.6.0. (#725)
+- Upgrade to `iexec-result-proxy-library` 8.6.0. (#725)
+- Upgrade to `iexec-sms-library` 8.7.0. (#725)
+
 ## [[8.5.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.5.0) 2024-06-19
 
 ### Deprecation Notices

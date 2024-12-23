@@ -18,6 +18,7 @@ package com.iexec.core.replicate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
@@ -60,7 +61,9 @@ class ReplicateTests {
                 + "\"busyComputing\":true,"
                 + "\"recoverable\":true"
                 + "}";
-        assertThat(jsonString).isEqualTo(expectedString);
+        ObjectNode actualJsonNode = (ObjectNode) mapper.readTree(jsonString);
+        ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedString);
+        assertThat(actualJsonNode).isEqualTo(expectedJsonNode);
         Replicate deserializedReplicate = mapper.readValue(jsonString, Replicate.class);
         assertThat(deserializedReplicate).usingRecursiveComparison().isEqualTo(replicate);
     }

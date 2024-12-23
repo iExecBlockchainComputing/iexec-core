@@ -47,8 +47,8 @@ import static org.mockito.Mockito.when;
 
 class ReplicateResultUploadTimeoutDetectorTests {
 
-    private final static String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
-    private final static String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
+    private static final String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
+    private static final String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
 
     @Mock
     private TaskService taskService;

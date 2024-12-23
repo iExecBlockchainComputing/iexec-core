@@ -48,8 +48,8 @@ import static org.mockito.Mockito.when;
 
 class RevealUnnotifiedDetectorTests {
 
-    private final static String CHAIN_TASK_ID = "chainTaskId";
-    private final static String WALLET_ADDRESS = "0x1";
+    private static final String CHAIN_TASK_ID = "chainTaskId";
+    private static final String WALLET_ADDRESS = "0x1";
 
     @Mock
     private TaskService taskService;

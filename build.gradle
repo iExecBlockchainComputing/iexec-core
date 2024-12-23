@@ -1,10 +1,10 @@
 plugins {
     id 'java'
-    id 'io.freefair.lombok' version '8.6'
+    id 'io.freefair.lombok' version '8.10.2'
     id 'org.springframework.boot' version '2.7.18'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'org.sonarqube' version '5.0.0.4638'
+    id 'org.sonarqube' version '5.1.0.4882'
     id 'maven-publish'
 }
 
@@ -12,7 +12,7 @@ ext {
     springCloudVersion = '2021.0.8'
     jjwtVersion = '0.11.5'
     mongockVersion = '4.2.7.BETA'
-    testContainersVersion = '1.19.0'
+    testContainersVersion = '1.20.4'
 }
 
 if (!project.hasProperty('gitBranch')) {
@@ -133,7 +133,7 @@ testing {
 
 tasks.withType(Test).configureEach {
     finalizedBy jacocoTestReport
-    systemProperty "mongo.image", "mongo:4.4.28-focal"
+    systemProperty "mongo.image", "mongo:7.0.15-jammy"
 }
 
 tasks.register('itest') {
