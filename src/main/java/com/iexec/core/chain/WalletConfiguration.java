@@ -20,11 +20,9 @@ import com.iexec.common.config.PublicChainConfig;
 import com.iexec.commons.poco.chain.SignerService;
 import lombok.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 
 @Value
-@ConstructorBinding
 @ConfigurationProperties(prefix = "wallet")
 public class WalletConfiguration {
     String encryptedFilePath;

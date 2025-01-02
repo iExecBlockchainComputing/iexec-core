@@ -22,11 +22,9 @@ import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 
 @Data
-@ConstructorBinding
 @ConfigurationProperties(prefix = "config-server")
 public class ConfigServerClientConfig {
 

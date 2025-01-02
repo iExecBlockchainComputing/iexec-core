@@ -19,11 +19,10 @@ package com.iexec.core.configuration;
 import com.iexec.commons.poco.chain.SignerService;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.config.PublicConfiguration;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
-
-import javax.annotation.PostConstruct;
 
 /**
  * This simple service will generate a random session id when the scheduler is started, it will be send to workers when

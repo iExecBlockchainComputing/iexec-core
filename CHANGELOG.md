@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2025
 
+### Quality
+
+- Update base image from Eclipse Temurin `11.0.24_8-jre-focal` to `17.0.13_11-jre-focal`
+- Update source and target compatibility to Java 17. (#728)
+- Migrated to Jakarta EE APIs. (#728)
+- Add `org.mockito:mockito-core:5.2.0` and `org.mockito:mockito-inline5.2.0` dependencies for tests. (#728)
+- Configuration server is now optional by default. (#728)
+- Update deprecated `mongock.change-logs-scan-package` to `mongock.migration-scan-package`. (#728)
+
+### Dependency Upgrades
+
+- Update Spring Boot to `3.0.13`. (#728)
+- Update Spring Cloud to `2022.0.5`. (#728)
+- Update Mongock to `5.4.0`. (#728)
+- Update `com.github.cloudyrock.mongock:mongock-spring-v5` to `io.mongock:mongock-springboot-v3`. (#728)
+- Update `com.github.cloudyrock.mongock:mongodb-springdata-v2-driver` to `io.mongock:mongodb-springdata-v4-driver`. (#728)
+- Update `org.springdoc:springdoc-openapi-ui:1.7.0` to `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0`. (#728)
+
 ## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
 
 ### New Features

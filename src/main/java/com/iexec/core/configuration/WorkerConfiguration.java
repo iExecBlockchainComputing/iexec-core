@@ -18,12 +18,10 @@ package com.iexec.core.configuration;
 
 import lombok.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 
 import java.util.List;
 
 @Value
-@ConstructorBinding
 @ConfigurationProperties(prefix = "workers")
 public class WorkerConfiguration {
     long askForReplicatePeriod;

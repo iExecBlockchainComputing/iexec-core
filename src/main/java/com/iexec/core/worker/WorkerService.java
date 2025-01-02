@@ -20,6 +20,7 @@ import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Metrics;
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,6 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
