@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +49,7 @@ class ConfigurationRepositoryMigrationTest {
     @Mock
     private ReplayConfigurationRepository replayConfigurationRepository;
 
+    // region execution
     @Test
     void shouldMoveFromReplayField() {
         when(replayConfigurationRepository.count()).thenReturn(0L);
@@ -86,5 +88,15 @@ class ConfigurationRepositoryMigrationTest {
                 .moveFromReplayField(mongockTemplate, replayConfigurationRepository);
         Assertions.assertFalse(isUpdated);
     }
+    // endregion
+
+    // region rollback
+    @Test
+    void shouldSuccessfullyRollback() {
+        ConfigurationRepositoryMigration migration = new ConfigurationRepositoryMigration();
+        migration.rollback(replayConfigurationRepository);
+        verify(replayConfigurationRepository).deleteAll();
+    }
+    // endregion
 
 }
