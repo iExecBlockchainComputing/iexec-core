@@ -12,7 +12,6 @@ ext {
     springCloudVersion = '2022.0.5'
     jjwtVersion = '0.11.5'
     mongockVersion = '5.4.0'
-    mockitoVersion = '5.2.0'
     testContainersVersion = '1.20.4'
 }
 
@@ -119,13 +118,10 @@ testing {
         test {
             useJUnitJupiter()
             dependencies {
-                implementation 'org.springframework.boot:spring-boot-starter-test'
-
-                implementation "org.mockito:mockito-core:$mockitoVersion"
-                implementation "org.mockito:mockito-inline:$mockitoVersion"
-
                 // awaitility
                 implementation 'org.awaitility:awaitility'
+
+                implementation 'org.springframework.boot:spring-boot-starter-test'
 
                 // mongo
                 implementation "org.testcontainers:junit-jupiter:$testContainersVersion"
