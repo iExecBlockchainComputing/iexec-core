@@ -24,7 +24,6 @@ testing {
         test {
             useJUnitJupiter()
             dependencies {
-                implementation 'org.junit.jupiter:junit-jupiter:5.8.2'
                 implementation 'org.assertj:assertj-core:3.22.0'
             }
         }

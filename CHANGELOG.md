@@ -6,16 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Quality
 
-- Update base image from Eclipse Temurin `11.0.24_8-jre-focal` to `17.0.13_11-jre-focal`
-- Update source and target compatibility to Java 17. (#728)
-- Migrated to Jakarta EE APIs. (#728)
+- Upgrade to base image from Eclipse Temurin 17.0.13_11-jre-focal. (#728)
 - Configuration server is now optional by default. (#728)
 
 ### Dependency Upgrades
 
-- Update Spring Boot to `3.0.13`. (#728)
-- Update Spring Cloud to `2022.0.5`. (#728)
-- Update Mongock to `5.4.0`. (#728)
+- Upgrade to Spring Boot 3.0.13. (#728)
+- Upgrade to Spring Cloud 2022.0.5. (#728)
+- Upgrade to Mongock 5.4.0. (#728)
 
 ## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
 

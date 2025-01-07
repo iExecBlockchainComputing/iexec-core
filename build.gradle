@@ -1,7 +1,13 @@
+buildscript {
+    ext {
+        springBootVersion = '3.0.13'
+    }
+}
+
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '8.10.2'
-    id 'org.springframework.boot' version '3.0.13'
+    id 'org.springframework.boot' version "${springBootVersion}"
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
     id 'org.sonarqube' version '5.1.0.4882'
@@ -52,6 +58,8 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+
     // iexec
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
@@ -75,7 +83,7 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
 
     // Spring Doc
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     // apache commons.lang3
     implementation 'org.apache.commons:commons-lang3'
