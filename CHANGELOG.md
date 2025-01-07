@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Quality
 
-- Upgrade to base image from Eclipse Temurin 17.0.13_11-jre-focal. (#728)
+- Upgrade to Eclipse Temurin 17.0.13_11-jre-focal. (#728)
 - Configuration server is now optional by default. (#728)
 
 ### Dependency Upgrades
