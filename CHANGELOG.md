@@ -6,14 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Quality
 
-- Upgrade to Eclipse Temurin 17.0.13_11-jre-focal. (#728)
 - Configuration server is now optional by default. (#728)
 
 ### Dependency Upgrades
 
+- Upgrade to `eclipse-temurin:17.0.13_11-jre-focal`. (#728)
 - Upgrade to Spring Boot 3.0.13. (#728)
 - Upgrade to Spring Cloud 2022.0.5. (#728)
 - Upgrade to Mongock 5.4.0. (#728)
+- Upgrade to `org.springdoc:springdoc-openapi-starter-webmvc-ui` 2.6.0. (#728)
 
 ## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
 
