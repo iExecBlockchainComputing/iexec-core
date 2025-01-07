@@ -36,7 +36,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * Manage {@link Worker} objects.
@@ -164,7 +163,7 @@ public class WorkerService {
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
         return workerRepository.findByWalletAddressIn(lostWorkers);
     }
 
@@ -175,7 +174,7 @@ public class WorkerService {
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
         return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
 

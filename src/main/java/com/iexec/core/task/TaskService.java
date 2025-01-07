@@ -292,7 +292,7 @@ public class TaskService {
     public List<String> updateMultipleTasksByQuery(Query query, Update update) {
         return mongoTemplate.find(query, Task.class).stream()
                 .map(task -> updateSingleTask(task, update))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -311,7 +311,7 @@ public class TaskService {
         return taskRepository.findChainTaskIdsByFinalDeadlineBefore(expirationDate)
                 .stream()
                 .map(Task::getChainTaskId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
