@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,9 +81,9 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     private Replicate getReplicateWithStatus(final ReplicateStatus replicateStatus) {
         Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        ReplicateStatusUpdate replicateStatusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER).status(replicateStatus).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
+        replicate.setStatusUpdateList(Collections.singletonList(replicateStatusUpdate));
         return replicate;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -338,7 +337,7 @@ class WorkerServiceTests {
 
         final List<Future<Optional<Worker>>> futures = IntStream.range(0, nThreads)
                 .mapToObj(i -> executor.submit(() -> workerService.addChainTaskIdToWorker(new Date().getTime() + "", WORKER1)))
-                .collect(Collectors.toList());
+                .toList();
 
         Awaitility.await()
                 .atMost(Duration.ofMinutes(1))

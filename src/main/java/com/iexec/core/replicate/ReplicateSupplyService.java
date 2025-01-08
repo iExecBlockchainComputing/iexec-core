@@ -38,6 +38,7 @@ import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
@@ -84,7 +85,7 @@ public class ReplicateSupplyService implements Purgeable {
      *  - released before any `continue` or  `return`
      *
      */
-    @Retryable(maxAttempts = 5)
+    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 5)
     Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not sync
         //TODO Check if worker node is sync

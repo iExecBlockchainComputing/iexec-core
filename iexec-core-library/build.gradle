@@ -5,7 +5,13 @@ plugins {
     id 'maven-publish'
 }
 
+ext {
+    springBootVersion = '3.0.13'
+}
+
 dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
     // TODO remove this later when migration has been done
@@ -24,7 +30,7 @@ testing {
         test {
             useJUnitJupiter()
             dependencies {
-                implementation 'org.assertj:assertj-core:3.22.0'
+                implementation 'org.assertj:assertj-core'
             }
         }
     }

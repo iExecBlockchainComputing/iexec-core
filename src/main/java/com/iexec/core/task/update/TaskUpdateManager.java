@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -136,12 +135,12 @@ class TaskUpdateManager {
             case FINALIZED:
                 finalizedToCompleted(task);
                 break;
-            case INITIALIZE_FAILED:
-            case RUNNING_FAILED:
-            case CONTRIBUTION_TIMEOUT:
-            case REOPEN_FAILED:
-            case RESULT_UPLOAD_TIMEOUT:
-            case FINALIZE_FAILED:
+            case INITIALIZE_FAILED,
+                 RUNNING_FAILED,
+                 CONTRIBUTION_TIMEOUT,
+                 REOPEN_FAILED,
+                 RESULT_UPLOAD_TIMEOUT,
+                 FINALIZE_FAILED:
                 toFailed(task);
                 break;
             case FINAL_DEADLINE_REACHED:
@@ -150,8 +149,8 @@ class TaskUpdateManager {
                 // which will itself fire a generic "abort" notification
                 toFailed(task, FINAL_DEADLINE_REACHED);
                 break;
-            case COMPLETED:
-            case FAILED:
+            case COMPLETED,
+                 FAILED:
                 break;
         }
         log.debug("Task update process completed [chainTaskId:{}]", chainTaskId);
@@ -521,7 +520,7 @@ class TaskUpdateManager {
                 .map(replicatesList::getReplicateOfWorker)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toList());
+                .toList();
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
         final boolean allAliveWorkersTried = replicatesOfAliveWorkers.size() == aliveWorkers.size();

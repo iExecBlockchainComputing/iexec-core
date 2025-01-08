@@ -18,13 +18,13 @@ package com.iexec.core.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig {
 
     @Bean
@@ -35,7 +35,7 @@ public class WebSecurityConfig {
         // No session will be created or used by spring security
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        http.authorizeRequests()
+        http.authorizeHttpRequests()
                 .anyRequest().permitAll();
         return http.build();
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class ResultService {
         this.taskService = taskService;
     }
 
-    @Retryable(value = FeignException.class)
+    @Retryable(retryFor = FeignException.class)
     public boolean isResultUploaded(final TaskDescription taskDescription) {
         final String chainTaskId = taskDescription.getChainTaskId();
         final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClientFromURL(taskDescription.getDealParams().getIexecResultStorageProxy());

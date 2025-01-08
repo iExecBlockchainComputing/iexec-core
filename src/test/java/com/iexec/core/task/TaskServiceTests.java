@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
 import static com.iexec.core.task.TaskStatus.*;
@@ -171,7 +170,7 @@ class TaskServiceTests {
             } catch (InterruptedException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
-        }).collect(Collectors.toList());
+        }).toList();
 
         // Check one execution has added the task,
         // while the others have failed.
@@ -180,7 +179,7 @@ class TaskServiceTests {
                 .stream()
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toList());
+                .toList();
         assertThat(nonEmptyResults).hasSize(1);
         assertThat(nonEmptyResults.get(0).getChainTaskId()).isEqualTo(expectedChainTaskId);
 
