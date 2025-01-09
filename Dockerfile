@@ -2,8 +2,9 @@ FROM eclipse-temurin:17.0.13_11-jre-focal
 
 ARG jar
 
-RUN test -n "$jar" \
-    && apt-get update \
+RUN test -n "$jar"
+
+RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
