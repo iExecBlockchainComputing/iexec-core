@@ -5,12 +5,8 @@ plugins {
     id 'maven-publish'
 }
 
-ext {
-    springBootVersion = '3.0.13'
-}
-
 dependencies {
-    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.0.13")
 
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
