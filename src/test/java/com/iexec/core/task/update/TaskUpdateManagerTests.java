@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -73,7 +74,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_REQUESTED;
@@ -84,6 +84,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @DataMongoTest
+@TestPropertySource(properties = {"mongock.enabled=false"})
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
@@ -834,7 +835,7 @@ class TaskUpdateManagerTests {
                 .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
-                .collect(Collectors.toList());
+                .toList();
 
         mockChainTask();
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
@@ -869,7 +870,7 @@ class TaskUpdateManagerTests {
                 .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
-                .collect(Collectors.toList());
+                .toList();
 
         mockChainTask();
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
@@ -957,7 +958,7 @@ class TaskUpdateManagerTests {
                 .getReplicates()
                 .stream()
                 .map(r -> Worker.builder().walletAddress(r.getWalletAddress()).build())
-                .collect(Collectors.toList());
+                .toList();
 
         mockChainTask();
         when(replicatesService.getReplicatesList(task.getChainTaskId())).thenReturn(Optional.of(replicatesList));
@@ -1815,7 +1816,7 @@ class TaskUpdateManagerTests {
     // region utils
     private static void assertThatTaskContainsStatuses(Task task, TaskStatus currentStatus, List<TaskStatus> changesList) {
         assertThat(task.getCurrentStatus()).isEqualTo(currentStatus);
-        assertThat(task.getDateStatusList().stream().map(TaskStatusChange::getStatus).collect(Collectors.toList())).isEqualTo(changesList);
+        assertThat(task.getDateStatusList().stream().map(TaskStatusChange::getStatus).toList()).isEqualTo(changesList);
     }
 
     private void mockChainTask() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,25 @@
 
 package com.iexec.core.configuration;
 
-import com.github.cloudyrock.mongock.driver.mongodb.springdata.v2.decorator.impl.MongockTemplate;
 import com.mongodb.client.MongoCollection;
-import io.changock.migration.api.annotations.ChangeLog;
-import io.changock.migration.api.annotations.ChangeSet;
+import io.mongock.api.annotations.ChangeUnit;
+import io.mongock.api.annotations.Execution;
+import io.mongock.api.annotations.RollbackExecution;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.math.BigInteger;
 
 @Slf4j
-@ChangeLog(order = "001")
+@ChangeUnit(order = "001", id = "moveFromReplayField", author = "iexec")
 public class ConfigurationRepositoryMigration {
 
-    public static final String CURRENT_AUTHOR = "iexec";
     public static final String CONFIGURATION_COLLECTION_NAME = "configuration";
     public static final String LEGACY_FROM_REPLAY_FIELD_NAME = "fromReplay";
 
-    @ChangeSet(order = "001", id = "moveFromReplayField", author = CURRENT_AUTHOR)
-    public boolean moveFromReplayField(MongockTemplate mongockTemplate, ReplayConfigurationRepository replayConfigurationRepository) {
+    @Execution
+    public boolean moveFromReplayField(MongoTemplate mongockTemplate, ReplayConfigurationRepository replayConfigurationRepository) {
         if (replayConfigurationRepository.count() > 0) {
             log.info("Migration of fromReplay field is useless (already up-to-date)");
             return false;
@@ -62,6 +62,11 @@ public class ConfigurationRepositoryMigration {
         configuration.remove(LEGACY_FROM_REPLAY_FIELD_NAME);
         configurationCollection.insertOne(configuration);
         return true;
+    }
+
+    @RollbackExecution
+    public void rollback(ReplayConfigurationRepository replayConfigurationRepository) {
+        replayConfigurationRepository.deleteAll();
     }
 
 }

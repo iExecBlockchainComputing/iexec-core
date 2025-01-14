@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
@@ -196,7 +195,7 @@ class RevealUnnotifiedDetectorTests {
                 .updateReplicateStatus(any(), any(), statusUpdate.capture());
         final List<ReplicateStatus> newStatuses = statusUpdate.getAllValues().stream()
                 .map(ReplicateStatusUpdate::getStatus)
-                .collect(Collectors.toList());
+                .toList();
         assertThat(newStatuses).isEqualTo(missingStatuses);
     }
 

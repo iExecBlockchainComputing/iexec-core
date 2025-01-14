@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -69,14 +68,14 @@ class JwtTokenProviderTests {
         String bearerToken = "Bearer eb604db8eba185df03ea4f5";
         String resolvedToken = jwtTokenProvider.resolveToken(bearerToken);
         assertThat(resolvedToken).isEqualTo(bearerToken.substring(7));
-    } 
+    }
 
     @Test
     void shouldNotResolveTokenSinceNotValidOne() {
         String notBearerToken = "Not " + jwtTokenProvider.getOrCreateToken(WALLET_ADDRESS);
         String resolvedToken = jwtTokenProvider.resolveToken(notBearerToken);
         assertThat(resolvedToken).isNull();
-    } 
+    }
 
     @Test
     void shouldNotResolveTokenSinceNullOne() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -190,16 +190,16 @@ public class ReplicatesService {
         boolean canUpdate = true;
 
         switch (newStatus) {
-            case CONTRIBUTE_FAILED:
-            case REVEAL_FAILED:
+            case CONTRIBUTE_FAILED,
+                 REVEAL_FAILED:
                 canUpdate = false;
                 break;
-            case CONTRIBUTE_AND_FINALIZE_DONE:
-            case RESULT_UPLOAD_FAILED:
+            case CONTRIBUTE_AND_FINALIZE_DONE,
+                 RESULT_UPLOAD_FAILED:
                 canUpdate = verifyStatus(chainTaskId, walletAddress, newStatus, updateReplicateStatusArgs);
                 break;
-            case CONTRIBUTED:
-            case REVEALED:
+            case CONTRIBUTED,
+                 REVEALED:
                 canUpdate = canUpdateToBlockchainSuccess(chainTaskId, replicate, statusUpdate, updateReplicateStatusArgs);
                 break;
             case RESULT_UPLOADED:
@@ -262,7 +262,7 @@ public class ReplicatesService {
                 .build();
     }
 
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 100)
+    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 100)
     public Either<ReplicateStatusUpdateError, TaskNotificationType> updateReplicateStatus(
             String chainTaskId,
             String walletAddress,

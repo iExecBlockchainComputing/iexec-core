@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -155,21 +155,16 @@ public class ReplicatesController {
             return ResponseEntity.ok(updateResult.get());
         }
 
-        switch (updateResult.getLeft()) {
-            case ALREADY_REPORTED:
-                return ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
-                        .body(TaskNotificationType.PLEASE_WAIT);
-            case NO_ERROR:
+        return switch (updateResult.getLeft()) {
+            case ALREADY_REPORTED -> ResponseEntity.status(HttpStatus.ALREADY_REPORTED)
+                    .body(TaskNotificationType.PLEASE_WAIT);
+            case NO_ERROR -> {
                 log.warn("An error has been detected on replicate update but no error is returned" +
                         " [chainTaskId:{}, statusUpdate:{}]", chainTaskId, statusUpdate);
-                return ResponseEntity.internalServerError().build();
-            case UNKNOWN_REPLICATE:
-            case UNKNOWN_TASK:
-            case BAD_WORKFLOW_TRANSITION:
-            case GENERIC_CANT_UPDATE:
-            default:
-                return ResponseEntity.status(HttpStatus.ACCEPTED)
-                        .body(TaskNotificationType.PLEASE_ABORT);
-        }
+                yield ResponseEntity.internalServerError().build();
+            }
+            default -> ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body(TaskNotificationType.PLEASE_ABORT);
+        };
     }
 }

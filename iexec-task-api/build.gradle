@@ -6,13 +6,15 @@ plugins {
 }
 
 dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.0.13")
+
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
 }
 
 java {
-    sourceCompatibility = "11"
-    targetCompatibility = "11"
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     withJavadocJar()
     withSourcesJar()
 }
@@ -21,9 +23,6 @@ testing {
     suites {
         test {
             useJUnitJupiter()
-            dependencies {
-                implementation 'org.junit.jupiter:junit-jupiter:5.8.2'
-            }
         }
     }
 }

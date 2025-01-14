@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Metrics;
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +31,11 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * Manage {@link Worker} objects.
@@ -164,7 +163,7 @@ public class WorkerService {
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
         return workerRepository.findByWalletAddressIn(lostWorkers);
     }
 
@@ -175,7 +174,7 @@ public class WorkerService {
                 .stream()
                 .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
         return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
 

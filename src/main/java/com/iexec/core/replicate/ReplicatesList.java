@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 
@@ -95,7 +94,7 @@ public class ReplicatesList {
         for (Replicate replicate : replicates) {
             List<ReplicateStatus> listReplicateStatus = replicate.getStatusUpdateList().stream()
                     .map(ReplicateStatusUpdate::getStatus)
-                    .collect(Collectors.toList());
+                    .toList();
             for (ReplicateStatus status : listStatus) {
                 if (listReplicateStatus.contains(status)) {
                     addressReplicates.add(replicate.getWalletAddress());

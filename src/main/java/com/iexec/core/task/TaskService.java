@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,7 +39,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -292,7 +292,7 @@ public class TaskService {
     public List<String> updateMultipleTasksByQuery(Query query, Update update) {
         return mongoTemplate.find(query, Task.class).stream()
                 .map(task -> updateSingleTask(task, update))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -311,7 +311,7 @@ public class TaskService {
         return taskRepository.findChainTaskIdsByFinalDeadlineBefore(expirationDate)
                 .stream()
                 .map(Task::getChainTaskId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
