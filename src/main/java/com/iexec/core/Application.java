@@ -16,13 +16,10 @@
 
 package com.iexec.core;
 
-import io.mongock.driver.mongodb.springdata.v4.SpringDataMongoV4Driver;
 import io.mongock.runner.springboot.EnableMongock;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.context.annotation.Bean;
-import org.springframework.data.mongodb.core.MongoTemplate;
 
 @EnableMongock
 @SpringBootApplication
@@ -31,11 +28,6 @@ public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-    }
-
-    @Bean
-    public SpringDataMongoV4Driver mongockDriver(MongoTemplate mongoTemplate) {
-        return SpringDataMongoV4Driver.withDefaultLock(mongoTemplate);
     }
 
 }

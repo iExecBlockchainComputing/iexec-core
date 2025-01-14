@@ -42,6 +42,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -65,6 +66,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @DataMongoTest
+@TestPropertySource(properties = {"mongock.enabled=false"})
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
