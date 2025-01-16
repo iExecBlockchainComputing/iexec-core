@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Quality
 
 - Configuration server is now optional by default. (#728)
+- Improve switch statements after Java 17 migration. (#729)
 
 ### Dependency Upgrades
 

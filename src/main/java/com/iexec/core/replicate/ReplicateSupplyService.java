@@ -299,17 +299,10 @@ public class ReplicateSupplyService implements Purgeable {
         final TaskNotificationExtra.TaskNotificationExtraBuilder taskNotificationExtra =
                 TaskNotificationExtra.builder().workerpoolAuthorization(authorization);
 
-        switch (taskNotificationType) {
-            case PLEASE_CONTRIBUTE:
-                break;
-            case PLEASE_REVEAL:
-                taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
-                break;
-            case PLEASE_ABORT:
-                taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
-                break;
-            default:
-                break;
+        if (taskNotificationType == TaskNotificationType.PLEASE_REVEAL) {
+            taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
+        } else if (taskNotificationType == TaskNotificationType.PLEASE_ABORT) {
+            taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
         }
         return taskNotificationExtra.build();
     }
@@ -519,15 +512,12 @@ public class ReplicateSupplyService implements Purgeable {
         return Optional.empty();
     }
 
-    private TaskAbortCause getTaskAbortCause(Task task) {
-        switch (task.getCurrentStatus()) {
-            case CONSENSUS_REACHED:
-                return TaskAbortCause.CONSENSUS_REACHED;
-            case CONTRIBUTION_TIMEOUT:
-                return TaskAbortCause.CONTRIBUTION_TIMEOUT;
-            default:
-                return TaskAbortCause.UNKNOWN;
-        }
+    private TaskAbortCause getTaskAbortCause(final Task task) {
+        return switch (task.getCurrentStatus()) {
+            case CONSENSUS_REACHED -> TaskAbortCause.CONSENSUS_REACHED;
+            case CONTRIBUTION_TIMEOUT -> TaskAbortCause.CONTRIBUTION_TIMEOUT;
+            default -> TaskAbortCause.UNKNOWN;
+        };
     }
 
     // region purge locks
