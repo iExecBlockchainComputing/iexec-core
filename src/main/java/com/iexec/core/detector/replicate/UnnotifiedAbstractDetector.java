@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,32 +160,26 @@ public abstract class UnnotifiedAbstractDetector {
 
         for (ReplicateStatus statusToUpdate : statusesToUpdate) {
             // add details to the update if needed
-            ReplicateStatusDetails details = null;
-            switch (statusToUpdate) {
-                case CONTRIBUTED:
+            final ReplicateStatusDetails details = switch (statusToUpdate) {
+                case CONTRIBUTED -> {
                     // retrieve the contribution block for that wallet
-                    final ChainReceipt contributedBlock = iexecHubService.getContributionBlock(chainTaskId,
-                            wallet, initBlockNumber);
-                    final long contributedBlockNumber = contributedBlock != null ? contributedBlock.getBlockNumber() : 0;
-                    details = new ReplicateStatusDetails(contributedBlockNumber);
-                    break;
-                case REVEALED:
+                    final ChainReceipt contributedBlock = iexecHubService.getContributionBlock(
+                            chainTaskId, wallet, initBlockNumber);
+                    yield ReplicateStatusDetails.builder().chainReceipt(contributedBlock).build();
+                }
+                case REVEALED -> {
                     // retrieve the reveal block for that wallet
-                    final ChainReceipt revealedBlock = iexecHubService.getRevealBlock(chainTaskId, wallet,
-                            initBlockNumber);
-                    final long revealedBlockNumber = revealedBlock != null ? revealedBlock.getBlockNumber() : 0;
-                    details = new ReplicateStatusDetails(revealedBlockNumber);
-                    break;
-                case CONTRIBUTE_AND_FINALIZE_DONE:
+                    final ChainReceipt revealedBlock = iexecHubService.getRevealBlock(
+                            chainTaskId, wallet, initBlockNumber);
+                    yield ReplicateStatusDetails.builder().chainReceipt(revealedBlock).build();
+                }
+                case CONTRIBUTE_AND_FINALIZE_DONE -> {
                     // retrieve the finalize block
                     final ChainReceipt finalizeBlock = iexecHubService.getFinalizeBlock(chainTaskId, initBlockNumber);
-                    final long finalizeBlockNumber = finalizeBlock != null ? finalizeBlock.getBlockNumber() : 0;
-                    details = new ReplicateStatusDetails(finalizeBlockNumber);
-                    break;
-                default:
-                    // by default, no need to retrieve anything
-                    break;
-            }
+                    yield ReplicateStatusDetails.builder().chainReceipt(finalizeBlock).build();
+                }
+                default -> null; // by default, no need to retrieve anything
+            };
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(statusToUpdate, details);
             replicatesService.updateReplicateStatus(chainTaskId, wallet, statusUpdate);
         }

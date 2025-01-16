@@ -79,7 +79,7 @@ class TaskUpdateManager {
         this.smsService = smsService;
     }
 
-    void updateTask(String chainTaskId) {
+    void updateTask(final String chainTaskId) {
         log.debug("Task update process starts [chainTaskId:{}]", chainTaskId);
         final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
         if (task == null) {
@@ -98,60 +98,30 @@ class TaskUpdateManager {
                 ? FINAL_DEADLINE_REACHED : task.getCurrentStatus();
 
         switch (currentStatus) {
-            case RECEIVED:
-                received2Initializing(task);
-                break;
-            case INITIALIZING:
-                initializing2Initialized(task);
-                break;
-            case INITIALIZED:
-                initialized2Running(task, chainTask);
-                break;
-            case RUNNING:
-                transitionFromRunningState(chainTask, task);
-                break;
-            case CONSENSUS_REACHED:
-                consensusReached2AtLeastOneReveal2ResultUploading(task);
-                //consensusReached2Reopening(task);
-                break;
-            case AT_LEAST_ONE_REVEALED:
-                requestUpload(task);
-                break;
-            case REOPENING:
-                reopening2Reopened(task);
-                break;
-            case REOPENED:
-                updateTaskStatusAndSave(task, INITIALIZED);
-                break;
-            case RESULT_UPLOADING:
-                resultUploading2Uploaded(chainTask, task);
-                break;
-            case RESULT_UPLOADED:
-                resultUploaded2Finalizing(chainTask, task);
-                break;
-            case FINALIZING:
-                finalizing2Finalized2Completed(task);
-                break;
-            case FINALIZED:
-                finalizedToCompleted(task);
-                break;
+            case RECEIVED -> received2Initializing(task);
+            case INITIALIZING -> initializing2Initialized(task);
+            case INITIALIZED -> initialized2Running(task, chainTask);
+            case RUNNING -> transitionFromRunningState(chainTask, task);
+            case CONSENSUS_REACHED ->
+                    consensusReached2AtLeastOneReveal2ResultUploading(task); //consensusReached2Reopening(task);
+            case AT_LEAST_ONE_REVEALED -> requestUpload(task);
+            case REOPENING -> reopening2Reopened(task);
+            case REOPENED -> updateTaskStatusAndSave(task, INITIALIZED);
+            case RESULT_UPLOADING -> resultUploading2Uploaded(chainTask, task);
+            case RESULT_UPLOADED -> resultUploaded2Finalizing(chainTask, task);
+            case FINALIZING -> finalizing2Finalized2Completed(task);
+            case FINALIZED -> finalizedToCompleted(task);
             case INITIALIZE_FAILED,
                  RUNNING_FAILED,
                  CONTRIBUTION_TIMEOUT,
                  REOPEN_FAILED,
                  RESULT_UPLOAD_TIMEOUT,
-                 FINALIZE_FAILED:
-                toFailed(task);
-                break;
-            case FINAL_DEADLINE_REACHED:
-                // Eventually should fire a "final deadline reached" notification to worker,
-                // but here let's just trigger an toFailed(task) leading to a failed status
-                // which will itself fire a generic "abort" notification
-                toFailed(task, FINAL_DEADLINE_REACHED);
-                break;
-            case COMPLETED,
-                 FAILED:
-                break;
+                 FINALIZE_FAILED -> toFailed(task);
+            // Eventually should fire a "final deadline reached" notification to worker,
+            // but here let's just trigger an toFailed(task) leading to a failed status
+            // which will itself fire a generic "abort" notification
+            case FINAL_DEADLINE_REACHED -> toFailed(task, FINAL_DEADLINE_REACHED);
+            default -> log.info("Nothing to do for task [chainTaskId:{}, status:{}]", chainTaskId, currentStatus);
         }
         log.debug("Task update process completed [chainTaskId:{}]", chainTaskId);
     }
@@ -431,7 +401,7 @@ class TaskUpdateManager {
      * should have the following properties:
      * <ul>
      * <li>The on-chain task status is {@code REVEALING}
-     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The on-chain task {@code consensusValue} and {@code revealDeadline} fields have been updated
      * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
      * </ul>
      *
@@ -466,7 +436,7 @@ class TaskUpdateManager {
      * should have the following properties:
      * <ul>
      * <li>The on-chain task status is {@code COMPLETED}
-     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The on-chain task {@code consensusValue} and {@code revealDeadline} fields have been updated
      * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
      * </ul>
      *
