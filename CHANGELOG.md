@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - Configuration server is now optional by default. (#728)
 - Improve switch statements after Java 17 migration. (#729)
 
+### Breaking API changes
+
+- Do not set a value to blockchain adapter URL field in public configuration. (#730)
+
 ### Dependency Upgrades
 
 - Upgrade to `eclipse-temurin:17.0.13_11-jre-focal`. (#728)
