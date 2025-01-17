@@ -61,7 +61,6 @@ public class PublicConfigurationService {
     void buildPublicConfiguration() {
         this.publicConfiguration = PublicConfiguration.builder()
                 .workerPoolAddress(chainConfig.getPoolAddress())
-                .blockchainAdapterUrl(configServerClientConfig.getUrl())
                 .configServerUrl(configServerClientConfig.getUrl())
                 .schedulerPublicAddress(signerService.getAddress())
                 .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
