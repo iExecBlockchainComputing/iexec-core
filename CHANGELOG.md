@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking API changes
 
-- Do not set a value to blockchain adapter URL field in public configuration. (#730)
+- Remove deprecated blockhainAdapterUrl field from PublicConfiguration. (#729)
 
 ### Dependency Upgrades
 

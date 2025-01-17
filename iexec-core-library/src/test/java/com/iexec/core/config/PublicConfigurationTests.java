@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,48 +28,33 @@ class PublicConfigurationTests {
 
     @Test
     void shouldSerializeAndDeserialize() throws JsonProcessingException {
-        PublicConfiguration config = PublicConfiguration.builder().build();
-        String jsonString = mapper.writeValueAsString(config);
+        final PublicConfiguration config = PublicConfiguration.builder().build();
+        final String jsonString = mapper.writeValueAsString(config);
         assertThat(jsonString).isEqualTo("{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
-                "\"blockchainAdapterUrl\":null,\"configServerUrl\":null,\"resultRepositoryURL\":null," +
+                "\"configServerUrl\":null,\"resultRepositoryURL\":null," +
                 "\"askForReplicatePeriod\":0,\"requiredWorkerVersion\":null}");
-        PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
+        final PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
         assertThat(parsedConfig).isEqualTo(config);
     }
 
     @Test
-    void shouldDeserializeWhenBlockchainAdapterUrlIsPresentButConfigServerUrlNot() throws JsonProcessingException {
-
-        String jsonString = "{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
-                "\"blockchainAdapterUrl\":\"http://localhost:8080\",\"resultRepositoryURL\":null," +
+    void shouldDeserializeWhenConfigServerUrlIsMissing() throws JsonProcessingException {
+        final PublicConfiguration config = PublicConfiguration.builder().build();
+        final String jsonString = "{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
+                "\"resultRepositoryURL\":null," +
                 "\"askForReplicatePeriod\":0,\"requiredWorkerVersion\":null}";
-
-        PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
-        assertThat(parsedConfig.getBlockchainAdapterUrl()).isEqualTo("http://localhost:8080");
-        assertThat(parsedConfig.getConfigServerUrl()).isNull();
+        final PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
+        assertThat(parsedConfig).isEqualTo(config);
     }
 
     @Test
-    void shouldDeserializeWhenConfigServerUrlIsPresentButBlockchainAdapterUrlNot() throws JsonProcessingException {
-
-        String jsonString = "{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
-                "\"configServerUrl\":\"http://localhost:8080\",\"resultRepositoryURL\":null," +
+    void shouldDeserializeWhenConfigServerUrlIsPresent() throws JsonProcessingException {
+        final PublicConfiguration config = PublicConfiguration.builder()
+                .configServerUrl("http://localhost:8888").build();
+        final String jsonString = "{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
+                "\"configServerUrl\":\"http://localhost:8888\",\"resultRepositoryURL\":null," +
                 "\"askForReplicatePeriod\":0,\"requiredWorkerVersion\":null}";
-
-        PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
-        assertThat(parsedConfig.getConfigServerUrl()).isEqualTo("http://localhost:8080");
-        assertThat(parsedConfig.getBlockchainAdapterUrl()).isNull();
-    }
-
-    @Test
-    void shouldDeserializeWhenConfigServerUrlAndBlockchainAdapterUrlArePresent() throws JsonProcessingException {
-
-        String jsonString = "{\"workerPoolAddress\":null,\"schedulerPublicAddress\":null," +
-                "\"configServerUrl\":\"http://localhost:8080\",\"blockchainAdapterUrl\":\"http://localhost:8082\",\"resultRepositoryURL\":null," +
-                "\"askForReplicatePeriod\":0,\"requiredWorkerVersion\":null}";
-
-        PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
-        assertThat(parsedConfig.getConfigServerUrl()).isEqualTo("http://localhost:8080");
-        assertThat(parsedConfig.getBlockchainAdapterUrl()).isEqualTo("http://localhost:8082");
+        final PublicConfiguration parsedConfig = mapper.readValue(jsonString, PublicConfiguration.class);
+        assertThat(parsedConfig).isEqualTo(config);
     }
 }
