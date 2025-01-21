@@ -26,12 +26,10 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Slf4j
-@Service
 public class InitializedTaskDetector implements Detector {
 
     private final TaskService taskService;

@@ -24,13 +24,11 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import static com.iexec.commons.poco.chain.ChainTaskStatus.REVEALING;
 import static com.iexec.core.task.TaskStatus.RUNNING;
 
 @Slf4j
-@Service
 public class ConsensusReachedTaskDetector implements Detector {
 
     private final IexecHubService iexecHubService;

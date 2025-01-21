@@ -25,14 +25,17 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.event.*;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +43,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
 class TaskListenerTest {
 
@@ -50,7 +54,7 @@ class TaskListenerTest {
     @Captor
     private ArgumentCaptor<TaskNotification> notificationCaptor;
     @Mock
-    private TaskUpdateRequestManager taskUpdateRequestManager;
+    private ApplicationEventPublisher applicationEventPublisher;
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -63,16 +67,11 @@ class TaskListenerTest {
     @InjectMocks
     private TaskListeners taskListeners;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void shouldUpdateTaskOnTasCreatedEvent() {
         TaskCreatedEvent event = new TaskCreatedEvent(CHAIN_TASK_ID);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskUpdateRequestManager).publishRequest(anyString());
+        verify(applicationEventPublisher).publishEvent(any(TaskUpdateRequestEvent.class));
     }
 
     @Test

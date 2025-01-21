@@ -26,9 +26,9 @@ import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.event.*;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -40,18 +40,18 @@ import java.util.List;
 @Slf4j
 public class TaskListeners {
 
-    private final TaskUpdateRequestManager taskUpdateRequestManager;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final NotificationService notificationService;
     private final ReplicatesService replicatesService;
     private final WorkerService workerService;
     private final PurgeService purgeService;
 
-    public TaskListeners(TaskUpdateRequestManager taskUpdateRequestManager,
+    public TaskListeners(ApplicationEventPublisher applicationEventPublisher,
                          NotificationService notificationService,
                          ReplicatesService replicatesService,
                          WorkerService workerService,
                          PurgeService purgeService) {
-        this.taskUpdateRequestManager = taskUpdateRequestManager;
+        this.applicationEventPublisher = applicationEventPublisher;
         this.notificationService = notificationService;
         this.replicatesService = replicatesService;
         this.workerService = workerService;
@@ -61,7 +61,7 @@ public class TaskListeners {
     @EventListener
     public void onTaskCreatedEvent(TaskCreatedEvent event) {
         log.info("Received TaskCreatedEvent [chainTaskId:{}]", event.getChainTaskId());
-        taskUpdateRequestManager.publishRequest(event.getChainTaskId());
+        applicationEventPublisher.publishEvent(new TaskUpdateRequestEvent(this, event.getChainTaskId()));
     }
 
     @EventListener

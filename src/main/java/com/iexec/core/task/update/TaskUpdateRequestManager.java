@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@ package com.iexec.core.task.update;
 
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
+import com.iexec.core.task.event.TaskUpdateRequestEvent;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Semaphore;
@@ -69,6 +71,11 @@ public class TaskUpdateRequestManager {
         this.taskUpdateManager = taskUpdateManager;
     }
 
+    @EventListener
+    private void onTaskUpdateRequest(final TaskUpdateRequestEvent event) {
+        publishRequest(event.getChainTaskId());
+    }
+
     /**
      * Publish a TaskUpdateRequest if no request is already waiting for this task.
      * This request will be dealt with asynchronously.
@@ -90,7 +97,7 @@ public class TaskUpdateRequestManager {
         }
         final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
         if (task == null) {
-            log.warn("No such task [chainTaskId: {}]", chainTaskId);
+            log.warn("No such task [chainTaskId:{}]", chainTaskId);
             return false;
         }
 

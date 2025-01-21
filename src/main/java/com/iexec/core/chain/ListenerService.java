@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.iexec.core.chain;
 
 import com.iexec.commons.poco.encoding.LogTopic;
-import com.iexec.core.chain.event.LatestBlockEvent;
 import com.iexec.core.task.event.TaskUpdateRequestEvent;
 import io.micrometer.core.instrument.Metrics;
 import io.reactivex.Flowable;
@@ -25,7 +24,6 @@ import io.reactivex.disposables.Disposable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.Request;
 import org.web3j.protocol.core.methods.response.EthSubscribe;
 import org.web3j.protocol.websocket.WebSocketService;
@@ -35,7 +33,6 @@ import org.web3j.protocol.websocket.events.NewHeadsNotification;
 import org.web3j.utils.Numeric;
 
 import java.net.ConnectException;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,8 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.iexec.commons.poco.encoding.LogTopic.*;
 
 @Slf4j
-@Service
-public class WebSocketBlockchainListener {
+public class ListenerService {
     static final String LATEST_BLOCK_METRIC_NAME = "iexec.chain.block.latest";
 
     private static final String SUBSCRIBE_METHOD = "eth_subscribe";
@@ -58,8 +54,8 @@ public class WebSocketBlockchainListener {
     private Disposable newHeads;
     private Disposable logs;
 
-    public WebSocketBlockchainListener(final ApplicationEventPublisher applicationEventPublisher,
-                                       final ChainConfig chainConfig) {
+    public ListenerService(final ApplicationEventPublisher applicationEventPublisher,
+                           final ChainConfig chainConfig) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.chainConfig = chainConfig;
         final String wsUrl = chainConfig.getNodeAddress().replace("http", "ws");
@@ -102,19 +98,13 @@ public class WebSocketBlockchainListener {
 
     private void processHead(final NewHeadsNotification event) {
         final long blockNumber = Numeric.toBigInt(event.getParams().getResult().getNumber()).longValue();
-        final String blockHash = event.getParams().getResult().getHash();
-        final long blockTimestamp = Numeric.toBigInt(event.getParams().getResult().getTimestamp()).longValue();
-        final Instant blockTimestampInstant = Instant.ofEpochSecond(blockTimestamp);
-        log.info("Last seen block [number:{}, hash:{}, timestamp:{}, instant:{}]",
-                blockNumber, blockHash, blockTimestamp, blockTimestampInstant);
         lastSeenBlock.set(blockNumber);
-        applicationEventPublisher.publishEvent(new LatestBlockEvent(this, blockNumber, blockHash, blockTimestamp));
     }
 
     private void processLog(final LogNotification event) {
         final Log logEvent = event.getParams().getResult();
-        log.info("Event received [topic:{}, chainTaskId:{}]",
-                LogTopic.decode(logEvent.getTopics().get(0)), logEvent.getTopics().get(1));
+        log.info("Received log {} {}", logEvent.getBlockNumber(),
+                logEvent.getTopics().stream().map(LogTopic::decode).toList());
         applicationEventPublisher.publishEvent(
                 new TaskUpdateRequestEvent(this, logEvent.getTopics().get(1)));
     }

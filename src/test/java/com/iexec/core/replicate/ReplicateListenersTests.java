@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +19,19 @@ package com.iexec.core.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
+import com.iexec.core.task.event.TaskUpdateRequestEvent;
 import com.iexec.core.task.listener.ReplicateListeners;
-import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +43,7 @@ import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReplicateListenersTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
@@ -50,15 +56,10 @@ class ReplicateListenersTests {
     @Mock
     private ReplicatesService replicatesService;
     @Mock
-    private TaskUpdateRequestManager taskUpdateRequestManager;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private ReplicateListeners replicateListeners;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void shouldUpdateTaskOnReplicateUpdate() {
@@ -70,7 +71,7 @@ class ReplicateListenersTests {
             replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
         }
 
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(someStatuses.size())).publishRequest(any());
+        Mockito.verify(applicationEventPublisher, Mockito.times(someStatuses.size())).publishEvent(any(TaskUpdateRequestEvent.class));
     }
 
     @Test
