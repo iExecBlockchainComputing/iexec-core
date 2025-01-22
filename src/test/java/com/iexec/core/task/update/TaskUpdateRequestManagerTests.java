@@ -181,8 +181,8 @@ class TaskUpdateRequestManagerTests {
 
     // region queue ordering
     @Test
-    void shouldGetInOrderForStatus() throws InterruptedException {
-        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+    void shouldGetInOrderForStatus() {
+        final LinkedBlockingQueue<Runnable> queue = taskUpdateRequestManager.queue;
 
         TaskUpdate initializingTask = buildTaskUpdate(null, TaskStatus.INITIALIZING, null, null);
         TaskUpdate completedTask = buildTaskUpdate(null, TaskStatus.COMPLETED, null, null);
@@ -202,18 +202,15 @@ class TaskUpdateRequestManagerTests {
         Collections.shuffle(tasks);
         queue.addAll(tasks);
 
-        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        assertThat(prioritizedTasks).containsExactly(
-                completedTask,
-                consensusReachedTask,
-                runningTask,
-                initializedTask,
-                initializingTask);
+        for (final TaskUpdate taskUpdate : tasks) {
+            assertThat(queue.poll()).isEqualTo(taskUpdate);
+        }
+
     }
 
     @Test
-    void shouldGetInOrderForContributionDeadline() throws InterruptedException {
-        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+    void shouldGetInOrderForContributionDeadline() {
+        final LinkedBlockingQueue<Runnable> queue = taskUpdateRequestManager.queue;
 
         final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
         final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
@@ -231,14 +228,14 @@ class TaskUpdateRequestManagerTests {
         Collections.shuffle(tasks);
         queue.addAll(tasks);
 
-        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        assertThat(prioritizedTasks).containsExactly(
-                t1, t2, t3, t4, t5);
+        for (final TaskUpdate taskUpdate : tasks) {
+            assertThat(queue.poll()).isEqualTo(taskUpdate);
+        }
     }
 
     @Test
-    void shouldGetInOrderForStatusAndContributionDeadline() throws InterruptedException {
-        final TaskUpdatePriorityBlockingQueue queue = taskUpdateRequestManager.queue;
+    void shouldGetInOrderForStatusAndContributionDeadline() {
+        final LinkedBlockingQueue<Runnable> queue = taskUpdateRequestManager.queue;
 
         final Date d1 = new GregorianCalendar(2021, Calendar.JANUARY, 1).getTime();
         final Date d2 = new GregorianCalendar(2021, Calendar.JANUARY, 2).getTime();
@@ -252,9 +249,9 @@ class TaskUpdateRequestManagerTests {
         Collections.shuffle(tasks);
         queue.addAll(tasks);
 
-        final List<TaskUpdate> prioritizedTasks = queue.takeAll();
-        assertThat(prioritizedTasks).containsExactly(
-                t3, t4, t1, t2);
+        for (final TaskUpdate taskUpdate : tasks) {
+            assertThat(queue.poll()).isEqualTo(taskUpdate);
+        }
     }
     // endregion
 

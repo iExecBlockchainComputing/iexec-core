@@ -38,8 +38,8 @@ public class TaskTestsUtils {
 
     public static Task getStubTask() {
         final Task task = new Task(CHAIN_DEAL_ID, 0, DAPP_NAME, COMMAND_LINE, 1, 60000, NO_TEE_TAG);
-        task.setContributionDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
-        task.setFinalDeadline(Date.from(Instant.now().plus(1, ChronoUnit.MINUTES)));
+        task.setContributionDeadline(Date.from(Instant.now().plus(2, ChronoUnit.MINUTES)));
+        task.setFinalDeadline(Date.from(Instant.now().plus(2, ChronoUnit.MINUTES)));
         return task;
     }
 

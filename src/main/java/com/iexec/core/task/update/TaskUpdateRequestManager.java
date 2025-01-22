@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.jodah.expiringmap.ExpiringMap;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +48,7 @@ public class TaskUpdateRequestManager {
             .expiration(LONGEST_TASK_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
             .build();
 
-    final TaskUpdatePriorityBlockingQueue queue = new TaskUpdatePriorityBlockingQueue();
+    final LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     // Both `corePoolSize` and `maximumPoolSize` should be set to `TASK_UPDATE_THREADS_POOL_SIZE`.
     // Otherwise, `taskUpdateExecutor` won't pop `maximumPoolSize` threads
     // as new threads are popped only if the queue is full
@@ -84,7 +85,8 @@ public class TaskUpdateRequestManager {
         if (chainTaskId.isEmpty()) {
             return false;
         }
-        if (queue.containsTask(chainTaskId)) {
+        if (queue.stream().map(TaskUpdate.class::cast).anyMatch(
+                taskUpdate -> chainTaskId.equals(taskUpdate.getChainTaskId()))) {
             log.debug("Request already published [chainTaskId:{}]", chainTaskId);
             return false;
         }

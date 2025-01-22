@@ -39,6 +39,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -275,7 +277,7 @@ public class TaskService {
                                                Sort sort) {
         return taskRepository.findFirstByCurrentStatusInAndContributionDeadlineAfterAndTagNotInAndChainTaskIdNotIn(
                 statuses,
-                new Date(),
+                Date.from(Instant.now().plus(1L, ChronoUnit.MINUTES)),
                 excludedTags,
                 excludedChainTaskIds,
                 sort
