@@ -118,17 +118,6 @@ public class TaskController {
         return replicateModel;
     }
 
-    /**
-     * @deprecated Use {@code /tasks/{chainTaskId}/logs} instead
-     */
-    @Deprecated(forRemoval = true)
-    @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskLogsModel> getTaskLogsLegacy(
-            @PathVariable("chainTaskId") String chainTaskId,
-            @RequestHeader("Authorization") String authorization) {
-        return getTaskLogs(chainTaskId, authorization);
-    }
-
     @GetMapping("/tasks/{chainTaskId}/logs")
     public ResponseEntity<TaskLogsModel> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
@@ -151,18 +140,6 @@ public class TaskController {
                 .map(TaskLogs::generateModel)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * @deprecated Use {@code /tasks/{chainTaskId}/replicates/{walletAddress}/logs} instead
-     */
-    @Deprecated(forRemoval = true)
-    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
-    public ResponseEntity<ComputeLogs> getComputeLogsLegacy(
-            @PathVariable("chainTaskId") String chainTaskId,
-            @PathVariable("walletAddress") String walletAddress,
-            @RequestHeader("Authorization") String authorization) {
-        return getComputeLogs(chainTaskId, walletAddress, authorization);
     }
 
     @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/logs")

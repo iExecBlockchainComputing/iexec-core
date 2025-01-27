@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Breaking API changes
 
 - Remove deprecated blockhainAdapterUrl field from PublicConfiguration. (#729)
+- Remove deprecated REST endpoints in TaskController. (#730)
 
 ### Dependency Upgrades
 
