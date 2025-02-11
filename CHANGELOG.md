@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2025
 
+### Bug Fixes
+
+- Remove TaskResultUploadTimeout detector, covered by FinalDeadlineTaskDetector. (#732)
+
 ### Quality
 
 - Configuration server is now optional by default. (#728)
