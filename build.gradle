@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '8.10.2'
-    id 'org.springframework.boot' version '3.0.13'
+    id 'org.springframework.boot' version '3.3.8'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
     id 'org.sonarqube' version '5.1.0.4882'
@@ -9,7 +9,7 @@ plugins {
 }
 
 ext {
-    springCloudVersion = '2022.0.5'
+    springCloudVersion = '2023.0.5'
     jjwtVersion = '0.11.5'
     mongockVersion = '5.4.0'
     testContainersVersion = '1.20.4'
@@ -42,6 +42,10 @@ allprojects {
         }
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.add('-parameters')
     }
 }
 
