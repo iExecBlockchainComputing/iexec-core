@@ -68,40 +68,10 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         }
     }
 
-    /**
-     * Check if the task is defined onchain and
-     * has the status {@link ChainTaskStatus#UNSET}.
-     *
-     * @param chainDealId
-     * @param taskIndex
-     * @return true if the task is found with the status UNSET, false otherwise.
-     */
-    //TODO Migrate to common
-    public boolean isTaskInUnsetStatusOnChain(String chainDealId, int taskIndex) {
-        String generatedChainTaskId = ChainUtils.generateChainTaskId(chainDealId, taskIndex);
-        Optional<ChainTask> chainTask = getChainTask(generatedChainTaskId);
-        return chainTask.isEmpty()
-                || ChainTaskStatus.UNSET.equals(chainTask.get().getStatus());
-    }
-
-
     public boolean isTaskInCompletedStatusOnChain(String chainTaskId) {
         return getChainTask(chainTaskId)
                 .filter(chainTask -> ChainTaskStatus.COMPLETED == chainTask.getStatus())
                 .isPresent();
-    }
-
-    /**
-     * Check if a deal's contribution deadline
-     * is still not reached.
-     *
-     * @param chainDealId
-     * @return true if deadline is not reached, false otherwise.
-     */
-    public boolean isBeforeContributionDeadline(String chainDealId) {
-        return getChainDeal(chainDealId)
-                .map(this::isBeforeContributionDeadline)
-                .orElse(false);
     }
 
     /**
@@ -158,28 +128,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         long startTime = chainDeal.getStartTime().longValue() * 1000;
         long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         return new Date(startTime + maxTime * 10);
-    }
-
-    public boolean canFinalize(String chainTaskId) {
-        final ChainTask chainTask = getChainTask(chainTaskId).orElse(null);
-        if (chainTask == null) {
-            return false;
-        }
-
-        final boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
-        final boolean isFinalDeadlineInFuture = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
-        final boolean hasEnoughRevealors = chainTask.getRevealCounter() == chainTask.getWinnerCounter()
-                || (chainTask.getRevealCounter() > 0 && chainTask.getRevealDeadline() <= Instant.now().toEpochMilli());
-        final boolean ret = isChainTaskStatusRevealing && isFinalDeadlineInFuture && hasEnoughRevealors;
-
-        if (ret) {
-            log.info("Finalizable onchain [chainTaskId:{}]", chainTaskId);
-        } else {
-            log.warn("Can't finalize [chainTaskId:{}, " +
-                            "isChainTaskStatusRevealing:{}, isFinalDeadlineInFuture:{}, hasEnoughRevealors:{}]", chainTaskId,
-                    isChainTaskStatusRevealing, isFinalDeadlineInFuture, hasEnoughRevealors);
-        }
-        return ret;
     }
 
     public boolean canReopen(String chainTaskId) {
