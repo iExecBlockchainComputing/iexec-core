@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.iexec.core.api;
 
-import com.iexec.common.config.WorkerModel;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.core.config.PublicConfiguration;
+import com.iexec.core.config.WorkerModel;
 import com.iexec.core.logs.TaskLogsModel;
 import com.iexec.core.metric.PlatformMetric;
 import com.iexec.core.notification.TaskNotification;
