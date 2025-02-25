@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - Configuration server is now optional by default. (#728)
 - Improve switch statements after Java 17 migration. (#729)
+- Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
+
 
 ### Breaking API changes
 
