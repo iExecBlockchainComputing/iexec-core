@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Remove deprecated blockhainAdapterUrl field from PublicConfiguration. (#730)
 - Remove deprecated REST endpoints in TaskController. (#731)
 - Move `WorkerModel` from `iexec-common` to `iexec-core-library`. (#735)
+- Move `TaskAbortCause` from `iexec-commons-poco` to `iexec-core-library`. (#736)
 
 ### Dependency Upgrades
 
