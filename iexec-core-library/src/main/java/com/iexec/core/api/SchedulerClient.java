@@ -16,18 +16,13 @@
 
 package com.iexec.core.api;
 
-import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
 import com.iexec.commons.poco.security.Signature;
 import com.iexec.core.config.PublicConfiguration;
 import com.iexec.core.config.WorkerModel;
-import com.iexec.core.logs.TaskLogsModel;
-import com.iexec.core.metric.PlatformMetric;
 import com.iexec.core.notification.TaskNotification;
 import com.iexec.core.notification.TaskNotificationType;
 import com.iexec.core.replicate.ReplicateTaskSummary;
-import com.iexec.core.task.TaskModel;
 import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
@@ -35,13 +30,6 @@ import feign.RequestLine;
 import java.util.List;
 
 public interface SchedulerClient {
-    /**
-     * @deprecated Use iexec-task-feedback-api
-     */
-    @Deprecated(forRemoval = true)
-    @RequestLine("GET /metrics")
-    PlatformMetric getMetrics();
-
     @RequestLine("GET /version")
     String getCoreVersion();
 
@@ -86,43 +74,5 @@ public interface SchedulerClient {
             @Param("chainTaskId") String chainTaskId,
             ReplicateStatusUpdate replicateStatusUpdate
     );
-    // endregion
-
-    // region /tasks
-
-    /**
-     * @deprecated Use iexec-task-feedback-api
-     */
-    @Deprecated(forRemoval = true)
-    @RequestLine("GET /tasks/{chainTaskId}")
-    TaskModel getTask(@Param("chainTaskId") String chainTaskId);
-
-    /**
-     * @deprecated Use iexec-task-feedback-api
-     */
-    @Deprecated(forRemoval = true)
-    @RequestLine("GET /tasks/logs/challenge?address={address}")
-    EIP712Challenge getTaskLogsChallenge(@Param("address") String address);
-
-    /**
-     * @deprecated Use iexec-task-feedback-api
-     */
-    @Deprecated(forRemoval = true)
-    @Headers("Authorization: {authorization}")
-    @RequestLine("GET /tasks/{chainTaskId}/logs")
-    TaskLogsModel getTaskLogs(
-            @Param("chainTaskId") String chainTaskId,
-            @Param("authorization") String authorization);
-
-    /**
-     * @deprecated Use iexec-task-feedback-api
-     */
-    @Deprecated(forRemoval = true)
-    @Headers("Authorization: {authorization}")
-    @RequestLine("GET /tasks/{chainTaskId}/replicates/{walletAddress}/logs")
-    ComputeLogs getComputeLogs(
-            @Param("chainTaskId") String chainTaskId,
-            @Param("walletAddress") String walletAddress,
-            @Param("authorization") String authorization);
     // endregion
 }
