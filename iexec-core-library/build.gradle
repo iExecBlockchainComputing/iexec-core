@@ -10,8 +10,6 @@ dependencies {
 
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
-    // TODO remove this later when migration has been done
-    implementation project(':iexec-task-api')
 }
 
 java {
