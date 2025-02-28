@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Move `WorkerModel` from `iexec-common` to `iexec-core-library`. (#735)
 - Move `TaskAbortCause` from `iexec-commons-poco` to `iexec-core-library`. (#736)
 - Remove deprecated methods in `iexec-core-library`. (#737)
+- Remove unused `ContributionUtils` class. (#738)
 
 ### Dependency Upgrades
 
