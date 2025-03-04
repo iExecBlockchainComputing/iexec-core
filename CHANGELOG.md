@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Configuration server is now optional by default. (#728)
 - Improve switch statements after Java 17 migration. (#729)
 - Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
+- Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 
 ### Breaking API changes
 
@@ -22,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - Move `TaskAbortCause` from `iexec-commons-poco` to `iexec-core-library`. (#736)
 - Remove deprecated methods in `iexec-core-library`. (#737)
 - Remove unused `ContributionUtils` class. (#738)
+- Rework metrics to expose count of computing CPUs or GPUs instead of available ones. (#739)
 
 ### Dependency Upgrades
 
