@@ -7,14 +7,13 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Remove TaskResultUploadTimeout detector, covered by FinalDeadlineTaskDetector. (#732)
-- Avoid queries to MongoDB database when querying `/metrics` REST endpoint.
-  This is done by computing alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 
 ### Quality
 
 - Configuration server is now optional by default. (#728)
 - Improve switch statements after Java 17 migration. (#729)
 - Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
+- Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 
 ### Breaking API changes
 
