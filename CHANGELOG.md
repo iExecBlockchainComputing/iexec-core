@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Remove TaskResultUploadTimeout detector, covered by FinalDeadlineTaskDetector. (#732)
+- Avoid queries to MongoDB database when querying `/metrics` REST endpoint.
+  This is done by computing alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 
 ### Quality
 
@@ -22,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - Move `TaskAbortCause` from `iexec-commons-poco` to `iexec-core-library`. (#736)
 - Remove deprecated methods in `iexec-core-library`. (#737)
 - Remove unused `ContributionUtils` class. (#738)
+- Rework metrics to expose count of computing CPUs or GPUs instead of available ones. (#739)
 
 ### Dependency Upgrades
 

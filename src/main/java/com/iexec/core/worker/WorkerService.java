@@ -20,7 +20,6 @@ import com.iexec.common.utils.ContextualLockRunner;
 import com.iexec.core.configuration.WorkerConfiguration;
 import com.mongodb.client.result.UpdateResult;
 import io.micrometer.core.instrument.Metrics;
-import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -50,15 +49,19 @@ public class WorkerService {
 
     private static final String WALLET_ADDRESS_FIELD = "walletAddress";
     public static final String METRIC_WORKERS_GAUGE = "iexec.core.workers";
-    public static final String METRIC_CPU_TOTAL_GAUGE = "iexec.core.cpu.total";
-    public static final String METRIC_CPU_AVAILABLE_GAUGE = "iexec.core.cpu.available";
+    public static final String METRIC_CPU_COMPUTING_GAUGE = "iexec.core.cpu.computing";
+    public static final String METRIC_CPU_REGISTERED_GAUGE = "iexec.core.cpu.registered";
+    public static final String METRIC_GPU_COMPUTING_GAUGE = "iexec.core.gpu.computing";
+    public static final String METRIC_GPU_REGISTERED_GAUGE = "iexec.core.gpu.registered";
     private final MongoTemplate mongoTemplate;
     private final WorkerRepository workerRepository;
     private final WorkerConfiguration workerConfiguration;
     private final ContextualLockRunner<String> contextualLockRunner;
-    private AtomicInteger aliveWorkersGauge;
-    private AtomicInteger aliveTotalCpuGauge;
-    private AtomicInteger aliveAvailableCpuGauge;
+    private final AtomicInteger aliveWorkersGauge;
+    private final AtomicInteger aliveComputingCpuGauge;
+    private final AtomicInteger aliveRegisteredCpuGauge;
+    private final AtomicInteger aliveComputingGpuGauge;
+    private final AtomicInteger aliveRegisteredGpuGauge;
     @Getter
     private final ConcurrentHashMap<String, WorkerStats> workerStatsMap = new ConcurrentHashMap<>();
 
@@ -80,38 +83,52 @@ public class WorkerService {
         this.workerRepository = workerRepository;
         this.workerConfiguration = workerConfiguration;
         this.contextualLockRunner = new ContextualLockRunner<>();
-    }
 
-    @PostConstruct
-    void init() {
-        aliveWorkersGauge = Metrics.gauge(METRIC_WORKERS_GAUGE, new AtomicInteger(getAliveWorkers().size()));
-        aliveTotalCpuGauge = Metrics.gauge(METRIC_CPU_TOTAL_GAUGE, new AtomicInteger(getAliveTotalCpu()));
-        aliveAvailableCpuGauge = Metrics.gauge(METRIC_CPU_AVAILABLE_GAUGE, new AtomicInteger(getAliveAvailableCpu()));
+        this.aliveWorkersGauge = Metrics.gauge(METRIC_WORKERS_GAUGE, new AtomicInteger(0));
+        this.aliveComputingCpuGauge = Metrics.gauge(METRIC_CPU_COMPUTING_GAUGE, new AtomicInteger(0));
+        this.aliveRegisteredCpuGauge = Metrics.gauge(METRIC_CPU_REGISTERED_GAUGE, new AtomicInteger(0));
+        this.aliveComputingGpuGauge = Metrics.gauge(METRIC_GPU_COMPUTING_GAUGE, new AtomicInteger(0));
+        this.aliveRegisteredGpuGauge = Metrics.gauge(METRIC_GPU_REGISTERED_GAUGE, new AtomicInteger(0));
     }
 
     /**
      * updateMetrics is used to update all workers metrics
      */
-    @Scheduled(fixedDelayString = "${cron.metrics.refresh.period}", initialDelayString = "${cron.metrics.refresh.period}")
+    @Scheduled(fixedDelayString = "${cron.metrics.refresh.period}")
     void updateMetrics() {
         // Fusion of methods getAliveTotalCpu and getAliveAvailableCpu to prevent making 3 calls to getAliveWorkers
-        int availableCpus = 0;
-        int totalCpus = 0;
-        List<Worker> workers = getAliveWorkers();
-        for (Worker worker : workers) {
+        int computingCpus = 0;
+        int registeredCpus = 0;
+        int computingGpus = 0;
+        int registeredGpus = 0;
+        final List<Worker> workers = getAliveWorkers();
+        for (final Worker worker : workers) {
             if (worker.isGpuEnabled()) {
-                continue;
+                registeredGpus++;
+                if (!worker.getComputingChainTaskIds().isEmpty()) {
+                    computingGpus++;
+                }
+            } else {
+                registeredCpus += worker.getCpuNb();
+                computingCpus += worker.getComputingChainTaskIds().size();
             }
-            int workerCpuNb = worker.getCpuNb();
-            int computingReplicateNb = worker.getComputingChainTaskIds().size();
-            int availableCpu = workerCpuNb - computingReplicateNb;
-            totalCpus += workerCpuNb;
-            availableCpus += availableCpu;
         }
 
         aliveWorkersGauge.set(workers.size());
-        aliveTotalCpuGauge.set(totalCpus);
-        aliveAvailableCpuGauge.set(availableCpus);
+        aliveComputingCpuGauge.set(computingCpus);
+        aliveRegisteredCpuGauge.set(registeredCpus);
+        aliveComputingGpuGauge.set(computingGpus);
+        aliveRegisteredGpuGauge.set(registeredGpus);
+    }
+
+    public AliveWorkerMetrics getAliveWorkerMetrics() {
+        return AliveWorkerMetrics.builder()
+                .aliveWorkers(aliveWorkersGauge.get())
+                .aliveComputingCpu(aliveComputingCpuGauge.get())
+                .aliveRegisteredCpu(aliveRegisteredCpuGauge.get())
+                .aliveComputingGpu(aliveComputingGpuGauge.get())
+                .aliveRegisteredGpu(aliveRegisteredGpuGauge.get())
+                .build();
     }
 
     // region Read methods
@@ -120,12 +137,9 @@ public class WorkerService {
     }
 
     public boolean isAllowedToJoin(String workerAddress) {
-        List<String> whitelist = workerConfiguration.getWhitelist();
+        final List<String> whitelist = workerConfiguration.getWhitelist();
         // if the whitelist is empty, there is no restriction on the workers
-        if (whitelist.isEmpty()) {
-            return true;
-        }
-        return whitelist.contains(workerAddress);
+        return whitelist.isEmpty() || whitelist.contains(workerAddress);
     }
 
     public boolean isWorkerAllowedToAskReplicate(String walletAddress) {
@@ -189,56 +203,6 @@ public class WorkerService {
         }
 
         return true;
-    }
-
-    public int getAliveAvailableCpu() {
-        int availableCpus = 0;
-        for (Worker worker : getAliveWorkers()) {
-            if (worker.isGpuEnabled()) {
-                continue;
-            }
-
-            int workerCpuNb = worker.getCpuNb();
-            int computingReplicateNb = worker.getComputingChainTaskIds().size();
-            int availableCpu = workerCpuNb - computingReplicateNb;
-            availableCpus += availableCpu;
-        }
-        return availableCpus;
-    }
-
-    public int getAliveTotalCpu() {
-        int totalCpus = 0;
-        for (Worker worker : getAliveWorkers()) {
-            if (worker.isGpuEnabled()) {
-                continue;
-            }
-            totalCpus += worker.getCpuNb();
-        }
-        return totalCpus;
-    }
-
-    // We suppose for now that 1 Gpu enabled worker has only one GPU
-    public int getAliveTotalGpu() {
-        int totalGpus = 0;
-        for (Worker worker : getAliveWorkers()) {
-            if (worker.isGpuEnabled()) {
-                totalGpus++;
-            }
-        }
-        return totalGpus;
-    }
-
-    public int getAliveAvailableGpu() {
-        int availableGpus = getAliveTotalGpu();
-        for (Worker worker : getAliveWorkers()) {
-            if (worker.isGpuEnabled()) {
-                boolean isWorking = !worker.getComputingChainTaskIds().isEmpty();
-                if (isWorking) {
-                    availableGpus = availableGpus - 1;
-                }
-            }
-        }
-        return availableGpus;
     }
     // endregion
 

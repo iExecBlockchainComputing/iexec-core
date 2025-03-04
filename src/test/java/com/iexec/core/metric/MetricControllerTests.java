@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 
 package com.iexec.core.metric;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class MetricControllerTests {
 
     @Mock
@@ -34,23 +35,16 @@ class MetricControllerTests {
     @InjectMocks
     private MetricController metricController;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void shouldGetMetrics() {
         PlatformMetric metric = PlatformMetric.builder()
-                .aliveAvailableCpu(1)
-                .aliveAvailableGpu(1)
+                .aliveRegisteredCpu(1)
+                .aliveRegisteredCpu(1)
                 .build();
         when(metricService.getPlatformMetrics()).thenReturn(metric);
-        Assertions.assertThat(
-                metricController.getPlatformMetric().getStatusCode())
-        .isEqualTo(HttpStatus.OK);
-        Assertions.assertThat(
-                metricController.getPlatformMetric().getBody())
-        .isEqualTo(metric);
+        assertThat(metricController.getPlatformMetric().getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(metricController.getPlatformMetric().getBody())
+                .isEqualTo(metric);
     }
 }

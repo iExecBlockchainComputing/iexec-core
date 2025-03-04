@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,10 @@ class PlatformMetricTests {
     void shouldSerializeAndDeserialize() throws JsonProcessingException {
         final PlatformMetric platformMetric = PlatformMetric.builder()
                 .aliveWorkers(4)
-                .aliveTotalCpu(12)
-                .aliveAvailableCpu(7)
-                .aliveTotalGpu(0)
-                .aliveAvailableGpu(0)
+                .aliveComputingCpu(5)
+                .aliveRegisteredCpu(12)
+                .aliveComputingGpu(0)
+                .aliveRegisteredGpu(0)
                 .currentTaskStatusesCount(createCurrentTaskStatusesCount())
                 .dealEventsCount(3000)
                 .dealsCount(1100)

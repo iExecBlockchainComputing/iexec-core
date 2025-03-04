@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,22 +19,22 @@ package com.iexec.core.metric;
 import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
-import com.iexec.core.worker.Worker;
+import com.iexec.core.worker.AliveWorkerMetrics;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class MetricServiceTests {
 
     @Mock
@@ -45,21 +45,18 @@ class MetricServiceTests {
     @InjectMocks
     private MetricService metricService;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void shouldGetPlatformMetrics() {
         final LinkedHashMap<TaskStatus, Long> expectedCurrentTaskStatusesCount = createExpectedCurrentTaskStatusesCount();
 
-        List<Worker> aliveWorkers = List.of(Worker.builder().build());
-        when(workerService.getAliveWorkers()).thenReturn(aliveWorkers);
-        when(workerService.getAliveTotalCpu()).thenReturn(1);
-        when(workerService.getAliveAvailableCpu()).thenReturn(1);
-        when(workerService.getAliveTotalGpu()).thenReturn(1);
-        when(workerService.getAliveAvailableGpu()).thenReturn(1);
+        final AliveWorkerMetrics aliveWorkerMetrics = AliveWorkerMetrics.builder()
+                .aliveWorkers(1)
+                .aliveComputingCpu(1)
+                .aliveRegisteredCpu(1)
+                .aliveComputingGpu(1)
+                .aliveRegisteredGpu(1)
+                .build();
+        when(workerService.getAliveWorkerMetrics()).thenReturn(aliveWorkerMetrics);
         when(dealWatcherService.getDealEventsCount()).thenReturn(10L);
         when(dealWatcherService.getDealsCount()).thenReturn(8L);
         when(dealWatcherService.getReplayDealsCount()).thenReturn(2L);
@@ -67,11 +64,11 @@ class MetricServiceTests {
 
         PlatformMetric metric = metricService.getPlatformMetrics();
         Assertions.assertAll(
-                () -> assertThat(metric.getAliveWorkers()).isEqualTo(aliveWorkers.size()),
-                () -> assertThat(metric.getAliveTotalCpu()).isEqualTo(1),
-                () -> assertThat(metric.getAliveAvailableCpu()).isEqualTo(1),
-                () -> assertThat(metric.getAliveTotalGpu()).isEqualTo(1),
-                () -> assertThat(metric.getAliveAvailableGpu()).isEqualTo(1),
+                () -> assertThat(metric.getAliveWorkers()).isEqualTo(1),
+                () -> assertThat(metric.getAliveComputingCpu()).isEqualTo(1),
+                () -> assertThat(metric.getAliveRegisteredCpu()).isEqualTo(1),
+                () -> assertThat(metric.getAliveComputingGpu()).isEqualTo(1),
+                () -> assertThat(metric.getAliveRegisteredGpu()).isEqualTo(1),
                 () -> assertThat(metric.getCurrentTaskStatusesCount()).isEqualTo(expectedCurrentTaskStatusesCount),
                 () -> assertThat(metric.getDealEventsCount()).isEqualTo(10),
                 () -> assertThat(metric.getDealsCount()).isEqualTo(8),

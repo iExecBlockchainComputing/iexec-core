@@ -39,11 +39,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -82,9 +83,10 @@ class WorkerServiceTests {
 
     private WorkerService workerService;
 
+    private final String workerName = "worker";
     private final Worker existingWorker = Worker.builder()
             .id("1")
-            .name("worker1")
+            .name(workerName)
             .walletAddress(WORKER1)
             .os("Linux")
             .cpu("x86")
@@ -113,19 +115,18 @@ class WorkerServiceTests {
 
     @Test
     void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
-        workerService.init();
         Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
-        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
-        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+        Gauge aliveComputingCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_COMPUTING_GAUGE).gauge();
+        Gauge aliveRegisteredCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_REGISTERED_GAUGE).gauge();
 
         assertAll(
                 () -> assertThat(aliveWorkersGauge)
                         .isNotNull()
                         .extracting(Gauge::value).isEqualTo(0.0),
-                () -> assertThat(aliveTotalCpuGauge)
+                () -> assertThat(aliveComputingCpuGauge)
                         .isNotNull()
                         .extracting(Gauge::value).isEqualTo(0.0),
-                () -> assertThat(aliveAvailableCpuGauge)
+                () -> assertThat(aliveRegisteredCpuGauge)
                         .isNotNull()
                         .extracting(Gauge::value).isEqualTo(0.0)
         );
@@ -133,8 +134,7 @@ class WorkerServiceTests {
 
     @Test
     void shouldGetWorker() {
-        String workerName = "worker1";
-        Worker existingWorker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .id("1")
                 .name(workerName)
                 .walletAddress(WORKER1)
@@ -143,31 +143,20 @@ class WorkerServiceTests {
                 .cpuNb(8)
                 .build();
 
-        workerRepository.save(existingWorker);
+        workerRepository.save(worker);
         Optional<Worker> foundWorker = workerService.getWorker(WORKER1);
         assertThat(foundWorker)
                 .usingRecursiveComparison()
-                .isEqualTo(Optional.of(existingWorker));
+                .isEqualTo(Optional.of(worker));
     }
 
     // addWorker
 
     @Test
     void shouldNotAddNewWorker() {
-        String workerName = "worker1";
-        String walletAddress = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-        Worker existingWorker = Worker.builder()
-                .id("1")
+        final Worker newWorker = Worker.builder()
                 .name(workerName)
-                .walletAddress(walletAddress)
-                .os("Linux")
-                .cpu("x86")
-                .cpuNb(8)
-                .build();
-
-        Worker newWorker = Worker.builder()
-                .name(workerName)
-                .walletAddress(walletAddress)
+                .walletAddress(WORKER1)
                 .os("otherOS")
                 .cpu("otherCpu")
                 .cpuNb(8)
@@ -175,15 +164,14 @@ class WorkerServiceTests {
 
         workerRepository.save(existingWorker);
 
-        Worker addedWorker = workerService.addWorker(newWorker);
+        final Worker addedWorker = workerService.addWorker(newWorker);
         assertThat(addedWorker).isNotEqualTo(existingWorker);
         assertThat(addedWorker.getId()).isEqualTo(existingWorker.getId());
     }
 
     @Test
     void shouldAddNewWorker() {
-        String workerName = "worker1";
-        Worker worker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .name(workerName)
                 .walletAddress(WORKER1)
                 .os("Linux")
@@ -224,9 +212,8 @@ class WorkerServiceTests {
     // updateLastAlive
 
     @Test
-    void shouldUpdateLastAlive() throws ParseException {
+    void shouldUpdateLastAlive() {
         // init
-        String workerName = "worker1";
         Worker worker = Worker.builder()
                 .id("1")
                 .name(workerName)
@@ -297,8 +284,7 @@ class WorkerServiceTests {
     // region addChainTaskIdToWorker
     @Test
     void shouldAddTaskIdToWorker() {
-        String workerName = "worker1";
-        Worker existingWorker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .id("1")
                 .name(workerName)
                 .walletAddress(WORKER1)
@@ -306,19 +292,18 @@ class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(8)
                 .maxNbTasks(7)
-                .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
-                .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .participatingChainTaskIds(List.of("task1", "task2"))
+                .computingChainTaskIds(List.of("task1", "task2"))
                 .build();
 
-        workerRepository.save(existingWorker);
+        workerRepository.save(worker);
 
-        Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", WORKER1);
-        assertThat(addedWorker).isPresent();
-        Worker worker = addedWorker.get();
-        assertThat(worker.getParticipatingChainTaskIds()).hasSize(3);
-        assertThat(worker.getParticipatingChainTaskIds().get(2)).isEqualTo("task3");
-        assertThat(worker.getComputingChainTaskIds()).hasSize(3);
-        assertThat(worker.getComputingChainTaskIds().get(2)).isEqualTo("task3");
+        final Worker foundWorker = workerService.addChainTaskIdToWorker("task3", WORKER1).orElse(null);
+        assertThat(foundWorker).isNotNull();
+        assertThat(foundWorker.getParticipatingChainTaskIds()).hasSize(3);
+        assertThat(foundWorker.getParticipatingChainTaskIds().get(2)).isEqualTo("task3");
+        assertThat(foundWorker.getComputingChainTaskIds()).hasSize(3);
+        assertThat(foundWorker.getComputingChainTaskIds().get(2)).isEqualTo("task3");
     }
 
     /**
@@ -357,8 +342,7 @@ class WorkerServiceTests {
 
     @Test
     void shouldNotAddTaskIdToWorkerSinceCantAcceptMoreWorker() {
-        String workerName = "worker1";
-        Worker existingWorker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .id("1")
                 .name(workerName)
                 .walletAddress(WORKER1)
@@ -366,14 +350,13 @@ class WorkerServiceTests {
                 .cpu("x86")
                 .cpuNb(3)
                 .maxNbTasks(2)
-                .participatingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
-                .computingChainTaskIds(new ArrayList<>(Arrays.asList("task1", "task2")))
+                .participatingChainTaskIds(List.of("task1", "task2"))
+                .computingChainTaskIds(List.of("task1", "task2"))
                 .build();
 
-        workerRepository.save(existingWorker);
+        workerRepository.save(worker);
 
-        Optional<Worker> addedWorker = workerService.addChainTaskIdToWorker("task3", WORKER1);
-        assertThat(addedWorker).isEmpty();
+        assertThat(workerService.addChainTaskIdToWorker("task3", WORKER1)).isEmpty();
     }
     //
 
@@ -520,8 +503,8 @@ class WorkerServiceTests {
     void shouldAcceptMoreWorks() {
         Worker worker = getDummyWorker(WORKER1,
                 3,
-                Arrays.asList("task1", "task2", "task3", "task4", "task5"),
-                Arrays.asList("task1", "task3"));
+                List.of("task1", "task2", "task3", "task4", "task5"),
+                List.of("task1", "task3"));
 
         assertThat(workerService.canAcceptMoreWorks(worker)).isTrue();
     }
@@ -530,8 +513,8 @@ class WorkerServiceTests {
     void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
         Worker worker = getDummyWorker(WORKER1,
                 2,
-                Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1", "task3"));
+                List.of("task1", "task2", "task3", "task4"),
+                List.of("task1", "task3"));
 
         assertThat(workerService.canAcceptMoreWorks(worker)).isFalse();
     }
@@ -561,132 +544,128 @@ class WorkerServiceTests {
                 .build();
     }
 
-
+    // region updateMetrics
     @Test
     void shouldGetSomeAvailableCpu() {
-        Worker worker1 = getDummyWorker(WORKER1,
+        final Worker worker1 = getDummyWorker(WORKER1,
                 4,
-                Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1", "task3"));//2 CPUs available
+                List.of("task1", "task2", "task3", "task4"),
+                List.of("task1", "task3"));//2 CPUs available
 
-        Worker worker2 = getDummyWorker(WORKER2,
+        final Worker worker2 = getDummyWorker(WORKER2,
                 4,
-                Arrays.asList("task1", "task2", "task3", "task4"),
+                List.of("task1", "task2", "task3", "task4"),
                 List.of("task1"));//3 CPUs available
         workerRepository.saveAll(List.of(worker1, worker2));
         workerService.updateLastAlive(WORKER1);
         workerService.updateLastAlive(WORKER2);
 
-        assertThat(workerService.getAliveAvailableCpu()).isEqualTo(5);
+        workerService.updateMetrics();
+        assertThat(workerService.getAliveWorkerMetrics().aliveComputingCpu()).isEqualTo(3);
     }
-
 
     @Test
     void shouldGetZeroAvailableCpuIfWorkerAlreadyFull() {
-        Worker worker1 = getDummyWorker(WORKER1,
+        final Worker worker1 = getDummyWorker(WORKER1,
                 4,
-                Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1", "task2", "task3", "task4"));
+                List.of("task1", "task2", "task3", "task4"),
+                List.of("task1", "task2", "task3", "task4"));
 
-        Worker worker2 = getDummyWorker(WORKER2,
+        final Worker worker2 = getDummyWorker(WORKER2,
                 4,
-                Arrays.asList("task1", "task2", "task3", "task4"),
-                Arrays.asList("task1", "task2", "task3", "task4"));
+                List.of("task1", "task2", "task3", "task4"),
+                List.of("task1", "task2", "task3", "task4"));
         workerRepository.saveAll(List.of(worker1, worker2));
         workerService.updateLastAlive(WORKER1);
         workerService.updateLastAlive(WORKER2);
 
-        assertThat(workerService.getAliveAvailableCpu()).isZero();
+        workerService.updateMetrics();
+        assertThat(workerService.getAliveWorkerMetrics().aliveComputingCpu()).isEqualTo(8);
     }
 
     @Test
     void shouldGetZeroAvailableCpuIfNoWorkerAlive() {
-        assertThat(workerService.getAliveAvailableCpu()).isZero();
+        assertThat(workerService.getAliveWorkerMetrics().aliveComputingCpu()).isZero();
     }
-
-    // getAliveTotalCpu
 
     @Test
     void shouldGetTotalAliveCpu() {
-        Worker worker1 = Worker.builder()
+        final Worker worker1 = Worker.builder()
                 .walletAddress(WORKER1)
                 .cpuNb(4)
                 .computingChainTaskIds(List.of("T1", "T2", "T3"))
                 .build();
-        Worker worker2 = Worker.builder()
+        final Worker worker2 = Worker.builder()
                 .walletAddress(WORKER2)
                 .cpuNb(2)
                 .computingChainTaskIds(List.of("T4"))
                 .build();
-        List<Worker> list = List.of(worker1, worker2);
-        workerRepository.saveAll(list);
+        workerRepository.saveAll(List.of(worker1, worker2));
         workerService.updateLastAlive(WORKER1);
         workerService.updateLastAlive(WORKER2);
-        workerService.init();
         workerService.updateMetrics();
 
-        assertThat(workerService.getAliveTotalCpu())
+        assertThat(workerService.getAliveWorkerMetrics().aliveRegisteredCpu())
                 .isEqualTo(worker1.getCpuNb() + worker2.getCpuNb());
 
         Gauge aliveWorkersGauge = Metrics.globalRegistry.find(WorkerService.METRIC_WORKERS_GAUGE).gauge();
-        Gauge aliveTotalCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_TOTAL_GAUGE).gauge();
-        Gauge aliveAvailableCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_AVAILABLE_GAUGE).gauge();
+        Gauge aliveComputingCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_COMPUTING_GAUGE).gauge();
+        Gauge aliveRegisteredCpuGauge = Metrics.globalRegistry.find(WorkerService.METRIC_CPU_REGISTERED_GAUGE).gauge();
 
         assertAll(
                 () -> assertThat(aliveWorkersGauge)
                         .isNotNull()
-                        .extracting(Gauge::value).isEqualTo((double) list.size()),
-                () -> assertThat(aliveTotalCpuGauge)
+                        .extracting(Gauge::value).isEqualTo(2.0),
+                () -> assertThat(aliveRegisteredCpuGauge)
                         .isNotNull()
                         .extracting(Gauge::value).isEqualTo((double) worker1.getCpuNb() + worker2.getCpuNb()),
-                () -> assertThat(aliveAvailableCpuGauge)
+                () -> assertThat(aliveComputingCpuGauge)
                         .isNotNull()
-                        .extracting(Gauge::value).isEqualTo(2.0)
+                        .extracting(Gauge::value).isEqualTo(4.0)
         );
     }
-
-    // getAliveTotalGpu
 
     @Test
     void shouldGetTotalAliveGpu() {
         final Date now = new Date();
-        Worker worker1 = Worker.builder()
+        final Worker worker1 = Worker.builder()
                 .walletAddress(WORKER1)
                 .gpuEnabled(true)
                 .lastAliveDate(now)
                 .build();
-        Worker worker2 = Worker.builder()
+        final Worker worker2 = Worker.builder()
                 .walletAddress(WORKER2)
                 .gpuEnabled(false)
                 .lastAliveDate(now)
                 .build();
-        List<Worker> list = List.of(worker1, worker2);
-        workerRepository.saveAll(list);
+        workerRepository.saveAll(List.of(worker1, worker2));
         workerService.updateLastAlive(WORKER1);
         workerService.updateLastAlive(WORKER2);
 
-        assertThat(workerService.getAliveTotalGpu()).isEqualTo(1);
+        workerService.updateMetrics();
+        assertThat(workerService.getAliveWorkerMetrics().aliveComputingGpu()).isZero();
+        assertThat(workerService.getAliveWorkerMetrics().aliveRegisteredGpu()).isOne();
     }
-
-    // getAliveAvailableGpu
 
     @Test
     void shouldGetAliveAvailableGpu() {
-        Worker worker1 = Worker.builder()
+        final Worker worker1 = Worker.builder()
                 .walletAddress(WORKER1)
                 .gpuEnabled(true)
                 .computingChainTaskIds(List.of())
                 .build();
-        Worker worker2 = Worker.builder()
+        final Worker worker2 = Worker.builder()
                 .walletAddress(WORKER2)
                 .gpuEnabled(true)
                 .computingChainTaskIds(List.of("t1"))
                 .build();
-        List<Worker> list = List.of(worker1, worker2);
-        workerRepository.saveAll(list);
+        workerRepository.saveAll(List.of(worker1, worker2));
         workerService.updateLastAlive(WORKER1);
         workerService.updateLastAlive(WORKER2);
 
-        assertThat(workerService.getAliveAvailableGpu()).isEqualTo(1);
+        workerService.updateMetrics();
+        assertThat(workerService.getAliveWorkerMetrics().aliveComputingGpu()).isOne();
+        assertThat(workerService.getAliveWorkerMetrics().aliveRegisteredGpu()).isEqualTo(2);
     }
+    // endregion
 }

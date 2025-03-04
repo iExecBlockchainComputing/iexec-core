@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.iexec.core.metric;
 import com.iexec.core.chain.DealWatcherService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
+import com.iexec.core.worker.AliveWorkerMetrics;
 import com.iexec.core.worker.WorkerService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -31,8 +32,8 @@ public class MetricService {
     private final WorkerService workerService;
     private LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
 
-    public MetricService(DealWatcherService dealWatcherService,
-                         WorkerService workerService) {
+    public MetricService(final DealWatcherService dealWatcherService,
+                         final WorkerService workerService) {
         this.dealWatcherService = dealWatcherService;
         this.workerService = workerService;
 
@@ -40,12 +41,13 @@ public class MetricService {
     }
 
     public PlatformMetric getPlatformMetrics() {
+        final AliveWorkerMetrics aliveWorkerMetrics = workerService.getAliveWorkerMetrics();
         return PlatformMetric.builder()
-                .aliveWorkers(workerService.getAliveWorkers().size())
-                .aliveTotalCpu(workerService.getAliveTotalCpu())
-                .aliveAvailableCpu(workerService.getAliveAvailableCpu())
-                .aliveTotalGpu(workerService.getAliveTotalGpu())
-                .aliveAvailableGpu(workerService.getAliveAvailableGpu())
+                .aliveWorkers(aliveWorkerMetrics.aliveWorkers())
+                .aliveComputingCpu(aliveWorkerMetrics.aliveComputingCpu())
+                .aliveRegisteredCpu(aliveWorkerMetrics.aliveRegisteredCpu())
+                .aliveComputingGpu(aliveWorkerMetrics.aliveComputingGpu())
+                .aliveRegisteredGpu(aliveWorkerMetrics.aliveRegisteredGpu())
                 .currentTaskStatusesCount(currentTaskStatusesCount)
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
                 .dealsCount(dealWatcherService.getDealsCount())
@@ -55,7 +57,7 @@ public class MetricService {
     }
 
     @EventListener
-    void onTaskStatusesCountUpdateEvent(TaskStatusesCountUpdatedEvent event) {
+    void onTaskStatusesCountUpdateEvent(final TaskStatusesCountUpdatedEvent event) {
         this.currentTaskStatusesCount = event.getCurrentTaskStatusesCount();
     }
 }
