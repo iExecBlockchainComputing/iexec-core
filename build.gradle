@@ -93,7 +93,7 @@ dependencies {
     implementation "net.jodah:expiringmap:0.5.10"
 
     // ipfs
-    implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
+    implementation "com.github.ipfs:java-ipfs-http-client:1.4.4"
 
     // observability
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
