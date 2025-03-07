@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
 - Upgrade to Mongock 5.4.0. (#728)
 - Upgrade to Spring Doc OpenAPI 2.6.0. (#728)
 - Upgrade to Spring Boot 3.3.8. (#733)
-- Upgrade to `java-ipfs-http-client` 1.4.4. (#740)
+- Upgrade to `java-ipfs-http-client` 1.4.4. (#741)
 
 ## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
 
