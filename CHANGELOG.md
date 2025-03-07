@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Improve switch statements after Java 17 migration. (#729)
 - Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
 - Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
+- Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
 
 ### Breaking API changes
 
