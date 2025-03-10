@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,7 +164,7 @@ class DealWatcherServiceTests {
     @Test
     void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
         ChainApp chainApp = ChainApp.builder()
-                .uri("0x00").build();
+                .multiaddr("0x00").build();
 
         ChainCategory chainCategory = ChainCategory.builder().build();
 
@@ -206,7 +206,7 @@ class DealWatcherServiceTests {
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
-                .chainApp(ChainApp.builder().uri("0x00").build())
+                .chainApp(ChainApp.builder().multiaddr("0x00").build())
                 .chainCategory(ChainCategory.builder().build())
                 .params(DealParams.builder().iexecArgs("args").build())
                 .trust(BigInteger.valueOf(3))

@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
 - Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 - Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
+- Remove code related to reopen PoCo feature in `IexecHubService` and `TaskUpdateManager`. (#743)
 
 ### Breaking API changes
 

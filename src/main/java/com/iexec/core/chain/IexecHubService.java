@@ -28,28 +28,18 @@ import org.web3j.abi.EventEncoder;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
 import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
-import static com.iexec.commons.poco.utils.BytesUtils.stringToBytes;
 
 @Slf4j
 @Service
 public class IexecHubService extends IexecHubAbstractService implements Purgeable {
 
-    private final ThreadPoolExecutor executor;
     private final SignerService signerService;
     private final Web3jService web3jService;
 
@@ -62,7 +52,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
                 chainConfig.getHubAddress());
         this.signerService = signerService;
         this.web3jService = web3jService;
-        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         if (!hasEnoughGas()) {
             System.exit(0);
         }
@@ -130,67 +119,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         return new Date(startTime + maxTime * 10);
     }
 
-    public boolean canReopen(String chainTaskId) {
-        final ChainTask chainTask = getChainTask(chainTaskId).orElse(null);
-        if (chainTask == null) {
-            return false;
-        }
-
-        boolean isChainTaskStatusRevealing = chainTask.getStatus() == ChainTaskStatus.REVEALING;
-        boolean isBeforeFinalDeadline = Instant.now().toEpochMilli() < chainTask.getFinalDeadline();
-        boolean isAfterRevealDeadline = chainTask.getRevealDeadline() <= Instant.now().toEpochMilli();
-        boolean revealCounterEqualsZero = chainTask.getRevealCounter() == 0;
-
-        boolean check = isChainTaskStatusRevealing && isBeforeFinalDeadline && isAfterRevealDeadline
-                && revealCounterEqualsZero;
-        if (check) {
-            log.info("Reopenable onchain [chainTaskId:{}]", chainTaskId);
-        } else {
-            log.warn("Can't reopen [chainTaskId:{}, " +
-                            "isChainTaskStatusRevealing:{}, isBeforeFinalDeadline:{}, " +
-                            "isAfterRevealDeadline:{}, revealCounterEqualsZero:{}]", chainTaskId,
-                    isChainTaskStatusRevealing, isBeforeFinalDeadline, isAfterRevealDeadline, revealCounterEqualsZero);
-        }
-        return check;
-    }
-
-    public Optional<ChainReceipt> reOpen(String chainTaskId) {
-        log.info("Requested reopen [chainTaskId:{}, waitingTxCount:{}]", chainTaskId, getWaitingTransactionCount());
-        try {
-            return CompletableFuture.supplyAsync(() -> sendReopenTransaction(chainTaskId), executor).get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            log.error("reOpen asynchronous execution did not complete", e);
-        }
-        return Optional.empty();
-    }
-
-    private Optional<ChainReceipt> sendReopenTransaction(String chainTaskId) {
-        TransactionReceipt receipt;
-        try {
-            receipt = iexecHubContract.reopen(stringToBytes(chainTaskId)).send();
-        } catch (Exception e) {
-            log.error("Failed reopen [chainTaskId:{}, error:{}]", chainTaskId, e.getMessage());
-            return Optional.empty();
-        }
-
-        List<IexecHubContract.TaskReopenEventResponse> eventsList = IexecHubContract.getTaskReopenEvents(receipt);
-        if (eventsList.isEmpty()) {
-            log.error("Failed to get reopen event [chainTaskId:{}]", chainTaskId);
-            return Optional.empty();
-        }
-
-        ChainReceipt chainReceipt = buildChainReceipt(receipt);
-        log.info("Reopened [chainTaskId:{}, gasUsed:{}, block:{}]",
-                chainTaskId, receipt.getGasUsed(), chainReceipt.getBlockNumber());
-        return Optional.of(chainReceipt);
-    }
-
-    private long getWaitingTransactionCount() {
-        return executor.getTaskCount() - executor.getCompletedTaskCount();
-    }
-
     Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
         return iexecHubContract.schedulerNoticeEventFlowable(filter);
     }
@@ -199,14 +127,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         final boolean hasEnoughGas = hasEnoughGas(signerService.getAddress());
         log.debug("Gas status [hasEnoughGas:{}]", hasEnoughGas);
         return hasEnoughGas;
-    }
-
-    private ChainReceipt buildChainReceipt(TransactionReceipt receipt) {
-        return ChainReceipt.builder()
-                .txHash(receipt.getTransactionHash())
-                .blockNumber(receipt.getBlockNumber() != null ?
-                        receipt.getBlockNumber().longValue() : 0)
-                .build();
     }
 
     // region check contribution status
