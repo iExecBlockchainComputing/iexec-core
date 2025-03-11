@@ -525,28 +525,21 @@ class TaskUpdateManager {
         }
     }
 
-    void consensusReached2Reopening(Task task) {
+    void consensusReached2Reopening(final Task task) {
         log.debug("consensusReached2Reopening [chainTaskId:{}]", task.getChainTaskId());
-        Date now = new Date();
+        final Date now = new Date();
 
-        boolean isConsensusReachedStatus = task.getCurrentStatus() == CONSENSUS_REACHED;
-        boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
-        boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
+        final boolean isConsensusReachedStatus = task.getCurrentStatus() == CONSENSUS_REACHED;
+        final boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
+        final boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (!isConsensusReachedStatus || !isAfterRevealDeadline || hasAtLeastOneReveal) {
             return;
         }
 
-        boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
-        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-
-        if (!canReopen || !hasEnoughGas) {
-            return;
-        }
-
         updateTaskStatusAndSave(task, REOPENING);
         //TODO Update reopen call
-        Optional<ChainReceipt> optionalChainReceipt = Optional.empty(); //iexecHubService.reOpen(task.getChainTaskId());
+        Optional<ChainReceipt> optionalChainReceipt = Optional.empty();
 
         if (optionalChainReceipt.isEmpty()) {
             log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());
@@ -558,12 +551,11 @@ class TaskUpdateManager {
         reopening2Reopened(task, optionalChainReceipt.get());
     }
 
-    void reopening2Reopened(Task task) {
-        log.debug("reopening2Reopened [chainTaskId:{}]", task.getChainTaskId());
+    void reopening2Reopened(final Task task) {
         reopening2Reopened(task, null);
     }
 
-    void reopening2Reopened(Task task, ChainReceipt chainReceipt) {
+    void reopening2Reopened(final Task task, final ChainReceipt chainReceipt) {
         log.debug("reopening2Reopened [chainTaskId:{}]", task.getChainTaskId());
         Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
         if (oChainTask.isEmpty()) {

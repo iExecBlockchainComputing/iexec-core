@@ -33,8 +33,6 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.methods.response.Log;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
@@ -49,7 +47,6 @@ import static org.mockito.Mockito.*;
 class IexecHubServiceTests {
 
     private static final String TRANSACTION_HASH = "transactionHash";
-    private static final long TIME_INTERVAL_IN_MS = 100L;
 
     @Mock
     private SignerService signerService;
@@ -88,67 +85,6 @@ class IexecHubServiceTests {
         doReturn(Optional.of(task)).when(iexecHubService).getChainTask(CHAIN_TASK_ID);
 
         assertThat(iexecHubService.isTaskInCompletedStatusOnChain(CHAIN_TASK_ID)).isFalse();
-    }
-    // endregion
-
-    // region canReopen
-    @Test
-    void canNotRepoenWhenChainTaskNotFound() {
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.empty());
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
-    }
-
-    @Test
-    void canNotReopenWhenNotRevealing() {
-        final ChainTask chainTask = ChainTask.builder()
-                .status(ChainTaskStatus.ACTIVE)
-                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .build();
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
-    }
-
-    @Test
-    void canNotReopenWhenFinalDeadlineReached() {
-        final ChainTask chainTask = ChainTask.builder()
-                .status(ChainTaskStatus.REVEALING)
-                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .build();
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
-    }
-
-    @Test
-    void canNotReopenWhenBeforeRevealDeadline() {
-        final ChainTask chainTask = ChainTask.builder()
-                .status(ChainTaskStatus.REVEALING)
-                .revealDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .build();
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
-    }
-
-    @Test
-    void canNotReopenWhenSomeWinnersRevealed() {
-        final ChainTask chainTask = ChainTask.builder()
-                .status(ChainTaskStatus.REVEALING)
-                .revealCounter(1)
-                .finalDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .build();
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isFalse();
-    }
-
-    @Test
-    void canReopenWhenRevealDeadlineReachedAndNoReveal() {
-        final ChainTask chainTask = ChainTask.builder()
-                .status(ChainTaskStatus.REVEALING)
-                .revealDeadline(Instant.now().minus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .finalDeadline(Instant.now().plus(TIME_INTERVAL_IN_MS, ChronoUnit.MILLIS).toEpochMilli())
-                .build();
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
-        assertThat(iexecHubService.canReopen(CHAIN_TASK_ID)).isTrue();
     }
     // endregion
 

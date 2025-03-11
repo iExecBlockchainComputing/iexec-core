@@ -186,68 +186,15 @@ class TaskUpdateManagerTests {
     }
 
     @Test
-    void shouldNotUpgrade2ReopenedSinceCantReopenOnChain() {
-        final Task task = getStubTask(CONSENSUS_REACHED);
-        task.setRevealDeadline(new Date(new Date().getTime() - 10));
-        taskRepository.save(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(false);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-
-        taskUpdateManager.consensusReached2Reopening(task);
-
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
-    }
-
-    @Test
-    void shouldNotUpgrade2ReopenedSinceNotEnoughGas() {
-        final Task task = getStubTask(CONSENSUS_REACHED);
-        task.setRevealDeadline(new Date(new Date().getTime() - 10));
-        taskRepository.save(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(false);
-
-        taskUpdateManager.consensusReached2Reopening(task);
-
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThat(resultTask.getCurrentStatus()).isEqualTo(CONSENSUS_REACHED);
-    }
-
-    @Test
     void shouldNotUpgrade2ReopenedBut2ReopenFailedSinceTxFailed() {
         final Task task = getStubTask(CONSENSUS_REACHED);
         task.setRevealDeadline(new Date(new Date().getTime() - 10));
         taskRepository.save(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
 
         taskUpdateManager.consensusReached2Reopening(task);
 
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
         assertThatTaskContainsStatuses(resultTask, FAILED, List.of(RECEIVED, CONSENSUS_REACHED, REOPENING, REOPEN_FAILED, FAILED));
-    }
-
-    //TODO: Update reopen call
-    //@Test
-    void shouldUpgrade2Reopened() {
-        final Task task = getStubTask(CONSENSUS_REACHED);
-        task.setRevealDeadline(new Date(new Date().getTime() - 10));
-        taskRepository.save(task);
-        when(replicatesService.getNbReplicatesWithCurrentStatus(CHAIN_TASK_ID, ReplicateStatus.REVEALED)).thenReturn(0);
-        when(iexecHubService.canReopen(task.getChainTaskId())).thenReturn(true);
-        when(iexecHubService.hasEnoughGas()).thenReturn(true);
-        when(iexecHubService.reOpen(task.getChainTaskId())).thenReturn(Optional.of(ChainReceipt.builder().build()));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(ChainTask.builder()
-                .status(ChainTaskStatus.ACTIVE)
-                .build()));
-
-        taskUpdateManager.consensusReached2Reopening(task);
-
-        final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
-        assertThatTaskContainsStatuses(resultTask, INITIALIZED, List.of(RECEIVED, CONSENSUS_REACHED, REOPENING, REOPENED, INITIALIZED));
     }
 
     // endregion
