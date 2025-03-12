@@ -4,10 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2025
 
-### New Features
-
-- Harmonize YML internal variables to proper case. (#743)
-
 ### Bug Fixes
 
 - Remove TaskResultUploadTimeout detector, covered by FinalDeadlineTaskDetector. (#732)
@@ -20,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739)
 - Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
 - Remove code related to reopen PoCo feature in `IexecHubService` and `TaskUpdateManager`. (#743)
+- Harmonize YML internal variables to proper case. (#743)
 
 ### Breaking API changes
 

@@ -16,7 +16,7 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.common.chain.validation.ValidNonZeroEthereumAddress;
+import com.iexec.commons.poco.chain.validation.ValidNonZeroEthereumAddress;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
