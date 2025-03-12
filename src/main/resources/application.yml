@@ -19,7 +19,7 @@ mongock:
 
 cron:
   # all in milliseconds
-  metrics.refresh-period: 20000 #20s
+  metrics.refresh.period: 20000 #20s
   deal.replay: 60000  # 1m
   detector:
     worker-lost: 30000  # 30s

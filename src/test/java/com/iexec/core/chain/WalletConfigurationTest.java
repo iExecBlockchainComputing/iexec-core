@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class WalletConfigurationTest {
     void shouldCreateBeans() throws Exception {
         final String tempWalletName = WalletUtils.generateFullNewWalletFile("changeit", tempWalletDir);
         final String tempWalletPath = tempWalletDir.getAbsolutePath() + File.separator + tempWalletName;
-        runner.withPropertyValues("chain.privateAddress=http://localhost:8545", "chain.poolAddress=0x1", "chain.startBlockNumber=0", "chain.gasPriceMultiplier=1.0", "chain.gasPriceCap=0")
+        runner.withPropertyValues("chain.private-address=http://localhost:8545", "chain.pool-address=0x1", "chain.start-block-number=0", "chain.gas-price-multiplier=1.0", "chain.gas-price-cap=0")
                 .withBean(IexecHubService.class)
                 .withBean(PublicChainConfig.class, 65535, true, "http://localhost:8545", "0xC129e7917b7c7DeDfAa5Fff1FB18d5D7050fE8ca", Duration.ofSeconds(5))
                 .withBean(WalletConfiguration.class, tempWalletPath, "changeit")
