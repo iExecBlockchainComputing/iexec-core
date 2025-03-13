@@ -55,7 +55,7 @@ public class ChainConfig {
     @NotNull
     private Duration blockTime;
 
-    @Value("${chain.private-address}")
+    @Value("${chain.node-address}")
     @URL
     @NotEmpty
     private String privateChainAddress;
