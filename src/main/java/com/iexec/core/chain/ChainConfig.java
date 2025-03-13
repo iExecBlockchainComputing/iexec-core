@@ -61,7 +61,7 @@ public class ChainConfig {
     @Value("${chain.node-address}")
     @URL
     @NotEmpty
-    private String privateChainAddress;
+    private String nodeAddress;
 
     @Value("${chain.pool-address}")
     private String poolAddress;
