@@ -25,6 +25,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.URL;
+import org.hibernate.validator.constraints.time.DurationMax;
+import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -51,7 +53,8 @@ public class ChainConfig {
     private String hubAddress;
 
     @Value("#{publicChainConfig.blockTime}")
-    @Positive
+    @DurationMin(millis=100)
+    @DurationMax(seconds=20)
     @NotNull
     private Duration blockTime;
 
