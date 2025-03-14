@@ -27,7 +27,10 @@ import java.time.Duration;
 import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ChainConfigUnitTest {
+class ChainConfigTest {
+    private static final String IEXEC_NODE_ADDRESS = "https://bellecour.iex.ec";
+    private static final String IEXEC_HUB_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final String POOL_ADDRESS = "poolAddress";
 
     private Validator validator;
 
@@ -43,10 +46,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 0, // invalid chainId
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
@@ -61,10 +64,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
                 "invalid-url", // invalid URL
-                "poolAddress",
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
@@ -79,10 +82,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
                 "", // empty nodeAddress
-                "poolAddress",
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
@@ -97,10 +100,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(99), // less than 100ms
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
@@ -115,10 +118,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofSeconds(21), // more than 20 seconds
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
@@ -133,10 +136,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 0.0f, // invalid multiplier
                 100L
@@ -151,10 +154,10 @@ class ChainConfigUnitTest {
         final ChainConfig config = new ChainConfig(
                 1,
                 false,
-                "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248",
+                IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 -1L // invalid gasPriceCap
@@ -171,8 +174,8 @@ class ChainConfigUnitTest {
                 false,
                 "0x0", // invalid address
                 Duration.ofMillis(100),
-                "https://example.com",
-                "poolAddress",
+                IEXEC_NODE_ADDRESS,
+                POOL_ADDRESS,
                 0L,
                 1.0f,
                 100L
