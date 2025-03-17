@@ -41,41 +41,41 @@ import java.time.Duration;
 public class ChainConfig {
 
     @Value("#{publicChainConfig.chainId}")
-    @Positive
-    @NotNull
+    @Positive(message = "Chain id must be greater than 0")
+    @NotNull(message = "Chain id must not be null")
     private int chainId;
 
     @Value("#{publicChainConfig.sidechain}")
     private boolean sidechain;
 
     @Value("#{publicChainConfig.iexecHubContractAddress}")
-    @ValidNonZeroEthereumAddress
+    @ValidNonZeroEthereumAddress(message = "Hub address must be a valid non zero Ethereum address")
     private String hubAddress;
 
     @Value("#{publicChainConfig.blockTime}")
-    @DurationMin(millis=100)
-    @DurationMax(seconds=20)
-    @NotNull
+    @DurationMin(millis = 100, message = "Block time must be greater than 100ms")
+    @DurationMax(seconds = 20, message = "Block time must be less than 20s")
+    @NotNull(message = "Block time must not be null")
     private Duration blockTime;
 
     @Value("${chain.node-address}")
-    @URL
-    @NotEmpty
+    @URL(message = "Node address must be a valid URL")
+    @NotEmpty(message = "Node address must not be empty")
     private String nodeAddress;
 
     @Value("${chain.pool-address}")
     private String poolAddress;
 
     @Value("${chain.start-block-number}")
-    @PositiveOrZero
+    @PositiveOrZero(message = "Start Block Number must be greater or equal to 0")
     private long startBlockNumber;
 
     @Value("${chain.gas-price-multiplier}")
-    @Positive
+    @Positive(message = "Gas price multiplier must be greater than 0")
     private float gasPriceMultiplier;
 
     @Value("${chain.gas-price-cap}")
-    @PositiveOrZero
+    @PositiveOrZero(message = "Gas price cap must be greater or equal to 0")
     private long gasPriceCap;
 
 }
