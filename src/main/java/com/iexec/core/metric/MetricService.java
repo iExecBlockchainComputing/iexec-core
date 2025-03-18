@@ -53,6 +53,10 @@ public class MetricService {
                 .dealsCount(dealWatcherService.getDealsCount())
                 .replayDealsCount(dealWatcherService.getReplayDealsCount())
                 .latestBlockNumberWithDeal(dealWatcherService.getLatestBlockNumberWithDeal())
+                .aliveAvailableCpu(aliveWorkerMetrics.aliveRegisteredCpu() - aliveWorkerMetrics.aliveComputingCpu())
+                .aliveTotalCpu(aliveWorkerMetrics.aliveRegisteredCpu())
+                .aliveAvailableGpu(aliveWorkerMetrics.aliveRegisteredGpu() - aliveWorkerMetrics.aliveComputingGpu())
+                .aliveTotalGpu(aliveWorkerMetrics.aliveRegisteredGpu())
                 .build();
     }
 
