@@ -17,10 +17,14 @@
 package com.iexec.core.chain;
 
 import com.iexec.commons.poco.chain.Web3jAbstractService;
+import com.iexec.core.chain.event.LatestBlockEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 @Service
 public class Web3jService extends Web3jAbstractService {
+
+    private long latestBlockNumber;
 
     public Web3jService(ChainConfig chainConfig) {
         super(
@@ -31,6 +35,16 @@ public class Web3jService extends Web3jAbstractService {
                 chainConfig.getGasPriceCap(),
                 chainConfig.isSidechain()
         );
+    }
+
+    @EventListener
+    private void onLatestBlockEvent(final LatestBlockEvent event) {
+        this.latestBlockNumber = event.getBlockNumber();
+    }
+
+    @Override
+    public long getLatestBlockNumber() {
+        return latestBlockNumber;
     }
 
 }

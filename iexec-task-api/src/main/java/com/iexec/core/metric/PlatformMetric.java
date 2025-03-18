@@ -35,6 +35,7 @@ public class PlatformMetric {
     int aliveComputingGpu;
     int aliveRegisteredGpu;
     LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
+    LatestBlockMetric latestBlockMetric;
     long dealEventsCount;
     long dealsCount;
     long replayDealsCount;
@@ -65,5 +66,8 @@ public class PlatformMetric {
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class PlatformMetricBuilder {
+    }
+
+    public record LatestBlockMetric(long blockNumber, String blockHash, long blockTimestamp) {
     }
 }
