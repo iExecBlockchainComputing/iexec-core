@@ -40,15 +40,28 @@ public class PlatformMetric {
     long replayDealsCount;
     BigInteger latestBlockNumberWithDeal;
 
-    // for backward compatibility
+    // region backward compatibility
+    /**
+     * @deprecated Use aliveComputingCpu = aliveRegisteredCpu - aliveComputingCpu instead
+     */
     @Deprecated(forRemoval = true, since = "9.0.0")
     int aliveAvailableCpu;
+    /**
+     * @deprecated Use aliveRegisteredCpu instead
+     */
     @Deprecated(forRemoval = true, since = "9.0.0")
     int aliveTotalCpu;
+    /**
+     * @deprecated Use aliveComputingGpu = aliveRegisteredGpu - aliveComputingGpu instead
+     */
     @Deprecated(forRemoval = true, since = "9.0.0")
     int aliveAvailableGpu;
+    /**
+     * @deprecated Use aliveRegisteredGpu instead
+     */
     @Deprecated(forRemoval = true, since = "9.0.0")
     int aliveTotalGpu;
+    // endregion
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class PlatformMetricBuilder {
