@@ -64,6 +64,10 @@ class MetricServiceTests {
 
         PlatformMetric metric = metricService.getPlatformMetrics();
         Assertions.assertAll(
+                () -> assertThat(metric.getAliveAvailableCpu()).isEqualTo(0),
+                () -> assertThat(metric.getAliveTotalCpu()).isEqualTo(1),
+                () -> assertThat(metric.getAliveAvailableGpu()).isEqualTo(0),
+                () -> assertThat(metric.getAliveTotalGpu()).isEqualTo(1),
                 () -> assertThat(metric.getAliveWorkers()).isEqualTo(1),
                 () -> assertThat(metric.getAliveComputingCpu()).isEqualTo(1),
                 () -> assertThat(metric.getAliveRegisteredCpu()).isEqualTo(1),

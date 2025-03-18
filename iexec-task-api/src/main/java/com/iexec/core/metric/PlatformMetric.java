@@ -40,6 +40,16 @@ public class PlatformMetric {
     long replayDealsCount;
     BigInteger latestBlockNumberWithDeal;
 
+    // for backward compatibility
+    @Deprecated(forRemoval = true, since = "9.0.0")
+    int aliveAvailableCpu;
+    @Deprecated(forRemoval = true, since = "9.0.0")
+    int aliveTotalCpu;
+    @Deprecated(forRemoval = true, since = "9.0.0")
+    int aliveAvailableGpu;
+    @Deprecated(forRemoval = true, since = "9.0.0")
+    int aliveTotalGpu;
+
     @JsonPOJOBuilder(withPrefix = "")
     public static class PlatformMetricBuilder {
     }
