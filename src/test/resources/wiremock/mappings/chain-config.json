@@ -5,7 +5,7 @@
   },
   "response": {
     "status": 200,
-    "body": "{\"chainId\":255,\"chainNodeUrl\":\"http://localhost:8545\",\"blockTime\":\"PT5s\",\"sidechain\":\"true\"}",
+    "body": "{\"chainId\":65535,\"sidechain\":\"true\",\"iexecHubContractAddress\":\"0xC129e7917b7c7DeDfAa5Fff1FB18d5D7050fE8ca\",\"blockTime\":\"PT5s\",\"chainNodeUrl\":\"http://localhost:8545\"}",
     "headers": {
       "Content-Type": "application/json"
     }

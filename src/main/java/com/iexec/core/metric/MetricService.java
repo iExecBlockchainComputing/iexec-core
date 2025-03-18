@@ -17,6 +17,7 @@
 package com.iexec.core.metric;
 
 import com.iexec.core.chain.DealWatcherService;
+import com.iexec.core.chain.event.LatestBlockEvent;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.event.TaskStatusesCountUpdatedEvent;
 import com.iexec.core.worker.AliveWorkerMetrics;
@@ -31,6 +32,7 @@ public class MetricService {
     private final DealWatcherService dealWatcherService;
     private final WorkerService workerService;
     private LinkedHashMap<TaskStatus, Long> currentTaskStatusesCount;
+    private PlatformMetric.LatestBlockMetric latestBlock;
 
     public MetricService(final DealWatcherService dealWatcherService,
                          final WorkerService workerService) {
@@ -49,6 +51,7 @@ public class MetricService {
                 .aliveComputingGpu(aliveWorkerMetrics.aliveComputingGpu())
                 .aliveRegisteredGpu(aliveWorkerMetrics.aliveRegisteredGpu())
                 .currentTaskStatusesCount(currentTaskStatusesCount)
+                .latestBlockMetric(latestBlock)
                 .dealEventsCount(dealWatcherService.getDealEventsCount())
                 .dealsCount(dealWatcherService.getDealsCount())
                 .replayDealsCount(dealWatcherService.getReplayDealsCount())
@@ -58,6 +61,11 @@ public class MetricService {
                 .aliveAvailableGpu(aliveWorkerMetrics.aliveRegisteredGpu() - aliveWorkerMetrics.aliveComputingGpu())
                 .aliveTotalGpu(aliveWorkerMetrics.aliveRegisteredGpu())
                 .build();
+    }
+
+    @EventListener
+    void onLatestBlockEvent(final LatestBlockEvent event) {
+        latestBlock = new PlatformMetric.LatestBlockMetric(event.getBlockNumber(), event.getBlockHash(), event.getBlockTimestamp());
     }
 
     @EventListener
