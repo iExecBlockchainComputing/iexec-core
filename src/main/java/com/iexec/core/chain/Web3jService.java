@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public class Web3jService extends Web3jAbstractService {
     public Web3jService(ChainConfig chainConfig) {
         super(
                 chainConfig.getChainId(),
-                chainConfig.getPrivateChainAddress(),
+                chainConfig.getNodeAddress(),
                 chainConfig.getBlockTime(),
                 chainConfig.getGasPriceMultiplier(),
                 chainConfig.getGasPriceCap(),

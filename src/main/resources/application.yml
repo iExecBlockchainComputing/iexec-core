@@ -38,8 +38,8 @@ cron:
       result-upload: 30000   # 30s
 
 workers:
-  askForReplicatePeriod: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
-  requiredWorkerVersion: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
+  ask-for-replicate-period: ${IEXEC_ASK_REPLICATE_PERIOD:5000}
+  required-worker-version: ${IEXEC_CORE_REQUIRED_WORKER_VERSION:} #leave empty will allow any worker version
   # the whitelist format should be as follow (comma separated on one or multiple lines:
   # whitelist: ${IEXEC_WHITELIST:address1,
   #     address2,
@@ -47,15 +47,15 @@ workers:
   whitelist: ${IEXEC_WORKERS_WHITELIST:}
 
 wallet:
-  encryptedFilePath: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
+  encrypted-file-path: ${IEXEC_CORE_WALLET_PATH:./src/main/resources/wallet/encrypted-wallet_scheduler.json}
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
 
 chain:
-  privateAddress: ${IEXEC_PRIVATE_CHAIN_ADDRESS:http://localhost:8545}
-  poolAddress: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
-  startBlockNumber: ${IEXEC_START_BLOCK_NUMBER:0}
-  gasPriceMultiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
-  gasPriceCap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
+  node-address: ${IEXEC_BLOCKCHAIN_NODE_ADDRESS:http://localhost:8545}
+  pool-address: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
+  start-block-number: ${IEXEC_START_BLOCK_NUMBER:0}
+  gas-price-multiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast
+  gas-price-cap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
 blockchain-adapter:
   protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
@@ -70,7 +70,7 @@ config-server:
   host: ${IEXEC_CONFIG_SERVER_HOST:localhost}
   port: ${IEXEC_CONFIG_SERVER_PORT:8888}
 
-resultRepository:
+result-repository:
   protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
   host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
   port: ${IEXEC_RESULT_REPOSITORY_PORT:13200}
@@ -93,5 +93,5 @@ logs:
   availability-period-in-days: ${IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS:3}
 
 springdoc:
-  packagesToScan: com.iexec.core
-  pathsToMatch: /**
+  packages-to-scan: com.iexec.core
+  paths-to-match: /**
