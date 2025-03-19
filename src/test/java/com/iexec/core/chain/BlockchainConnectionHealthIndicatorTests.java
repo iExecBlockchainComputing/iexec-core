@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@ import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,8 +47,6 @@ class BlockchainConnectionHealthIndicatorTests {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
-    @Mock
-    private Web3jService web3jService;
     @Mock
     private ChainConfig chainConfig;
     @Mock
@@ -63,7 +60,6 @@ class BlockchainConnectionHealthIndicatorTests {
 
         this.blockchainConnectionHealthIndicator = new BlockchainConnectionHealthIndicator(
                 applicationEventPublisher,
-                web3jService,
                 chainConfig,
                 executor,
                 CLOCK
@@ -132,10 +128,13 @@ class BlockchainConnectionHealthIndicatorTests {
                          long latestBlockNumber,
                          boolean expectedOutOfService,
                          LocalDateTime expectedFirstFailure) {
+        final long latestBlockTimestamp = expectedOutOfService ?
+                Instant.now().getEpochSecond() - 5 : Instant.now().getEpochSecond();
+
         setConsecutiveFailures(previousConsecutiveFailures);
         setFirstFailure(previousFirstFailure);
-
-        when(web3jService.getLatestBlockNumber()).thenReturn(latestBlockNumber);
+        ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "latestBlockNumber", latestBlockNumber);
+        ReflectionTestUtils.setField(blockchainConnectionHealthIndicator, "latestBlockTimestamp", latestBlockTimestamp);
 
         blockchainConnectionHealthIndicator.checkConnection();
 
@@ -144,8 +143,6 @@ class BlockchainConnectionHealthIndicatorTests {
 
         Assertions.assertThat(outOfService).isEqualTo(expectedOutOfService);
         Assertions.assertThat(firstFailure).isEqualTo(expectedFirstFailure);
-
-        verify(web3jService).getLatestBlockNumber();
     }
     // endregion
 
