@@ -20,21 +20,21 @@ import com.iexec.common.config.ConfigServerClient;
 import com.iexec.common.config.ConfigServerClientBuilder;
 import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+import lombok.Getter;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
+@Getter
 @Data
 @ConfigurationProperties(prefix = "config-server")
 public class ConfigServerClientConfig {
 
-    private final String protocol;
-    private final String host;
-    private final int port;
-
-    public String getUrl() {
-        return protocol + "://" + host + ":" + port;
-    }
+    @URL(message = "URL must be a valid URL")
+    @NotEmpty(message = "URL must not be empty")
+    private final String url;
 
     @Bean
     public ConfigServerClient configServerClient() {

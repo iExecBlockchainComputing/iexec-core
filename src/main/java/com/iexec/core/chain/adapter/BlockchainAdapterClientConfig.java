@@ -20,7 +20,9 @@ import com.iexec.blockchain.api.BlockchainAdapterApiClient;
 import com.iexec.blockchain.api.BlockchainAdapterApiClientBuilder;
 import com.iexec.blockchain.api.BlockchainAdapterService;
 import feign.Logger;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,23 +37,19 @@ public class BlockchainAdapterClientConfig {
     public static final int WATCH_PERIOD_SECONDS = 2;
     public static final int MAX_ATTEMPTS = 25;
 
-    private final String protocol;
-    private final String host;
-    private final int port;
+    @URL(message = "URL must be a valid URL")
+    @NotEmpty(message = "URL must not be empty")
+    private final String url;
     // TODO improve property names before next major version
     @Value("${blockchain-adapter.user.name}")
     private final String username;
     @Value("${blockchain-adapter.user.password}")
     private final String password;
 
-    private String buildHostUrl(String protocol, String host, int port) {
-        return protocol + "://" + host + ":" + port;
-    }
-
     @Bean
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
-                Logger.Level.NONE, buildHostUrl(protocol, host, port), username, password);
+                Logger.Level.NONE, url, username, password);
     }
 
     @Bean

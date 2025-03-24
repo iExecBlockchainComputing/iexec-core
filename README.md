@@ -39,17 +39,11 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_START_BLOCK_NUMBER` | Subscribe to new deal events from a specific block number. | Positive integer | `0` |
 | `IEXEC_GAS_PRICE_MULTIPLIER` | Transactions will be sent with `networkGasPrice * gasPriceMultiplier`. | Float | `1.0` |
 | `IEXEC_GAS_PRICE_CAP` | In Wei, will be used for transactions if `networkGasPrice * gasPriceMultiplier > gasPriceCap` | Integer | `22000000000` |
-| `IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL` | _iExec Blockchain Adapter_ communication protocol. | String | `http` |
-| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `localhost` |
-| `IEXEC_CORE_CHAIN_ADAPTER_PORT` | _iExec Blockchain Adapter_ server port. | Positive integer | `13010` |
+| `IEXEC_CORE_CHAIN_ADAPTER_URL` | _iExec Blockchain Adapter_ communication url. | String | `http://localhost:13010`|
 | `IEXEC_CORE_CHAIN_ADAPTER_USERNAME` | Username to connect to the _iExec Blockchain Adapter_ server. | String | `admin` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PASSWORD` | Password to connect to the _iExec Blockchain Adapter_ server. | String | `whatever` |
-| `IEXEC_CONFIG_SERVER_PROTOCOL` | _iExec Config Server_ communication protocol. | String | `http` |
-| `IEXEC_CONFIG_SERVER_HOST` | _iExec Config Server_ host. | String | `localhost` |
-| `IEXEC_CONFIG_SERVER_PORT` | _iExec Config Server_ port. | Positive integer | `8888` |
-| `IEXEC_RESULT_REPOSITORY_PROTOCOL` | _iExec Result Proxy_ server communication protocol. | String | `http` |
-| `IEXEC_RESULT_REPOSITORY_HOST` | _iExec Result Proxy_ server host. | String | `localhost` |
-| `IEXEC_RESULT_REPOSITORY_PORT` | _iExec Result Proxy_ server port. | Positive integer | `13200` |
+| `IEXEC_CONFIG_SERVER_URL` | _iExec Config Server_ communication url. | String | `http://localhost:8888`|
+| `IEXEC_RESULT_REPOSITORY_URL` | _iExec Result Proxy_ server communication url. | String | `http://localhost:13200`|
 | `IEXEC_CORE_MANAGEMENT_ACTUATORS` | Endpoint IDs that should be included or `*` for all. | String | `health, info` |
 | `IEXEC_LOGS_PURGE_RATE_IN_DAYS` | Interval in days between 2 executions of the purge mechanism. | Positive integer | `1` |
 | `IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS` | Number of days to keep logs of past tasks. | Positive integer | `3` |

@@ -62,8 +62,10 @@ class WebSocketBlockchainListenerTests {
                 environment.getServiceHost(CHAIN_SVC_NAME, CHAIN_SVC_PORT),
                 environment.getServicePort(CHAIN_SVC_NAME, CHAIN_SVC_PORT))
         );
-        registry.add("config-server.host", () -> environment.getServiceHost(CONFIG_SVC_NAME, CONFIG_SVC_PORT));
-        registry.add("config-server.port", () -> environment.getServicePort(CONFIG_SVC_NAME, CONFIG_SVC_PORT));
+        registry.add("config-server.url", () -> getServiceUrl(
+                environment.getServiceHost(CONFIG_SVC_NAME, CONFIG_SVC_PORT),
+                environment.getServicePort(CONFIG_SVC_NAME, CONFIG_SVC_PORT))
+        );
         registry.add("sprint.data.mongodb.host", () -> environment.getServiceHost(MONGO_SVC_NAME, MONGO_SVC_PORT));
         registry.add("spring.data.mongodb.port", () -> environment.getServicePort(MONGO_SVC_NAME, MONGO_SVC_PORT));
     }
