@@ -39,14 +39,14 @@ class ResultRepositoryConfigurationTest {
     @Test
     void shouldReturnCorrectResultRepositoryURL() {
         String expectedUrl = "http://localhost:8080";
-        assertEquals(expectedUrl, config.getResultRepositoryURL());
+        assertEquals(expectedUrl, config.getUrl());
     }
 
     @Test
     void shouldCreateResultProxyClientWithDefaultUrlWhenProxyUrlIsNullOrEmpty() {
         try (MockedStatic<ResultProxyClientBuilder> mockedBuilder = mockStatic(ResultProxyClientBuilder.class)) {
             ResultProxyClient mockClient = mock(ResultProxyClient.class);
-            String defaultUrl = config.getResultRepositoryURL();
+            String defaultUrl = config.getUrl();
 
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(defaultUrl)))
                     .thenReturn(mockClient);

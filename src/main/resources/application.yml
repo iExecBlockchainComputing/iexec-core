@@ -59,8 +59,8 @@ chain:
 
 blockchain-adapter:
   url: ${IEXEC_CORE_CHAIN_ADAPTER_URL:http://localhost:13010}
-  user:
-    name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
+  auth:
+    username: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
     password: ${IEXEC_CORE_CHAIN_ADAPTER_PASSWORD:whatever}
 
 config-server:

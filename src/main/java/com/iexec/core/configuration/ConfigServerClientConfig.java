@@ -21,25 +21,25 @@ import com.iexec.common.config.ConfigServerClientBuilder;
 import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Data;
-import lombok.Getter;
+import lombok.Value;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.validation.annotation.Validated;
 
-@Getter
-@Data
+@Value
+@Validated
 @ConfigurationProperties(prefix = "config-server")
 public class ConfigServerClientConfig {
 
     @URL(message = "URL must be a valid URL")
     @NotEmpty(message = "URL must not be empty")
-    private final String url;
+    String url;
 
     @Bean
     public ConfigServerClient configServerClient() {
         return ConfigServerClientBuilder.getInstance(
-                Logger.Level.NONE, getUrl());
+                Logger.Level.NONE, url);
     }
 
     @Bean

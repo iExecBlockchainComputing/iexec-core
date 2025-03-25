@@ -25,8 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 @Value
+@Validated
 @ConfigurationProperties(prefix = "result-repository")
 @Slf4j
 public class ResultRepositoryConfiguration {
@@ -34,13 +36,9 @@ public class ResultRepositoryConfiguration {
     @NotEmpty(message = "URL must not be empty")
     String url;
 
-    public String getResultRepositoryURL() {
-        return url;
-    }
-
     public ResultProxyClient createResultProxyClientFromURL(final String url) {
         final boolean useDefaultUrl = StringUtils.isBlank(url);
-        final String resultProxyClientURL = useDefaultUrl ? getResultRepositoryURL() : url;
+        final String resultProxyClientURL = useDefaultUrl ? getUrl() : url;
         log.debug("result-proxy URL [url:{}, default-url:{}]", resultProxyClientURL, useDefaultUrl);
         return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, resultProxyClientURL);
     }

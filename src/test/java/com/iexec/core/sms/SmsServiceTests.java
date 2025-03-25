@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -235,7 +235,7 @@ class SmsServiceTests {
     }
 
     private void initResultProxyStubs() {
-        when(resultRepositoryConfiguration.getResultRepositoryURL()).thenReturn(RESULT_PROXY_URL);
+        when(resultRepositoryConfiguration.getUrl()).thenReturn(RESULT_PROXY_URL);
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
                 TaskDescription.builder().teeFramework(TeeFramework.SCONE).build());
         when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);

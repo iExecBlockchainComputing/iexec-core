@@ -40,8 +40,8 @@ class BlockchainAdapterClientConfigTests {
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
         registry.add("blockchain-adapter.url", () -> "http://localhost:13010");
-        registry.add("blockchain-adapter.user.name", () -> "admin");
-        registry.add("blockchain-adapter.user.password", () -> "whatever");
+        registry.add("blockchain-adapter.auth.username", () -> "admin");
+        registry.add("blockchain-adapter.auth.password", () -> "whatever");
     }
 
     @Test

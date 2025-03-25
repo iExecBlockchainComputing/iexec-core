@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -199,7 +199,7 @@ public class SmsService {
     public void pushWorkerpoolResultProxyUrl(final TaskInitializedEvent event) {
         log.debug("pushWorkerpoolResultProxyUrl [event:{}]", event);
         try {
-            final String resultProxyURL = resultRepositoryConfiguration.getResultRepositoryURL();
+            final String resultProxyURL = resultRepositoryConfiguration.getUrl();
             final String smsURL = getVerifiedSmsUrl(event.getChainTaskId()).orElseThrow();
             log.debug("Pushing result-proxy default URL to SMS [sms:{}, result-proxy:{}]", smsURL, resultProxyURL);
             final SmsClient smsClient = smsClientProvider.getSmsClient(smsURL);
