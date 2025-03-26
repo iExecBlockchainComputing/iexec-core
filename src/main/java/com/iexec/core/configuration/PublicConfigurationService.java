@@ -63,7 +63,7 @@ public class PublicConfigurationService {
                 .workerPoolAddress(chainConfig.getPoolAddress())
                 .configServerUrl(configServerClientConfig.getUrl())
                 .schedulerPublicAddress(signerService.getAddress())
-                .resultRepositoryURL(resultRepoConfig.getResultRepositoryURL())
+                .resultRepositoryURL(resultRepoConfig.getUrl())
                 .askForReplicatePeriod(workerConfiguration.getAskForReplicatePeriod())
                 .requiredWorkerVersion(workerConfiguration.getRequiredWorkerVersion())
                 .build();

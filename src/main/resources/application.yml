@@ -58,22 +58,16 @@ chain:
   gas-price-cap: ${IEXEC_GAS_PRICE_CAP:22000000000} #in Wei, will be used for txs if networkGasPrice*gasPriceMultiplier > gasPriceCap
 
 blockchain-adapter:
-  protocol: ${IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL:http}
-  host: ${IEXEC_CORE_CHAIN_ADAPTER_HOST:localhost}
-  port: ${IEXEC_CORE_CHAIN_ADAPTER_PORT:13010}
-  user:
-    name: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
+  url: ${IEXEC_CORE_CHAIN_ADAPTER_URL:http://localhost:13010}
+  auth:
+    username: ${IEXEC_CORE_CHAIN_ADAPTER_USERNAME:admin}
     password: ${IEXEC_CORE_CHAIN_ADAPTER_PASSWORD:whatever}
 
 config-server:
-  protocol: ${IEXEC_CONFIG_SERVER_PROTOCOL:http}
-  host: ${IEXEC_CONFIG_SERVER_HOST:localhost}
-  port: ${IEXEC_CONFIG_SERVER_PORT:8888}
+  url: ${IEXEC_CONFIG_SERVER_URL:http://localhost:8888}
 
 result-repository:
-  protocol: ${IEXEC_RESULT_REPOSITORY_PROTOCOL:http}
-  host: ${IEXEC_RESULT_REPOSITORY_HOST:localhost}
-  port: ${IEXEC_RESULT_REPOSITORY_PORT:13200}
+  url: ${IEXEC_RESULT_REPOSITORY_URL:http://localhost:13200}
 
 management:
   endpoints:

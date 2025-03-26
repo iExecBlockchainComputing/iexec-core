@@ -19,26 +19,26 @@ package com.iexec.core.configuration;
 import com.iexec.resultproxy.api.ResultProxyClient;
 import com.iexec.resultproxy.api.ResultProxyClientBuilder;
 import feign.Logger;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 @Value
+@Validated
 @ConfigurationProperties(prefix = "result-repository")
 @Slf4j
 public class ResultRepositoryConfiguration {
-    String protocol;
-    String host;
-    String port;
-
-    public String getResultRepositoryURL() {
-        return protocol + "://" + host + ":" + port;
-    }
+    @URL(message = "URL must be a valid URL")
+    @NotEmpty(message = "URL must not be empty")
+    String url;
 
     public ResultProxyClient createResultProxyClientFromURL(final String url) {
         final boolean useDefaultUrl = StringUtils.isBlank(url);
-        final String resultProxyClientURL = useDefaultUrl ? getResultRepositoryURL() : url;
+        final String resultProxyClientURL = useDefaultUrl ? getUrl() : url;
         log.debug("result-proxy URL [url:{}, default-url:{}]", resultProxyClientURL, useDefaultUrl);
         return ResultProxyClientBuilder.getInstance(Logger.Level.NONE, resultProxyClientURL);
     }

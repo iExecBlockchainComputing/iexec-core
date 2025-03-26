@@ -433,7 +433,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
@@ -475,7 +475,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
@@ -544,7 +544,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))

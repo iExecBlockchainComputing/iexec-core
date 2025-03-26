@@ -54,9 +54,7 @@ class ConfigServerClientConfigTests {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("config-server.protocol", () -> "http");
-        registry.add("config-server.host", () -> "localhost");
-        registry.add("config-server.port", () -> wmServer.getMappedPort(WIREMOCK_PORT));
+        registry.add("config-server.url", () -> "http://localhost:" + wmServer.getMappedPort(WIREMOCK_PORT));
     }
 
     @Test

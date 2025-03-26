@@ -20,7 +20,6 @@ All notable changes to this project will be documented in this file.
 - Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739 #745)
 - Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
 - Remove code related to reopen PoCo feature in `IexecHubService` and `TaskUpdateManager`. (#743)
-- Harmonize YML internal variables to proper case. (#744)
 
 ### Breaking API changes
 
@@ -31,6 +30,8 @@ All notable changes to this project will be documented in this file.
 - Remove deprecated methods in `iexec-core-library`. (#737)
 - Remove unused `ContributionUtils` class. (#738)
 - Rework metrics to expose count of computing CPUs or GPUs instead of available ones. (#739)
+- Harmonize YML internal variables to proper case. (#744)
+- Merge split URL configuration properties (protocol, host, port) to a single URL field to offer URL validation at startup. (#748)
 
 ### Dependency Upgrades
 

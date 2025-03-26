@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,23 +32,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ResultRepositoryConfigurationTest {
 
-    private final ResultRepositoryConfiguration config = new ResultRepositoryConfiguration(PROTOCOL, HOST, PORT);
+    private final ResultRepositoryConfiguration config = new ResultRepositoryConfiguration(URL);
 
-    private static final String PROTOCOL = "http";
-    private static final String HOST = "localhost";
-    private static final String PORT = "8080";
+    private static final String URL = "http://localhost:8080";
 
     @Test
     void shouldReturnCorrectResultRepositoryURL() {
         String expectedUrl = "http://localhost:8080";
-        assertEquals(expectedUrl, config.getResultRepositoryURL());
+        assertEquals(expectedUrl, config.getUrl());
     }
 
     @Test
     void shouldCreateResultProxyClientWithDefaultUrlWhenProxyUrlIsNullOrEmpty() {
         try (MockedStatic<ResultProxyClientBuilder> mockedBuilder = mockStatic(ResultProxyClientBuilder.class)) {
             ResultProxyClient mockClient = mock(ResultProxyClient.class);
-            String defaultUrl = config.getResultRepositoryURL();
+            String defaultUrl = config.getUrl();
 
             mockedBuilder.when(() -> ResultProxyClientBuilder.getInstance(eq(Logger.Level.NONE), eq(defaultUrl)))
                     .thenReturn(mockClient);
