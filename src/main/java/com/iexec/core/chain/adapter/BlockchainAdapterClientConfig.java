@@ -47,7 +47,7 @@ public class BlockchainAdapterClientConfig {
     @Bean
     public BlockchainAdapterApiClient blockchainAdapterClient() {
         return BlockchainAdapterApiClientBuilder.getInstanceWithBasicAuth(
-                Logger.Level.NONE, url, auth.username, auth.password);
+                Logger.Level.NONE, url, auth.username(), auth.password());
     }
 
     @Bean
