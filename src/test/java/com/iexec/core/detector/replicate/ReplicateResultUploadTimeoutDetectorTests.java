@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,17 +38,13 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.iexec.common.replicate.ReplicateStatus.RESULT_UPLOAD_FAILED;
+import static com.iexec.core.TestUtils.*;
 import static com.iexec.core.task.TaskStatus.RESULT_UPLOADING;
-import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 class ReplicateResultUploadTimeoutDetectorTests {
-
-    private static final String WALLET_WORKER_1 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860";
-    private static final String WALLET_WORKER_2 = "0x748e091bf16048cb5103E0E10F9D5a8b7fBDd861";
 
     @Mock
     private TaskService taskService;

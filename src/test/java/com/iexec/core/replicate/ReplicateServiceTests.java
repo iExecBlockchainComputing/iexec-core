@@ -59,7 +59,7 @@ import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusModifier.WORKER;
 import static com.iexec.commons.poco.chain.DealParams.DROPBOX_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
-import static com.iexec.commons.poco.utils.TestUtils.*;
+import static com.iexec.core.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -446,8 +446,7 @@ class ReplicateServiceTests {
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
-                .publishEvent(argumentCaptor.capture());
+        verify(applicationEventPublisher).publishEvent(argumentCaptor.capture());
         ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);

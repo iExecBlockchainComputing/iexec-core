@@ -41,8 +41,8 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
+import static com.iexec.core.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.core.TestUtils.getStubTask;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 

@@ -42,9 +42,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+import static com.iexec.core.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.core.TestUtils.getStubTask;
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @DataMongoTest

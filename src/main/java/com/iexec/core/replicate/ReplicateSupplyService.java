@@ -360,7 +360,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
-        if (didReplicateStartContributing && didReplicateContributeOnChain) {
+        if (didReplicateStartContributing) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(CONTRIBUTED, details);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
@@ -416,7 +416,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
-        if (didReplicateStartRevealing && didReplicateRevealOnChain) {
+        if (didReplicateStartRevealing) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(REVEALED, details);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
@@ -473,7 +473,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
-        if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
+        if (didReplicateStartUploading) {
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 

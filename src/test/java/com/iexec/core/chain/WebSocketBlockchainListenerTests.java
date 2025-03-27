@@ -86,7 +86,7 @@ class WebSocketBlockchainListenerTests {
     @Test
     void shouldConnect() {
         await().atMost(10L, TimeUnit.SECONDS)
-                .until(() -> Objects.requireNonNull(meterRegistry.find(LATEST_BLOCK_METRIC_NAME).gauge()).value() != 0.0);
+                .until(() -> web3jService.getLatestBlockNumber() != 0 && metricService.getPlatformMetrics().getLatestBlockMetric() != null);
         final Long latestBlockNumber = (long) Objects.requireNonNull(meterRegistry.find(LATEST_BLOCK_METRIC_NAME).gauge()).value();
         assertThat(latestBlockNumber).isEqualTo(web3jService.getLatestBlockNumber());
         assertThat(metricService.getPlatformMetrics())

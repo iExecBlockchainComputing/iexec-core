@@ -22,8 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
-import static com.iexec.common.replicate.ReplicateStatus.STARTING;
-import static com.iexec.commons.poco.utils.TestUtils.*;
+import static com.iexec.core.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReplicatesListTests {

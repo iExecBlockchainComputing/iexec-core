@@ -52,7 +52,7 @@ import java.util.stream.Stream;
 
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_GRAMINE_ONLY_TAG;
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
-import static com.iexec.core.task.TaskTestsUtils.NO_TEE_TAG;
+import static com.iexec.core.TestUtils.NO_TEE_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

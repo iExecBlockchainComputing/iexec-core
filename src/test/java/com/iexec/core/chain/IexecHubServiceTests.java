@@ -37,8 +37,6 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static com.iexec.commons.poco.utils.TestUtils.CHAIN_TASK_ID;
-import static com.iexec.commons.poco.utils.TestUtils.WORKER_ADDRESS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -46,6 +44,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class IexecHubServiceTests {
 
+    private static final String CHAIN_TASK_ID = "0x1111111111111111111111111111111111111111111111111111111111111111";
+    private static final String WORKER_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private static final String TRANSACTION_HASH = "transactionHash";
 
     @Mock

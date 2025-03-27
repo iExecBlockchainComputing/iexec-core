@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-package com.iexec.core.task;
+package com.iexec.core;
 
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.task.Task;
+import com.iexec.core.task.TaskStatus;
+import com.iexec.core.task.TaskStatusChange;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-public class TaskTestsUtils {
-    public static final String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    public static final String WALLET_WORKER_2 = "0x2a69b2eb604db8eba185df03ea4f5288dcbbd248";
-
+public class TestUtils {
     public static final String CHAIN_DEAL_ID = "0xd82223e5feff6720792ffed1665e980da95e5d32b177332013eaba8edc07f31c";
     public static final String CHAIN_TASK_ID = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
+
+    public static final String WORKER_ADDRESS = "0x87ae2b87b5db23830572988fb1f51242fbc471ce";
+    public static final String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    public static final String WALLET_WORKER_2 = "0x2ab2674aa374fe6415d11f0a8fcbd8027fc1e6a9";
+    public static final String WALLET_WORKER_3 = "0x3a3406e69adf886c442ff1791cbf67cea679275d";
+    public static final String WALLET_WORKER_4 = "0x4aef50214110fdad4e8b9128347f2ba1ec72f614";
 
     public static final String DAPP_NAME = "dappName";
     public static final String COMMAND_LINE = "commandLine";
