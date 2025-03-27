@@ -57,9 +57,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.iexec.core.TestUtils.*;
 import static com.iexec.core.task.TaskService.METRIC_TASKS_STATUSES_COUNT;
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.task.TaskTestsUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -423,7 +423,7 @@ class TaskServiceTests {
 
     // region updateMetricsAfterStatusUpdate
     @Test
-    void shouldUpdateMetricsAfterStatusUpdate() throws ExecutionException, InterruptedException {
+    void shouldUpdateMetricsAfterStatusUpdate() {
         Task receivedTask = new Task("", "", 0);
         taskRepository.save(receivedTask);
 

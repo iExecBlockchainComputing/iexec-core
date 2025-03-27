@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-import static com.iexec.core.task.TaskTestsUtils.COMMAND_LINE;
-import static com.iexec.core.task.TaskTestsUtils.DAPP_NAME;
+import static com.iexec.core.TestUtils.COMMAND_LINE;
+import static com.iexec.core.TestUtils.DAPP_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TaskTests {

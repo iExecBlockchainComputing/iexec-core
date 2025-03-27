@@ -33,7 +33,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
+import static com.iexec.core.TestUtils.getStubTask;
 
 @DataMongoTest
 @TestPropertySource(properties = {"mongock.enabled=false"})

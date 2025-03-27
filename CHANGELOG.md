@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739 #745)
 - Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
 - Remove code related to reopen PoCo feature in `IexecHubService` and `TaskUpdateManager`. (#743)
+- Fix several issues raised by SonarQube Cloud. (#749)
 
 ### Breaking API changes
 

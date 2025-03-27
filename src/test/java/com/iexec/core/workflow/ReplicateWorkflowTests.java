@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.type.TypeFactory
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -228,7 +228,7 @@ class ReplicateWorkflowTests {
             final MapLikeType transitionsType = typeFactory.constructMapLikeType(Map.class, replicateStatusType, replicateStatusListType);
 
             final Map<ReplicateStatus, List<ReplicateStatus>> actualTransitions = mapper.readValue(transitionsFile, transitionsType);
-            final Map<ReplicateStatus, List<ReplicateStatus>> expectedTransitions = new HashMap<>();
+            final Map<ReplicateStatus, List<ReplicateStatus>> expectedTransitions = new EnumMap<>(ReplicateStatus.class);
 
             expectedTransitions.put(CREATED, List.of(STARTING, FAILED, WORKER_LOST, RECOVERING, ABORTED));
             expectedTransitions.put(STARTING, List.of(STARTED, START_FAILED, FAILED, WORKER_LOST, RECOVERING, ABORTED));
@@ -268,7 +268,7 @@ class ReplicateWorkflowTests {
             final JavaType actionsType = typeFactory.constructMapLikeType(Map.class, ReplicateStatus.class, TaskNotificationType.class);
 
             final Map<ReplicateStatus, TaskNotificationType> actualActions = mapper.readValue(actionsFile, actionsType);
-            final Map<ReplicateStatus, TaskNotificationType> expectedActions = new HashMap<>();
+            final Map<ReplicateStatus, TaskNotificationType> expectedActions = new EnumMap<>(ReplicateStatus.class);
             expectedActions.put(STARTING, PLEASE_CONTINUE);
             expectedActions.put(STARTED, PLEASE_DOWNLOAD_APP);
             expectedActions.put(START_FAILED, PLEASE_ABORT);
