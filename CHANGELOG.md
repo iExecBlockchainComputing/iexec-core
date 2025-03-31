@@ -7,8 +7,8 @@ All notable changes to this project will be documented in this file.
 ### New Features
 
 - Add WebSocketBlockchainListener to fetch latest block without polling the blockchain network. (#747)
-- Update last seen block in configuration collection when no deal has been detected in the last hour. (#749)
-- Update configuration collection depending on chain.start-block-number at startup. (#749)
+- Update last seen block in configuration collection when no deal has been detected in the last hour. (#750)
+- Update configuration collection depending on chain.start-block-number at startup. (#750)
 
 ### Bug Fixes
 
