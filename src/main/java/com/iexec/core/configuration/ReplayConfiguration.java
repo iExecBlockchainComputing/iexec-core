@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
 import java.math.BigInteger;
+import java.time.Instant;
 
 @Data
 @AllArgsConstructor
@@ -38,6 +39,7 @@ class ReplayConfiguration {
     private Long version;
 
     private BigInteger fromBlockNumber;
+    private Instant lastUpdate;
 
 }
 

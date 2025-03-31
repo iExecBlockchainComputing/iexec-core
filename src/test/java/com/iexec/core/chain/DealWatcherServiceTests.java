@@ -332,6 +332,7 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
+        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, false);
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
         dealWatcherService.replayDealEvent();
@@ -340,11 +341,8 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldNotReplayIfOutOfService() {
-        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, true);
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
         dealWatcherService.replayDealEvent();
-        verifyNoInteractions(iexecHubService);
+        verifyNoInteractions(configurationService, iexecHubService);
     }
     // endregion
 
