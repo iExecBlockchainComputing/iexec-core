@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ public class DealWatcherService {
     private final TaskService taskService;
     private final Web3jService web3jService;
     // internal variables
-    private boolean outOfService;
+    private boolean outOfService = true;
     private Disposable dealEventsSubscription;
     private Disposable dealEventSubscriptionReplay;
     @Getter
@@ -180,10 +180,9 @@ public class DealWatcherService {
     }
 
     /**
-     * Handle new onchain deals and add its tasks
-     * to db.
+     * Handle new on-chain deals and add its tasks to MongoDB ask collection.
      *
-     * @param dealEvent
+     * @param dealEvent Object representing PoCo SchedulerNoticeEvent
      */
     private void handleDeal(DealEvent dealEvent) {
         String chainDealId = dealEvent.getChainDealId();
@@ -203,7 +202,7 @@ public class DealWatcherService {
                     chainDealId,
                     taskIndex,
                     dealEvent.getBlockNumber().longValue(),
-                    BytesUtils.hexStringToAscii(chainDeal.getChainApp().getUri()),
+                    chainDeal.getChainApp().getMultiaddr(),
                     chainDeal.getParams().getIexecArgs(),
                     chainDeal.getTrust().intValue(),
                     chainDeal.getChainCategory().getMaxExecutionTime(),
@@ -255,14 +254,14 @@ public class DealWatcherService {
      */
     @Scheduled(fixedRateString = "#{@cronConfiguration.getDealReplay()}")
     void replayDealEvent() {
-        BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
-        BigInteger replayFromBlock = configurationService.getFromReplay();
-        if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
-            return;
-        }
         disposeSubscription(dealEventSubscriptionReplay);
         if (outOfService) {
             log.info("OUT-OF-SERVICE do not create replay subscription");
+            return;
+        }
+        final BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
+        final BigInteger replayFromBlock = configurationService.getFromReplay();
+        if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
             return;
         }
         dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);

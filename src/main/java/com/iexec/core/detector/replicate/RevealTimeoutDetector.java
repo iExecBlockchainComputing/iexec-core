@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,11 +37,11 @@ import static com.iexec.core.task.TaskStatus.*;
 @Service
 public class RevealTimeoutDetector implements Detector {
 
-    private TaskService taskService;
-    private ReplicatesService replicatesService;
+    private final TaskService taskService;
+    private final ReplicatesService replicatesService;
 
-    public RevealTimeoutDetector(TaskService taskService,
-                                 ReplicatesService replicatesService) {
+    public RevealTimeoutDetector(final TaskService taskService,
+                                 final ReplicatesService replicatesService) {
         this.taskService = taskService;
         this.replicatesService = replicatesService;
     }
@@ -50,10 +50,8 @@ public class RevealTimeoutDetector implements Detector {
     @Override
     public void detect() {
         log.debug("Trying to detect reveal timeout");
-
-        detectTaskAfterRevealDealLineWithZeroReveal();//finalizable
-
-        detectTaskAfterRevealDealLineWithAtLeastOneReveal();//reopenable
+        detectTaskAfterRevealDealLineWithZeroReveal(); // can be reopened
+        detectTaskAfterRevealDealLineWithAtLeastOneReveal(); // can be finalized
     }
 
     private void detectTaskAfterRevealDealLineWithAtLeastOneReveal() {

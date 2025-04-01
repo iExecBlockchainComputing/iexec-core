@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -204,22 +204,23 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
         if (whenCause == null) {
             return null;
         }
-        switch (whenStatus) {
-            case APP_DOWNLOAD_FAILED:
-                if (whenCause.equals(ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED)) {
-                    return PLEASE_CONTRIBUTE;
+        return switch (whenStatus) {
+            case APP_DOWNLOAD_FAILED -> {
+                if (whenCause == ReplicateStatusCause.APP_IMAGE_DOWNLOAD_FAILED) {
+                    yield PLEASE_CONTRIBUTE;
                 }
-                return PLEASE_ABORT;
-            case DATA_DOWNLOAD_FAILED:
-                if (whenCause.equals(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED)
-                        || whenCause.equals(ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM)
-                        || whenCause.equals(ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED)) {
-                    return PLEASE_CONTRIBUTE;
+                yield PLEASE_ABORT;
+            }
+            case DATA_DOWNLOAD_FAILED -> {
+                if (whenCause == ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED
+                        || whenCause == ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM
+                        || whenCause == ReplicateStatusCause.INPUT_FILES_DOWNLOAD_FAILED) {
+                    yield PLEASE_CONTRIBUTE;
                 }
-                return PLEASE_ABORT;
-            default:
-                return null;
-        }
+                yield PLEASE_ABORT;
+            }
+            default -> null;
+        };
     }
 
     TaskNotificationType getNextActionWhenStatus(ReplicateStatus whenStatus) {

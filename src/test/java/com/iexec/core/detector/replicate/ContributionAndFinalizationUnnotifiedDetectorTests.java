@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,16 +80,16 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     }
 
     private Replicate getReplicateWithStatus(final ReplicateStatus replicateStatus) {
-        Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
-        ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
+        final Replicate replicate = new Replicate(WALLET_ADDRESS, CHAIN_TASK_ID);
+        final ReplicateStatusUpdate replicateStatusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER).status(replicateStatus).build();
-        replicate.setStatusUpdateList(Collections.singletonList(statusUpdate));
+        replicate.setStatusUpdateList(Collections.singletonList(replicateStatusUpdate));
         return replicate;
     }
 
     // Helper method to avoid redundancy
     private void mockTaskAndTaskDecription(final String callback) {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(iexecHubService.getTaskDescription(anyString())).thenReturn(
                 TaskDescription.builder()
                         .trust(BigInteger.ONE)
@@ -115,7 +115,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     void shouldDetectBothChangesOnChain(final String callback) {
         mockTaskAndTaskDecription(callback);
 
-        Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
+        final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
 
@@ -140,7 +140,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     void shouldDetectMissedUpdateSinceOffChainOngoing(final String callback) {
         mockTaskAndTaskDecription(callback);
 
-        Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
+        final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
 
@@ -168,7 +168,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     void shouldNotDetectMissedUpdateSinceNotOnChainDone(final String callback) {
         mockTaskAndTaskDecription(callback);
 
-        Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
+        final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(false);
         detector.detectOnchainDoneWhenOffchainOngoing();
@@ -195,7 +195,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(final ReplicateStatus replicateStatus, final String callback) {
         mockTaskAndTaskDecription(callback);
 
-        Replicate replicate = getReplicateWithStatus(replicateStatus);
+        final Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         when(iexecHubService.isRevealed(CHAIN_TASK_ID, WALLET_ADDRESS)).thenReturn(true);
 
@@ -213,10 +213,10 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
     @Test
     void shouldNotDetectMissedUpdateSinceOnChainDoneAndOffChainDone() {
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_DONE);
+        final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_DONE);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
         detector.detectOnchainDone();
 
@@ -228,10 +228,10 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     void shouldNotDetectMissedUpdateSinceOnChainDoneAndNotEligibleToContributeAndFinalize() {
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
                 TaskDescription.builder().trust(BigInteger.ONE).isTeeTask(true).callback("0x2").build());
-        Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
+        final Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 
-        Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
+        final Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
         when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
 
         detector.detectOnchainDone();

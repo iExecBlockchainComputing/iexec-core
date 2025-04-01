@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,9 +39,9 @@ class BlockchainAdapterClientConfigTests {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("blockchain-adapter.protocol", () -> "http");
-        registry.add("blockchain-adapter.host", () -> "localhost");
-        registry.add("blockchain-adapter.port", () -> "13010");
+        registry.add("blockchain-adapter.url", () -> "http://localhost:13010");
+        registry.add("blockchain-adapter.auth.username", () -> "admin");
+        registry.add("blockchain-adapter.auth.password", () -> "whatever");
     }
 
     @Test

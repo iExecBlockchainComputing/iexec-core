@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.iexec.core.task.listener;
 
 import com.iexec.common.lifecycle.purge.PurgeService;
-import com.iexec.commons.poco.task.TaskAbortCause;
+import com.iexec.core.notification.TaskAbortCause;
 import com.iexec.core.notification.TaskNotification;
 import com.iexec.core.notification.TaskNotificationType;
 import com.iexec.core.pubsub.NotificationService;

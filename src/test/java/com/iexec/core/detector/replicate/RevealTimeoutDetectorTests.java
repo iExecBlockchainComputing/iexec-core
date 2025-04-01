@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,16 @@ package com.iexec.core.detector.replicate;
 
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
-import com.iexec.common.replicate.ReplicateStatusUpdate;
-import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,16 +36,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import static com.iexec.core.TestUtils.*;
 import static com.iexec.core.task.TaskStatus.*;
-import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class RevealTimeoutDetectorTests {
-
-    private static final String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
-    private static final String WALLET_WORKER_2 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd249";
 
     @Mock
     private TaskService taskService;
@@ -56,16 +49,8 @@ class RevealTimeoutDetectorTests {
     @Mock
     private ReplicatesService replicatesService;
 
-    @Mock
-    private IexecHubService iexecHubService;
-
     @InjectMocks
     private RevealTimeoutDetector revealDetector;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void shouldDetectTaskAfterRevealDealLineWithAtLeastOneReveal() {
@@ -130,9 +115,7 @@ class RevealTimeoutDetectorTests {
 
         revealDetector.detect();
 
-        verify(replicatesService, never()).getReplicates(Mockito.any());
-        verify(replicatesService, never()).updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
-        verify(iexecHubService, never()).reOpen(Mockito.any());
+        verifyNoInteractions(replicatesService);
     }
 
 
@@ -173,10 +156,9 @@ class RevealTimeoutDetectorTests {
 
 
         when(taskService.findByCurrentStatus(CONSENSUS_REACHED)).thenReturn(Collections.singletonList(task));
-        when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Arrays.asList(replicate1, replicate2));
 
         revealDetector.detect();
 
-        verify(replicatesService, never()).updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
+        verifyNoInteractions(replicatesService);
     }
 }

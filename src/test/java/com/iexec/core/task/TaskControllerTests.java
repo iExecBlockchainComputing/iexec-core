@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,24 +91,6 @@ class TaskControllerTests {
         return Credentials.create(otherKeyPair).getAddress();
     }
     //endregion
-
-    // region deprecated methods, to remove in future version
-    @Test
-    void shouldCallGetTaskLogs() {
-        final TaskController controller = spy(taskController);
-        final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
-        controller.getTaskLogsLegacy(TASK_ID, authorization);
-        verify(controller).getTaskLogs(TASK_ID, authorization);
-    }
-
-    @Test
-    void shouldCallGetComputeLogs() {
-        final TaskController controller = spy(taskController);
-        final String authorization = String.join("_", challenge.getHash(), signature, requesterAddress);
-        controller.getComputeLogsLegacy(TASK_ID, WORKER_ADDRESS, authorization);
-        verify(controller).getComputeLogs(TASK_ID, WORKER_ADDRESS, authorization);
-    }
-    // endregion
 
     //region getChallenge
     @Test

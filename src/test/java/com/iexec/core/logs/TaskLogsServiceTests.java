@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -32,12 +33,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static com.iexec.commons.poco.utils.TestUtils.CHAIN_TASK_ID;
-import static com.iexec.commons.poco.utils.TestUtils.WORKER_ADDRESS;
+import static com.iexec.core.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.core.TestUtils.WORKER_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
 
 @DataMongoTest
+@TestPropertySource(properties = {"mongock.enabled=false"})
 @Testcontainers
 class TaskLogsServiceTests {
 

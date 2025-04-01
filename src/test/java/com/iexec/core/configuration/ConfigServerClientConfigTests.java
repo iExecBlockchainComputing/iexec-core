@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,24 +54,23 @@ class ConfigServerClientConfigTests {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("config-server.protocol", () -> "http");
-        registry.add("config-server.host", () -> "localhost");
-        registry.add("config-server.port", () -> wmServer.getMappedPort(WIREMOCK_PORT));
+        registry.add("config-server.url", () -> "http://localhost:" + wmServer.getMappedPort(WIREMOCK_PORT));
     }
 
     @Test
     void checkChainConfigInitialization() {
         PublicChainConfig expectedConfig = PublicChainConfig.builder()
-                .chainId(255)
-                .chainNodeUrl("http://localhost:8545")
-                .blockTime(Duration.ofSeconds(5L))
+                .chainId(65535)
                 .sidechain(true)
+                .iexecHubContractAddress("0xC129e7917b7c7DeDfAa5Fff1FB18d5D7050fE8ca")
+                .blockTime(Duration.ofSeconds(5L))
+                .chainNodeUrl("http://localhost:8545")
                 .build();
         assertThat(chainConfig).isEqualTo(expectedConfig);
     }
 
     @Test
     void checkChainIdInitialization() {
-        assertThat(getChainId).isEqualTo(255);
+        assertThat(getChainId).isEqualTo(65535);
     }
 }

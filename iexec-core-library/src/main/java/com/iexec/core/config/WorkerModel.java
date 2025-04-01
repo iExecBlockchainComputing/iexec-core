@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-package com.iexec.core.configuration;
+package com.iexec.core.config;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import lombok.Builder;
 import lombok.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.util.List;
 
 @Value
-@ConfigurationProperties(prefix = "workers")
-public class WorkerConfiguration {
-    long askForReplicatePeriod;
-    String requiredWorkerVersion;
-    List<String> whitelist;
+@Builder
+@JsonDeserialize(builder = WorkerModel.WorkerModelBuilder.class)
+public class WorkerModel {
+    String name;
+    String walletAddress;
+    String os;
+    String cpu;
+    int cpuNb;
+    int memorySize;
+    boolean teeEnabled;
+    boolean gpuEnabled;
+
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class WorkerModelBuilder {
+    }
 }

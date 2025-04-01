@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11.0.24_8-jre-focal
+FROM eclipse-temurin:17.0.13_11-jre-focal
 
 ARG jar
 

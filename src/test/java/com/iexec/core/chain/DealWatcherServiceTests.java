@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ import java.util.stream.Stream;
 
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_GRAMINE_ONLY_TAG;
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
-import static com.iexec.core.task.TaskTestsUtils.NO_TEE_TAG;
+import static com.iexec.core.TestUtils.NO_TEE_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -164,7 +164,7 @@ class DealWatcherServiceTests {
     @Test
     void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
         ChainApp chainApp = ChainApp.builder()
-                .uri("0x00").build();
+                .multiaddr("0x00").build();
 
         ChainCategory chainCategory = ChainCategory.builder().build();
 
@@ -206,7 +206,7 @@ class DealWatcherServiceTests {
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
-                .chainApp(ChainApp.builder().uri("0x00").build())
+                .chainApp(ChainApp.builder().multiaddr("0x00").build())
                 .chainCategory(ChainCategory.builder().build())
                 .params(DealParams.builder().iexecArgs("args").build())
                 .trust(BigInteger.valueOf(3))
@@ -332,6 +332,7 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
+        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, false);
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
         when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
         dealWatcherService.replayDealEvent();
@@ -340,11 +341,8 @@ class DealWatcherServiceTests {
 
     @Test
     void shouldNotReplayIfOutOfService() {
-        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, true);
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
         dealWatcherService.replayDealEvent();
-        verifyNoInteractions(iexecHubService);
+        verifyNoInteractions(configurationService, iexecHubService);
     }
     // endregion
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusDetails;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
-import com.iexec.commons.poco.task.TaskAbortCause;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
 import com.iexec.core.contribution.ConsensusHelper;
+import com.iexec.core.notification.TaskAbortCause;
 import com.iexec.core.notification.TaskNotification;
 import com.iexec.core.notification.TaskNotificationExtra;
 import com.iexec.core.notification.TaskNotificationType;
@@ -36,12 +36,12 @@ import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.Worker;
 import com.iexec.core.worker.WorkerService;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -85,7 +85,7 @@ public class ReplicateSupplyService implements Purgeable {
      *  - released before any `continue` or  `return`
      *
      */
-    @Retryable(value = {OptimisticLockingFailureException.class}, maxAttempts = 5)
+    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 5)
     Optional<ReplicateTaskSummary> getAvailableReplicateTaskSummary(long workerLastBlock, String walletAddress) {
         // return empty if the worker is not sync
         //TODO Check if worker node is sync
@@ -299,17 +299,10 @@ public class ReplicateSupplyService implements Purgeable {
         final TaskNotificationExtra.TaskNotificationExtraBuilder taskNotificationExtra =
                 TaskNotificationExtra.builder().workerpoolAuthorization(authorization);
 
-        switch (taskNotificationType) {
-            case PLEASE_CONTRIBUTE:
-                break;
-            case PLEASE_REVEAL:
-                taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
-                break;
-            case PLEASE_ABORT:
-                taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
-                break;
-            default:
-                break;
+        if (taskNotificationType == TaskNotificationType.PLEASE_REVEAL) {
+            taskNotificationExtra.blockNumber(task.getConsensusReachedBlockNumber());
+        } else if (taskNotificationType == TaskNotificationType.PLEASE_ABORT) {
+            taskNotificationExtra.taskAbortCause(getTaskAbortCause(task));
         }
         return taskNotificationExtra.build();
     }
@@ -367,7 +360,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_CONTRIBUTE);
         }
 
-        if (didReplicateStartContributing && didReplicateContributeOnChain) {
+        if (didReplicateStartContributing) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(CONTRIBUTED, details);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
@@ -423,7 +416,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_REVEAL);
         }
 
-        if (didReplicateStartRevealing && didReplicateRevealOnChain) {
+        if (didReplicateStartRevealing) {
             ReplicateStatusDetails details = new ReplicateStatusDetails(blockNumber);
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(REVEALED, details);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
@@ -480,7 +473,7 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.of(TaskNotificationType.PLEASE_UPLOAD);
         }
 
-        if (didReplicateStartUploading && didReplicateUploadWithoutNotifying) {
+        if (didReplicateStartUploading) {
             final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.poolManagerRequest(RESULT_UPLOADED);
             replicatesService.updateReplicateStatus(chainTaskId, walletAddress, statusUpdate);
 
@@ -519,15 +512,12 @@ public class ReplicateSupplyService implements Purgeable {
         return Optional.empty();
     }
 
-    private TaskAbortCause getTaskAbortCause(Task task) {
-        switch (task.getCurrentStatus()) {
-            case CONSENSUS_REACHED:
-                return TaskAbortCause.CONSENSUS_REACHED;
-            case CONTRIBUTION_TIMEOUT:
-                return TaskAbortCause.CONTRIBUTION_TIMEOUT;
-            default:
-                return TaskAbortCause.UNKNOWN;
-        }
+    private TaskAbortCause getTaskAbortCause(final Task task) {
+        return switch (task.getCurrentStatus()) {
+            case CONSENSUS_REACHED -> TaskAbortCause.CONSENSUS_REACHED;
+            case CONTRIBUTION_TIMEOUT -> TaskAbortCause.CONTRIBUTION_TIMEOUT;
+            default -> TaskAbortCause.UNKNOWN;
+        };
     }
 
     // region purge locks

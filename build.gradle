@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '8.10.2'
-    id 'org.springframework.boot' version '2.7.18'
+    id 'org.springframework.boot' version '3.3.8'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
     id 'org.sonarqube' version '5.1.0.4882'
@@ -9,9 +9,9 @@ plugins {
 }
 
 ext {
-    springCloudVersion = '2021.0.8'
+    springCloudVersion = '2023.0.5'
     jjwtVersion = '0.11.5'
-    mongockVersion = '4.2.7.BETA'
+    mongockVersion = '5.4.0'
     testContainersVersion = '1.20.4'
 }
 
@@ -40,8 +40,12 @@ allprojects {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(17))
         }
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.add('-parameters')
     }
 }
 
@@ -75,7 +79,7 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
 
     // Spring Doc
-    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     // apache commons.lang3
     implementation 'org.apache.commons:commons-lang3'
@@ -89,14 +93,14 @@ dependencies {
     implementation "net.jodah:expiringmap:0.5.10"
 
     // ipfs
-    implementation "com.github.ipfs:java-ipfs-http-client:1.2.3"
+    implementation "com.github.ipfs:java-ipfs-http-client:1.4.4"
 
     // observability
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
     // mongock
-    implementation "com.github.cloudyrock.mongock:mongock-spring-v5:${mongockVersion}"
-    implementation "com.github.cloudyrock.mongock:mongodb-springdata-v2-driver:${mongockVersion}"
+    implementation "io.mongock:mongock-springboot-v3:${mongockVersion}"
+    implementation "io.mongock:mongodb-springdata-v4-driver:${mongockVersion}"
 
     // vavr
     implementation 'io.vavr:vavr:0.10.4'
@@ -118,10 +122,10 @@ testing {
         test {
             useJUnitJupiter()
             dependencies {
-                implementation 'org.springframework.boot:spring-boot-starter-test'
-
                 // awaitility
                 implementation 'org.awaitility:awaitility'
+
+                implementation 'org.springframework.boot:spring-boot-starter-test'
 
                 // mongo
                 implementation "org.testcontainers:junit-jupiter:$testContainersVersion"

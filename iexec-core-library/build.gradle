@@ -6,17 +6,21 @@ plugins {
 }
 
 dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.3.8")
+
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
-    // TODO remove this later when migration has been done
-    implementation project(':iexec-task-api')
 }
 
 java {
-    sourceCompatibility = "11"
-    targetCompatibility = "11"
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     withJavadocJar()
     withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
 }
 
 testing {
@@ -24,8 +28,7 @@ testing {
         test {
             useJUnitJupiter()
             dependencies {
-                implementation 'org.junit.jupiter:junit-jupiter:5.8.2'
-                implementation 'org.assertj:assertj-core:3.22.0'
+                implementation 'org.assertj:assertj-core'
             }
         }
     }

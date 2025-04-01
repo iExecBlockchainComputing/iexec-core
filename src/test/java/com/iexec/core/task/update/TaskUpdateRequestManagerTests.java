@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
@@ -152,7 +151,7 @@ class TaskUpdateRequestManagerTests {
 
         final List<TaskUpdate> updates = Stream.of("1", "1", "2", "2", "1")
                 .map(id -> buildTaskUpdate(id, TaskStatus.RUNNING, new Date(), taskUpdater))
-                .collect(Collectors.toList());
+                .toList();
 
         updates.forEach(taskUpdateRequestManager.taskUpdateExecutor::execute);
         await().timeout(30, TimeUnit.SECONDS)
@@ -167,7 +166,7 @@ class TaskUpdateRequestManagerTests {
 
         for (int updateId : callsOrder) {
             log.info("[taskId:{}, updateId:{}]", taskForUpdateId.get(updateId), updateId);
-            final Map<Integer, Integer> foundOutputsForKeyGroup = foundTaskUpdates.computeIfAbsent(taskForUpdateId.get(updateId), (key) -> new HashMap<>());
+            final Map<Integer, Integer> foundOutputsForKeyGroup = foundTaskUpdates.computeIfAbsent(taskForUpdateId.get(updateId), key -> new HashMap<>());
             for (int alreadyFound : foundOutputsForKeyGroup.keySet()) {
                 if (!Objects.equals(alreadyFound, updateId) && foundOutputsForKeyGroup.get(alreadyFound) < callsPerUpdate) {
                     Assertions.fail("Synchronization has failed: %s has only %s out of %s occurrences while %s has been inserted.",

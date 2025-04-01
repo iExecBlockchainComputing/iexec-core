@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@ import java.util.Optional;
 import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.tee.TeeUtils.TEE_SCONE_ONLY_TAG;
 import static com.iexec.commons.poco.utils.BytesUtils.EMPTY_ADDRESS;
-import static com.iexec.core.task.TaskTestsUtils.CHAIN_TASK_ID;
-import static com.iexec.core.task.TaskTestsUtils.getStubTask;
+import static com.iexec.core.TestUtils.CHAIN_TASK_ID;
+import static com.iexec.core.TestUtils.getStubTask;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

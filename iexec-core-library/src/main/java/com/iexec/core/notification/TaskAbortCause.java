@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package com.iexec.core.configuration;
+package com.iexec.core.notification;
 
-import lombok.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.iexec.common.replicate.ReplicateStatusCause;
 
-import java.util.List;
+public enum TaskAbortCause {
+    CONTRIBUTION_TIMEOUT,
+    CONSENSUS_REACHED,
+    UNKNOWN;
 
-@Value
-@ConfigurationProperties(prefix = "workers")
-public class WorkerConfiguration {
-    long askForReplicatePeriod;
-    String requiredWorkerVersion;
-    List<String> whitelist;
+    public ReplicateStatusCause toReplicateStatusCause() {
+        return switch (this) {
+            case CONSENSUS_REACHED -> ReplicateStatusCause.CONSENSUS_REACHED;
+            case CONTRIBUTION_TIMEOUT -> ReplicateStatusCause.CONTRIBUTION_TIMEOUT;
+            default -> ReplicateStatusCause.UNKNOWN;
+        };
+    }
 }

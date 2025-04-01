@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file.
 
+## [[9.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v9.0.0) 2025-04-01
+
+### New Features
+
+- Add WebSocketBlockchainListener to fetch latest block without polling the blockchain network. (#747)
+- Update last seen block in configuration collection when no deal has been detected in the last hour. (#750)
+- Update configuration collection depending on chain.start-block-number at startup. (#750)
+
+### Bug Fixes
+
+- Remove TaskResultUploadTimeout detector, covered by FinalDeadlineTaskDetector. (#732)
+
+### Quality
+
+- Configuration server is now optional by default. (#728)
+- Improve switch statements after Java 17 migration. (#729)
+- Remove redundant blockchain calls to diminish pressure on Ethereum JSON-RPC API. (#734)
+- Compute alive workers metrics in `WorkerService#updateMetrics` scheduled job. (#739 #745)
+- Fix Spring Security deprecations after Spring Boot 3.3.8 upgrade. (#740)
+- Remove code related to reopen PoCo feature in `IexecHubService` and `TaskUpdateManager`. (#743)
+- Fix several issues raised by SonarQube Cloud. (#749)
+
+### Breaking API changes
+
+- Remove deprecated blockhainAdapterUrl field from PublicConfiguration. (#730)
+- Remove deprecated REST endpoints in TaskController. (#731)
+- Move `WorkerModel` from `iexec-common` to `iexec-core-library`. (#735)
+- Move `TaskAbortCause` from `iexec-commons-poco` to `iexec-core-library`. (#736)
+- Remove deprecated methods in `iexec-core-library`. (#737)
+- Remove unused `ContributionUtils` class. (#738)
+- Rework metrics to expose count of computing CPUs or GPUs instead of available ones. (#739)
+- Harmonize YML internal variables to proper case. (#744)
+- Merge split URL configuration properties (protocol, host, port) to a single URL field to offer URL validation at startup. (#748)
+
+### Dependency Upgrades
+
+- Upgrade to `eclipse-temurin:17.0.13_11-jre-focal`. (#728)
+- Upgrade to Spring Cloud 2022.0.5. (#728)
+- Upgrade to Mongock 5.4.0. (#728)
+- Upgrade to Spring Doc OpenAPI 2.6.0. (#728)
+- Upgrade to Spring Boot 3.3.8. (#733)
+- Upgrade to `java-ipfs-http-client` 1.4.4. (#741)
+- Upgrade to `iexec-commons-poco` 5.0.0. (#751)
+- Upgrade to `iexec-common` 9.0.0. (#751)
+- Upgrade to `iexec-blockchain-adapter-api-library` 9.0.0. (#751)
+- Upgrade to `iexec-result-proxy-library` 9.0.0. (#751)
+- Upgrade to `iexec-sms-library` 9.0.0. (#751)
+
 ## [[8.6.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v8.6.0) 2024-12-23
 
 ### New Features

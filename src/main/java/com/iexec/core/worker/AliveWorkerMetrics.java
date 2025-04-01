@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package com.iexec.core.configuration;
+package com.iexec.core.worker;
 
-import lombok.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import lombok.Builder;
 
-import java.util.List;
-
-@Value
-@ConfigurationProperties(prefix = "workers")
-public class WorkerConfiguration {
-    long askForReplicatePeriod;
-    String requiredWorkerVersion;
-    List<String> whitelist;
+@Builder
+public record AliveWorkerMetrics(int aliveWorkers,
+                                 int aliveComputingCpu,
+                                 int aliveRegisteredCpu,
+                                 int aliveComputingGpu,
+                                 int aliveRegisteredGpu) {
 }

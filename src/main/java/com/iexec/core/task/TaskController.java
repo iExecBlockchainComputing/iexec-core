@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,8 +34,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.utils.Numeric;
-
-import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -76,7 +74,7 @@ public class TaskController {
                 taskModel.setReplicates(replicatesService.getReplicates(chainTaskId)
                         .stream()
                         .map(this::buildReplicateModel)
-                        .collect(Collectors.toList()));
+                        .toList());
             }
             return ok(taskModel);
         }).orElse(notFound().build());
@@ -120,17 +118,6 @@ public class TaskController {
         return replicateModel;
     }
 
-    /**
-     * @deprecated Use {@code /tasks/{chainTaskId}/logs} instead
-     */
-    @Deprecated(forRemoval = true)
-    @GetMapping("/tasks/{chainTaskId}/stdout")
-    public ResponseEntity<TaskLogsModel> getTaskLogsLegacy(
-            @PathVariable("chainTaskId") String chainTaskId,
-            @RequestHeader("Authorization") String authorization) {
-        return getTaskLogs(chainTaskId, authorization);
-    }
-
     @GetMapping("/tasks/{chainTaskId}/logs")
     public ResponseEntity<TaskLogsModel> getTaskLogs(
             @PathVariable("chainTaskId") String chainTaskId,
@@ -153,18 +140,6 @@ public class TaskController {
                 .map(TaskLogs::generateModel)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * @deprecated Use {@code /tasks/{chainTaskId}/replicates/{walletAddress}/logs} instead
-     */
-    @Deprecated(forRemoval = true)
-    @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/stdout")
-    public ResponseEntity<ComputeLogs> getComputeLogsLegacy(
-            @PathVariable("chainTaskId") String chainTaskId,
-            @PathVariable("walletAddress") String walletAddress,
-            @RequestHeader("Authorization") String authorization) {
-        return getComputeLogs(chainTaskId, walletAddress, authorization);
     }
 
     @GetMapping("/tasks/{chainTaskId}/replicates/{walletAddress}/logs")

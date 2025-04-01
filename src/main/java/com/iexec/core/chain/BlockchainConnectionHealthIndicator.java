@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2023-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.iexec.core.chain;
 
 import com.iexec.core.chain.event.ChainConnectedEvent;
 import com.iexec.core.chain.event.ChainDisconnectedEvent;
+import com.iexec.core.chain.event.LatestBlockEvent;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final Web3jService web3jService;
     /**
      * Interval between 2 requests onto the chain.
      */
@@ -57,6 +58,8 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     private int consecutiveFailures = 1;
     @Getter
     private LocalDateTime firstFailure = null;
+    private long latestBlockTimestamp;
+    private long latestBlockNumber;
 
     /**
      * Required for test purposes.
@@ -66,11 +69,9 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     @Autowired
     public BlockchainConnectionHealthIndicator(
             ApplicationEventPublisher applicationEventPublisher,
-            Web3jService web3jService,
             ChainConfig chainConfig) {
         this(
                 applicationEventPublisher,
-                web3jService,
                 chainConfig,
                 Executors.newSingleThreadScheduledExecutor(),
                 Clock.systemDefaultZone()
@@ -79,12 +80,10 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
 
     BlockchainConnectionHealthIndicator(
             ApplicationEventPublisher applicationEventPublisher,
-            Web3jService web3jService,
             ChainConfig chainConfig,
             ScheduledExecutorService monitoringExecutor,
             Clock clock) {
         this.applicationEventPublisher = applicationEventPublisher;
-        this.web3jService = web3jService;
         this.pollingInterval = chainConfig.getBlockTime();
         this.monitoringExecutor = monitoringExecutor;
         this.clock = clock;
@@ -107,12 +106,13 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * blockchain node is restored.
      */
     void checkConnection() {
-        final long latestBlockNumber = web3jService.getLatestBlockNumber();
         log.debug("Latest on-chain block number [block:{}]", latestBlockNumber);
-        if (latestBlockNumber == 0) {
+        final Instant now = Instant.now();
+        final Instant threshold = Instant.ofEpochSecond(latestBlockTimestamp).plusSeconds(pollingInterval.toSeconds());
+        if (now.isAfter(threshold)) {
             connectionFailed();
         } else {
-            connectionSucceeded(latestBlockNumber);
+            connectionSucceeded();
         }
     }
 
@@ -145,7 +145,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * <li>If {@link Status#OUT_OF_SERVICE}, publish a {@link ChainConnectedEvent} event
      * </ul>
      */
-    private void connectionSucceeded(long latestBlockNumber) {
+    private void connectionSucceeded() {
         if (isOutOfService()) {
             log.info("Blockchain connection is now restored after a period of unavailability." +
                             " [block:{}, unavailabilityPeriod:{}]",
@@ -189,5 +189,11 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      */
     public boolean isUp() {
         return health().getStatus() == Status.UP;
+    }
+
+    @EventListener
+    private void onLatestBlockEvent(final LatestBlockEvent event) {
+        latestBlockNumber = event.getBlockNumber();
+        latestBlockTimestamp = event.getBlockTimestamp();
     }
 }

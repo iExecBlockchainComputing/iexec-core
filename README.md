@@ -34,31 +34,26 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_WORKERS_WHITELIST` | List of worker addresses allowed to connect to the _iExec Core Scheduler_. | String | |
 | `IEXEC_CORE_WALLET_PATH` | Path to the wallet of the server. | String | `./src/main/resources/wallet/encrypted-wallet_scheduler.json` |
 | `IEXEC_CORE_WALLET_PASSWORD` | Password to unlock the wallet of the server. | String | `whatever` |
-| `IEXEC_PRIVATE_CHAIN_ADDRESS` | Private URL to connect to the blockchain node. | URL | `http://localhost:8545` |
+| `IEXEC_BLOCKCHAIN_NODE_ADDRESS` | Private URL to connect to the blockchain node. | URL | `http://localhost:8545` |
 | `POOL_ADDRESS` | On-chain address of the workerpool managed by the current _iExec Core Scheduler_. | String | `0x365E7BABAa85eC61Dffe5b520763062e6C29dA27` |
 | `IEXEC_START_BLOCK_NUMBER` | Subscribe to new deal events from a specific block number. | Positive integer | `0` |
 | `IEXEC_GAS_PRICE_MULTIPLIER` | Transactions will be sent with `networkGasPrice * gasPriceMultiplier`. | Float | `1.0` |
 | `IEXEC_GAS_PRICE_CAP` | In Wei, will be used for transactions if `networkGasPrice * gasPriceMultiplier > gasPriceCap` | Integer | `22000000000` |
-| `IEXEC_CORE_CHAIN_ADAPTER_PROTOCOL` | _iExec Blockchain Adapter_ communication protocol. | String | `http` |
-| `IEXEC_CORE_CHAIN_ADAPTER_HOST` | _iExec Blockchain Adapter_ server host. | String | `localhost` |
-| `IEXEC_CORE_CHAIN_ADAPTER_PORT` | _iExec Blockchain Adapter_ server port. | Positive integer | `13010` |
+| `IEXEC_CORE_CHAIN_ADAPTER_URL` | _iExec Blockchain Adapter_ communication url. | String | `http://localhost:13010`|
 | `IEXEC_CORE_CHAIN_ADAPTER_USERNAME` | Username to connect to the _iExec Blockchain Adapter_ server. | String | `admin` |
 | `IEXEC_CORE_CHAIN_ADAPTER_PASSWORD` | Password to connect to the _iExec Blockchain Adapter_ server. | String | `whatever` |
-| `IEXEC_CONFIG_SERVER_PROTOCOL` | _iExec Config Server_ communication protocol. | String | `http` |
-| `IEXEC_CONFIG_SERVER_HOST` | _iExec Config Server_ host. | String | `localhost` |
-| `IEXEC_CONFIG_SERVER_PORT` | _iExec Config Server_ port. | Positive integer | `8888` |
-| `IEXEC_RESULT_REPOSITORY_PROTOCOL` | _iExec Result Proxy_ server communication protocol. | String | `http` |
-| `IEXEC_RESULT_REPOSITORY_HOST` | _iExec Result Proxy_ server host. | String | `localhost` |
-| `IEXEC_RESULT_REPOSITORY_PORT` | _iExec Result Proxy_ server port. | Positive integer | `13200` |
+| `IEXEC_CONFIG_SERVER_URL` | _iExec Config Server_ communication url. | String | `http://localhost:8888`|
+| `IEXEC_RESULT_REPOSITORY_URL` | _iExec Result Proxy_ server communication url. | String | `http://localhost:13200`|
 | `IEXEC_CORE_MANAGEMENT_ACTUATORS` | Endpoint IDs that should be included or `*` for all. | String | `health, info` |
 | `IEXEC_LOGS_PURGE_RATE_IN_DAYS` | Interval in days between 2 executions of the purge mechanism. | Positive integer | `1` |
 | `IEXEC_LOGS_AVAILABILITY_PERIOD_IN_DAYS` | Number of days to keep logs of past tasks. | Positive integer | `3` |
 
 If it is not the first startup of the _iExec Core Scheduler_ and if it received deals previously,
-the _MongoDB_ instance will contain a __configuration Collection__ in the __iexec Database__.
-The value stored in this document takes the precedence over the `IEXEC_START_BLOCK_NUMBER` configuration parameter.
-To enforce deal observation starting from the `IEXEC_START_BLOCK_NUMBER` value, the aforementioned document has to be deleted in the _MongoDB_.
-All deals prior to the `IEXEC_START_BLOCK_NUMBER` will then be ignored.
+the _MongoDB_ instance will contain both __configuration__ and __replayConfiguration__ collections in the __iexec Database__.
+The highest value between the value stored in this document and the `IEXEC_START_BLOCK_NUMBER` configuration parameter takes precedence.
+If the stored value takes precedence, the `IEXEC_START_BLOCK_NUMBER` is ignored.
+Otherwise, the __configuration__ and __replayConfiguration__ collections will be updated with `IEXEC_START_BLOCK_NUMBER` during startup.
+All deals between the previous configured value and the `IEXEC_START_BLOCK_NUMBER` will then be ignored.
 
 A more exhaustive documentation is available on [the official documentation of iExec](https://docs.iex.ec/).
 

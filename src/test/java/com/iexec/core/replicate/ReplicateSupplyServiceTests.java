@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
-import com.iexec.commons.poco.task.TaskAbortCause;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.SignatureService;
 import com.iexec.core.chain.Web3jService;
+import com.iexec.core.notification.TaskAbortCause;
 import com.iexec.core.notification.TaskNotification;
 import com.iexec.core.notification.TaskNotificationExtra;
 import com.iexec.core.notification.TaskNotificationType;
@@ -48,7 +48,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.core.task.TaskStatus.RUNNING;
@@ -71,7 +70,7 @@ class ReplicateSupplyServiceTests {
     private static final String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
     private static final String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     private static final String ENCLAVE_CHALLENGE = "dummyEnclave";
-    private static final long maxExecutionTime = 60000;
+    private static final long MAX_EXECUTION_TIME = 60000;
     long workerLastBlock = 12;
 
     @Mock
@@ -144,7 +143,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -178,7 +177,7 @@ class ReplicateSupplyServiceTests {
         );
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -236,7 +235,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -271,7 +270,7 @@ class ReplicateSupplyServiceTests {
 
         int trust = 5;
         final Task runningTask = getStubTask(trust);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -311,7 +310,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge("");
@@ -342,13 +341,13 @@ class ReplicateSupplyServiceTests {
 
         int trust = 5;
         final Task task1 = getStubTask(trust);
-        task1.setMaxExecutionTime(maxExecutionTime);
+        task1.setMaxExecutionTime(MAX_EXECUTION_TIME);
         task1.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         task1.setTag(NO_TEE_TAG);
         task1.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         final Task taskDeadlineReached = new Task(DAPP_NAME, COMMAND_LINE, trust, CHAIN_TASK_ID_2);
-        taskDeadlineReached.setMaxExecutionTime(maxExecutionTime);
+        taskDeadlineReached.setMaxExecutionTime(MAX_EXECUTION_TIME);
         taskDeadlineReached.setContributionDeadline(Date.from(Instant.now().minus(60, ChronoUnit.MINUTES)));
         taskDeadlineReached.setCurrentStatus(RUNNING);
         taskDeadlineReached.getDateStatusList().add(TaskStatusChange.builder().status(RUNNING).build());
@@ -391,7 +390,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -420,7 +419,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(NO_TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
@@ -434,7 +433,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, BytesUtils.EMPTY_ADDRESS))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
@@ -462,7 +461,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
@@ -476,7 +475,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
@@ -504,7 +503,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
 
@@ -531,7 +530,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(maxExecutionTime);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
         runningTask.setTag(TEE_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
@@ -545,7 +544,7 @@ class ReplicateSupplyServiceTests {
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, ENCLAVE_CHALLENGE))
-                .thenReturn(new WorkerpoolAuthorization());
+                .thenReturn(WorkerpoolAuthorization.builder().build());
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
@@ -953,7 +952,7 @@ class ReplicateSupplyServiceTests {
                 .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WALLET_WORKER_1), statusUpdate.capture()); //RESULT UPLOADED
         final List<ReplicateStatus> statuses = statusUpdate.getAllValues().stream()
                 .map(ReplicateStatusUpdate::getStatus)
-                .collect(Collectors.toList());
+                .toList();
         assertThat(statuses).isEqualTo(List.of(RESULT_UPLOADED, RECOVERING));
     }
 

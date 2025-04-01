@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2024-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,28 +20,26 @@ import com.iexec.common.config.ConfigServerClient;
 import com.iexec.common.config.ConfigServerClientBuilder;
 import com.iexec.common.config.PublicChainConfig;
 import feign.Logger;
-import lombok.Data;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.Value;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
+import org.springframework.validation.annotation.Validated;
 
-@Data
-@ConstructorBinding
+@Value
+@Validated
 @ConfigurationProperties(prefix = "config-server")
 public class ConfigServerClientConfig {
 
-    private final String protocol;
-    private final String host;
-    private final int port;
-
-    public String getUrl() {
-        return protocol + "://" + host + ":" + port;
-    }
+    @URL(message = "URL must be a valid URL")
+    @NotEmpty(message = "URL must not be empty")
+    String url;
 
     @Bean
     public ConfigServerClient configServerClient() {
         return ConfigServerClientBuilder.getInstance(
-                Logger.Level.NONE, getUrl());
+                Logger.Level.NONE, url);
     }
 
     @Bean

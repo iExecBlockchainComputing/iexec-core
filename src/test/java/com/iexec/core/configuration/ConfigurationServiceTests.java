@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,126 +17,178 @@
 package com.iexec.core.configuration;
 
 import com.iexec.core.chain.ChainConfig;
+import com.iexec.core.chain.event.LatestBlockEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DataMongoTest
+@TestPropertySource(properties = {"mongock.enabled=false"})
+@Testcontainers
 class ConfigurationServiceTests {
 
-    @Mock
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse(System.getProperty("mongo.image")));
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.host", mongoDBContainer::getHost);
+        registry.add("spring.data.mongodb.port", () -> mongoDBContainer.getMappedPort(27017));
+    }
+
+    @Autowired
     private ConfigurationRepository configurationRepository;
-    @Mock
+    @Autowired
     private ReplayConfigurationRepository replayConfigurationRepository;
 
-    @Mock
-    private ChainConfig chainConfig;
-
-    @InjectMocks
     private ConfigurationService configurationService;
 
     @BeforeEach
-    void init() { MockitoAnnotations.openMocks(this); }
+    void init() {
+        configurationRepository.deleteAll();
+        replayConfigurationRepository.deleteAll();
+    }
+
+    private void initService(long startBlockNumber) throws Exception {
+        final ChainConfig chainConfig = new ChainConfig(65535, true, "", Duration.ofSeconds(5), "", "0x0", startBlockNumber, 1.0f, 0);
+        configurationService = new ConfigurationService(configurationRepository, replayConfigurationRepository, chainConfig);
+        configurationService.run();
+    }
+
+    // region setLastScannedBlock
+    @Test
+    void shouldUpdateLastSeenBlockWithDeal() {
+        final Instant now = Instant.now();
+        final Configuration configuration = Configuration.builder()
+                .lastSeenBlockWithDeal(BigInteger.ONE)
+                .lastUpdate(now.minus(90L, ChronoUnit.MINUTES))
+                .build();
+        configurationRepository.save(configuration);
+        configurationService = new ConfigurationService(configurationRepository, null, null);
+        ReflectionTestUtils.setField(configurationService, "configuration", configuration);
+        configurationService.setLastScannedBlock(new LatestBlockEvent(this, 10, "", now.getEpochSecond()));
+        assertThat(configurationRepository.count()).isOne();
+        final Configuration savedConfiguration = configurationRepository.findAll().get(0);
+        assertThat(savedConfiguration.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
+        assertThat(savedConfiguration.getLastUpdate()).isBetween(now, Instant.now());
+    }
 
     @Test
-    void shouldGetLastSeenBlockWithDealFromDatabase() {
-        Configuration configuration = Configuration.builder()
-            .lastSeenBlockWithDeal(BigInteger.TEN)
-            .build();
-        List<Configuration> configurationList = Collections.singletonList(configuration);
+    void shouldNotUpdateLastSeenBlockWithDeal() {
+        final Instant now = Instant.now();
+        final Configuration configuration = Configuration.builder()
+                .lastSeenBlockWithDeal(BigInteger.ONE)
+                .lastUpdate(now.minus(30L, ChronoUnit.MINUTES))
+                .build();
+        configurationRepository.save(configuration);
+        configurationService = new ConfigurationService(configurationRepository, null, null);
+        ReflectionTestUtils.setField(configurationService, "configuration", configuration);
+        configurationService.setLastScannedBlock(new LatestBlockEvent(this, 10, "", now.getEpochSecond()));
+        assertThat(configurationRepository.count()).isOne();
+        final Configuration savedConfiguration = configurationRepository.findAll().get(0);
+        assertThat(savedConfiguration.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.ONE);
+        assertThat(savedConfiguration.getLastUpdate()).isBetween(now.minus(1L, ChronoUnit.HOURS), now);
+    }
+    // endregion
 
-        when(configurationRepository.count()).thenReturn((long) 1);
-        when(configurationRepository.findAll()).thenReturn(configurationList);
-
-        BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
+    // region lastSeenBlockWithDeal
+    @Test
+    void shouldGetLastSeenBlockWithDealFromDatabase() throws Exception {
+        initService(10);
+        final BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
 
         assertThat(lastSeenBlock).isEqualTo(BigInteger.TEN);
     }
 
     @Test
-    void shouldGetZeroAsLastSeenBlockWithDeal() {
-        Configuration configuration = Configuration.builder()
-            .lastSeenBlockWithDeal(BigInteger.ZERO)
-            .build();
-
-        when(configurationRepository.count()).thenReturn((long) 0);
-        when(configurationRepository.save(any())).thenReturn(configuration);
-        when(chainConfig.getStartBlockNumber()).thenReturn(0L);
-
-        BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
+    void shouldGetZeroAsLastSeenBlockWithDeal() throws Exception {
+        initService(0);
+        final BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
 
         assertThat(lastSeenBlock).isEqualTo(BigInteger.ZERO);
     }
 
     @Test
-    void shouldSetLastSeenBlockWithDeal() {
-        Configuration configuration = Configuration.builder()
-            .lastSeenBlockWithDeal(BigInteger.ONE)
-            .build();
-        List<Configuration> configurationList = Collections.singletonList(configuration);
-
-        when(configurationRepository.count()).thenReturn((long) 1);
-        when(configurationRepository.findAll()).thenReturn(configurationList);
-        when(configurationRepository.save(any())).thenReturn(configuration);
-
+    void shouldSetLastSeenBlockWithDeal() throws Exception {
+        initService(1);
         configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);
 
-        assertThat(configuration.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
+        assertThat(configurationService.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
     }
+    // endregion
 
+    // region replayConfiguration
     @Test
-    void shouldGetFromReplayFromDatabase() {
-        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromBlockNumber(BigInteger.TEN)
-            .build();
-        List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
-
-        when(replayConfigurationRepository.count()).thenReturn((long) 1);
-        when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
-
+    void shouldGetFromReplayFromDatabase() throws Exception {
+        initService(10);
         BigInteger fromReplay = configurationService.getFromReplay();
 
         assertThat(fromReplay).isEqualTo(BigInteger.TEN);
     }
 
     @Test
-    void shouldGetZeroAsFromReplay() {
-        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromBlockNumber(BigInteger.ZERO)
-            .build();
-
-        when(replayConfigurationRepository.count()).thenReturn((long) 0);
-        when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
-        when(chainConfig.getStartBlockNumber()).thenReturn(0L);
-
+    void shouldGetZeroAsFromReplay() throws Exception {
+        initService(0);
         BigInteger fromReplay = configurationService.getFromReplay();
 
         assertThat(fromReplay).isEqualTo(BigInteger.ZERO);
     }
 
     @Test
-    void shouldSetFromReplay() {
-        ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
-            .fromBlockNumber(BigInteger.ONE)
-            .build();
-        List<ReplayConfiguration> configurationList = Collections.singletonList(replayConfiguration);
-
-        when(replayConfigurationRepository.count()).thenReturn((long) 1);
-        when(replayConfigurationRepository.findAll()).thenReturn(configurationList);
-        when(replayConfigurationRepository.save(any())).thenReturn(replayConfiguration);
-
+    void shouldSetFromReplay() throws Exception {
+        initService(1);
         configurationService.setFromReplay(BigInteger.TEN);
 
         assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.TEN);
     }
+    // endregion
+
+    // region initialization
+    @Test
+    void shouldNotUpdateWhenConfigBeforeStartBlockNumber() throws Exception {
+        final Configuration configuration = Configuration.builder()
+                .lastSeenBlockWithDeal(BigInteger.TEN)
+                .build();
+        configurationRepository.save(configuration);
+        final ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
+                .fromBlockNumber(BigInteger.TEN)
+                .build();
+        replayConfigurationRepository.save(replayConfiguration);
+        initService(0);
+        assertThat(configurationService.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.TEN);
+        assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.TEN);
+    }
+
+    @Test
+    void shouldUpdateWhenConfigAfterStartBlockNumber() throws Exception {
+        final Configuration configuration = Configuration.builder()
+                .lastSeenBlockWithDeal(BigInteger.TEN)
+                .build();
+        configurationRepository.save(configuration);
+        final ReplayConfiguration replayConfiguration = ReplayConfiguration.builder()
+                .fromBlockNumber(BigInteger.TEN)
+                .build();
+        replayConfigurationRepository.save(replayConfiguration);
+        initService(100);
+        assertThat(configurationService.getLastSeenBlockWithDeal()).isEqualTo(BigInteger.valueOf(100));
+        assertThat(configurationService.getFromReplay()).isEqualTo(BigInteger.valueOf(100));
+    }
+    // endregion
 
 }

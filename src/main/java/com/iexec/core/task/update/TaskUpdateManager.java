@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -64,13 +63,13 @@ class TaskUpdateManager {
     private final BlockchainAdapterService blockchainAdapterService;
     private final SmsService smsService;
 
-    public TaskUpdateManager(TaskService taskService,
-                             IexecHubService iexecHubService,
-                             ReplicatesService replicatesService,
-                             ApplicationEventPublisher applicationEventPublisher,
-                             WorkerService workerService,
-                             BlockchainAdapterService blockchainAdapterService,
-                             SmsService smsService) {
+    public TaskUpdateManager(final TaskService taskService,
+                             final IexecHubService iexecHubService,
+                             final ReplicatesService replicatesService,
+                             final ApplicationEventPublisher applicationEventPublisher,
+                             final WorkerService workerService,
+                             final BlockchainAdapterService blockchainAdapterService,
+                             final SmsService smsService) {
         this.taskService = taskService;
         this.iexecHubService = iexecHubService;
         this.replicatesService = replicatesService;
@@ -80,17 +79,22 @@ class TaskUpdateManager {
         this.smsService = smsService;
     }
 
-    void updateTask(String chainTaskId) {
+    void updateTask(final String chainTaskId) {
         log.debug("Task update process starts [chainTaskId:{}]", chainTaskId);
         final Task task = taskService.getTaskByChainTaskId(chainTaskId).orElse(null);
         if (task == null) {
             log.warn("Off-chain task model could not be retrieved [chainTaskId:{}]", chainTaskId);
             return;
         }
-        final ChainTask chainTask = iexecHubService.getChainTask(chainTaskId).orElse(null);
-        if (chainTask == null && (task.getCurrentStatus() == INITIALIZED || task.getCurrentStatus().ordinal() >= RUNNING.ordinal())) {
-            log.warn("On-chain task model could not be retrieved [chainTaskId:{}]", chainTaskId);
-            return;
+        final ChainTask chainTask;
+        if (task.getCurrentStatus() == INITIALIZED || task.getCurrentStatus().ordinal() >= RUNNING.ordinal()) {
+            chainTask = iexecHubService.getChainTask(chainTaskId).orElse(null);
+            if (chainTask == null) {
+                log.warn("On-chain task model could not be retrieved [chainTaskId:{}]", chainTaskId);
+                return;
+            }
+        } else {
+            chainTask = null;
         }
 
         final boolean isFinalDeadlinePossible =
@@ -99,60 +103,30 @@ class TaskUpdateManager {
                 ? FINAL_DEADLINE_REACHED : task.getCurrentStatus();
 
         switch (currentStatus) {
-            case RECEIVED:
-                received2Initializing(task);
-                break;
-            case INITIALIZING:
-                initializing2Initialized(task);
-                break;
-            case INITIALIZED:
-                initialized2Running(task, chainTask);
-                break;
-            case RUNNING:
-                transitionFromRunningState(chainTask, task);
-                break;
-            case CONSENSUS_REACHED:
-                consensusReached2AtLeastOneReveal2ResultUploading(task);
-                //consensusReached2Reopening(task);
-                break;
-            case AT_LEAST_ONE_REVEALED:
-                requestUpload(task);
-                break;
-            case REOPENING:
-                reopening2Reopened(task);
-                break;
-            case REOPENED:
-                updateTaskStatusAndSave(task, INITIALIZED);
-                break;
-            case RESULT_UPLOADING:
-                resultUploading2Uploaded(chainTask, task);
-                break;
-            case RESULT_UPLOADED:
-                resultUploaded2Finalizing(chainTask, task);
-                break;
-            case FINALIZING:
-                finalizing2Finalized2Completed(task);
-                break;
-            case FINALIZED:
-                finalizedToCompleted(task);
-                break;
-            case INITIALIZE_FAILED:
-            case RUNNING_FAILED:
-            case CONTRIBUTION_TIMEOUT:
-            case REOPEN_FAILED:
-            case RESULT_UPLOAD_TIMEOUT:
-            case FINALIZE_FAILED:
-                toFailed(task);
-                break;
-            case FINAL_DEADLINE_REACHED:
-                // Eventually should fire a "final deadline reached" notification to worker,
-                // but here let's just trigger an toFailed(task) leading to a failed status
-                // which will itself fire a generic "abort" notification
-                toFailed(task, FINAL_DEADLINE_REACHED);
-                break;
-            case COMPLETED:
-            case FAILED:
-                break;
+            case RECEIVED -> received2Initializing(task);
+            case INITIALIZING -> initializing2Initialized(task);
+            case INITIALIZED -> initialized2Running(chainTask, task);
+            case RUNNING -> transitionFromRunningState(chainTask, task);
+            case CONSENSUS_REACHED ->
+                    consensusReached2AtLeastOneReveal2ResultUploading(task); //consensusReached2Reopening(task);
+            case AT_LEAST_ONE_REVEALED -> requestUpload(task);
+            case REOPENING -> reopening2Reopened(task);
+            case REOPENED -> updateTaskStatusAndSave(task, INITIALIZED);
+            case RESULT_UPLOADING -> resultUploading2Uploaded(chainTask, task);
+            case RESULT_UPLOADED -> resultUploaded2Finalizing(chainTask, task);
+            case FINALIZING -> finalizing2Finalized2Completed(task);
+            case FINALIZED -> finalizedToCompleted(task);
+            case INITIALIZE_FAILED,
+                 RUNNING_FAILED,
+                 CONTRIBUTION_TIMEOUT,
+                 REOPEN_FAILED,
+                 RESULT_UPLOAD_TIMEOUT,
+                 FINALIZE_FAILED -> toFailed(task);
+            // Eventually should fire a "final deadline reached" notification to worker,
+            // but here let's just trigger an toFailed(task) leading to a failed status
+            // which will itself fire a generic "abort" notification
+            case FINAL_DEADLINE_REACHED -> toFailed(task, FINAL_DEADLINE_REACHED);
+            default -> log.info("Nothing to do for task [chainTaskId:{}, status:{}]", chainTaskId, currentStatus);
         }
         log.debug("Task update process completed [chainTaskId:{}]", chainTaskId);
     }
@@ -165,7 +139,7 @@ class TaskUpdateManager {
      * @param task     The task
      * @param statuses List of statuses to append to the task {@code dateStatusList}
      */
-    void updateTaskStatusesAndSave(Task task, TaskStatus... statuses) {
+    void updateTaskStatusesAndSave(final Task task, final TaskStatus... statuses) {
         final TaskStatus currentStatus = task.getCurrentStatus();
         final List<TaskStatusChange> statusChanges = new ArrayList<>();
         for (TaskStatus newStatus : statuses) {
@@ -180,11 +154,11 @@ class TaskUpdateManager {
         saveTask(task.getChainTaskId(), currentStatus, statuses[statuses.length - 1], statusChanges);
     }
 
-    void updateTaskStatusAndSave(Task task, TaskStatus newStatus) {
+    void updateTaskStatusAndSave(final Task task, final TaskStatus newStatus) {
         updateTaskStatusAndSave(task, newStatus, null);
     }
 
-    void updateTaskStatusAndSave(Task task, TaskStatus newStatus, ChainReceipt chainReceipt) {
+    void updateTaskStatusAndSave(final Task task, final TaskStatus newStatus, final ChainReceipt chainReceipt) {
         final TaskStatus currentStatus = task.getCurrentStatus();
         final TaskStatusChange statusChange = TaskStatusChange.builder().status(newStatus).chainReceipt(chainReceipt).build();
         // task update required by tests
@@ -201,7 +175,7 @@ class TaskUpdateManager {
      * @param wishedStatus  The status the task should have after the update
      * @param statusChanges List of changes
      */
-    void saveTask(String chainTaskId, TaskStatus currentStatus, TaskStatus wishedStatus, List<TaskStatusChange> statusChanges) {
+    void saveTask(final String chainTaskId, final TaskStatus currentStatus, final TaskStatus wishedStatus, final List<TaskStatusChange> statusChanges) {
         long updatedTaskCount = taskService.updateTaskStatus(chainTaskId, currentStatus, wishedStatus, statusChanges);
         // `savedTask.isPresent()` should always be true if the task exists in the repository.
         if (updatedTaskCount != 0L) {
@@ -216,20 +190,10 @@ class TaskUpdateManager {
     // endregion
 
     // region status transitions
-    void received2Initializing(Task task) {
+    void received2Initializing(final Task task) {
         log.debug("received2Initializing [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != RECEIVED) {
             emitError(task, RECEIVED, "received2Initializing");
-            return;
-        }
-
-        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-        boolean isTaskUnsetOnChain = iexecHubService.isTaskInUnsetStatusOnChain(task.getChainDealId(), task.getTaskIndex());
-        boolean isBeforeContributionDeadline = iexecHubService.isBeforeContributionDeadline(task.getChainDealId());
-
-        if (!hasEnoughGas || !isTaskUnsetOnChain || !isBeforeContributionDeadline) {
-            log.error("Cannot initialize task [chainTaskId:{}, hasEnoughGas:{}, isTaskUnsetOnChain:{}, isBeforeContributionDeadline:{}]",
-                    task.getChainTaskId(), hasEnoughGas, isTaskUnsetOnChain, isBeforeContributionDeadline);
             return;
         }
 
@@ -263,7 +227,7 @@ class TaskUpdateManager {
                 });
     }
 
-    void initializing2Initialized(Task task) {
+    void initializing2Initialized(final Task task) {
         log.debug("initializing2Initialized [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != INITIALIZING) {
             emitError(task, INITIALIZING, "initializing2Initialized");
@@ -302,7 +266,7 @@ class TaskUpdateManager {
         }
     }
 
-    void initialized2Running(Task task, ChainTask chainTask) {
+    void initialized2Running(final ChainTask chainTask, final Task task) {
         log.debug("initialized2Running [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != INITIALIZED) {
             emitError(task, INITIALIZED, "initialized2Running");
@@ -432,7 +396,7 @@ class TaskUpdateManager {
      * should have the following properties:
      * <ul>
      * <li>The on-chain task status is {@code REVEALING}
-     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The on-chain task {@code consensusValue} and {@code revealDeadline} fields have been updated
      * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
      * </ul>
      *
@@ -467,7 +431,7 @@ class TaskUpdateManager {
      * should have the following properties:
      * <ul>
      * <li>The on-chain task status is {@code COMPLETED}
-     * <li>The on-chain task {@code consensusValue} and {@revealDeadline} fields have been updated
+     * <li>The on-chain task {@code consensusValue} and {@code revealDeadline} fields have been updated
      * <li>The {@code TaskConsensus} event has been emitted and can be found in the blockchain logs
      * </ul>
      *
@@ -521,7 +485,7 @@ class TaskUpdateManager {
                 .map(replicatesList::getReplicateOfWorker)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toList());
+                .toList();
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
         final boolean allAliveWorkersTried = replicatesOfAliveWorkers.size() == aliveWorkers.size();
@@ -561,28 +525,21 @@ class TaskUpdateManager {
         }
     }
 
-    void consensusReached2Reopening(Task task) {
+    void consensusReached2Reopening(final Task task) {
         log.debug("consensusReached2Reopening [chainTaskId:{}]", task.getChainTaskId());
-        Date now = new Date();
+        final Date now = new Date();
 
-        boolean isConsensusReachedStatus = task.getCurrentStatus() == CONSENSUS_REACHED;
-        boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
-        boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
+        final boolean isConsensusReachedStatus = task.getCurrentStatus() == CONSENSUS_REACHED;
+        final boolean isAfterRevealDeadline = task.getRevealDeadline() != null && now.after(task.getRevealDeadline());
+        final boolean hasAtLeastOneReveal = replicatesService.getNbReplicatesWithCurrentStatus(task.getChainTaskId(), ReplicateStatus.REVEALED) > 0;
 
         if (!isConsensusReachedStatus || !isAfterRevealDeadline || hasAtLeastOneReveal) {
             return;
         }
 
-        boolean canReopen = iexecHubService.canReopen(task.getChainTaskId());
-        boolean hasEnoughGas = iexecHubService.hasEnoughGas();
-
-        if (!canReopen || !hasEnoughGas) {
-            return;
-        }
-
         updateTaskStatusAndSave(task, REOPENING);
         //TODO Update reopen call
-        Optional<ChainReceipt> optionalChainReceipt = Optional.empty(); //iexecHubService.reOpen(task.getChainTaskId());
+        Optional<ChainReceipt> optionalChainReceipt = Optional.empty();
 
         if (optionalChainReceipt.isEmpty()) {
             log.error("Reopen failed [chainTaskId:{}]", task.getChainTaskId());
@@ -594,12 +551,11 @@ class TaskUpdateManager {
         reopening2Reopened(task, optionalChainReceipt.get());
     }
 
-    void reopening2Reopened(Task task) {
-        log.debug("reopening2Reopened [chainTaskId:{}]", task.getChainTaskId());
+    void reopening2Reopened(final Task task) {
         reopening2Reopened(task, null);
     }
 
-    void reopening2Reopened(Task task, ChainReceipt chainReceipt) {
+    void reopening2Reopened(final Task task, final ChainReceipt chainReceipt) {
         log.debug("reopening2Reopened [chainTaskId:{}]", task.getChainTaskId());
         Optional<ChainTask> oChainTask = iexecHubService.getChainTask(task.getChainTaskId());
         if (oChainTask.isEmpty()) {
@@ -704,24 +660,19 @@ class TaskUpdateManager {
         });
     }
 
-    void resultUploaded2Finalizing(ChainTask chainTask, Task task) {
+    void resultUploaded2Finalizing(final ChainTask chainTask, final Task task) {
         log.debug("resultUploaded2Finalizing [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != RESULT_UPLOADED) {
             emitError(task, RESULT_UPLOADED, "resultUploaded2Finalizing");
             return;
         }
-        boolean canFinalize = iexecHubService.canFinalize(task.getChainTaskId());
 
-        int onChainReveal = chainTask.getRevealCounter();
-        int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
-        boolean offChainRevealEqualsOnChainReveal = offChainReveal == onChainReveal;
+        final int onChainReveal = chainTask.getRevealCounter();
+        final int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
 
-        if (!canFinalize || !offChainRevealEqualsOnChainReveal) {
-            log.debug("[canFinalize:{}, offChainRevealEqualsOnChainReveal:{}]", canFinalize, offChainRevealEqualsOnChainReveal);
-            return;
-        }
-
-        if (!iexecHubService.hasEnoughGas()) {
+        if (onChainReveal != offChainReveal) {
+            log.debug("Cannot finalize, mismatch between on-chain and off-chain data [chainTaskId:{}, onChainReveal:{}, offChainReveal:{}]",
+                    task.getChainTaskId(), onChainReveal, offChainReveal);
             return;
         }
 
@@ -741,7 +692,7 @@ class TaskUpdateManager {
                 });
     }
 
-    void finalizing2Finalized2Completed(Task task) {
+    void finalizing2Finalized2Completed(final Task task) {
         log.debug("finalizing2Finalized2Completed [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != FINALIZING) {
             emitError(task, FINALIZING, "finalizing2Finalized2Completed");
@@ -760,7 +711,7 @@ class TaskUpdateManager {
         }
     }
 
-    void finalizedToCompleted(Task task) {
+    void finalizedToCompleted(final Task task) {
         log.debug("finalizedToCompleted [chainTaskId:{}]", task.getChainTaskId());
         if (task.getCurrentStatus() != FINALIZED) {
             emitError(task, FINALIZED, "finalizedToCompleted");
@@ -770,23 +721,23 @@ class TaskUpdateManager {
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
 
-    void toFinalizedToCompleted(Task task) {
+    void toFinalizedToCompleted(final Task task) {
         updateTaskStatusesAndSave(task, FINALIZED, COMPLETED);
         applicationEventPublisher.publishEvent(new TaskCompletedEvent(task));
     }
 
-    void toFailed(Task task) {
+    void toFailed(final Task task) {
         updateTaskStatusAndSave(task, FAILED);
         applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
     }
 
-    void toFailed(Task task, TaskStatus reason) {
+    void toFailed(final Task task, final TaskStatus reason) {
         updateTaskStatusesAndSave(task, reason, FAILED);
         applicationEventPublisher.publishEvent(new TaskFailedEvent(task.getChainTaskId()));
     }
     // endregion
 
-    void emitError(Task task, TaskStatus expectedStatus, String methodName) {
+    void emitError(final Task task, final TaskStatus expectedStatus, final String methodName) {
         log.error("Cannot update task [chainTaskId:{}, currentStatus:{}, expectedStatus:{}, method:{}]",
                 task.getChainTaskId(), task.getCurrentStatus(), expectedStatus, methodName);
     }
