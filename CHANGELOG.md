@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [[NEXT]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/vNEXT) 2025
+## [[9.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v9.0.0) 2025-04-01
 
 ### New Features
 
