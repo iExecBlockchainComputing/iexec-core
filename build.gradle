@@ -9,19 +9,16 @@ plugins {
 }
 
 ext {
+    gitTag = 'git tag --points-at HEAD'.execute().text.trim()
     springCloudVersion = '2023.0.5'
     jjwtVersion = '0.11.5'
     mongockVersion = '5.4.0'
     testContainersVersion = '1.20.4'
 }
 
-if (!project.hasProperty('gitBranch')) {
-    ext.gitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
-}
-
 allprojects {
     group = 'com.iexec.core'
-    if (gitBranch != 'main' && gitBranch != 'master' && !(gitBranch ==~ '(release|hotfix|support)/.*')) {
+    if (gitTag.isEmpty()) {
         version += '-NEXT-SNAPSHOT'
     }
     repositories {
