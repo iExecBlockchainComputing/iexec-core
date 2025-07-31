@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package com.iexec.core.chain;
 
-import com.iexec.commons.poco.contract.generated.IexecHubContract;
-import com.iexec.commons.poco.utils.BytesUtils;
 import lombok.Getter;
 
 import java.math.BigInteger;
@@ -28,10 +26,9 @@ public class DealEvent {
     private final String chainDealId;
     private final BigInteger blockNumber;
 
-    public DealEvent(IexecHubContract.SchedulerNoticeEventResponse schedulerNoticeEventResponse) {
-        this.chainDealId = BytesUtils.bytesToString(schedulerNoticeEventResponse.dealid);
-        this.blockNumber = schedulerNoticeEventResponse.log.getBlockNumber() != null ?
-            schedulerNoticeEventResponse.log.getBlockNumber() : BigInteger.ZERO;
+    public DealEvent(final String chainDealId, final BigInteger blockNumber) {
+        this.chainDealId = chainDealId;
+        this.blockNumber = blockNumber;
     }
 
 }

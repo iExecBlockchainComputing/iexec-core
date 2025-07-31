@@ -20,8 +20,6 @@ import com.iexec.commons.poco.chain.ChainDeal;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
 import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.commons.poco.utils.BytesUtils;
-import com.iexec.core.chain.event.ChainConnectedEvent;
-import com.iexec.core.chain.event.ChainDisconnectedEvent;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -33,8 +31,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.web3j.abi.EventEncoder;
 import org.web3j.protocol.core.DefaultBlockParameter;
@@ -54,7 +50,6 @@ public class DealWatcherService {
 
     public static final String METRIC_DEALS_EVENTS_COUNT = "iexec.core.deals.events";
     public static final String METRIC_DEALS_COUNT = "iexec.core.deals";
-    public static final String METRIC_DEALS_REPLAY_COUNT = "iexec.core.deals.replay";
     public static final String METRIC_DEALS_LAST_BLOCK = "iexec.core.deals.last.block";
     private static final List<BigInteger> CORRECT_TEE_TRUSTS = List.of(BigInteger.ZERO, BigInteger.ONE);
 
@@ -65,9 +60,6 @@ public class DealWatcherService {
     private final TaskService taskService;
     private final Web3jService web3jService;
     // internal variables
-    private boolean outOfService = true;
-    private Disposable dealEventsSubscription;
-    private Disposable dealEventSubscriptionReplay;
     @Getter
     private BigInteger latestBlockNumberWithDeal = BigInteger.ZERO;
     @Getter
@@ -79,7 +71,6 @@ public class DealWatcherService {
 
     private final Counter dealEventsCounter;
     private final Counter dealsCounter;
-    private final Counter replayDealsCounter;
     private final Counter latestBlockNumberWithDealCounter;
 
     public DealWatcherService(ChainConfig chainConfig,
@@ -97,42 +88,7 @@ public class DealWatcherService {
 
         this.dealEventsCounter = Metrics.counter(METRIC_DEALS_EVENTS_COUNT);
         this.dealsCounter = Metrics.counter(METRIC_DEALS_COUNT);
-        this.replayDealsCounter = Metrics.counter(METRIC_DEALS_REPLAY_COUNT);
         this.latestBlockNumberWithDealCounter = Metrics.counter(METRIC_DEALS_LAST_BLOCK);
-    }
-
-    /**
-     * This should be non-blocking to liberate
-     * the main thread, since deals can have
-     * a large number of tasks (BoT).
-     */
-    @Async
-    @EventListener(ChainConnectedEvent.class)
-    public void run() {
-        outOfService = false;
-        disposeSubscription(dealEventsSubscription);
-        dealEventsSubscription = subscribeToDealEventFromOneBlockToLatest(configurationService.getLastSeenBlockWithDeal());
-    }
-
-    /**
-     * Dispose of deal watching subscription.
-     */
-    @Async
-    @EventListener(ChainDisconnectedEvent.class)
-    public void stop() {
-        outOfService = true;
-        disposeSubscription(dealEventsSubscription);
-    }
-
-    /**
-     * Dispose of a {@link Disposable} subscription if it exists and is not already disposed.
-     *
-     * @param subscription Deal event subscription to dispose of.
-     */
-    private void disposeSubscription(Disposable subscription) {
-        if (subscription != null && !subscription.isDisposed()) {
-            subscription.dispose();
-        }
     }
 
     /**
@@ -147,7 +103,7 @@ public class DealWatcherService {
         EthFilter filter = createDealEventFilter(from, null);
         return iexecHubService.getDealEventObservable(filter)
                 .map(this::schedulerNoticeToDealEvent)
-                .subscribe(dealEvent -> dealEvent.ifPresent(event -> onDealEvent(event, "start")));
+                .subscribe(dealEvent -> dealEvent.ifPresent(this::onDealEvent));
     }
 
     /**
@@ -156,22 +112,16 @@ public class DealWatcherService {
      *
      * @param dealEvent
      */
-    private void onDealEvent(DealEvent dealEvent, String watcher) {
-        if ("replay".equals(watcher)) {
-            replayDealsCount++;
-            replayDealsCounter.increment();
-        } else {
-            dealsCount++;
-            dealsCounter.increment();
-        }
+    @EventListener
+    private void onDealEvent(final DealEvent dealEvent) {
+        dealsCount++;
+        dealsCounter.increment();
         String dealId = dealEvent.getChainDealId();
         BigInteger dealBlock = dealEvent.getBlockNumber();
-        log.info("Received deal [dealId:{}, block:{}, watcher: {}]",
-                dealId, dealBlock, watcher);
+        log.info("Received deal [dealId:{}, block:{}]", dealId, dealBlock);
         if (dealBlock.equals(BigInteger.ZERO)) {
-            log.warn("Deal block number is empty, fetching later blockchain " +
-                    "events will be more expensive [chainDealId:{}, dealBlock:{}, " +
-                    "lastBlock:{}]", dealId, dealBlock, web3jService.getLatestBlockNumber());
+            log.warn("Deal block number is empty [chainDealId:{}, dealBlock:{}, lastBlock:{}]",
+                    dealId, dealBlock, web3jService.getLatestBlockNumber());
         }
         this.handleDeal(dealEvent);
         if (configurationService.getLastSeenBlockWithDeal().compareTo(dealBlock) < 0) {
@@ -184,7 +134,7 @@ public class DealWatcherService {
      *
      * @param dealEvent Object representing PoCo SchedulerNoticeEvent
      */
-    private void handleDeal(DealEvent dealEvent) {
+    private void handleDeal(final DealEvent dealEvent) {
         String chainDealId = dealEvent.getChainDealId();
         Optional<ChainDeal> oChainDeal = iexecHubService.getChainDealWithDetails(chainDealId);
         if (oChainDeal.isEmpty()) {
@@ -248,43 +198,6 @@ public class DealWatcherService {
         return true;
     }
 
-    /*
-     * Some deal events are sometimes missed by #schedulerNoticeEventObservable method
-     * so we decide to replay events from times to times (already saved events will be ignored)
-     */
-    @Scheduled(fixedRateString = "#{@cronConfiguration.getDealReplay()}")
-    void replayDealEvent() {
-        disposeSubscription(dealEventSubscriptionReplay);
-        if (outOfService) {
-            log.info("OUT-OF-SERVICE do not create replay subscription");
-            return;
-        }
-        final BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
-        final BigInteger replayFromBlock = configurationService.getFromReplay();
-        if (replayFromBlock.compareTo(lastSeenBlockWithDeal) >= 0) {
-            return;
-        }
-        dealEventSubscriptionReplay = subscribeToDealEventInRange(replayFromBlock, lastSeenBlockWithDeal);
-        configurationService.setFromReplay(lastSeenBlockWithDeal);
-    }
-
-    /**
-     * Subscribe to onchain deal events for
-     * a fixed range of blocks.
-     *
-     * @param from start block
-     * @param to   end block
-     * @return disposable subscription
-     */
-    private Disposable subscribeToDealEventInRange(BigInteger from, BigInteger to) {
-        log.info("Replay Watcher DealEvent started [from:{}, to:{}]",
-                from, (to == null) ? "latest" : to);
-        EthFilter filter = createDealEventFilter(from, to);
-        return iexecHubService.getDealEventObservable(filter)
-                .map(this::schedulerNoticeToDealEvent)
-                .subscribe(dealEvent -> dealEvent.ifPresent(event -> onDealEvent(event, "replay")));
-    }
-
     EthFilter createDealEventFilter(BigInteger from, BigInteger to) {
         final DefaultBlockParameter fromBlock = DefaultBlockParameter.valueOf(from);
         final DefaultBlockParameter toBlock = to == null
@@ -309,7 +222,11 @@ public class DealWatcherService {
         log.info("Received new deal [blockNumber:{}, chainDealId:{}, dealEventsCount:{}]",
                 schedulerNotice.log.getBlockNumber(), BytesUtils.bytesToString(schedulerNotice.dealid), dealEventsCount);
         if (schedulerNotice.workerpool.equalsIgnoreCase(chainConfig.getPoolAddress())) {
-            return Optional.of(new DealEvent(schedulerNotice));
+            final DealEvent dealEvent = new DealEvent(
+                    BytesUtils.bytesToString(schedulerNotice.dealid),
+                    schedulerNotice.log.getBlockNumber() != null ? schedulerNotice.log.getBlockNumber() : BigInteger.ZERO
+            );
+            return Optional.of(dealEvent);
         }
         log.warn("This deal event should not have been received [blockNumber:{}, chainDealId:{}, dealEventsCount:{}]",
                 schedulerNotice.log.getBlockNumber(), BytesUtils.bytesToString(schedulerNotice.dealid), dealEventsCount);

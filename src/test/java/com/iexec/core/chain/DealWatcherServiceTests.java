@@ -43,7 +43,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.protocol.core.methods.response.Log;
 
 import java.math.BigInteger;
@@ -59,7 +58,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DealWatcherServiceTests {
 
-    private static final String OUT_OF_SERVICE_FIELD_NAME = "outOfService";
     @Mock
     private ChainConfig chainConfig;
     @Mock
@@ -106,33 +104,15 @@ class DealWatcherServiceTests {
     void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
         Counter dealsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_COUNT).counter();
         Counter dealsEventsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_EVENTS_COUNT).counter();
-        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
         Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
 
         Assertions.assertThat(dealsCounter).isNotNull();
         Assertions.assertThat(dealsEventsCounter).isNotNull();
-        Assertions.assertThat(dealsReplayCounter).isNotNull();
         Assertions.assertThat(lastBlockCounter).isNotNull();
 
         Assertions.assertThat(dealsCounter.count()).isZero();
         Assertions.assertThat(dealsEventsCounter.count()).isZero();
-        Assertions.assertThat(dealsReplayCounter.count()).isZero();
         Assertions.assertThat(lastBlockCounter.count()).isZero();
-    }
-
-    @Test
-    void shouldRunAndStop() {
-        BigInteger blockNumber = BigInteger.TEN;
-        initMocks();
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.empty());
-        dealWatcherService.run();
-        verify(iexecHubService).getDealEventObservable(any());
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
-                .isEqualTo(false);
-        dealWatcherService.stop();
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
-                .isEqualTo(true);
     }
 
     // region subscribeToDealEventFromOneBlockToLatest
@@ -304,45 +284,6 @@ class DealWatcherServiceTests {
 
         verify(configurationService).getLastSeenBlockWithDeal();
         verify(configurationService, never()).setLastSeenBlockWithDeal(blockOfDeal);
-    }
-    // endregion
-
-    // region replayDealEvent
-    @Test
-    void shouldReplayAllEventInRange() {
-        ReflectionTestUtils.setField(dealWatcherService, "outOfService", false);
-        BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
-        initMocks();
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-
-        dealWatcherService.replayDealEvent();
-
-        verify(iexecHubService).getChainDealWithDetails(any());
-        Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
-        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
-        Assertions.assertThat(lastBlockCounter).isNotNull();
-        Assertions.assertThat(dealsReplayCounter).isNotNull();
-        Assertions.assertThat(lastBlockCounter.count()).isEqualTo(blockOfDeal.doubleValue());
-        Assertions.assertThat(dealsReplayCounter.count()).isEqualTo(1);
-    }
-
-    @Test
-    void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
-        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, false);
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        dealWatcherService.replayDealEvent();
-        verifyNoInteractions(iexecHubService);
-    }
-
-    @Test
-    void shouldNotReplayIfOutOfService() {
-        dealWatcherService.replayDealEvent();
-        verifyNoInteractions(configurationService, iexecHubService);
     }
     // endregion
 
