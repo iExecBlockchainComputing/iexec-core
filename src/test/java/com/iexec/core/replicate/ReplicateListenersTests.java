@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ class ReplicateListenersTests {
 
     @Test
     void shouldUpdateTaskOnReplicateUpdate() {
-        List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
+        List<ReplicateStatus> someStatuses = List.of(CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTED, REVEALED, RESULT_UPLOADED); //not exhaustive
 
         for (ReplicateStatus randomStatus : someStatuses) {
             ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import java.util.List;
+
+import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 
 @Slf4j
@@ -52,12 +54,18 @@ public class ReplicateListeners {
 
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
-        log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
+        log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}, walletAddress: {}, status:{}]",
+                event.getChainTaskId(), event.getWalletAddress(), event.getReplicateStatusUpdate().getStatus());
         ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
         ReplicateStatus newStatus = statusUpdate.getStatus();
         ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
 
-        taskUpdateRequestManager.publishRequest(event.getChainTaskId());
+        // Those seem to be the only transitions justifying to update a task status
+        // This protection allows to avoid unnecessary loops in update manager as well as unnecessary on-chain calls
+        if (List.of(CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTED, REVEALED, RESULT_UPLOADED)
+                .contains(event.getReplicateStatusUpdate().getStatus())) {
+            taskUpdateRequestManager.publishRequest(event.getChainTaskId());
+        }
 
         /*
          * Should release 1 CPU of given worker for this replicate if status is

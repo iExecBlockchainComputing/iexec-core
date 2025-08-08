@@ -20,7 +20,6 @@ import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.commons.poco.chain.*;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
 import com.iexec.commons.poco.utils.BytesUtils;
-import io.reactivex.Flowable;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -117,10 +116,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         long startTime = chainDeal.getStartTime().longValue() * 1000;
         long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         return new Date(startTime + maxTime * 10);
-    }
-
-    Flowable<IexecHubContract.SchedulerNoticeEventResponse> getDealEventObservable(EthFilter filter) {
-        return iexecHubContract.schedulerNoticeEventFlowable(filter);
     }
 
     public boolean hasEnoughGas() {
