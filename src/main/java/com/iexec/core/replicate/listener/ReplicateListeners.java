@@ -40,10 +40,10 @@ public class ReplicateListeners {
     private final ContributionUnnotifiedDetector contributionUnnotifiedDetector;
     private final ReplicatesService replicatesService;
 
-    public ReplicateListeners(WorkerService workerService,
-                              TaskUpdateRequestManager taskUpdateRequestManager,
-                              ContributionUnnotifiedDetector contributionUnnotifiedDetector,
-                              ReplicatesService replicatesService) {
+    public ReplicateListeners(final WorkerService workerService,
+                              final TaskUpdateRequestManager taskUpdateRequestManager,
+                              final ContributionUnnotifiedDetector contributionUnnotifiedDetector,
+                              final ReplicatesService replicatesService) {
         this.workerService = workerService;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.contributionUnnotifiedDetector = contributionUnnotifiedDetector;
@@ -53,21 +53,21 @@ public class ReplicateListeners {
     @EventListener
     public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
         log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
-        ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
-        ReplicateStatus newStatus = statusUpdate.getStatus();
-        ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
+        final ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
+        final ReplicateStatus newStatus = statusUpdate.getStatus();
+        final ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
 
         taskUpdateRequestManager.publishRequest(event.getChainTaskId());
 
         /*
          * Should release 1 CPU of given worker for this replicate if status is
          * "COMPUTED" or "*_FAILED" before COMPUTED
-         * */
-        if (newStatus.equals(ReplicateStatus.START_FAILED)
-                || newStatus.equals(ReplicateStatus.APP_DOWNLOAD_FAILED)
-                || newStatus.equals(ReplicateStatus.DATA_DOWNLOAD_FAILED)
-                || newStatus.equals(ReplicateStatus.COMPUTED)
-                || newStatus.equals(ReplicateStatus.COMPUTE_FAILED)) {
+         */
+        if (newStatus == ReplicateStatus.START_FAILED
+                || newStatus == ReplicateStatus.APP_DOWNLOAD_FAILED
+                || newStatus == ReplicateStatus.DATA_DOWNLOAD_FAILED
+                || newStatus == ReplicateStatus.COMPUTED
+                || newStatus == ReplicateStatus.COMPUTE_FAILED) {
             workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
 
@@ -78,13 +78,13 @@ public class ReplicateListeners {
          * We should start a detector which will look for unnotified contributions and will upgrade
          * task to consensus_reached
          */
-        if (cause != null && cause.equals(TASK_NOT_ACTIVE)) {
+        if (cause == TASK_NOT_ACTIVE) {
             contributionUnnotifiedDetector.detectOnchainDone();
         }
 
         /*
          * Should add FAILED status if not completable
-         * */
+         */
         if (ReplicateStatus.getUncompletableStatuses().contains(newStatus)) {
             replicatesService.updateReplicateStatus(event.getChainTaskId(),
                     event.getWalletAddress(), ReplicateStatusUpdate.poolManagerRequest(FAILED));
@@ -92,7 +92,7 @@ public class ReplicateListeners {
 
         /*
          * Should release given worker for this replicate if status is COMPLETED or FAILED
-         * */
+         */
         if (ReplicateStatus.getFinalStatuses().contains(newStatus)) {
             workerService.removeChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }

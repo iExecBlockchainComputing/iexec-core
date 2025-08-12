@@ -23,11 +23,14 @@ import com.iexec.core.replicate.ReplicateUpdatedEvent;
 import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,8 +40,11 @@ import java.util.stream.Stream;
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReplicateListenersTests {
 
     private static final String CHAIN_TASK_ID = "chainTaskId";
@@ -56,22 +62,15 @@ class ReplicateListenersTests {
     @InjectMocks
     private ReplicateListeners replicateListeners;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void shouldUpdateTaskOnReplicateUpdate() {
-        List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
+        final List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
 
-        for (ReplicateStatus randomStatus : someStatuses) {
-            ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
+        someStatuses.stream()
+                .map(this::getMockReplicate)
+                .forEach(replicateListeners::onReplicateUpdatedEvent);
 
-            replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-        }
-
-        Mockito.verify(taskUpdateRequestManager, Mockito.times(someStatuses.size())).publishRequest(any());
+        verify(taskUpdateRequestManager, times(someStatuses.size())).publishRequest(any());
     }
 
     @Test
@@ -99,16 +98,15 @@ class ReplicateListenersTests {
         assertIsRemovedFromComputedTasks(COMPUTE_FAILED);
     }
 
-    private void assertIsRemovedFromComputedTasks(ReplicateStatus computed) {
-        ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(computed);
+    private void assertIsRemovedFromComputedTasks(final ReplicateStatus computed) {
+        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(computed);
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-        Mockito.verify(workerService, Mockito.times(1))
-                .removeComputedChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+        verify(workerService).removeComputedChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
     @Test
     void shouldTriggerDetectOnchainContributedSinceTaskNotActive() {
-        ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
+        final ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
                 .replicateStatusUpdate(new ReplicateStatusUpdate(CONTRIBUTING, TASK_NOT_ACTIVE))
@@ -116,26 +114,22 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(1)).detectOnchainDone();
+        verify(contributionUnnotifiedDetector).detectOnchainDone();
     }
 
     @Test
     void shouldNotTriggerDetectOnchain() {
-        List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
-        someStatuses.remove(CONTRIBUTING);
+        ReplicateStatus.getSuccessStatuses().stream()
+                .filter(status -> status != CONTRIBUTING)
+                .map(this::getMockReplicate)
+                .forEach(replicateListeners::onReplicateUpdatedEvent);
 
-        for (ReplicateStatus randomStatus : someStatuses) {
-            ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
-
-            replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-        }
-
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainDone();
+        verifyNoInteractions(contributionUnnotifiedDetector);
     }
 
     @Test
     void shouldNotTriggerDetectOnchainContributedSinceCauseIsNull() {
-        ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
+        final ReplicateUpdatedEvent replicateUpdatedEvent = ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
                 .replicateStatusUpdate(new ReplicateStatusUpdate(CONTRIBUTING))
@@ -143,7 +137,7 @@ class ReplicateListenersTests {
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(contributionUnnotifiedDetector, Mockito.times(0)).detectOnchainDone();
+        verifyNoInteractions(contributionUnnotifiedDetector);
     }
 
     static Stream<ReplicateStatus> getUncompletableStatuses() {
@@ -152,13 +146,12 @@ class ReplicateListenersTests {
 
     @ParameterizedTest
     @MethodSource("getUncompletableStatuses")
-    void shouldAddFailedStatusSinceUncompletableReplicateStatus(ReplicateStatus uncompletableStatus) {
-        ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(uncompletableStatus);
+    void shouldAddFailedStatusSinceUncompletableReplicateStatus(final ReplicateStatus uncompletableStatus) {
+        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(uncompletableStatus);
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
         final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
-        Mockito.verify(replicatesService, Mockito.times(1))
-                .updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WORKER_WALLET), statusUpdate.capture());
+        verify(replicatesService).updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WORKER_WALLET), statusUpdate.capture());
         assertThat(statusUpdate.getValue().getStatus()).isEqualTo(FAILED);
     }
 
@@ -169,51 +162,43 @@ class ReplicateListenersTests {
 
     @ParameterizedTest
     @MethodSource("getCompletableStatuses")
-    void shouldNotAddFailedStatusSinceCompletableReplicateStatus(ReplicateStatus completableStatus) {
-        ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(completableStatus);
+    void shouldNotAddFailedStatusSinceCompletableReplicateStatus(final ReplicateStatus completableStatus) {
+        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(completableStatus);
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(replicatesService, Mockito.times(0))
-                .updateReplicateStatus(anyString(), anyString(), any(ReplicateStatusUpdate.class));
+        verifyNoInteractions(replicatesService);
     }
 
     @Test
     void shouldRemoveChainTaskIdFromWorkerSinceCompleted() {
-        ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(COMPLETED);
+        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(COMPLETED);
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(workerService, Mockito.times(1))
-                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+        verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
     @Test
     void shouldRemoveChainTaskIdFromWorkerSinceFailed() {
-        ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(FAILED);
+        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(FAILED);
 
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
-        Mockito.verify(workerService, Mockito.times(1))
-                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+        verify(workerService).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
     @Test
     void shouldNotRemoveChainTaskIdFromWorker() {
-        List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
-        someStatuses.remove(COMPLETED);
-        someStatuses.remove(FAILED);
+        ReplicateStatus.getSuccessStatuses().stream()
+                .filter(status -> status != COMPLETED && status != FAILED)
+                .map(this::getMockReplicate)
+                .forEach(replicateListeners::onReplicateUpdatedEvent);
 
-        for (ReplicateStatus randomStatus : someStatuses) {
-            ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(randomStatus);
-
-            replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-        }
-
-        Mockito.verify(workerService, Mockito.times(0))
-                .removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+        verify(workerService).removeComputedChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
+        verify(workerService, never()).removeChainTaskIdFromWorker(CHAIN_TASK_ID, WORKER_WALLET);
     }
 
-    private ReplicateUpdatedEvent getMockReplicate(ReplicateStatus computed) {
+    private ReplicateUpdatedEvent getMockReplicate(final ReplicateStatus computed) {
         return ReplicateUpdatedEvent.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .walletAddress(WORKER_WALLET)
