@@ -64,7 +64,9 @@ class ReplicateListenersTests {
 
     @Test
     void shouldUpdateTaskOnReplicateUpdate() {
-        final List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
+        final List<ReplicateStatus> someStatuses = List.of(
+                STARTED, CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTED, REVEALED, RESULT_UPLOADED,
+                START_FAILED, APP_DOWNLOAD_FAILED, DATA_DOWNLOAD_FAILED, COMPUTE_FAILED);
 
         someStatuses.stream()
                 .map(this::getMockReplicate)
