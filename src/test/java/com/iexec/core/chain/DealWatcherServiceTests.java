@@ -20,8 +20,7 @@ import com.iexec.commons.poco.chain.ChainApp;
 import com.iexec.commons.poco.chain.ChainCategory;
 import com.iexec.commons.poco.chain.ChainDeal;
 import com.iexec.commons.poco.chain.DealParams;
-import com.iexec.commons.poco.contract.generated.IexecHubContract;
-import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.core.chain.event.DealEvent;
 import com.iexec.core.configuration.ConfigurationService;
 import com.iexec.core.task.Task;
 import com.iexec.core.task.TaskService;
@@ -29,7 +28,6 @@ import com.iexec.core.task.event.TaskCreatedEvent;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.reactivex.Flowable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,8 +41,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.web3j.protocol.core.methods.response.Log;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -59,9 +55,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DealWatcherServiceTests {
 
-    private static final String OUT_OF_SERVICE_FIELD_NAME = "outOfService";
-    @Mock
-    private ChainConfig chainConfig;
+    private static final String DEAL_ID = "0xO";
+
     @Mock
     private IexecHubService iexecHubService;
 
@@ -77,24 +72,9 @@ class DealWatcherServiceTests {
     @InjectMocks
     private DealWatcherService dealWatcherService;
 
-    private IexecHubContract.SchedulerNoticeEventResponse createSchedulerNotice(BigInteger noticeBlockNumber) {
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = new IexecHubContract.SchedulerNoticeEventResponse();
-        schedulerNotice.workerpool = "0x1";
-        schedulerNotice.dealid = "chainDealId".getBytes();
-        Log schedulerNoticeLog = new Log();
-        schedulerNoticeLog.setBlockNumber(noticeBlockNumber.toString());
-        schedulerNotice.log = schedulerNoticeLog;
-        return schedulerNotice;
-    }
-
     @BeforeAll
     static void initRegistry() {
         Metrics.globalRegistry.add(new SimpleMeterRegistry());
-    }
-
-    void initMocks() {
-        when(chainConfig.getHubAddress()).thenReturn("hubAddress");
-        when(chainConfig.getPoolAddress()).thenReturn("0x1");
     }
 
     @AfterEach
@@ -106,47 +86,25 @@ class DealWatcherServiceTests {
     void shouldReturnZeroForAllCountersWhereNothingHasAppended() {
         Counter dealsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_COUNT).counter();
         Counter dealsEventsCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_EVENTS_COUNT).counter();
-        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
         Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
 
         Assertions.assertThat(dealsCounter).isNotNull();
         Assertions.assertThat(dealsEventsCounter).isNotNull();
-        Assertions.assertThat(dealsReplayCounter).isNotNull();
         Assertions.assertThat(lastBlockCounter).isNotNull();
 
         Assertions.assertThat(dealsCounter.count()).isZero();
         Assertions.assertThat(dealsEventsCounter.count()).isZero();
-        Assertions.assertThat(dealsReplayCounter.count()).isZero();
         Assertions.assertThat(lastBlockCounter.count()).isZero();
     }
 
-    @Test
-    void shouldRunAndStop() {
-        BigInteger blockNumber = BigInteger.TEN;
-        initMocks();
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(blockNumber);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.empty());
-        dealWatcherService.run();
-        verify(iexecHubService).getDealEventObservable(any());
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
-                .isEqualTo(false);
-        dealWatcherService.stop();
-        assertThat(ReflectionTestUtils.getField(dealWatcherService, DealWatcherService.class, OUT_OF_SERVICE_FIELD_NAME))
-                .isEqualTo(true);
-    }
-
-    // region subscribeToDealEventFromOneBlockToLatest
+    // region onDealEvent
     @Test
     void shouldUpdateLastSeenBlockWhenOneDeal() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
-        initMocks();
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, DEAL_ID, blockOfDeal));
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
@@ -158,16 +116,13 @@ class DealWatcherServiceTests {
         Assertions.assertThat(lastBlockCounter.count()).isEqualTo(blockOfDeal.doubleValue());
         Assertions.assertThat(dealsCounter.count()).isEqualTo(1);
         Assertions.assertThat(dealsEventsCounter.count()).isEqualTo(1);
-
     }
 
     @Test
     void shouldUpdateLastSeenBlockWhenOneDealAndCreateTask() {
         ChainApp chainApp = ChainApp.builder()
                 .multiaddr("0x00").build();
-
         ChainCategory chainCategory = ChainCategory.builder().build();
-
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
@@ -176,24 +131,17 @@ class DealWatcherServiceTests {
                 .params(DealParams.builder().iexecArgs("args").build())
                 .trust(BigInteger.valueOf(3))
                 .build();
-
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
         Task task = new Task();
-
-        initMocks();
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-        when(iexecHubService.getChainDealWithDetails(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDealWithDetails(DEAL_ID)).thenReturn(Optional.of(chainDeal));
         when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(true);
         when(taskService.addTask(any(), anyInt(), anyLong(), any(), any(), anyInt(), anyLong(), any(), any(), any()))
                 .thenReturn(Optional.of(task));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-
         ArgumentCaptor<TaskCreatedEvent> argumentCaptor = ArgumentCaptor.forClass(TaskCreatedEvent.class);
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, DEAL_ID, blockOfDeal));
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         verify(applicationEventPublisher).publishEvent(any(TaskCreatedEvent.class));
@@ -214,15 +162,11 @@ class DealWatcherServiceTests {
 
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
-        initMocks();
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-        when(iexecHubService.getChainDealWithDetails(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDealWithDetails(DEAL_ID)).thenReturn(Optional.of(chainDeal));
         when(iexecHubService.isBeforeContributionDeadline(chainDeal)).thenReturn(false);
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, DEAL_ID, blockOfDeal));
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         verifyNoInteractions(taskService, applicationEventPublisher);
@@ -232,19 +176,15 @@ class DealWatcherServiceTests {
     void shouldUpdateLastSeenBlockWhenOneDealAndNotCreateTaskSinceBotSizeIsZero() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(0))
                 .build();
 
-        initMocks();
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-        when(iexecHubService.getChainDealWithDetails(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDealWithDetails(DEAL_ID)).thenReturn(Optional.of(chainDeal));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, DEAL_ID, blockOfDeal));
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         verifyNoInteractions(taskService, applicationEventPublisher);
@@ -254,95 +194,29 @@ class DealWatcherServiceTests {
     void shouldUpdateLastSeenBlockWhenOneDealButNotCreateTaskSinceExceptionThrown() {
         BigInteger from = BigInteger.valueOf(0);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
         ChainDeal chainDeal = ChainDeal.builder()
                 .botFirst(BigInteger.valueOf(0))
                 .botSize(BigInteger.valueOf(1))
                 .build();
-
-        initMocks();
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-        when(iexecHubService.getChainDealWithDetails(BytesUtils.bytesToString(schedulerNotice.dealid))).thenReturn(Optional.of(chainDeal));
+        when(iexecHubService.getChainDealWithDetails(DEAL_ID)).thenReturn(Optional.of(chainDeal));
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, DEAL_ID, blockOfDeal));
 
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         verifyNoInteractions(taskService, applicationEventPublisher);
     }
 
     @Test
-    void shouldUpdateLastSeenBlockTwiceWhenTwoDeals() {
-        BigInteger from = BigInteger.valueOf(0);
-        BigInteger blockOfDeal1 = BigInteger.valueOf(3);
-        BigInteger blockOfDeal2 = BigInteger.valueOf(5);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice1 = createSchedulerNotice(blockOfDeal1);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice2 = createSchedulerNotice(blockOfDeal2);
-
-        initMocks();
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice1, schedulerNotice2));
-
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
-
-        verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal1);
-        verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal2);
-    }
-
-    @Test
     void shouldNotUpdateLastSeenBlockWhenReceivingOldMissedDeal() {
         BigInteger from = BigInteger.valueOf(5);
         BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
-        initMocks();
         when(configurationService.getLastSeenBlockWithDeal()).thenReturn(from);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
 
-        dealWatcherService.subscribeToDealEventFromOneBlockToLatest(from);
+        dealWatcherService.onDealEvent(new DealEvent(this, "", blockOfDeal));
 
         verify(configurationService).getLastSeenBlockWithDeal();
         verify(configurationService, never()).setLastSeenBlockWithDeal(blockOfDeal);
-    }
-    // endregion
-
-    // region replayDealEvent
-    @Test
-    void shouldReplayAllEventInRange() {
-        ReflectionTestUtils.setField(dealWatcherService, "outOfService", false);
-        BigInteger blockOfDeal = BigInteger.valueOf(3);
-        IexecHubContract.SchedulerNoticeEventResponse schedulerNotice = createSchedulerNotice(blockOfDeal);
-
-        initMocks();
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.TEN);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        when(iexecHubService.getDealEventObservable(any())).thenReturn(Flowable.just(schedulerNotice));
-
-        dealWatcherService.replayDealEvent();
-
-        verify(iexecHubService).getChainDealWithDetails(any());
-        Counter lastBlockCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_LAST_BLOCK).counter();
-        Counter dealsReplayCounter = Metrics.globalRegistry.find(DealWatcherService.METRIC_DEALS_REPLAY_COUNT).counter();
-        Assertions.assertThat(lastBlockCounter).isNotNull();
-        Assertions.assertThat(dealsReplayCounter).isNotNull();
-        Assertions.assertThat(lastBlockCounter.count()).isEqualTo(blockOfDeal.doubleValue());
-        Assertions.assertThat(dealsReplayCounter.count()).isEqualTo(1);
-    }
-
-    @Test
-    void shouldNotReplayIfFromReplayEqualsLastSeenBlock() {
-        ReflectionTestUtils.setField(dealWatcherService, OUT_OF_SERVICE_FIELD_NAME, false);
-        when(configurationService.getLastSeenBlockWithDeal()).thenReturn(BigInteger.ZERO);
-        when(configurationService.getFromReplay()).thenReturn(BigInteger.ZERO);
-        dealWatcherService.replayDealEvent();
-        verifyNoInteractions(iexecHubService);
-    }
-
-    @Test
-    void shouldNotReplayIfOutOfService() {
-        dealWatcherService.replayDealEvent();
-        verifyNoInteractions(configurationService, iexecHubService);
     }
     // endregion
 
