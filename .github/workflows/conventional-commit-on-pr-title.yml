@@ -1,0 +1,15 @@
+name: Validate PR Title
+description: Checks the PR title is a conventional commit
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+
+jobs:
+  conventional-commits:
+    permissions:
+      pull-requests: read
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/conventional-commits.yml@conventional-commits-v1.1.0
