@@ -40,6 +40,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -667,12 +668,21 @@ class TaskUpdateManager {
             return;
         }
 
+        final long now = Instant.now().toEpochMilli();
+        final boolean isNotRevealingOnChain = chainTask.getStatus() != ChainTaskStatus.REVEALING;
+        final boolean isAfterFinalDeadline = chainTask.getFinalDeadline() < now;
+        // We have enough reveals on-chain when:
+        // 'all winners have revealed' OR 'at least one winner has revealed when the reveal deadline has been reached'
+        // The inverted condition is:
+        // 'not all winners have revealed' AND 'the reveal deadline has not been reached, or it has and no winner has successfully revealed'
+        final boolean hasNotEnoughRevealsOnChain = chainTask.getWinnerCounter() != chainTask.getRevealCounter()
+                && (chainTask.getRevealCounter() == 0 || now < chainTask.getRevealDeadline());
         final int onChainReveal = chainTask.getRevealCounter();
         final int offChainReveal = replicatesService.getNbReplicatesContainingStatus(task.getChainTaskId(), ReplicateStatus.REVEALED);
 
-        if (onChainReveal != offChainReveal) {
-            log.debug("Cannot finalize, mismatch between on-chain and off-chain data [chainTaskId:{}, onChainReveal:{}, offChainReveal:{}]",
-                    task.getChainTaskId(), onChainReveal, offChainReveal);
+        if (isNotRevealingOnChain || isAfterFinalDeadline || hasNotEnoughRevealsOnChain || onChainReveal != offChainReveal) {
+            log.info("Cannot finalize, mismatch between on-chain and off-chain data [chainTaskId:{}, not-revealing-on-chain:{}, after-final-deadline:{}, not-enough-reveals:{}, onChainReveal:{}, offChainReveal:{}]",
+                    task.getChainTaskId(), isNotRevealingOnChain, isAfterFinalDeadline, hasNotEnoughRevealsOnChain, onChainReveal, offChainReveal);
             return;
         }
 
