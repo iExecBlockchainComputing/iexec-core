@@ -257,11 +257,6 @@ public class ReplicateSupplyService implements Purgeable {
                 log.debug("no replicate [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
                 continue;
             }
-            final boolean isRecoverable = replicate.isRecoverable();
-            if (!isRecoverable) {
-                log.debug("not recoverable [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);
-                continue;
-            }
             final String enclaveChallenge = task.getEnclaveChallenge();
             if (task.isTeeTask() && enclaveChallenge.isEmpty()) {
                 log.debug("empty enclave challenge [chainTaskId:{}, walletAddress:{}]", chainTaskId, walletAddress);

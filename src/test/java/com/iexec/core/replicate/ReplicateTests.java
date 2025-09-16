@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,9 +57,7 @@ class ReplicateTests {
                 + "\"chainTaskId\":\"chainTaskId\","
                 + "\"contributionHash\":\"\","
                 + "\"workerWeight\":0,"
-                + "\"appComputeLogsPresent\":false,"
-                + "\"busyComputing\":true,"
-                + "\"recoverable\":true"
+                + "\"appComputeLogsPresent\":false"
                 + "}";
         ObjectNode actualJsonNode = (ObjectNode) mapper.readTree(jsonString);
         ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedString);
@@ -69,7 +67,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldInitializeStatusProperly(){
+    void shouldInitializeStatusProperly() {
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         assertThat(replicate.getStatusUpdateList()).hasSize(1);
 
@@ -83,7 +81,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldUpdateReplicateStatus(){
+    void shouldUpdateReplicateStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         assertThat(replicate.getStatusUpdateList()).hasSize(1);
 
@@ -104,7 +102,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldGetProperLatestStatus(){
+    void shouldGetProperLatestStatus() {
         Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
         assertThat(replicate.getStatusUpdateList()).hasSize(1);
         assertThat(replicate.getCurrentStatus()).isEqualTo(ReplicateStatus.CREATED);
@@ -116,7 +114,7 @@ class ReplicateTests {
 
 
     @Test
-    void shouldReturnTrueWhenContributed(){
+    void shouldReturnTrueWhenContributed() {
         Replicate replicate = new Replicate("0x1", CHAIN_TASK_ID);
         replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -128,7 +126,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldReturnFalseWhenContributedMissing(){
+    void shouldReturnFalseWhenContributedMissing() {
         Replicate replicate = new Replicate("0x1", CHAIN_TASK_ID);
         replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
@@ -139,7 +137,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldBeCreatedLongAgo(){
+    void shouldBeCreatedLongAgo() {
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", CHAIN_TASK_ID);
@@ -151,7 +149,7 @@ class ReplicateTests {
     }
 
     @Test
-    void shouldNotBeCreatedLongAgo(){
+    void shouldNotBeCreatedLongAgo() {
         final long maxExecutionTime = 60000;
         Date now = new Date();
         Replicate replicate = new Replicate("0x1", CHAIN_TASK_ID);
@@ -160,33 +158,6 @@ class ReplicateTests {
         replicate.setStatusUpdateList(Collections.singletonList(oldCreationDate));
 
         assertThat(replicate.isCreatedMoreThanNPeriodsAgo(2, maxExecutionTime)).isFalse();
-    }
-
-    @Test
-    void shouldBeBusyComputing() {
-        Replicate replicate = new Replicate(WALLET_WORKER, CHAIN_TASK_ID);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(STARTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.APP_DOWNLOADED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-        replicate.updateStatus(ReplicateStatus.COMPUTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isTrue();
-
-        replicate.updateStatus(ReplicateStatus.COMPUTED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.CONTRIBUTING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.REVEALING, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.REVEALED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
-        replicate.updateStatus(ReplicateStatus.COMPLETED, ReplicateStatusModifier.WORKER);
-        assertThat(replicate.isBusyComputing()).isFalse();
     }
 
     // region getLastRelevantStatus
