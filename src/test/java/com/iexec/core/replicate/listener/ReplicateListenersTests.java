@@ -58,19 +58,33 @@ class ReplicateListenersTests {
     private ReplicatesService replicatesService;
     @Mock
     private TaskUpdateRequestManager taskUpdateRequestManager;
-
     @InjectMocks
     private ReplicateListeners replicateListeners;
 
+    private final List<ReplicateStatus> statusesTriggeringTaskUpdate = List.of(
+            STARTED, CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTED, REVEALED, RESULT_UPLOADED,
+            START_FAILED, APP_DOWNLOAD_FAILED, DATA_DOWNLOAD_FAILED, COMPUTE_FAILED);
+
     @Test
     void shouldUpdateTaskOnReplicateUpdate() {
-        final List<ReplicateStatus> someStatuses = ReplicateStatus.getSuccessStatuses(); //not exhaustive
-
-        someStatuses.stream()
+        statusesTriggeringTaskUpdate.stream()
                 .map(this::getMockReplicate)
                 .forEach(replicateListeners::onReplicateUpdatedEvent);
 
-        verify(taskUpdateRequestManager, times(someStatuses.size())).publishRequest(any());
+        verify(taskUpdateRequestManager, times(statusesTriggeringTaskUpdate.size())).publishRequest(any());
+    }
+
+    @Test
+    void shouldNotUpdateTaskOnReplicateUpdate() {
+        final List<ReplicateStatus> nonTriggeringStatuses = Arrays.stream(ReplicateStatus.values())
+                .filter(status -> !statusesTriggeringTaskUpdate.contains(status))
+                .toList();
+
+        nonTriggeringStatuses.stream()
+                .map(this::getMockReplicate)
+                .forEach(replicateListeners::onReplicateUpdatedEvent);
+
+        verifyNoInteractions(taskUpdateRequestManager);
     }
 
     @Test

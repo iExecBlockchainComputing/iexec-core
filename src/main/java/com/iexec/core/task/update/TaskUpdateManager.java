@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import static com.iexec.core.task.TaskStatus.*;
 
@@ -496,20 +495,19 @@ class TaskUpdateManager {
         }
 
         // If not all alive workers have failed while running the task, that's not a running failure.
-        boolean notAllReplicatesFailed = replicatesOfAliveWorkers
+        // FIXME use lambda when deprecated code has been removed in iexec-common
+        final boolean allReplicatesFailed = replicatesOfAliveWorkers
                 .stream()
                 .map(Replicate::getLastRelevantStatus)
-                .anyMatch(Predicate.not(ReplicateStatus::isFailedBeforeComputed));
-
-        if (notAllReplicatesFailed) {
-            return;
-        }
+                .allMatch(replicateStatus -> replicateStatus.isFailedBeforeComputed());
 
         // If all alive workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
-        updateTaskStatusesAndSave(task, RUNNING_FAILED, FAILED);
-        applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
+        if (allReplicatesFailed) {
+            updateTaskStatusesAndSave(task, RUNNING_FAILED, FAILED);
+            applicationEventPublisher.publishEvent(new TaskRunningFailedEvent(task.getChainTaskId()));
+        }
     }
 
     // endregion
