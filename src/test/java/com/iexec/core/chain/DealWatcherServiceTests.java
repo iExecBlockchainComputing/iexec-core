@@ -198,7 +198,10 @@ class DealWatcherServiceTests {
         verify(configurationService).setLastSeenBlockWithDeal(blockOfDeal);
         verify(applicationEventPublisher).publishEvent(any(TaskCreatedEvent.class));
         verify(applicationEventPublisher).publishEvent(argumentCaptor.capture());
-        assertThat(argumentCaptor.getValue()).isEqualTo(new TaskCreatedEvent(task.getChainTaskId()));
+        assertThat(argumentCaptor.getValue())
+                .usingRecursiveComparison()
+                .ignoringFields("timestamp")
+                .isEqualTo(new TaskCreatedEvent(dealWatcherService, task.getChainTaskId(), task.getChainDealId(), task.getTaskIndex()));
     }
 
     @Test

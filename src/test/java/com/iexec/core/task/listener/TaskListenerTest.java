@@ -70,9 +70,9 @@ class TaskListenerTest {
 
     @Test
     void shouldUpdateTaskOnTasCreatedEvent() {
-        TaskCreatedEvent event = new TaskCreatedEvent(CHAIN_TASK_ID);
+        TaskCreatedEvent event = new TaskCreatedEvent(this, CHAIN_TASK_ID, "", 0);
         taskListeners.onTaskCreatedEvent(event);
-        verify(taskUpdateRequestManager).publishRequest(anyString());
+        verify(taskUpdateRequestManager).publishRequest(CHAIN_TASK_ID);
     }
 
     @Test

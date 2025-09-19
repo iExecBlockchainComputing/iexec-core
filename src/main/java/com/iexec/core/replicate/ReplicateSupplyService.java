@@ -158,6 +158,8 @@ public class ReplicateSupplyService implements Purgeable {
         final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
                 walletAddress,
                 chainTaskId,
+                task.getChainDealId(),
+                task.getTaskIndex(),
                 task.getEnclaveChallenge());
         ReplicateTaskSummaryBuilder replicateTaskSummary = ReplicateTaskSummary.builder()
                 .workerpoolAuthorization(authorization);
@@ -290,7 +292,7 @@ public class ReplicateSupplyService implements Purgeable {
 
     private TaskNotificationExtra getTaskNotificationExtra(Task task, TaskNotificationType taskNotificationType, String walletAddress) {
         final WorkerpoolAuthorization authorization = signatureService.createAuthorization(
-                walletAddress, task.getChainTaskId(), task.getEnclaveChallenge());
+                walletAddress, task.getChainTaskId(), task.getChainDealId(), task.getTaskIndex(), task.getEnclaveChallenge());
         final TaskNotificationExtra.TaskNotificationExtraBuilder taskNotificationExtra =
                 TaskNotificationExtra.builder().workerpoolAuthorization(authorization);
 

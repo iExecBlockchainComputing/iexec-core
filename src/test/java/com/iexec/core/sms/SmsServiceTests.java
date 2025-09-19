@@ -54,7 +54,6 @@ class SmsServiceTests {
     private static final String GRAMINE_SMS_URL = "http://gramine-sms";
     private static final String SCONE_SMS_URL = "http://scone-sms";
     private static final String CHAIN_TASK_ID = "chainTaskId";
-    private static final String URL = "url";
 
     @Mock
     private IexecHubService iexecHubService;
@@ -123,7 +122,7 @@ class SmsServiceTests {
     // region getEnclaveChallenge
     @Test
     void shouldGetEmptyAddressForStandardTask() {
-        Assertions.assertThat(smsService.getEnclaveChallenge(CHAIN_TASK_ID, ""))
+        Assertions.assertThat(smsService.getEnclaveChallenge(CHAIN_TASK_ID, "", 0, ""))
                 .isEqualTo(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         verifyNoInteractions(smsClientProvider, smsClient);
@@ -135,7 +134,7 @@ class SmsServiceTests {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
-        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received)
                 .isEqualTo(Optional.of(expected));
@@ -145,7 +144,7 @@ class SmsServiceTests {
     void shouldNotGetEnclaveChallengeForTeeTaskWhenEmptySmsResponse() {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
-        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.getEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         verify(smsClient).generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID);
         Assertions.assertThat(received).isEmpty();
     }
@@ -159,7 +158,7 @@ class SmsServiceTests {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn(expected);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         Assertions.assertThat(received)
                 .contains(expected);
     }
@@ -169,7 +168,7 @@ class SmsServiceTests {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenReturn("");
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         Assertions.assertThat(received)
                 .isEmpty();
     }
@@ -179,7 +178,7 @@ class SmsServiceTests {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(FeignException.GatewayTimeout.class);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         Assertions.assertThat(received)
                 .isEmpty();
     }
@@ -189,7 +188,7 @@ class SmsServiceTests {
         initEnclaveChallengeStubs();
         when(smsClient.generateTeeChallenge(AUTHORIZATION, CHAIN_TASK_ID)).thenThrow(RuntimeException.class);
 
-        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, URL);
+        Optional<String> received = smsService.generateEnclaveChallenge(CHAIN_TASK_ID, "", 0, SCONE_SMS_URL);
         Assertions.assertThat(received)
                 .isEmpty();
     }
@@ -229,8 +228,8 @@ class SmsServiceTests {
 
     // region utils
     private void initEnclaveChallengeStubs() {
-        when(smsClientProvider.getSmsClient(URL)).thenReturn(smsClient);
-        when(signatureService.createAuthorization("", CHAIN_TASK_ID, ""))
+        when(smsClientProvider.getSmsClient(SCONE_SMS_URL)).thenReturn(smsClient);
+        when(signatureService.createAuthorization("", CHAIN_TASK_ID, "", 0, ""))
                 .thenReturn(WorkerpoolAuthorization.builder().signature(new Signature(AUTHORIZATION)).build());
     }
 

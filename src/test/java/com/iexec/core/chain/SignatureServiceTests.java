@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,12 +66,14 @@ class SignatureServiceTests {
         when(signerService.signMessageHash(hash)).thenCallRealMethod();
 
         // creation
-        WorkerpoolAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskId, enclaveChallenge);
+        WorkerpoolAuthorization authorization = signatureService.createAuthorization(workerWallet, chainTaskId, "", 0, enclaveChallenge);
 
         // check
         WorkerpoolAuthorization expected = WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
+                .dealId("")
+                .taskIndex(0)
                 .enclaveChallenge(enclaveChallenge)
                 .signature(new Signature(
                         BytesUtils.stringToBytes("0x63f2c959ed7dfc11619e1e0b5ba8a4bf56f81ce81d0b6e6e9cdeca538cb85d97"),
