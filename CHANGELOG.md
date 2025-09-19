@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.0.1](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.0.0...v9.0.1) (2025-09-19)
+
+
+### Bug Fixes
+
+* only trigger task status update after successful replicate status when relevant ([#760](https://github.com/iExecBlockchainComputing/iexec-core/issues/760)) ([7da7812](https://github.com/iExecBlockchainComputing/iexec-core/commit/7da7812a2b74c749691c4e5032649675bf01e1eb))
+* remove dead code in scheduler ([#759](https://github.com/iExecBlockchainComputing/iexec-core/issues/759)) ([41312a4](https://github.com/iExecBlockchainComputing/iexec-core/commit/41312a473f792b4fd0b4437c382e77a533268a9f))
+* verify conditions before querying blockchain adapter for finalization ([#757](https://github.com/iExecBlockchainComputing/iexec-core/issues/757)) ([0ddd62d](https://github.com/iExecBlockchainComputing/iexec-core/commit/0ddd62d31ae39cd60dee0f43c6ad2b8b059731b9))
+
 ## [[9.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v9.0.0) 2025-04-01
 
 ### New Features
