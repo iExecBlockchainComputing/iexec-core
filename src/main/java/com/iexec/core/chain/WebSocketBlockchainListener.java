@@ -16,7 +16,10 @@
 
 package com.iexec.core.chain;
 
+import com.iexec.commons.poco.encoding.LogTopic;
+import com.iexec.core.chain.event.DealEvent;
 import com.iexec.core.chain.event.LatestBlockEvent;
+import com.iexec.core.configuration.ConfigurationService;
 import io.micrometer.core.instrument.Metrics;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
@@ -27,14 +30,19 @@ import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.Request;
 import org.web3j.protocol.core.methods.response.EthSubscribe;
 import org.web3j.protocol.websocket.WebSocketService;
+import org.web3j.protocol.websocket.events.Log;
+import org.web3j.protocol.websocket.events.LogNotification;
 import org.web3j.protocol.websocket.events.NewHeadsNotification;
 import org.web3j.utils.Numeric;
 
+import java.math.BigInteger;
 import java.net.ConnectException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.iexec.commons.poco.encoding.LogTopic.SCHEDULER_NOTICE_EVENT;
 
 @Slf4j
 @Service
@@ -45,14 +53,22 @@ public class WebSocketBlockchainListener {
     private static final String UNSUBSCRIBE_METHOD = "eth_unsubscribe";
 
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ChainConfig chainConfig;
+    private final ConfigurationService configurationService;
     private final WebSocketService webSocketService;
 
+    private final String poolAddress;
     private final AtomicLong lastSeenBlock;
     private Disposable newHeads;
+    private Disposable schedulerNotices;
 
     public WebSocketBlockchainListener(final ApplicationEventPublisher applicationEventPublisher,
-                                       final ChainConfig chainConfig) {
+                                       final ChainConfig chainConfig,
+                                       final ConfigurationService configurationService) {
         this.applicationEventPublisher = applicationEventPublisher;
+        this.chainConfig = chainConfig;
+        this.configurationService = configurationService;
+        this.poolAddress = Numeric.toHexStringWithPrefixZeroPadded(Numeric.toBigInt(chainConfig.getPoolAddress()), 64);
         final String wsUrl = chainConfig.getNodeAddress().replace("http", "ws");
         this.webSocketService = new WebSocketService(wsUrl, false);
         lastSeenBlock = Metrics.gauge(LATEST_BLOCK_METRIC_NAME, new AtomicLong(0));
@@ -60,13 +76,15 @@ public class WebSocketBlockchainListener {
 
     @Scheduled(fixedRate = 5000)
     private void run() throws ConnectException {
-        if (newHeads != null && !newHeads.isDisposed()) {
+        if (newHeads != null && !newHeads.isDisposed()
+                && schedulerNotices != null && !schedulerNotices.isDisposed()) {
             return;
         }
 
         log.warn("web socket disconnection detected");
         webSocketService.connect();
 
+        log.info("subscribing to receive new heads");
         final Request<?, EthSubscribe> newHeadsRequest = new Request<>(
                 SUBSCRIBE_METHOD,
                 List.of("newHeads", Map.of()),
@@ -77,6 +95,22 @@ public class WebSocketBlockchainListener {
         final Flowable<NewHeadsNotification> newHeadsEvents = webSocketService.subscribe(
                 newHeadsRequest, UNSUBSCRIBE_METHOD, NewHeadsNotification.class);
         newHeads = newHeadsEvents.subscribe(this::processHead, this::handleError);
+
+        final BigInteger lastSeenBlockWithDeal = configurationService.getLastSeenBlockWithDeal();
+        log.info("subscribing to receive scheduler notices [address:{}, from:{}, for:{}]",
+                chainConfig.getHubAddress(), lastSeenBlockWithDeal, poolAddress);
+        final Request<?, EthSubscribe> schedulerNoticesRequest = new Request<>(
+                SUBSCRIBE_METHOD,
+                List.of("logs", Map.of("address", chainConfig.getHubAddress(),
+                        "fromBlock", configurationService.getLastSeenBlockWithDeal(),
+                        "topics", List.of(SCHEDULER_NOTICE_EVENT, poolAddress))),
+                webSocketService,
+                EthSubscribe.class
+        );
+
+        final Flowable<LogNotification> schedulerNoticeEvents = webSocketService.subscribe(
+                schedulerNoticesRequest, UNSUBSCRIBE_METHOD, LogNotification.class);
+        schedulerNotices = schedulerNoticeEvents.subscribe(this::processSchedulerNotice, this::handleError);
     }
 
     private void processHead(final NewHeadsNotification event) {
@@ -88,6 +122,13 @@ public class WebSocketBlockchainListener {
                 blockNumber, blockHash, blockTimestamp, blockTimestampInstant);
         lastSeenBlock.set(blockNumber);
         applicationEventPublisher.publishEvent(new LatestBlockEvent(this, blockNumber, blockHash, blockTimestamp));
+    }
+
+    private void processSchedulerNotice(final LogNotification event) {
+        final Log logEvent = event.getParams().getResult();
+        log.info("Event received [topics:{}, deal:{}]",
+                LogTopic.decode(logEvent.getTopics().get(0)), logEvent.getData());
+        applicationEventPublisher.publishEvent(new DealEvent(this, logEvent.getData(), Numeric.toBigInt(logEvent.getBlockNumber())));
     }
 
     private void handleError(final Throwable t) {

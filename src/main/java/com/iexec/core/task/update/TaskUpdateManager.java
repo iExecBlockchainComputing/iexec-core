@@ -479,18 +479,21 @@ class TaskUpdateManager {
 
         final List<Worker> aliveWorkers = workerService.getAliveWorkers();
 
-        final List<Replicate> replicatesOfAliveWorkers = aliveWorkers
+        final List<ReplicateStatus> replicatesOfAliveWorkers = aliveWorkers
                 .stream()
                 .map(Worker::getWalletAddress)
                 .map(replicatesList::getReplicateOfWorker)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
+                .map(Replicate::getLastRelevantStatus)
                 .toList();
 
         // If at least an alive worker has not run the task, it is not a `RUNNING_FAILURE`.
         final boolean allAliveWorkersTried = replicatesOfAliveWorkers.size() == aliveWorkers.size();
 
         if (!allAliveWorkersTried) {
+            log.debug("all workers did not try [aliveWorkers:{}, replicates:{}]",
+                    aliveWorkers.size(), replicatesOfAliveWorkers.size());
             return;
         }
 
@@ -498,9 +501,9 @@ class TaskUpdateManager {
         // FIXME use lambda when deprecated code has been removed in iexec-common
         final boolean allReplicatesFailed = replicatesOfAliveWorkers
                 .stream()
-                .map(Replicate::getLastRelevantStatus)
                 .allMatch(replicateStatus -> replicateStatus.isFailedBeforeComputed());
 
+        log.debug("all replicates last relevant status [{}]", replicatesOfAliveWorkers);
         // If all alive workers have failed on this task, its computation should be stopped.
         // It could denote that the task is wrong
         // - e.g. failing script, dataset can't be retrieved, app can't be downloaded, ...
