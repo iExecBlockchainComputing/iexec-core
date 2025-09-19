@@ -28,7 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import static com.iexec.common.replicate.ReplicateStatus.FAILED;
+import java.util.List;
+
+import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
 
 @Slf4j
@@ -51,23 +53,31 @@ public class ReplicateListeners {
     }
 
     @EventListener
-    public void onReplicateUpdatedEvent(ReplicateUpdatedEvent event) {
-        log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}] ", event.getChainTaskId());
+    public void onReplicateUpdatedEvent(final ReplicateUpdatedEvent event) {
+        log.debug("Received ReplicateUpdatedEvent [chainTaskId:{}, workerAddress:{}, status:{}]",
+                event.getChainTaskId(), event.getWalletAddress(), event.getReplicateStatusUpdate().getStatus());
         final ReplicateStatusUpdate statusUpdate = event.getReplicateStatusUpdate();
         final ReplicateStatus newStatus = statusUpdate.getStatus();
         final ReplicateStatusCause cause = statusUpdate.getDetails() != null ? statusUpdate.getDetails().getCause() : null;
 
-        taskUpdateRequestManager.publishRequest(event.getChainTaskId());
+        // Those are the only transitions justifying to update a task status
+        // When one worker updates its replicate status to STARTED, its task status can be updated to RUNNING
+        // When one worker updates its replicate status to RESULT_UPLOADED, its task status can be updated to RESULT_UPLOADED
+        // The other statuses denote major PoCo events allowing to see an update of the associated task status
+        // The check against isFailedBeforeComputed allows to trigger the running2runningFailed check in TaskUpdateManager
+        // This protection allows to avoid unnecessary loops in update manager as well as unnecessary on-chain calls
+        if (List.of(STARTED, CONTRIBUTE_AND_FINALIZE_DONE, CONTRIBUTED, REVEALED, RESULT_UPLOADED).contains(newStatus)
+                || newStatus.isFailedBeforeComputed()) {
+            taskUpdateRequestManager.publishRequest(event.getChainTaskId());
+        }
 
         /*
          * Should release 1 CPU of given worker for this replicate if status is
          * "COMPUTED" or "*_FAILED" before COMPUTED
          */
-        if (newStatus == ReplicateStatus.START_FAILED
-                || newStatus == ReplicateStatus.APP_DOWNLOAD_FAILED
-                || newStatus == ReplicateStatus.DATA_DOWNLOAD_FAILED
-                || newStatus == ReplicateStatus.COMPUTED
-                || newStatus == ReplicateStatus.COMPUTE_FAILED) {
+        if (newStatus.isFailedBeforeComputed() || newStatus == ReplicateStatus.COMPUTED) {
+            log.info("End of replicate computation detected [chainTaskId:{}, workerAddress:{}]",
+                    event.getChainTaskId(), event.getWalletAddress());
             workerService.removeComputedChainTaskIdFromWorker(event.getChainTaskId(), event.getWalletAddress());
         }
 
