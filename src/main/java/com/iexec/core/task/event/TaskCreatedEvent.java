@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,21 @@
 
 package com.iexec.core.task.event;
 
+import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.springframework.context.ApplicationEvent;
 
 @Value
-public class TaskCreatedEvent {
+@EqualsAndHashCode(callSuper = true)
+public class TaskCreatedEvent extends ApplicationEvent {
     String chainTaskId;
+    String chainDealId;
+    int taskIndex;
+
+    public TaskCreatedEvent(final Object source, final String chainTaskId, final String chainDealId, final int taskIndex) {
+        super(source);
+        this.chainTaskId = chainTaskId;
+        this.chainDealId = chainDealId;
+        this.taskIndex = taskIndex;
+    }
 }

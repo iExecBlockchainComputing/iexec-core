@@ -259,7 +259,7 @@ class TaskUpdateManagerTests {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TEE_TAG)).thenReturn(Optional.of(SMS_URL));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, SMS_URL)).thenReturn(Optional.empty());
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, SMS_URL)).thenReturn(Optional.empty());
 
         taskUpdateManager.updateTask(task.getChainTaskId());
 
@@ -275,7 +275,7 @@ class TaskUpdateManagerTests {
 
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -296,7 +296,7 @@ class TaskUpdateManagerTests {
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(Optional.of(SMS_URL));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, SMS_URL)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, SMS_URL)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();
@@ -322,8 +322,8 @@ class TaskUpdateManagerTests {
         assertThatTaskContainsStatuses(resultTask, FAILED, List.of(RECEIVED, INITIALIZE_FAILED, FAILED));
         assertThat(resultTask.getEnclaveChallenge()).isNull();
         assertThat(resultTask.getSmsUrl()).isNull();
-        verify(smsService, times(1)).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
-        verify(smsService, times(0)).getEnclaveChallenge(anyString(), anyString());
+        verify(smsService).getVerifiedSmsUrl(CHAIN_TASK_ID, tag);
+        verify(smsService, never()).getEnclaveChallenge(anyString(), anyString(), anyInt(), anyString());
     }
 
     // endregion
@@ -336,7 +336,7 @@ class TaskUpdateManagerTests {
         taskRepository.save(task);
 
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
-        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
+        when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
         final Task resultTask = taskRepository.findByChainTaskId(task.getChainTaskId()).orElseThrow();

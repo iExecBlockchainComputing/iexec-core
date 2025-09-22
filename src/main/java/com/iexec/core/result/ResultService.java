@@ -39,7 +39,9 @@ public class ResultService {
     private final SignatureService signatureService;
     private final TaskService taskService;
 
-    public ResultService(final ResultRepositoryConfiguration resultRepositoryConfiguration, final SignatureService signatureService, final TaskService taskService) {
+    public ResultService(final ResultRepositoryConfiguration resultRepositoryConfiguration,
+                         final SignatureService signatureService,
+                         final TaskService taskService) {
         this.resultRepositoryConfiguration = resultRepositoryConfiguration;
         this.signatureService = signatureService;
         this.taskService = taskService;
@@ -50,7 +52,8 @@ public class ResultService {
         final String chainTaskId = taskDescription.getChainTaskId();
         final ResultProxyClient resultProxyClient = resultRepositoryConfiguration.createResultProxyClientFromURL(taskDescription.getDealParams().getIexecResultStorageProxy());
         final String enclaveChallenge = taskService.getTaskByChainTaskId(chainTaskId).map(Task::getEnclaveChallenge).orElse(EMPTY_ADDRESS);
-        final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(signatureService.getAddress(), chainTaskId, enclaveChallenge);
+        final WorkerpoolAuthorization workerpoolAuthorization = signatureService.createAuthorization(
+                signatureService.getAddress(), chainTaskId, taskDescription.getChainDealId(), taskDescription.getBotIndex(), enclaveChallenge);
         final String resultProxyToken = resultProxyClient.getJwt(workerpoolAuthorization.getSignature().getValue(), workerpoolAuthorization);
         if (resultProxyToken.isEmpty()) {
             log.error("isResultUploaded failed (getResultProxyToken) [chainTaskId:{}]", chainTaskId);

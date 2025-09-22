@@ -246,7 +246,8 @@ class TaskUpdateManager {
             update.set("initializationBlockNumber", task.getDealBlockNumber());
 
             // Create enclave challenge after task has been initialized on-chain
-            final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(task.getChainTaskId(), task.getSmsUrl());
+            final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(
+                    task.getChainTaskId(), task.getChainDealId(), task.getTaskIndex(), task.getSmsUrl());
             if (enclaveChallenge.isEmpty()) {
                 log.error("Can't initialize task, enclave challenge is empty [chainTaskId:{}]", task.getChainTaskId());
                 toFailed(task, INITIALIZE_FAILED);
