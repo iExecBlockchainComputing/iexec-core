@@ -198,19 +198,19 @@ public class DealWatcherService {
         int startBag = chainDeal.getBotFirst().intValue();
         int endBag = chainDeal.getBotFirst().intValue() + chainDeal.getBotSize().intValue();
         for (int taskIndex = startBag; taskIndex < endBag; taskIndex++) {
-            Optional<Task> optional = taskService.addTask(
-                    chainDealId,
-                    taskIndex,
-                    dealEvent.getBlockNumber().longValue(),
-                    chainDeal.getChainApp().getMultiaddr(),
-                    chainDeal.getParams().getIexecArgs(),
-                    chainDeal.getTrust().intValue(),
-                    chainDeal.getChainCategory().getMaxExecutionTime(),
-                    chainDeal.getTag(),
-                    iexecHubService.getChainDealContributionDeadline(chainDeal),
-                    iexecHubService.getChainDealFinalDeadline(chainDeal));
-            optional.ifPresent(task -> applicationEventPublisher
-                    .publishEvent(new TaskCreatedEvent(task.getChainTaskId())));
+            taskService
+                    .addTask(
+                            chainDealId,
+                            taskIndex,
+                            dealEvent.getBlockNumber().longValue(),
+                            chainDeal.getChainApp().getMultiaddr(),
+                            chainDeal.getParams().getIexecArgs(),
+                            chainDeal.getTrust().intValue(),
+                            chainDeal.getChainCategory().getMaxExecutionTime(),
+                            chainDeal.getTag(),
+                            iexecHubService.getChainDealContributionDeadline(chainDeal),
+                            iexecHubService.getChainDealFinalDeadline(chainDeal))
+                    .ifPresent(this::publishTaskCreatedEvent);
         }
     }
 
@@ -246,6 +246,17 @@ public class DealWatcherService {
         }
 
         return true;
+    }
+
+    /**
+     * Publishes a {@code TaskCreatedEvent} for a newly created task.
+     *
+     * @param task Newly created task for which the event will be published
+     */
+    private void publishTaskCreatedEvent(final Task task) {
+        final TaskCreatedEvent event = new TaskCreatedEvent(
+                this, task.getChainTaskId(), task.getChainDealId(), task.getTaskIndex());
+        applicationEventPublisher.publishEvent(event);
     }
 
     /*

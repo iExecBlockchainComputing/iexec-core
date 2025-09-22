@@ -138,13 +138,19 @@ public class SmsService {
         return true;
     }
 
-    public Optional<String> getEnclaveChallenge(String chainTaskId, String smsUrl) {
+    public Optional<String> getEnclaveChallenge(final String chainTaskId,
+                                                final String dealId,
+                                                final int taskIndex,
+                                                final String smsUrl) {
         return StringUtils.isEmpty(smsUrl)
                 ? Optional.of(BytesUtils.EMPTY_ADDRESS)
-                : generateEnclaveChallenge(chainTaskId, smsUrl);
+                : generateEnclaveChallenge(chainTaskId, dealId, taskIndex, smsUrl);
     }
 
-    Optional<String> generateEnclaveChallenge(String chainTaskId, String smsUrl) {
+    Optional<String> generateEnclaveChallenge(final String chainTaskId,
+                                              final String dealId,
+                                              final int taskIndex,
+                                              final String smsUrl) {
         // SMS client should already have been created once before.
         // If it couldn't be created, then the task would have been aborted.
         // So the following won't throw an exception.
@@ -152,7 +158,7 @@ public class SmsService {
 
         try {
             final String teeChallengePublicKey = smsClient.generateTeeChallenge(
-                    signatureService.createAuthorization("", chainTaskId, "").getSignature().getValue(),
+                    signatureService.createAuthorization("", chainTaskId, dealId, taskIndex, "").getSignature().getValue(),
                     chainTaskId);
 
             if (StringUtils.isEmpty(teeChallengePublicKey)) {

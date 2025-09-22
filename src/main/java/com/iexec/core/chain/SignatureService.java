@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ public class SignatureService {
 
     private final SignerService signerService;
 
-    public SignatureService(SignerService signerService) {
+    public SignatureService(final SignerService signerService) {
         this.signerService = signerService;
     }
 
@@ -35,15 +35,21 @@ public class SignatureService {
         return signerService.getAddress();
     }
 
-    public Signature sign(String hash) {
+    public Signature sign(final String hash) {
         return signerService.signMessageHash(hash);
     }
 
-    public WorkerpoolAuthorization createAuthorization(String workerWallet, String chainTaskId, String enclaveChallenge) {
+    public WorkerpoolAuthorization createAuthorization(final String workerWallet,
+                                                       final String chainTaskId,
+                                                       final String dealId,
+                                                       final int taskIndex,
+                                                       final String enclaveChallenge) {
         final String hash = HashUtils.concatenateAndHash(workerWallet, chainTaskId, enclaveChallenge);
         return WorkerpoolAuthorization.builder()
                 .workerWallet(workerWallet)
                 .chainTaskId(chainTaskId)
+                .dealId(dealId)
+                .taskIndex(taskIndex)
                 .enclaveChallenge(enclaveChallenge)
                 .signature(sign(hash))
                 .build();
