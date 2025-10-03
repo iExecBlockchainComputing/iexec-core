@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.1.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.0.0...v9.1.0) (2025-10-03)
+
+
+### Features
+
+* add TDX SMS support and load cache in SmsService at startup ([#762](https://github.com/iExecBlockchainComputing/iexec-core/issues/762)) ([434857f](https://github.com/iExecBlockchainComputing/iexec-core/commit/434857fdd2c1ff042495120968d75dbcbb3550d2))
+* create WorkerpoolAuthorization instances with on-chain deal ID and task index ([#761](https://github.com/iExecBlockchainComputing/iexec-core/issues/761)) ([2358967](https://github.com/iExecBlockchainComputing/iexec-core/commit/2358967763a4913630116624505f99ce5387e0f9))
+
+
+### Bug Fixes
+
+* only trigger task status update after successful replicate status when relevant ([#760](https://github.com/iExecBlockchainComputing/iexec-core/issues/760)) ([7da7812](https://github.com/iExecBlockchainComputing/iexec-core/commit/7da7812a2b74c749691c4e5032649675bf01e1eb))
+* remove dead code in scheduler ([#759](https://github.com/iExecBlockchainComputing/iexec-core/issues/759)) ([41312a4](https://github.com/iExecBlockchainComputing/iexec-core/commit/41312a473f792b4fd0b4437c382e77a533268a9f))
+* verify conditions before querying blockchain adapter for finalization ([#757](https://github.com/iExecBlockchainComputing/iexec-core/issues/757)) ([0ddd62d](https://github.com/iExecBlockchainComputing/iexec-core/commit/0ddd62d31ae39cd60dee0f43c6ad2b8b059731b9))
+
 ## [[9.0.0]](https://github.com/iExecBlockchainComputing/iexec-core/releases/tag/v9.0.0) 2025-04-01
 
 ### New Features
