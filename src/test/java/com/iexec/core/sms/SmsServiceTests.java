@@ -73,7 +73,7 @@ class SmsServiceTests {
 
     @Test
     void shouldGetVerifiedGramineSmsUrl() {
-        when(registryConfiguration.getGramineSms()).thenReturn(GRAMINE_SMS_URL);
+        when(registryConfiguration.getGramine()).thenReturn(GRAMINE_SMS_URL);
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(TeeUtils.TEE_GRAMINE_ONLY_TAG));
 
@@ -86,7 +86,7 @@ class SmsServiceTests {
 
     @Test
     void shouldGetVerifiedSconeSmsUrl() {
-        when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
+        when(registryConfiguration.getScone()).thenReturn(SCONE_SMS_URL);
         when(smsClientProvider.getSmsClient(SCONE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeFramework()).thenReturn(TeeUtils.getTeeFramework(TeeUtils.TEE_SCONE_ONLY_TAG));
 
@@ -107,7 +107,7 @@ class SmsServiceTests {
 
     @Test
     void shouldNotGetVerifiedSmsUrlSinceWrongTeeEnclaveProviderOnRemoteSms() {
-        when(registryConfiguration.getGramineSms()).thenReturn(GRAMINE_SMS_URL);
+        when(registryConfiguration.getGramine()).thenReturn(GRAMINE_SMS_URL);
         when(smsClientProvider.getSmsClient(GRAMINE_SMS_URL)).thenReturn(smsClient);
         when(smsClient.getTeeFramework()).thenReturn(TeeFramework.SCONE);
 
@@ -232,7 +232,7 @@ class SmsServiceTests {
         when(resultRepositoryConfiguration.getUrl()).thenReturn(RESULT_PROXY_URL);
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
                 TaskDescription.builder().teeFramework(TeeFramework.SCONE).build());
-        when(registryConfiguration.getSconeSms()).thenReturn(SCONE_SMS_URL);
+        when(registryConfiguration.getScone()).thenReturn(SCONE_SMS_URL);
         when(smsClientProvider.getSmsClient(SCONE_SMS_URL)).thenReturn(smsClient);
     }
     // endregion

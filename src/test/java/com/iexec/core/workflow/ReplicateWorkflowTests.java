@@ -19,6 +19,7 @@ package com.iexec.core.workflow;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.notification.TaskNotificationType;
 import org.junit.Rule;
@@ -167,7 +168,7 @@ class ReplicateWorkflowTests {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
-                        TaskDescription.builder().isTeeTask(true).trust(BigInteger.ONE).callback(BytesUtils.EMPTY_ADDRESS).build()))
+                        TaskDescription.builder().isTeeTask(true).teeFramework(TeeFramework.SCONE).trust(BigInteger.ONE).callback(BytesUtils.EMPTY_ADDRESS).build()))
                 .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
     }
 

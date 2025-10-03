@@ -21,6 +21,7 @@ import com.iexec.common.replicate.ReplicateStatusModifier;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.Replicate;
 import com.iexec.core.replicate.ReplicatesService;
@@ -29,18 +30,21 @@ import com.iexec.core.task.TaskService;
 import com.iexec.core.task.TaskStatus;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
 import static com.iexec.core.TestUtils.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class FinalizedTaskDetectorTests {
     @Mock
     private TaskService taskService;
@@ -55,20 +59,16 @@ class FinalizedTaskDetectorTests {
     @InjectMocks
     private FinalizedTaskDetector detector;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     // region detect
     @Test
     void shouldDetectTasks() {
         final String completedChainTaskId = "0x65bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
-        final Task completedTask = getOnchainCompletedTask(completedChainTaskId).build();
+        final Task completedTask = mockOnchainTask(completedChainTaskId, ChainTaskStatus.COMPLETED).build();
         when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(completedTask));
 
         final String contributedAndFinalizedChainTaskId = "0x75bc5e94ed1486b940bd6cc0013c418efad58a0a52a3d08cee89faaa21970426";
-        final Task contributeAndFinalizeTask = getContributeAndFinalizeDoneTask(contributedAndFinalizedChainTaskId).build();
+        final Task contributeAndFinalizeTask = getContributeAndFinalizeDoneTask(
+                contributedAndFinalizedChainTaskId, ChainTaskStatus.COMPLETED, ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE).build();
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(contributeAndFinalizeTask));
         mockTaskDescriptionFromTask(contributeAndFinalizeTask);
 
@@ -82,7 +82,7 @@ class FinalizedTaskDetectorTests {
     // region detectFinalizedTasks
     @Test
     void shouldDetectFinalizedTask() {
-        final Task task = getOnchainCompletedTask(CHAIN_TASK_ID).build();
+        final Task task = mockOnchainTask(CHAIN_TASK_ID, ChainTaskStatus.COMPLETED).build();
 
         when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(task));
 
@@ -92,21 +92,22 @@ class FinalizedTaskDetectorTests {
     }
 
     @Test
-    void shouldDetectNoFinalizedTaskAsTaskIsRevealing() {
-        final Task task = getOnchainRevealingTask(CHAIN_TASK_ID).build();
+    void shouldNotDetectFinalizedTaskAsTaskIsRevealing() {
+        final Task task = mockOnchainTask(CHAIN_TASK_ID, ChainTaskStatus.REVEALING).build();
 
         when(taskService.findByCurrentStatus(TaskStatus.FINALIZING)).thenReturn(List.of(task));
 
         detector.detectFinalizedTasks();
 
-        verify(taskUpdateRequestManager, Mockito.never()).publishRequest(CHAIN_TASK_ID);
+        verifyNoInteractions(taskUpdateRequestManager);
     }
     // endregion
 
     // region detectContributeAndFinalizeDoneTasks
     @Test
     void shouldDetectContributeAndFinalizeDoneTask() {
-        final Task task = getContributeAndFinalizeDoneTask(CHAIN_TASK_ID).build();
+        final Task task = getContributeAndFinalizeDoneTask(
+                CHAIN_TASK_ID, ChainTaskStatus.COMPLETED, ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE).build();
 
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(task));
         mockTaskDescriptionFromTask(task);
@@ -117,22 +118,23 @@ class FinalizedTaskDetectorTests {
     }
 
     @Test
-    void shouldDetectNoContributeAndFinalizeDoneTaskAsTaskIsRevealing() {
-        final Task task = getOnchainRevealingTask(CHAIN_DEAL_ID).build();
+    void shouldNotDetectContributeAndFinalizeDoneTaskAsTaskIsActive() {
+        final Task task = getContributeAndFinalizeDoneTask(
+                CHAIN_TASK_ID, ChainTaskStatus.ACTIVE, ReplicateStatus.COMPUTING).build();
 
         when(taskService.findByCurrentStatus(TaskStatus.RUNNING)).thenReturn(List.of(task));
         mockTaskDescriptionFromTask(task);
 
         detector.detectContributeAndFinalizeDoneTasks();
 
-        verify(taskUpdateRequestManager, Mockito.never()).publishRequest(CHAIN_TASK_ID);
+        verifyNoInteractions(taskUpdateRequestManager);
     }
     // endregion
 
     // region isChainTaskCompleted
     @Test
     void shouldChainTaskBeCompleted() {
-        final Task task = getOnchainCompletedTask(CHAIN_TASK_ID).build();
+        final Task task = mockOnchainTask(CHAIN_TASK_ID, ChainTaskStatus.COMPLETED).build();
 
         final boolean chainTaskCompleted = detector.isChainTaskCompleted(task);
 
@@ -155,7 +157,7 @@ class FinalizedTaskDetectorTests {
 
     @Test
     void shouldChainTaskNotBeCompletedAsChainTaskNotCompleted() {
-        final Task task = getOnchainRevealingTask(CHAIN_DEAL_ID).build();
+        final Task task = mockOnchainTask(CHAIN_TASK_ID, ChainTaskStatus.REVEALING).build();
 
         final boolean chainTaskCompleted = detector.isChainTaskCompleted(task);
 
@@ -166,7 +168,8 @@ class FinalizedTaskDetectorTests {
     // region isTaskContributeAndFinalizeDone
     @Test
     void shouldTaskBeContributeAndFinalizeDone() {
-        final Task task = getContributeAndFinalizeDoneTask(CHAIN_TASK_ID).build();
+        final Task task = getContributeAndFinalizeDoneTask(
+                CHAIN_TASK_ID, ChainTaskStatus.COMPLETED, ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE).build();
         mockTaskDescriptionFromTask(task);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
@@ -193,17 +196,13 @@ class FinalizedTaskDetectorTests {
         final Task task = Task.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .currentStatus(TaskStatus.FINALIZING)
+                .trust(1)
                 .tag(TEE_TAG)
                 .build();
         final Replicate replicate1 = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         final Replicate replicate2 = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
-        final ChainTask chainTask = ChainTask.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .status(ChainTaskStatus.COMPLETED)
-                .build();
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate1, replicate2));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
         mockTaskDescriptionFromTask(task);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
@@ -216,6 +215,7 @@ class FinalizedTaskDetectorTests {
         final Task task = Task.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .currentStatus(TaskStatus.FINALIZING)
+                .trust(1)
                 .tag(TEE_TAG)
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
@@ -231,20 +231,14 @@ class FinalizedTaskDetectorTests {
 
     @Test
     void shouldTaskNotBeContributeAndFinalizeDoneAsChainTaskNotCompleted() {
-        final Task task = Task.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .currentStatus(TaskStatus.FINALIZING)
+        final Task task = mockOnchainTask(CHAIN_TASK_ID, ChainTaskStatus.REVEALING)
+                .trust(1)
                 .tag(TEE_TAG)
                 .build();
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE, ReplicateStatusModifier.WORKER);
-        final ChainTask chainTask = ChainTask.builder()
-                .chainTaskId(CHAIN_TASK_ID)
-                .status(ChainTaskStatus.REVEALING)
-                .build();
 
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(List.of(replicate));
-        when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
         mockTaskDescriptionFromTask(task);
 
         final boolean taskContributeAndFinalizeDone = detector.isTaskContributeAndFinalizeDone(task);
@@ -268,47 +262,42 @@ class FinalizedTaskDetectorTests {
     // endregion
 
     // region Utils
-    private Task.TaskBuilder getOnchainCompletedTask(String chainTaskId) {
-        final ChainTask chainTask = ChainTask.builder()
-                .chainTaskId(chainTaskId)
-                .status(ChainTaskStatus.COMPLETED)
-                .build();
-
-        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(chainTask));
-
-        return Task.builder()
-                .chainTaskId(chainTaskId)
-                .currentStatus(TaskStatus.FINALIZING);
-    }
-
-    private Task.TaskBuilder getOnchainRevealingTask(String chainTaskId) {
-        final ChainTask chainTask = ChainTask.builder()
-                .chainTaskId(chainTaskId)
-                .status(ChainTaskStatus.REVEALING)
-                .build();
-
-        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(chainTask));
-
-        return Task.builder()
-                .chainTaskId(chainTaskId)
-                .currentStatus(TaskStatus.FINALIZING);
-    }
-
-    private Task.TaskBuilder getContributeAndFinalizeDoneTask(String chainTaskId) {
+    private Task.TaskBuilder getContributeAndFinalizeDoneTask(final String chainTaskId,
+                                                              final ChainTaskStatus chainTaskStatus,
+                                                              final ReplicateStatus replicateStatus) {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
-        replicate.updateStatus(ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE, ReplicateStatusModifier.WORKER);
+        replicate.updateStatus(replicateStatus, ReplicateStatusModifier.WORKER);
 
         when(replicatesService.getReplicates(chainTaskId)).thenReturn(List.of(replicate));
 
-        return getOnchainCompletedTask(chainTaskId)
-                .tag(TEE_TAG)
-                .trust(1);
+        // iexecHubService.getChainTask will only be called if task has single replicate with CONTRIBUTE_AND_FINALIZE_DONE status
+        final Task.TaskBuilder taskBuilder =
+                replicateStatus == ReplicateStatus.CONTRIBUTE_AND_FINALIZE_DONE ? mockOnchainTask(chainTaskId, chainTaskStatus) : Task.builder().chainTaskId(chainTaskId);
+
+        return taskBuilder
+                .currentStatus(TaskStatus.RUNNING)
+                .trust(1)
+                .tag(TEE_TAG);
     }
 
-    private void mockTaskDescriptionFromTask(Task task) {
+    private Task.TaskBuilder mockOnchainTask(final String chainTaskId, final ChainTaskStatus chainTaskStatus) {
+        final ChainTask chainTask = ChainTask.builder()
+                .chainTaskId(chainTaskId)
+                .status(chainTaskStatus)
+                .build();
+
+        when(iexecHubService.getChainTask(chainTaskId)).thenReturn(Optional.of(chainTask));
+
+        return Task.builder()
+                .chainTaskId(chainTaskId)
+                .currentStatus(TaskStatus.FINALIZING);
+    }
+
+    private void mockTaskDescriptionFromTask(final Task task) {
         final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(task.getChainTaskId())
                 .isTeeTask(task.isTeeTask())
+                .teeFramework(TeeUtils.getTeeFramework(task.getTag()))
                 .trust(BigInteger.valueOf(task.getTrust()))
                 .callback("")
                 .build();

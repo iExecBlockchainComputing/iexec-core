@@ -29,13 +29,16 @@ import com.iexec.core.task.event.TaskInitializedEvent;
 import com.iexec.sms.api.SmsClient;
 import com.iexec.sms.api.SmsClientProvider;
 import feign.FeignException;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Hash;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import static com.iexec.sms.secret.ReservedSecretKeyName.IEXEC_RESULT_IEXEC_RESULT_PROXY_URL;
 
@@ -58,6 +61,16 @@ public class SmsService {
         this.resultRepositoryConfiguration = resultRepositoryConfiguration;
         this.signatureService = signatureService;
         this.smsClientProvider = smsClientProvider;
+    }
+
+    @PostConstruct
+    void initSmsClients() {
+        Arrays.stream(TeeFramework.values())
+                .map(this::retrieveSmsUrl)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(Predicate.not(String::isBlank))
+                .forEach(smsClientProvider::getSmsClient);
     }
 
     private Optional<String> getVerifiedSmsUrl(final String chainTaskId) {
@@ -86,35 +99,31 @@ public class SmsService {
     Optional<String> getVerifiedSmsUrl(final String chainTaskId, final TeeFramework teeFrameworkForDeal) {
         log.debug("getVerifiedSmsUrl [chainTaskId:{}, teeFrameworkForDeal:{}]", chainTaskId, teeFrameworkForDeal);
         if (teeFrameworkForDeal == null) {
-            log.error("Can't get verified SMS url with invalid TEE framework " +
-                    "from tag [chainTaskId:{}]", chainTaskId);
+            log.error("Can't get verified SMS url with invalid TEE framework from tag [chainTaskId:{}]", chainTaskId);
             return Optional.empty();
         }
-        Optional<String> smsUrl = retrieveSmsUrl(teeFrameworkForDeal);
+        final Optional<String> smsUrl = retrieveSmsUrl(teeFrameworkForDeal);
         if (smsUrl.isEmpty()) {
-            log.error("Can't get verified SMS url since type of tag is not " +
-                            "supported [chainTaskId:{},teeFrameworkForDeal:{}]",
+            log.error("Can't get verified SMS url since type of tag is not supported [chainTaskId:{}, teeFrameworkForDeal:{}]",
                     chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
         final SmsClient smsClient = smsClientProvider.getSmsClient(smsUrl.get());
         if (!checkSmsTeeFramework(smsClient, teeFrameworkForDeal, chainTaskId)) {
-            log.error("Can't get verified SMS url since tag TEE type " +
-                            "does not match SMS TEE type [chainTaskId:{},teeFrameworkForDeal:{}]",
+            log.error("Can't get verified SMS url since tag TEE type does not match SMS TEE type [chainTaskId:{}, teeFrameworkForDeal:{}]",
                     chainTaskId, teeFrameworkForDeal);
             return Optional.empty();
         }
         return smsUrl;
     }
 
-    private Optional<String> retrieveSmsUrl(TeeFramework teeFramework) {
-        Optional<String> smsUrl = Optional.empty();
-        if (teeFramework == TeeFramework.SCONE) {
-            smsUrl = Optional.of(registryConfiguration.getSconeSms());
-        } else if (teeFramework == TeeFramework.GRAMINE) {
-            smsUrl = Optional.of(registryConfiguration.getGramineSms());
-        }
-        return smsUrl;
+    private Optional<String> retrieveSmsUrl(final TeeFramework teeFramework) {
+        return switch (teeFramework) {
+            case SCONE -> Optional.of(registryConfiguration.getScone());
+            case GRAMINE -> Optional.of(registryConfiguration.getGramine());
+            case TDX -> Optional.of(registryConfiguration.getTdx());
+            default -> Optional.empty();
+        };
     }
 
     private boolean checkSmsTeeFramework(SmsClient smsClient,
@@ -130,8 +139,7 @@ public class SmsService {
         }
 
         if (smsTeeFramework != teeFrameworkForDeal) {
-            log.error("SMS is configured for another TEE framework " +
-                            "[chainTaskId:{}, teeFrameworkForDeal:{}, smsTeeFramework:{}]",
+            log.error("SMS is configured for another TEE framework [chainTaskId:{}, teeFrameworkForDeal:{}, smsTeeFramework:{}]",
                     chainTaskId, teeFrameworkForDeal, smsTeeFramework);
             return false;
         }

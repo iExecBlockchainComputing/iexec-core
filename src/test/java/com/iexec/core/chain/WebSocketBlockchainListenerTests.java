@@ -56,8 +56,6 @@ class WebSocketBlockchainListenerTests {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("sms.scone", () -> "");
-        registry.add("sms.gramine", () -> "");
         registry.add("chain.node-address", () -> getServiceUrl(
                 environment.getServiceHost(CHAIN_SVC_NAME, CHAIN_SVC_PORT),
                 environment.getServicePort(CHAIN_SVC_NAME, CHAIN_SVC_PORT))

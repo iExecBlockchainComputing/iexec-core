@@ -1616,6 +1616,7 @@ class TaskUpdateManagerTests {
         final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(task.getChainTaskId())
                 .isTeeTask(task.isTeeTask())
+                .teeFramework(TeeUtils.getTeeFramework(task.getTag()))
                 .trust(BigInteger.valueOf(task.getTrust()))
                 .callback("")
                 .build();
