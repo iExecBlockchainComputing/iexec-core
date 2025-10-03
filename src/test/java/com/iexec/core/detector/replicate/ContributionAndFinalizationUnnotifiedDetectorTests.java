@@ -19,6 +19,7 @@ package com.iexec.core.detector.replicate;
 import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.CronConfiguration;
 import com.iexec.core.replicate.Replicate;
@@ -94,6 +95,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
                 TaskDescription.builder()
                         .trust(BigInteger.ONE)
                         .isTeeTask(true)
+                        .teeFramework(TeeFramework.SCONE)
                         .callback(callback)
                         .build()
         );
