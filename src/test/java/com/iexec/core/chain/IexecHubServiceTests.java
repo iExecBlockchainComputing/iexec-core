@@ -130,23 +130,40 @@ class IexecHubServiceTests {
     // endregion
 
     // region get event blocks
-    private void mockWeb3jCall(final long latestBlock) {
+    private EthLog mockWeb3jCall(final long latestBlock) {
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);
         when(web3jService.getWeb3j()).thenReturn(web3j);
         doReturn(logRequest).when(web3j).ethGetLogs(any());
-    }
-
-    @Test
-    void shouldGetContributionBlock() {
-        final int fromBlock = 0;
-        final long latestBlock = 1;
         final EthLog ethLog = new EthLog();
         final EthLog.LogObject logObject = new EthLog.LogObject();
         logObject.setBlockNumber(String.valueOf(latestBlock));
         logObject.setTransactionHash(TRANSACTION_HASH);
         ethLog.setResult(List.of(logObject));
+        return ethLog;
+    }
 
-        mockWeb3jCall(latestBlock);
+    @Test
+    void shouldGetInitializationBlock() {
+        final int fromBlock = 0;
+        final long latestBlock = 1;
+
+        final EthLog ethLog = mockWeb3jCall(latestBlock);
+        when(logRequest.flowable()).thenReturn(Flowable.fromArray(ethLog));
+
+        final ChainReceipt chainReceipt = iexecHubService.getInitializeBlock(CHAIN_TASK_ID, fromBlock);
+
+        assertThat(chainReceipt)
+                .isEqualTo(ChainReceipt.builder()
+                        .blockNumber(latestBlock)
+                        .txHash(TRANSACTION_HASH)
+                        .build());
+    }
+
+    @Test
+    void shouldGetContributionBlock() {
+        final int fromBlock = 1;
+        final long latestBlock = 2;
+        final EthLog ethLog = mockWeb3jCall(latestBlock);
         when(logRequest.flowable()).thenReturn(Flowable.fromArray(ethLog));
 
         final ChainReceipt chainReceipt = iexecHubService.getContributionBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock);
@@ -160,14 +177,9 @@ class IexecHubServiceTests {
 
     @Test
     void shouldGetConsensusBlock() {
-        final int fromBlock = 0;
-        final long latestBlock = 1;
-        final EthLog ethLog = new EthLog();
-        final EthLog.LogObject logObject = new EthLog.LogObject();
-        logObject.setBlockNumber(String.valueOf(latestBlock));
-        logObject.setTransactionHash(TRANSACTION_HASH);
-        ethLog.setResult(List.of(logObject));
-        mockWeb3jCall(latestBlock);
+        final int fromBlock = 2;
+        final long latestBlock = 3;
+        final EthLog ethLog = mockWeb3jCall(latestBlock);
         when(logRequest.flowable()).thenReturn(Flowable.fromArray(ethLog));
 
         final ChainReceipt chainReceipt = iexecHubService.getConsensusBlock(CHAIN_TASK_ID, fromBlock);
@@ -181,14 +193,9 @@ class IexecHubServiceTests {
 
     @Test
     void shouldGetRevealBlock() {
-        final int fromBlock = 0;
-        final long latestBlock = 1;
-        final EthLog ethLog = new EthLog();
-        final EthLog.LogObject logObject = new EthLog.LogObject();
-        logObject.setBlockNumber(String.valueOf(latestBlock));
-        logObject.setTransactionHash(TRANSACTION_HASH);
-        ethLog.setResult(List.of(logObject));
-        mockWeb3jCall(latestBlock);
+        final int fromBlock = 3;
+        final long latestBlock = 4;
+        final EthLog ethLog = mockWeb3jCall(latestBlock);
         when(logRequest.flowable()).thenReturn(Flowable.fromArray(ethLog));
 
         final ChainReceipt chainReceipt = iexecHubService.getRevealBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock);
@@ -202,14 +209,9 @@ class IexecHubServiceTests {
 
     @Test
     void shouldGetFinalizeBlock() {
-        final int fromBlock = 0;
-        final long latestBlock = 1;
-        final EthLog ethLog = new EthLog();
-        final EthLog.LogObject logObject = new EthLog.LogObject();
-        logObject.setBlockNumber(String.valueOf(latestBlock));
-        logObject.setTransactionHash(TRANSACTION_HASH);
-        ethLog.setResult(List.of(logObject));
-        mockWeb3jCall(latestBlock);
+        final int fromBlock = 4;
+        final long latestBlock = 5;
+        final EthLog ethLog = mockWeb3jCall(latestBlock);
         when(logRequest.flowable()).thenReturn(Flowable.fromArray(ethLog));
 
         final ChainReceipt chainReceipt = iexecHubService.getFinalizeBlock(CHAIN_TASK_ID, fromBlock);
@@ -223,6 +225,7 @@ class IexecHubServiceTests {
 
     static Stream<BiFunction<IexecHubService, Long, ChainReceipt>> eventBlockGetters() {
         return Stream.of(
+                (iexecHubService, fromBlock) -> iexecHubService.getInitializeBlock(CHAIN_TASK_ID, fromBlock),
                 (iexecHubService, fromBlock) -> iexecHubService.getContributionBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock),
                 (iexecHubService, fromBlock) -> iexecHubService.getConsensusBlock(CHAIN_TASK_ID, fromBlock),
                 (iexecHubService, fromBlock) -> iexecHubService.getRevealBlock(CHAIN_TASK_ID, WORKER_ADDRESS, fromBlock),
@@ -232,7 +235,7 @@ class IexecHubServiceTests {
 
     @ParameterizedTest
     @MethodSource("eventBlockGetters")
-    void shouldNotGetEventBlockWhenFromBlockInFuture(BiFunction<IexecHubService, Long, ChainReceipt> eventBlockGetter) {
+    void shouldNotGetEventBlockWhenFromBlockInFuture(final BiFunction<IexecHubService, Long, ChainReceipt> eventBlockGetter) {
         final long fromBlock = 2;
         final long latestBlock = 1;
         when(web3jService.getLatestBlockNumber()).thenReturn(latestBlock);

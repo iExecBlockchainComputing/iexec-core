@@ -43,9 +43,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     private final SignerService signerService;
     private final Web3jService web3jService;
 
-    public IexecHubService(SignerService signerService,
-                           Web3jService web3jService,
-                           ChainConfig chainConfig) {
+    public IexecHubService(final SignerService signerService,
+                           final Web3jService web3jService,
+                           final ChainConfig chainConfig) {
         super(
                 signerService.getCredentials(),
                 web3jService,
