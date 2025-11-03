@@ -136,7 +136,7 @@ class TaskServiceTests {
         task.setContributionDeadline(contributionDeadline);
         task.setFinalDeadline(finalDeadline);
 
-        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, 0, DAPP_NAME, COMMAND_LINE,
+        Optional<Task> saved = taskService.addTask(CHAIN_DEAL_ID, 0, DEAL_BLOCK, DAPP_NAME, COMMAND_LINE,
                 2, maxExecutionTime, NO_TEE_TAG, contributionDeadline, finalDeadline);
         assertThat(saved)
                 .usingRecursiveComparison()

@@ -258,6 +258,7 @@ class TaskUpdateManagerTests {
 
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getInitializeBlock(CHAIN_TASK_ID, DEAL_BLOCK)).thenReturn(ChainReceipt.builder().blockNumber(DEAL_BLOCK).build());
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, TEE_TAG)).thenReturn(Optional.of(SMS_URL));
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, SMS_URL)).thenReturn(Optional.empty());
 
@@ -275,6 +276,7 @@ class TaskUpdateManagerTests {
 
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getInitializeBlock(CHAIN_TASK_ID, DEAL_BLOCK)).thenReturn(ChainReceipt.builder().blockNumber(DEAL_BLOCK).build());
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
@@ -295,6 +297,7 @@ class TaskUpdateManagerTests {
 
         when(blockchainAdapterService.requestInitialize(CHAIN_DEAL_ID, 0)).thenReturn(Optional.of(CHAIN_TASK_ID));
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getInitializeBlock(CHAIN_TASK_ID, DEAL_BLOCK)).thenReturn(ChainReceipt.builder().blockNumber(DEAL_BLOCK).build());
         when(smsService.getVerifiedSmsUrl(CHAIN_TASK_ID, tag)).thenReturn(Optional.of(SMS_URL));
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, SMS_URL)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
@@ -336,6 +339,7 @@ class TaskUpdateManagerTests {
         taskRepository.save(task);
 
         when(blockchainAdapterService.isInitialized(CHAIN_TASK_ID)).thenReturn(Optional.of(true));
+        when(iexecHubService.getInitializeBlock(CHAIN_TASK_ID, DEAL_BLOCK)).thenReturn(ChainReceipt.builder().blockNumber(DEAL_BLOCK).build());
         when(smsService.getEnclaveChallenge(CHAIN_TASK_ID, CHAIN_DEAL_ID, 0, null)).thenReturn(Optional.of(BytesUtils.EMPTY_ADDRESS));
 
         taskUpdateManager.updateTask(CHAIN_TASK_ID);
