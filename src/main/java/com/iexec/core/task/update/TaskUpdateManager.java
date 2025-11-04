@@ -242,8 +242,9 @@ class TaskUpdateManager {
             log.info("Initialized on blockchain (tx mined) [chainTaskId:{}]", task.getChainTaskId());
             final Update update = new Update();
             // Without receipt, using deal block for initialization block
-            task.setInitializationBlockNumber(task.getDealBlockNumber());
-            update.set("initializationBlockNumber", task.getDealBlockNumber());
+            final ChainReceipt chainReceipt = iexecHubService.getInitializeBlock(task.getChainTaskId(), task.getDealBlockNumber());
+            task.setInitializationBlockNumber(chainReceipt.getBlockNumber());
+            update.set("initializationBlockNumber", chainReceipt.getBlockNumber());
 
             // Create enclave challenge after task has been initialized on-chain
             final Optional<String> enclaveChallenge = smsService.getEnclaveChallenge(

@@ -19,22 +19,22 @@ package com.iexec.core.chain;
 import com.iexec.common.lifecycle.purge.Purgeable;
 import com.iexec.commons.poco.chain.*;
 import com.iexec.commons.poco.contract.generated.IexecHubContract;
-import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.commons.poco.encoding.LogTopic;
 import io.reactivex.Flowable;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.web3j.abi.EventEncoder;
-import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.protocol.core.methods.response.EthLog;
+import org.web3j.protocol.core.methods.response.Log;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Date;
 
 import static com.iexec.commons.poco.chain.ChainContributionStatus.CONTRIBUTED;
 import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
-import static com.iexec.commons.poco.contract.generated.IexecHubContract.*;
 
 @Slf4j
 @Service
@@ -43,9 +43,9 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     private final SignerService signerService;
     private final Web3jService web3jService;
 
-    public IexecHubService(SignerService signerService,
-                           Web3jService web3jService,
-                           ChainConfig chainConfig) {
+    public IexecHubService(final SignerService signerService,
+                           final Web3jService web3jService,
+                           final ChainConfig chainConfig) {
         super(
                 signerService.getCredentials(),
                 web3jService,
@@ -156,124 +156,95 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
     // endregion
 
     // region get event blocks
-    public ChainReceipt getContributionBlock(String chainTaskId,
-                                             String workerWallet,
-                                             long fromBlock) {
+    public ChainReceipt getInitializeBlock(final String chainTaskId,
+                                           final long fromBlock) {
+        log.debug("getInitializeBlock [chainTaskId:{}]", chainTaskId);
+        final long latestBlock = web3jService.getLatestBlockNumber();
+        if (fromBlock > latestBlock) {
+            return ChainReceipt.builder().build();
+        }
+        final EthFilter ethFilter = createEthFilter(
+                fromBlock, latestBlock, LogTopic.TASK_INITIALIZE_EVENT, chainTaskId);
+        return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
+                .map(this::createChainReceipt)
+                .blockingFirst();
+    }
+
+    public ChainReceipt getContributionBlock(final String chainTaskId,
+                                             final String workerWallet,
+                                             final long fromBlock) {
+        log.debug("getContributionBlock [chainTaskId:{}]", chainTaskId);
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
-
-        EthFilter ethFilter = createContributeEthFilter(fromBlock, latestBlock);
-
-        // filter only taskContribute events for the chainTaskId and the worker's wallet
-        // and retrieve the block number of the event
-        return iexecHubContract.taskContributeEventFlowable(ethFilter)
-                .filter(eventResponse ->
-                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
-                                workerWallet.equals(eventResponse.worker)
-                )
-                .map(eventResponse -> ChainReceipt.builder()
-                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
-                        .txHash(eventResponse.log.getTransactionHash())
-                        .build())
+        final EthFilter ethFilter = createEthFilter(
+                fromBlock, latestBlock, LogTopic.TASK_CONTRIBUTE_EVENT, chainTaskId, workerWallet);
+        return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
+                .map(this::createChainReceipt)
                 .blockingFirst();
     }
 
-    public ChainReceipt getConsensusBlock(String chainTaskId, long fromBlock) {
+    public ChainReceipt getConsensusBlock(final String chainTaskId, final long fromBlock) {
+        log.debug("getConsensusBlock [chainTaskId:{}]", chainTaskId);
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
-
-        EthFilter ethFilter = createConsensusEthFilter(fromBlock, latestBlock);
-
-        // filter only taskConsensus events for the chainTaskId (there should be only one)
-        // and retrieve the block number of the event
-        return iexecHubContract.taskConsensusEventFlowable(ethFilter)
-                .filter(eventResponse -> chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)))
-                .map(eventResponse -> ChainReceipt.builder()
-                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
-                        .txHash(eventResponse.log.getTransactionHash())
-                        .build())
+        final EthFilter ethFilter = createEthFilter(
+                fromBlock, latestBlock, LogTopic.TASK_CONSENSUS_EVENT, chainTaskId);
+        return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
+                .map(this::createChainReceipt)
                 .blockingFirst();
     }
 
-    public ChainReceipt getRevealBlock(String chainTaskId,
-                                       String workerWallet,
-                                       long fromBlock) {
+    public ChainReceipt getRevealBlock(final String chainTaskId,
+                                       final String workerWallet,
+                                       final long fromBlock) {
+        log.debug("getRevealBlock [chainTaskId:{}]", chainTaskId);
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
-
-        EthFilter ethFilter = createRevealEthFilter(fromBlock, latestBlock);
-
-        // filter only taskReveal events for the chainTaskId and the worker's wallet
-        // and retrieve the block number of the event
-        return iexecHubContract.taskRevealEventFlowable(ethFilter)
-                .filter(eventResponse ->
-                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid)) &&
-                                workerWallet.equals(eventResponse.worker)
-                )
-                .map(eventResponse -> ChainReceipt.builder()
-                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
-                        .txHash(eventResponse.log.getTransactionHash())
-                        .build())
+        final EthFilter ethFilter = createEthFilter(
+                fromBlock, latestBlock, LogTopic.TASK_REVEAL_EVENT, chainTaskId, workerWallet);
+        return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
+                .map(this::createChainReceipt)
                 .blockingFirst();
     }
 
-    public ChainReceipt getFinalizeBlock(String chainTaskId, long fromBlock) {
+    public ChainReceipt getFinalizeBlock(final String chainTaskId,
+                                         final long fromBlock) {
+        log.debug("getFinalizeBlock [chainTaskId:{}]", chainTaskId);
         long latestBlock = web3jService.getLatestBlockNumber();
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
-
-        EthFilter ethFilter = createFinalizeEthFilter(fromBlock, latestBlock);
-
-        // filter only taskFinalize events for the chainTaskId (there should be only one)
-        // and retrieve the block number of the event
-        return iexecHubContract.taskFinalizeEventFlowable(ethFilter)
-                .filter(eventResponse ->
-                        chainTaskId.equals(BytesUtils.bytesToString(eventResponse.taskid))
-                )
-                .map(eventResponse -> ChainReceipt.builder()
-                        .blockNumber(eventResponse.log.getBlockNumber().longValue())
-                        .txHash(eventResponse.log.getTransactionHash())
-                        .build())
+        final EthFilter ethFilter = createEthFilter(
+                fromBlock, latestBlock, LogTopic.TASK_FINALIZE_EVENT, chainTaskId);
+        return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
+                .map(this::createChainReceipt)
                 .blockingFirst();
     }
 
-    private EthFilter createContributeEthFilter(long fromBlock, long toBlock) {
-        return createEthFilter(fromBlock, toBlock, TASKCONTRIBUTE_EVENT);
+    private ChainReceipt createChainReceipt(final EthLog ethLog) {
+        final Log logEvent = (Log) ethLog.getLogs().get(0);
+        return ChainReceipt.builder()
+                .blockNumber(logEvent.getBlockNumber().longValue())
+                .txHash(logEvent.getTransactionHash())
+                .build();
     }
 
-    private EthFilter createConsensusEthFilter(long fromBlock, long toBlock) {
-        return createEthFilter(fromBlock, toBlock, TASKCONSENSUS_EVENT);
-    }
-
-    private EthFilter createRevealEthFilter(long fromBlock, long toBlock) {
-        return createEthFilter(fromBlock, toBlock, TASKREVEAL_EVENT);
-    }
-
-    private EthFilter createFinalizeEthFilter(long fromBlock, long toBlock) {
-        return createEthFilter(fromBlock, toBlock, TASKFINALIZE_EVENT);
-    }
-
-    private EthFilter createEthFilter(long fromBlock, long toBlock, Event event) {
-        IexecHubContract iexecHub = getHubContract();
-        DefaultBlockParameter startBlock =
-                DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock));
-        DefaultBlockParameter endBlock =
-                DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock));
-
-        // define the filter
-        EthFilter ethFilter = new EthFilter(
-                startBlock,
-                endBlock,
-                iexecHub.getContractAddress()
+    private EthFilter createEthFilter(final long fromBlock,
+                                      final long toBlock,
+                                      final String... topics) {
+        log.debug("createEthFilter [from:{}, to:{}]", fromBlock, toBlock);
+        final EthFilter ethFilter = new EthFilter(
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock)),
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock)),
+                iexecHubAddress
         );
-        ethFilter.addSingleTopic(EventEncoder.encode(event));
+        Arrays.stream(topics).forEach(ethFilter::addSingleTopic);
 
         return ethFilter;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Slf4j
 @Service
 public class InitializedTaskDetector implements Detector {
@@ -38,9 +36,9 @@ public class InitializedTaskDetector implements Detector {
     private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final IexecHubService iexecHubService;
 
-    public InitializedTaskDetector(TaskService taskService,
-                                   TaskUpdateRequestManager taskUpdateRequestManager,
-                                   IexecHubService iexecHubService) {
+    public InitializedTaskDetector(final TaskService taskService,
+                                   final TaskUpdateRequestManager taskUpdateRequestManager,
+                                   final IexecHubService iexecHubService) {
         this.taskService = taskService;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.iexecHubService = iexecHubService;
@@ -54,8 +52,8 @@ public class InitializedTaskDetector implements Detector {
     public void detect() {
         log.debug("Trying to detect initializable tasks");
         for (Task task : taskService.getInitializableTasks()) {
-            Optional<ChainTask> chainTask = iexecHubService.getChainTask(task.getChainTaskId());
-            if (chainTask.isEmpty() || chainTask.get().getStatus().equals(ChainTaskStatus.UNSET)) {
+            final ChainTask chainTask = iexecHubService.getChainTask(task.getChainTaskId()).orElse(null);
+            if (chainTask == null || chainTask.getStatus() == ChainTaskStatus.UNSET) {
                 continue;
             }
             log.info("Detected confirmed missing update (task) [is:{}, should:{}, taskId:{}]",
