@@ -58,6 +58,12 @@ class WorkerTests {
         assertThat(worker.getExcludedTags())
                 .containsExactly(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG);
     }
+
+    @Test
+    void shouldExcludeNoTag() {
+        final Worker worker = Worker.builder().teeEnabled(true).tdxEnabled(true).build();
+        assertThat(worker.getExcludedTags()).isEmpty();
+    }
     // endregion
 
     // region hasRemainingComputingSlot

@@ -442,7 +442,7 @@ class ReplicateSupplyServiceTests {
     }
 
     @Test
-    void shouldGetReplicateWithTee() {
+    void shouldGetReplicateWithSgx() {
         final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
@@ -461,6 +461,45 @@ class ReplicateSupplyServiceTests {
 
         mockWorkerCanAcceptMoreWork(existingWorker);
         when(taskService.getPrioritizedInitializedOrRunningTask(TDX_TEE_TAGS_EXCLUSION_LIST, List.of()))
+                .thenReturn(Optional.of(runningTask));
+        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
+        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, ENCLAVE_CHALLENGE))
+                .thenReturn(WorkerpoolAuthorization.builder().build());
+        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
+                .thenReturn(Optional.of(existingWorker));
+        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
+                .thenReturn(true);
+
+        Optional<ReplicateTaskSummary> replicateTaskSummary =
+                replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
+
+        assertThat(replicateTaskSummary).isPresent();
+
+        verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
+        verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
+        assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
+    }
+
+    @Test
+    void shouldGetReplicateWithTdx() {
+        final Worker existingWorker = Worker.builder()
+                .id("1")
+                .walletAddress(WALLET_WORKER_1)
+                .cpuNb(2)
+                .maxNbTasks(1)
+                .tdxEnabled(true)
+                .build();
+
+        final Task runningTask = getStubTask(5);
+        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
+        runningTask.setTag(TeeUtils.TEE_TDX_ONLY_TAG);
+        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
+        runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
+
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
+
+        mockWorkerCanAcceptMoreWork(existingWorker);
+        when(taskService.getPrioritizedInitializedOrRunningTask(SGX_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, ENCLAVE_CHALLENGE))
@@ -505,45 +544,6 @@ class ReplicateSupplyServiceTests {
         assertThat(replicateTaskSummary).isEmpty();
         verifyNoInteractions(signatureService);
         assertTaskAccessForNewReplicateLockNeverUsed(CHAIN_TASK_ID);
-    }
-
-    @Test
-    void shouldTeeNeededTaskBeGivenToTeeEnabledWorker() {
-        final Worker existingWorker = Worker.builder()
-                .id("1")
-                .walletAddress(WALLET_WORKER_1)
-                .cpuNb(2)
-                .maxNbTasks(1)
-                .teeEnabled(true)
-                .build();
-
-        final Task runningTask = getStubTask(5);
-        runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
-        runningTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
-        runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
-        runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
-
-        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
-
-        mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(TDX_TEE_TAGS_EXCLUSION_LIST, List.of()))
-                .thenReturn(Optional.of(runningTask));
-        when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, ENCLAVE_CHALLENGE))
-                .thenReturn(WorkerpoolAuthorization.builder().build());
-        when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
-                .thenReturn(Optional.of(existingWorker));
-        when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
-                .thenReturn(true);
-
-        Optional<ReplicateTaskSummary> replicateTaskSummary =
-                replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
-
-        assertThat(replicateTaskSummary).isPresent();
-
-        verify(replicatesService).addNewReplicate(replicatesList, WALLET_WORKER_1);
-        verify(workerService).addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1);
-        assertTaskAccessForNewReplicateNotDeadLocking(CHAIN_TASK_ID);
     }
 
     /**
