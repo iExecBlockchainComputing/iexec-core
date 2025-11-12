@@ -18,7 +18,6 @@ package com.iexec.core.task;
 
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.ChainTaskStatus;
-import com.iexec.commons.poco.tee.TeeUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.replicate.ReplicatesList;
 import com.iexec.core.task.event.TaskCreatedEvent;
@@ -229,21 +228,17 @@ public class TaskService {
      * <p>
      * Tasks can be excluded with {@code excludedChainTaskIds}.
      *
-     * @param shouldExcludeTeeTasks Whether TEE tasks should be retrieved
-     *                              as well as standard tasks.
-     * @param excludedChainTaskIds  Tasks to exclude from retrieval.
+     * @param excludedTags         Whether some tags should not be eligible, it is focused on TEE tags at the moment
+     * @param excludedChainTaskIds Tasks to exclude from retrieval.
      * @return The first task which is {@link TaskStatus#INITIALIZED}
      * or {@link TaskStatus#RUNNING},
      * or {@link Optional#empty()} if no task meets the requirements.
      */
     public Optional<Task> getPrioritizedInitializedOrRunningTask(
-            boolean shouldExcludeTeeTasks,
-            List<String> excludedChainTaskIds) {
-        final List<String> excludedTags = shouldExcludeTeeTasks
-                ? List.of(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG)
-                : null;
+            final List<String> excludedTags,
+            final List<String> excludedChainTaskIds) {
         return findPrioritizedTask(
-                Arrays.asList(INITIALIZED, RUNNING),
+                List.of(INITIALIZED, RUNNING),
                 excludedTags,
                 excludedChainTaskIds,
                 Sort.by(Sort.Order.desc(CURRENT_STATUS_FIELD_NAME),

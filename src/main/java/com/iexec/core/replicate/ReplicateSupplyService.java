@@ -98,52 +98,38 @@ public class ReplicateSupplyService implements Purgeable {
             return Optional.empty();
         }
 
-        final Optional<Worker> optional = workerService.getWorker(walletAddress);
-        if (optional.isEmpty()) {
-            return Optional.empty();
-        }
-        final Worker worker = optional.get();
-
-        // return empty if max computing task is reached or if the worker is not found
-        if (!workerService.canAcceptMoreWorks(worker)) {
+        final Worker worker = workerService.getWorker(walletAddress).orElse(null);
+        // return empty if the worker is not found or if max computing task is reached
+        if (worker == null || worker.hasNoRemainingComputingSlot()) {
             return Optional.empty();
         }
 
-        return getReplicateTaskSummaryForAnyAvailableTask(
-                walletAddress,
-                worker.isTeeEnabled()
-        );
+        return getReplicateTaskSummaryForAnyAvailableTask(worker);
     }
 
     /**
      * Loops through available tasks
      * and finds the first one that needs a new {@link Replicate}.
      *
-     * @param walletAddress Wallet address of the worker asking for work.
-     * @param isTeeEnabled  Whether this worker supports TEE.
+     * @param worker scheduler model of the worker asking for work
      * @return An {@link Optional} containing a {@link ReplicateTaskSummary}
      * if any {@link Task} is available and can be handled by this worker,
      * {@link Optional#empty()} otherwise.
      */
-    private Optional<ReplicateTaskSummary> getReplicateTaskSummaryForAnyAvailableTask(
-            String walletAddress,
-            boolean isTeeEnabled) {
+    private Optional<ReplicateTaskSummary> getReplicateTaskSummaryForAnyAvailableTask(final Worker worker) {
         final List<String> alreadyScannedTasks = new ArrayList<>();
+        final List<String> excludedTags = worker.getExcludedTags();
 
         Optional<ReplicateTaskSummary> replicateTaskSummary = Optional.empty();
         while (replicateTaskSummary.isEmpty()) {
-            final Optional<Task> oTask = taskService.getPrioritizedInitializedOrRunningTask(
-                    !isTeeEnabled,
-                    alreadyScannedTasks
-            );
-            if (oTask.isEmpty()) {
+            final Task task = taskService.getPrioritizedInitializedOrRunningTask(
+                    excludedTags, alreadyScannedTasks).orElse(null);
+            if (task == null) {
                 // No more tasks waiting for a new replicate.
                 return Optional.empty();
             }
-
-            final Task task = oTask.get();
             alreadyScannedTasks.add(task.getChainTaskId());
-            replicateTaskSummary = getReplicateTaskSummary(task, walletAddress);
+            replicateTaskSummary = getReplicateTaskSummary(task, worker.getWalletAddress());
         }
         return replicateTaskSummary;
     }

@@ -499,26 +499,6 @@ class WorkerServiceTests {
         assertThat(workerService.getAliveWorkers()).isEmpty();
     }
 
-    @Test
-    void shouldAcceptMoreWorks() {
-        Worker worker = getDummyWorker(WORKER1,
-                3,
-                List.of("task1", "task2", "task3", "task4", "task5"),
-                List.of("task1", "task3"));
-
-        assertThat(workerService.canAcceptMoreWorks(worker)).isTrue();
-    }
-
-    @Test
-    void shouldNotAcceptMoreWorksSinceSaturatedCpus() {
-        Worker worker = getDummyWorker(WORKER1,
-                2,
-                List.of("task1", "task2", "task3", "task4"),
-                List.of("task1", "task3"));
-
-        assertThat(workerService.canAcceptMoreWorks(worker)).isFalse();
-    }
-
     List<Worker> getDummyWorkers() {
         workerService.getWorkerStatsMap().computeIfAbsent("address1", WorkerService.WorkerStats::new)
                 .setLastAliveDate(Date.from(Instant.now()));

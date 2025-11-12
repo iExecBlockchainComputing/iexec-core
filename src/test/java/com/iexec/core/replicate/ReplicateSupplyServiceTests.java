@@ -40,7 +40,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -63,6 +62,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReplicateSupplyServiceTests {
 
+    private static final List<String> ALL_TEE_TAGS_EXCLUSION_LIST = List.of(TeeUtils.TEE_TDX_ONLY_TAG, TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG);
+    private static final List<String> SGX_TEE_TAGS_EXCLUSION_LIST = List.of(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG);
+    private static final List<String> TDX_TEE_TAGS_EXCLUSION_LIST = List.of(TeeUtils.TEE_TDX_ONLY_TAG);
+
     private static final String WALLET_WORKER_1 = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private static final String WALLET_WORKER_2 = "0xdcfeffee1443fbf9277e6fa3b50cf3b38f7101af";
 
@@ -71,7 +74,6 @@ class ReplicateSupplyServiceTests {
     private static final String DAPP_NAME = "dappName";
     private static final String COMMAND_LINE = "commandLine";
     private static final String NO_TEE_TAG = BytesUtils.EMPTY_HEX_STRING_32;
-    private static final String TEE_TAG = TeeUtils.TEE_SCONE_ONLY_TAG; //any supported TEE tag
     private static final String ENCLAVE_CHALLENGE = "dummyEnclave";
     private static final long MAX_EXECUTION_TIME = 60000;
     long workerLastBlock = 12;
@@ -89,7 +91,6 @@ class ReplicateSupplyServiceTests {
     @Mock
     private Web3jService web3jService;
 
-    @Spy
     @InjectMocks
     private ReplicateSupplyService replicateSupplyService;
 
@@ -127,7 +128,7 @@ class ReplicateSupplyServiceTests {
                 .build();
 
         mockWorkerCanAcceptMoreWork(worker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList())).thenReturn(Optional.empty());
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of())).thenReturn(Optional.empty());
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -137,7 +138,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceNoReplicatesList() {
-        Worker worker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
@@ -152,7 +153,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         mockWorkerCanAcceptMoreWork(worker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.empty());
 
@@ -165,19 +166,16 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceConsensusReachedOnChain() {
-        Worker worker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(4)
                 .maxNbTasks(3)
                 .teeEnabled(false)
                 .build();
-        final Replicate replicate = new Replicate(WALLET_WORKER_2, CHAIN_TASK_ID);
+        final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTED, ReplicateStatusModifier.WORKER);
-        List<Replicate> replicates = List.of(replicate);
-        ReplicatesList replicatesList = spy(
-                new ReplicatesList(CHAIN_TASK_ID, replicates)
-        );
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, List.of(replicate));
 
         final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
@@ -186,11 +184,10 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         mockWorkerCanAcceptMoreWork(worker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(taskService.isConsensusReached(replicatesList)).thenReturn(true);
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).thenReturn(false);
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_2);
@@ -208,10 +205,10 @@ class ReplicateSupplyServiceTests {
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
                 .maxNbTasks(1)
+                .computingChainTaskIds(List.of(CHAIN_TASK_ID))
                 .build();
         when(web3jService.hasEnoughGas(WALLET_WORKER_1)).thenReturn(true);
         when(workerService.getWorker(WALLET_WORKER_1)).thenReturn(Optional.of(worker));
-        when(workerService.canAcceptMoreWorks(worker)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
         assertThat(replicateTaskSummary).isEmpty();
@@ -230,7 +227,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetAnyReplicateSinceWorkerAlreadyParticipated() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -243,17 +240,14 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        final ReplicatesList replicatesList = spy(new ReplicatesList(
-                CHAIN_TASK_ID,
-                Collections.singletonList(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID))
-        ));
+        final ReplicatesList replicatesList = new ReplicatesList(
+                CHAIN_TASK_ID, List.of(new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID)));
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
 
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(true);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
@@ -264,7 +258,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceDoesNotNeedMoreContributionsForConsensus() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_2)
                 .cpuNb(2)
@@ -284,16 +278,13 @@ class ReplicateSupplyServiceTests {
         replicate.setWorkerWeight(trust);
         replicate.setContributionHash("test");
 
-        final ReplicatesList replicatesList = spy(
-                new ReplicatesList(CHAIN_TASK_ID, List.of(replicate))
-        );
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, List.of(replicate));
 
         // Try to see if a replicate of the task can be scheduled on worker2
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_2)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_2);
         assertThat(replicateTaskSummary).isEmpty();
@@ -304,7 +295,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldNotGetReplicateSinceEnclaveChallengeNeededButNotGenerated() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -314,12 +305,12 @@ class ReplicateSupplyServiceTests {
 
         final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
-        runningTask.setTag(TEE_TAG);
+        runningTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge("");
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(TDX_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -357,11 +348,11 @@ class ReplicateSupplyServiceTests {
         taskDeadlineReached.setTag(NO_TEE_TAG);
         taskDeadlineReached.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList());
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
 
         mockWorkerCanAcceptMoreWork(existingWorker);
 
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(task1));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, BytesUtils.EMPTY_ADDRESS))
@@ -399,7 +390,7 @@ class ReplicateSupplyServiceTests {
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.computeIfAbsent(CHAIN_TASK_ID, k -> new ReentrantLock());
         CompletableFuture.runAsync(lock::lock).join();
@@ -413,7 +404,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldGetReplicateWithNoTee() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -427,17 +418,14 @@ class ReplicateSupplyServiceTests {
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(BytesUtils.EMPTY_ADDRESS);
 
-        final ReplicatesList replicatesList = spy(
-                new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
-        );
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, BytesUtils.EMPTY_ADDRESS))
                 .thenReturn(WorkerpoolAuthorization.builder().build());
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         when(workerService.addChainTaskIdToWorker(CHAIN_TASK_ID, WALLET_WORKER_1))
                 .thenReturn(Optional.of(existingWorker));
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
@@ -455,7 +443,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldGetReplicateWithTee() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -465,16 +453,14 @@ class ReplicateSupplyServiceTests {
 
         final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
-        runningTask.setTag(TEE_TAG);
+        runningTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
-        final ReplicatesList replicatesList = spy(
-                new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
-        );
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(TDX_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, ENCLAVE_CHALLENGE))
@@ -484,7 +470,6 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
@@ -497,7 +482,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldTeeNeededTaskNotBeGivenToTeeDisabledWorker() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -507,11 +492,11 @@ class ReplicateSupplyServiceTests {
 
         final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
-        runningTask.setTag(TEE_TAG);
+        runningTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(true, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(ALL_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.empty());
 
         Optional<ReplicateTaskSummary> replicateTaskSummary =
@@ -524,7 +509,7 @@ class ReplicateSupplyServiceTests {
 
     @Test
     void shouldTeeNeededTaskBeGivenToTeeEnabledWorker() {
-        Worker existingWorker = Worker.builder()
+        final Worker existingWorker = Worker.builder()
                 .id("1")
                 .walletAddress(WALLET_WORKER_1)
                 .cpuNb(2)
@@ -534,16 +519,14 @@ class ReplicateSupplyServiceTests {
 
         final Task runningTask = getStubTask(5);
         runningTask.setMaxExecutionTime(MAX_EXECUTION_TIME);
-        runningTask.setTag(TEE_TAG);
+        runningTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
         runningTask.setContributionDeadline(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)));
         runningTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
 
-        final ReplicatesList replicatesList = spy(
-                new ReplicatesList(CHAIN_TASK_ID, Collections.emptyList())
-        );
+        final ReplicatesList replicatesList = new ReplicatesList(CHAIN_TASK_ID);
 
         mockWorkerCanAcceptMoreWork(existingWorker);
-        when(taskService.getPrioritizedInitializedOrRunningTask(false, Collections.emptyList()))
+        when(taskService.getPrioritizedInitializedOrRunningTask(TDX_TEE_TAGS_EXCLUSION_LIST, List.of()))
                 .thenReturn(Optional.of(runningTask));
         when(replicatesService.getReplicatesList(CHAIN_TASK_ID)).thenReturn(Optional.of(replicatesList));
         when(signatureService.createAuthorization(WALLET_WORKER_1, CHAIN_TASK_ID, CHAIN_DEAL_ID, TASK_INDEX, ENCLAVE_CHALLENGE))
@@ -553,7 +536,6 @@ class ReplicateSupplyServiceTests {
         when(replicatesService.addNewReplicate(replicatesList, WALLET_WORKER_1))
                 .thenReturn(true);
 
-        when(replicatesList.hasWorkerAlreadyParticipated(WALLET_WORKER_1)).thenReturn(false);
         Optional<ReplicateTaskSummary> replicateTaskSummary =
                 replicateSupplyService.getAvailableReplicateTaskSummary(workerLastBlock, WALLET_WORKER_1);
 
@@ -571,7 +553,6 @@ class ReplicateSupplyServiceTests {
      */
     private void assertTaskAccessForNewReplicateNotDeadLocking(String chainTaskId) {
         final Lock lock = replicateSupplyService.taskAccessForNewReplicateLocks.get(chainTaskId);
-        System.out.println("Task: " + chainTaskId + " ; lock : " + lock);
         final Boolean successfulLock = CompletableFuture.supplyAsync(() -> {
                     final boolean locked = lock.tryLock();
                     if (!locked) {
@@ -594,9 +575,7 @@ class ReplicateSupplyServiceTests {
     // region getMissedTaskNotifications
     @Test
     void shouldReturnEmptyListSinceNotParticipatingToAnyTask() {
-
-        when(taskService.getTasksByChainTaskIds(any()))
-                .thenReturn(Collections.emptyList());
+        when(taskService.getTasksByChainTaskIds(any())).thenReturn(List.of());
 
         List<TaskNotification> list =
                 replicateSupplyService.getMissedTaskNotifications(1L, WALLET_WORKER_1);
@@ -612,7 +591,7 @@ class ReplicateSupplyServiceTests {
         Task teeTask = new Task(DAPP_NAME, COMMAND_LINE, 5, CHAIN_TASK_ID);
         teeTask.setEnclaveChallenge(ENCLAVE_CHALLENGE);
         Optional<Replicate> noTeeReplicate = getStubReplicate(ReplicateStatus.COMPUTING);
-        teeTask.setTag(TEE_TAG);
+        teeTask.setTag(TeeUtils.TEE_SCONE_ONLY_TAG);
 
         when(workerService.getChainTaskIds(WALLET_WORKER_1)).thenReturn(ids);
         when(taskService.getTasksByChainTaskIds(ids)).thenReturn(List.of(teeTask));
@@ -1158,6 +1137,5 @@ class ReplicateSupplyServiceTests {
     private void mockWorkerCanAcceptMoreWork(final Worker worker) {
         when(web3jService.hasEnoughGas(worker.getWalletAddress())).thenReturn(true);
         when(workerService.getWorker(worker.getWalletAddress())).thenReturn(Optional.of(worker));
-        when(workerService.canAcceptMoreWorks(worker)).thenReturn(true);
     }
 }

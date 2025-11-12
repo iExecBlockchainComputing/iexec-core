@@ -31,7 +31,7 @@ class WorkerModelTests {
         WorkerModel model = WorkerModel.builder().build();
         String jsonString = mapper.writeValueAsString(model);
         assertThat(jsonString).isEqualTo("{\"name\":null,\"walletAddress\":null,\"os\":null,\"cpu\":null," +
-                "\"cpuNb\":0,\"memorySize\":0,\"teeEnabled\":false,\"gpuEnabled\":false}");
+                "\"cpuNb\":0,\"memorySize\":0,\"gpuEnabled\":false,\"teeEnabled\":false,\"tdxEnabled\":false}");
         WorkerModel parsedModel = mapper.readValue(jsonString, WorkerModel.class);
         assertThat(parsedModel).isEqualTo(model);
     }
