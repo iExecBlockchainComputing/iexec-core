@@ -31,7 +31,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
@@ -266,7 +265,7 @@ class TaskServiceTests {
         final Task task = getStubTask();
         task.setCurrentStatus(INITIALIZED);
         taskRepository.save(task);
-        assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
+        assertThat(taskService.getPrioritizedInitializedOrRunningTask(List.of(), List.of()))
                 .usingRecursiveComparison()
                 .isEqualTo(Optional.of(task));
     }
@@ -276,7 +275,7 @@ class TaskServiceTests {
         final Task task = getStubTask();
         task.setContributionDeadline(Date.from(Instant.now().minus(1, ChronoUnit.MINUTES)));
         taskRepository.save(task);
-        assertThat(taskService.getPrioritizedInitializedOrRunningTask(false, List.of()))
+        assertThat(taskService.getPrioritizedInitializedOrRunningTask(List.of(), List.of()))
                 .usingRecursiveComparison()
                 .isEqualTo(Optional.empty());
     }
@@ -308,7 +307,7 @@ class TaskServiceTests {
         assertThat(taskService.isConsensusReached(new ReplicatesList(CHAIN_TASK_ID)))
                 .isFalse();
 
-        Mockito.verify(iexecHubService).getChainTask(any());
+        verify(iexecHubService).getChainTask(any());
     }
 
     @Test
@@ -325,13 +324,13 @@ class TaskServiceTests {
         assertThat(taskService.isConsensusReached(new ReplicatesList(task.getChainTaskId())))
                 .isFalse();
 
-        Mockito.verify(iexecHubService).getChainTask(any());
+        verify(iexecHubService).getChainTask(any());
     }
 
     @Test
     void shouldConsensusNotBeReachedAsOnChainWinnersHigherThanOffchainWinners() {
         final Task task = getStubTask();
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
+        final ReplicatesList replicatesList = spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
                 .chainTaskId(task.getChainTaskId())
@@ -345,13 +344,13 @@ class TaskServiceTests {
         assertThat(taskService.isConsensusReached(replicatesList))
                 .isFalse();
 
-        Mockito.verify(iexecHubService).getChainTask(any());
+        verify(iexecHubService).getChainTask(any());
     }
 
     @Test
     void shouldConsensusBeReached() {
         final Task task = getStubTask();
-        final ReplicatesList replicatesList = Mockito.spy(new ReplicatesList(task.getChainTaskId()));
+        final ReplicatesList replicatesList = spy(new ReplicatesList(task.getChainTaskId()));
         final ChainTask chainTask = ChainTask
                 .builder()
                 .chainTaskId(task.getChainTaskId())
@@ -365,7 +364,7 @@ class TaskServiceTests {
         assertThat(taskService.isConsensusReached(replicatesList))
                 .isTrue();
 
-        Mockito.verify(iexecHubService).getChainTask(any());
+        verify(iexecHubService).getChainTask(any());
     }
     // endregion
 

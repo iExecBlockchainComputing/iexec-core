@@ -102,18 +102,18 @@ public class WorkerController {
     }
 
     @PostMapping(path = "/workers/register")
-    public ResponseEntity<Worker> registerWorker(@RequestHeader("Authorization") String bearerToken,
-                                                 @RequestBody WorkerModel model) {
-        String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
+    public ResponseEntity<Worker> registerWorker(@RequestHeader("Authorization") final String bearerToken,
+                                                 @RequestBody final WorkerModel model) {
+        final String workerWalletAddress = jwtTokenProvider.getWalletAddressFromBearerToken(bearerToken);
         if (workerWalletAddress.isEmpty()) {
             WorkerUtils.emitWarnOnUnAuthorizedAccess("");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         // if it is a GPU worker, it can process only 1 task at a time, otherwise it can process cpuNb
-        int maxNbTasks = model.isGpuEnabled() ? 1 : model.getCpuNb();
+        final int maxNbTasks = model.isGpuEnabled() ? 1 : model.getCpuNb();
 
-        Worker worker = Worker.builder()
+        final Worker worker = Worker.builder()
                 .name(model.getName())
                 .walletAddress(workerWalletAddress)
                 .os(model.getOs())
@@ -121,13 +121,14 @@ public class WorkerController {
                 .cpuNb(model.getCpuNb())
                 .maxNbTasks(maxNbTasks)
                 .memorySize(model.getMemorySize())
-                .teeEnabled(model.isTeeEnabled())
                 .gpuEnabled(model.isGpuEnabled())
+                .teeEnabled(model.isTeeEnabled())
+                .tdxEnabled(model.isTdxEnabled())
                 .participatingChainTaskIds(new ArrayList<>())
                 .computingChainTaskIds(new ArrayList<>())
                 .build();
 
-        Worker savedWorker = workerService.addWorker(worker);
+        final Worker savedWorker = workerService.addWorker(worker);
         log.info("Worker ready [worker:{}]", savedWorker);
         return ok(savedWorker);
     }

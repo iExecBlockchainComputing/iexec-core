@@ -191,19 +191,6 @@ public class WorkerService {
                 .toList();
         return workerRepository.findByWalletAddressIn(aliveWorkers);
     }
-
-    public boolean canAcceptMoreWorks(Worker worker) {
-        int workerMaxNbTasks = worker.getMaxNbTasks();
-        int runningReplicateNb = worker.getComputingChainTaskIds().size();
-
-        if (runningReplicateNb >= workerMaxNbTasks) {
-            log.debug("Worker asking for too many replicates [walletAddress:{}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
-                    worker.getWalletAddress(), runningReplicateNb, workerMaxNbTasks);
-            return false;
-        }
-
-        return true;
-    }
     // endregion
 
     // region Read-and-write methods
@@ -257,21 +244,20 @@ public class WorkerService {
     }
 
     private Optional<Worker> addChainTaskIdToWorkerWithoutThreadSafety(String chainTaskId, String walletAddress) {
-        final Optional<Worker> optional = workerRepository.findByWalletAddress(walletAddress);
-        if (optional.isPresent()) {
-            final Worker worker = optional.get();
-            if (!canAcceptMoreWorks(worker)) {
-                log.warn("Can't add chainTaskId to worker when already full [chainTaskId:{}, workerAddress:{}]",
-                        chainTaskId, walletAddress);
-                return Optional.empty();
-            }
-            worker.addChainTaskId(chainTaskId);
-            log.info("Added chainTaskId to worker [chainTaskId:{}, workerAddress:{}]", chainTaskId, walletAddress);
-            return Optional.of(workerRepository.save(worker));
+        final Worker worker = workerRepository.findByWalletAddress(walletAddress).orElse(null);
+        if (worker == null) {
+            log.warn("Can't add chainTaskId to worker when unknown worker [chainTaskId:{}, workerAddress:{}]",
+                    chainTaskId, walletAddress);
+            return Optional.empty();
         }
-        log.warn("Can't add chainTaskId to worker when unknown worker [chainTaskId:{}, workerAddress:{}]",
-                chainTaskId, walletAddress);
-        return Optional.empty();
+        if (worker.hasNoRemainingComputingSlot()) {
+            log.warn("Can't add chainTaskId to worker when already full [chainTaskId:{}, workerAddress:{}]",
+                    chainTaskId, walletAddress);
+            return Optional.empty();
+        }
+        worker.addChainTaskId(chainTaskId);
+        log.info("Added chainTaskId to worker [chainTaskId:{}, workerAddress:{}]", chainTaskId, walletAddress);
+        return Optional.of(workerRepository.save(worker));
     }
 
     public Optional<Worker> removeChainTaskIdFromWorker(String chainTaskId, String walletAddress) {

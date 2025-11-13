@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package com.iexec.core.worker;
 
+import com.iexec.commons.poco.tee.TeeUtils;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -26,12 +28,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.Date;
 import java.util.List;
 
+@Slf4j
 @Document
 @Data
 @Builder
 @AllArgsConstructor
 public class Worker {
-
     @Id
     private String id;
     private String name;
@@ -44,8 +46,10 @@ public class Worker {
     private int cpuNb;
     private int maxNbTasks;
     private int memorySize;
-    private boolean teeEnabled;
     private boolean gpuEnabled;
+    // TODO remove or rename to sgxEnabled in the future
+    private boolean teeEnabled;
+    private boolean tdxEnabled;
     @Builder.Default
     private List<String> participatingChainTaskIds = List.of();
     @Builder.Default
@@ -60,12 +64,36 @@ public class Worker {
         computingChainTaskIds.add(chainTaskId);
     }
 
-    void removeChainTaskId(String chainTaskId) {
-        participatingChainTaskIds.remove(chainTaskId);
-        computingChainTaskIds.remove(chainTaskId);
+    /**
+     * Returns excluded tags depending on worker configuration
+     *
+     * @return The list of excluded tags
+     */
+    public List<String> getExcludedTags() {
+        if (!teeEnabled && !tdxEnabled) {
+            return List.of(TeeUtils.TEE_TDX_ONLY_TAG, TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG);
+        } else if (!teeEnabled) {
+            return List.of(TeeUtils.TEE_SCONE_ONLY_TAG, TeeUtils.TEE_GRAMINE_ONLY_TAG);
+        } else if (!tdxEnabled) {
+            return List.of(TeeUtils.TEE_TDX_ONLY_TAG);
+        } else {
+            // /!\ teeEnabled and tdxEnabled are both true in this branch
+            log.warn("Worker seems to support both SGX and TDX, this should not happen [wallet:{}]", walletAddress);
+            return List.of();
+        }
     }
 
-    void removeComputedChainTaskId(String chainTaskId) {
-        computingChainTaskIds.remove(chainTaskId);
+    /**
+     * Returns whether the worker can accept more work or not.
+     *
+     * @return {@literal true} when the worker is at max capacity, {@literal false} otherwise
+     */
+    public boolean hasNoRemainingComputingSlot() {
+        final boolean areAllComputingSlotsInUse = computingChainTaskIds.size() >= maxNbTasks;
+        if (areAllComputingSlotsInUse) {
+            log.debug("Worker is computing at max capacity [walletAddress:{}, runningReplicateNb:{}, workerMaxNbTasks:{}]",
+                    walletAddress, computingChainTaskIds.size(), maxNbTasks);
+        }
+        return areAllComputingSlotsInUse;
     }
 }

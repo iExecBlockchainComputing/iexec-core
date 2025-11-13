@@ -31,8 +31,10 @@ public class WorkerModel {
     String cpu;
     int cpuNb;
     int memorySize;
-    boolean teeEnabled;
     boolean gpuEnabled;
+    // TODO remove or rename to sgxEnabled in the future
+    boolean teeEnabled;
+    boolean tdxEnabled;
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class WorkerModelBuilder {
