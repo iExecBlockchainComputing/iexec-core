@@ -28,6 +28,7 @@ import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.EthLog;
 import org.web3j.protocol.core.methods.response.Log;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -178,8 +179,10 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
+        // wallet needs to be encoded on 32 bytes instead of 20 bytes
+        final String filterEncodedWallet = Numeric.toHexStringWithPrefixZeroPadded(Numeric.toBigInt(workerWallet), 64);
         final EthFilter ethFilter = createEthFilter(
-                fromBlock, latestBlock, LogTopic.TASK_CONTRIBUTE_EVENT, chainTaskId, workerWallet);
+                fromBlock, latestBlock, LogTopic.TASK_CONTRIBUTE_EVENT, chainTaskId, filterEncodedWallet);
         return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
                 .map(this::createChainReceipt)
                 .blockingFirst();
@@ -206,8 +209,10 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         if (fromBlock > latestBlock) {
             return ChainReceipt.builder().build();
         }
+        // wallet needs to be encoded on 32 bytes instead of 20 bytes
+        final String filterEncodedWallet = Numeric.toHexStringWithPrefixZeroPadded(Numeric.toBigInt(workerWallet), 64);
         final EthFilter ethFilter = createEthFilter(
-                fromBlock, latestBlock, LogTopic.TASK_REVEAL_EVENT, chainTaskId, workerWallet);
+                fromBlock, latestBlock, LogTopic.TASK_REVEAL_EVENT, chainTaskId, filterEncodedWallet);
         return web3jService.getWeb3j().ethGetLogs(ethFilter).flowable()
                 .map(this::createChainReceipt)
                 .blockingFirst();
