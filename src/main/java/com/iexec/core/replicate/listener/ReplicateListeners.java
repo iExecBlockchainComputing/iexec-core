@@ -21,7 +21,6 @@ import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
-import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,16 +39,13 @@ public class ReplicateListeners {
     private final TaskUpdateRequestManager taskUpdateRequestManager;
     private final WorkerService workerService;
     private final ContributionUnnotifiedDetector contributionUnnotifiedDetector;
-    private final ReplicatesService replicatesService;
 
     public ReplicateListeners(final WorkerService workerService,
                               final TaskUpdateRequestManager taskUpdateRequestManager,
-                              final ContributionUnnotifiedDetector contributionUnnotifiedDetector,
-                              final ReplicatesService replicatesService) {
+                              final ContributionUnnotifiedDetector contributionUnnotifiedDetector) {
         this.workerService = workerService;
         this.taskUpdateRequestManager = taskUpdateRequestManager;
         this.contributionUnnotifiedDetector = contributionUnnotifiedDetector;
-        this.replicatesService = replicatesService;
     }
 
     @EventListener
@@ -90,14 +86,6 @@ public class ReplicateListeners {
          */
         if (cause == TASK_NOT_ACTIVE) {
             contributionUnnotifiedDetector.detectOnchainDone();
-        }
-
-        /*
-         * Should add FAILED status if not completable
-         */
-        if (ReplicateStatus.getUncompletableStatuses().contains(newStatus)) {
-            replicatesService.updateReplicateStatus(event.getChainTaskId(),
-                    event.getWalletAddress(), ReplicateStatusUpdate.poolManagerRequest(FAILED));
         }
 
         /*

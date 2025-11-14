@@ -20,28 +20,20 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.core.detector.replicate.ContributionUnnotifiedDetector;
 import com.iexec.core.replicate.ReplicateUpdatedEvent;
-import com.iexec.core.replicate.ReplicatesService;
 import com.iexec.core.task.update.TaskUpdateRequestManager;
 import com.iexec.core.worker.WorkerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static com.iexec.common.replicate.ReplicateStatus.*;
 import static com.iexec.common.replicate.ReplicateStatusCause.TASK_NOT_ACTIVE;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,8 +46,6 @@ class ReplicateListenersTests {
     private WorkerService workerService;
     @Mock
     private ContributionUnnotifiedDetector contributionUnnotifiedDetector;
-    @Mock
-    private ReplicatesService replicatesService;
     @Mock
     private TaskUpdateRequestManager taskUpdateRequestManager;
     @InjectMocks
@@ -152,35 +142,6 @@ class ReplicateListenersTests {
         replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
 
         verifyNoInteractions(contributionUnnotifiedDetector);
-    }
-
-    static Stream<ReplicateStatus> getUncompletableStatuses() {
-        return ReplicateStatus.getUncompletableStatuses().stream();
-    }
-
-    @ParameterizedTest
-    @MethodSource("getUncompletableStatuses")
-    void shouldAddFailedStatusSinceUncompletableReplicateStatus(final ReplicateStatus uncompletableStatus) {
-        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(uncompletableStatus);
-        replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-
-        final ArgumentCaptor<ReplicateStatusUpdate> statusUpdate = ArgumentCaptor.forClass(ReplicateStatusUpdate.class);
-        verify(replicatesService).updateReplicateStatus(eq(CHAIN_TASK_ID), eq(WORKER_WALLET), statusUpdate.capture());
-        assertThat(statusUpdate.getValue().getStatus()).isEqualTo(FAILED);
-    }
-
-    static Stream<ReplicateStatus> getCompletableStatuses() {
-        return Arrays.stream(values())
-                .filter(Predicate.not(ReplicateStatus.getUncompletableStatuses()::contains));
-    }
-
-    @ParameterizedTest
-    @MethodSource("getCompletableStatuses")
-    void shouldNotAddFailedStatusSinceCompletableReplicateStatus(final ReplicateStatus completableStatus) {
-        final ReplicateUpdatedEvent replicateUpdatedEvent = getMockReplicate(completableStatus);
-        replicateListeners.onReplicateUpdatedEvent(replicateUpdatedEvent);
-
-        verifyNoInteractions(replicatesService);
     }
 
     @Test
