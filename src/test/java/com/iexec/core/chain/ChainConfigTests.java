@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package com.iexec.core;
+package com.iexec.core.chain;
 
-import com.iexec.core.chain.ChainConfig;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.time.Duration;
 import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ChainConfigTest {
+class ChainConfigTests {
     private static final String IEXEC_NODE_ADDRESS = "https://bellecour.iex.ec";
     private static final String IEXEC_HUB_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
     private static final String POOL_ADDRESS = "poolAddress";
@@ -48,6 +49,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,
@@ -67,6 +69,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 "invalid-url", // invalid URL
                 POOL_ADDRESS,
                 0L,
@@ -86,6 +89,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 "", // empty nodeAddress
                 POOL_ADDRESS,
                 0L,
@@ -105,6 +109,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(99), // less than 100ms
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,
@@ -124,6 +129,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofSeconds(21), // more than 20 seconds
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,
@@ -143,6 +149,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,
@@ -162,6 +169,7 @@ class ChainConfigTest {
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,
@@ -181,6 +189,7 @@ class ChainConfigTest {
                 false,
                 "0x0", // invalid address
                 Duration.ofMillis(100),
+                Duration.ofSeconds(30),
                 IEXEC_NODE_ADDRESS,
                 POOL_ADDRESS,
                 0L,

@@ -1,7 +1,7 @@
 services:
 
   chain:
-    image: docker-regis.iex.ec/poco-chain:1.0.0-poco-v5.5.0-voucher-v1.0.0-nethermind
+    image: docker-regis.iex.ec/poco-chain:1.1.0-poco-v6.1.0-contracts-voucher-v1.0.0-nethermind
     expose:
       - "8545"
 

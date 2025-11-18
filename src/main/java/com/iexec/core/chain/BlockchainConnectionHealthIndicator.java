@@ -47,6 +47,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
      * Interval between 2 requests onto the chain.
      */
     private final Duration pollingInterval;
+    private final Duration outOfServiceThreshold;
     /**
      * Number of consecutive failures before declaring this Scheduler is out-of-service.
      */
@@ -85,6 +86,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
             Clock clock) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.pollingInterval = chainConfig.getBlockTime();
+        this.outOfServiceThreshold = chainConfig.getSyncTimeout();
         this.monitoringExecutor = monitoringExecutor;
         this.clock = clock;
     }
@@ -108,7 +110,7 @@ public class BlockchainConnectionHealthIndicator implements HealthIndicator {
     void checkConnection() {
         log.debug("Latest on-chain block number [block:{}]", latestBlockNumber);
         final Instant now = Instant.now();
-        final Instant threshold = Instant.ofEpochSecond(latestBlockTimestamp).plusSeconds(pollingInterval.toSeconds());
+        final Instant threshold = Instant.ofEpochSecond(latestBlockTimestamp).plusSeconds(outOfServiceThreshold.toSeconds());
         if (now.isAfter(threshold)) {
             connectionFailed();
         } else {

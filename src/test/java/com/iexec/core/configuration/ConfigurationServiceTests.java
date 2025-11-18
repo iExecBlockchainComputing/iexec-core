@@ -66,7 +66,7 @@ class ConfigurationServiceTests {
     }
 
     private void initService(long startBlockNumber) throws Exception {
-        final ChainConfig chainConfig = new ChainConfig(65535, true, "", Duration.ofSeconds(5), "", "0x0", startBlockNumber, 1.0f, 0);
+        final ChainConfig chainConfig = new ChainConfig(65535, true, "", Duration.ofSeconds(5), Duration.ofSeconds(30), "", "0x0", startBlockNumber, 1.0f, 0);
         configurationService = new ConfigurationService(configurationRepository, replayConfigurationRepository, chainConfig);
         configurationService.run();
     }
