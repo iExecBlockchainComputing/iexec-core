@@ -16,7 +16,6 @@
 
 package com.iexec.core.chain;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +23,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.context.ApplicationEventPublisher;
@@ -35,8 +33,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +57,7 @@ class BlockchainConnectionHealthIndicatorTests {
     @BeforeEach
     void init() {
         when(chainConfig.getBlockTime()).thenReturn(BLOCK_TIME);
+        when(chainConfig.getSyncTimeout()).thenReturn(BLOCK_TIME);
 
         this.blockchainConnectionHealthIndicator = new BlockchainConnectionHealthIndicator(
                 applicationEventPublisher,
@@ -71,7 +72,7 @@ class BlockchainConnectionHealthIndicatorTests {
     void shouldScheduleMonitoring() {
         blockchainConnectionHealthIndicator.scheduleMonitoring();
 
-        Mockito.verify(executor).scheduleAtFixedRate(
+        verify(executor).scheduleAtFixedRate(
                 any(),
                 eq(0L),
                 eq(5L),
@@ -141,8 +142,8 @@ class BlockchainConnectionHealthIndicatorTests {
         final boolean outOfService = blockchainConnectionHealthIndicator.isOutOfService();
         final LocalDateTime firstFailure = blockchainConnectionHealthIndicator.getFirstFailure();
 
-        Assertions.assertThat(outOfService).isEqualTo(expectedOutOfService);
-        Assertions.assertThat(firstFailure).isEqualTo(expectedFirstFailure);
+        assertThat(outOfService).isEqualTo(expectedOutOfService);
+        assertThat(firstFailure).isEqualTo(expectedFirstFailure);
     }
     // endregion
 
@@ -161,7 +162,7 @@ class BlockchainConnectionHealthIndicatorTests {
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
-        Assertions.assertThat(health).isEqualTo(expectedHealth);
+        assertThat(health).isEqualTo(expectedHealth);
     }
 
     @Test
@@ -175,7 +176,7 @@ class BlockchainConnectionHealthIndicatorTests {
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
-        Assertions.assertThat(health).isEqualTo(expectedHealth);
+        assertThat(health).isEqualTo(expectedHealth);
     }
 
     @Test
@@ -192,7 +193,7 @@ class BlockchainConnectionHealthIndicatorTests {
                 .build();
 
         final Health health = blockchainConnectionHealthIndicator.health();
-        Assertions.assertThat(health).isEqualTo(expectedHealth);
+        assertThat(health).isEqualTo(expectedHealth);
     }
     // endregion
 

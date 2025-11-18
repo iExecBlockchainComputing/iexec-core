@@ -20,7 +20,9 @@ import com.iexec.common.config.PublicChainConfig;
 import com.iexec.commons.poco.chain.SignerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.web3j.crypto.WalletUtils;
 
 import java.io.File;
@@ -37,7 +39,11 @@ class WalletConfigurationTest {
     void shouldCreateBeans() throws Exception {
         final String tempWalletName = WalletUtils.generateFullNewWalletFile("changeit", tempWalletDir);
         final String tempWalletPath = tempWalletDir.getAbsolutePath() + File.separator + tempWalletName;
-        runner.withPropertyValues("chain.node-address=http://localhost:8545", "chain.pool-address=0x1", "chain.start-block-number=0", "chain.gas-price-multiplier=1.0", "chain.gas-price-cap=0")
+        runner.withPropertyValues("chain.out-of-service-threshold=PT30S", "chain.node-address=http://localhost:8545", "chain.pool-address=0x1", "chain.start-block-number=0", "chain.gas-price-multiplier=1.0", "chain.gas-price-cap=0")
+                .withBean(PropertySourcesPlaceholderConfigurer.class,
+                        PropertySourcesPlaceholderConfigurer::new)
+                .withInitializer(context ->
+                        context.getBeanFactory().setConversionService(ApplicationConversionService.getSharedInstance()))
                 .withBean(IexecHubService.class)
                 .withBean(PublicChainConfig.class, 65535, true, "http://localhost:8545", "0xC129e7917b7c7DeDfAa5Fff1FB18d5D7050fE8ca", Duration.ofSeconds(5))
                 .withBean(WalletConfiguration.class, tempWalletPath, "changeit")

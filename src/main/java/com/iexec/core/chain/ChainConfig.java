@@ -58,6 +58,10 @@ public class ChainConfig {
     @NotNull(message = "Block time must not be null")
     private Duration blockTime;
 
+    @Value("${chain.out-of-service-threshold}")
+    @NotNull(message = "OUT-OF-SERVICE threshold must not be null")
+    private Duration syncTimeout;
+
     @Value("${chain.node-address}")
     @URL(message = "Node address must be a valid URL")
     @NotEmpty(message = "Node address must not be empty")

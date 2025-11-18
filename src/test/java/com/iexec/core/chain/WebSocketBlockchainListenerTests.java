@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = "chain.out-of-service-threshold=PT30S")
 class WebSocketBlockchainListenerTests {
     private static final String CHAIN_SVC_NAME = "chain";
     private static final int CHAIN_SVC_PORT = 8545;
@@ -64,8 +64,12 @@ class WebSocketBlockchainListenerTests {
                 environment.getServiceHost(CONFIG_SVC_NAME, CONFIG_SVC_PORT),
                 environment.getServicePort(CONFIG_SVC_NAME, CONFIG_SVC_PORT))
         );
-        registry.add("sprint.data.mongodb.host", () -> environment.getServiceHost(MONGO_SVC_NAME, MONGO_SVC_PORT));
+        registry.add("spring.data.mongodb.host", () -> environment.getServiceHost(MONGO_SVC_NAME, MONGO_SVC_PORT));
         registry.add("spring.data.mongodb.port", () -> environment.getServicePort(MONGO_SVC_NAME, MONGO_SVC_PORT));
+    }
+
+    private static String getServiceUrl(final String serviceHost, final int servicePort) {
+        return String.format("http://%s:%s", serviceHost, servicePort);
     }
 
     @Autowired
@@ -76,10 +80,6 @@ class WebSocketBlockchainListenerTests {
 
     @Autowired
     private Web3jService web3jService;
-
-    private static String getServiceUrl(String serviceHost, int servicePort) {
-        return "http://" + serviceHost + ":" + servicePort;
-    }
 
     @Test
     void shouldConnect() {
