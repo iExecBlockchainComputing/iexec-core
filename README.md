@@ -36,7 +36,7 @@ You can configure the _iExec Core Scheduler_ with the following properties:
 | `IEXEC_CORE_WALLET_PASSWORD` | Password to unlock the wallet of the server. | String | `whatever` |
 | `IEXEC_BLOCKCHAIN_NODE_ADDRESS` | Private URL to connect to the blockchain node. | URL | `http://localhost:8545` |
 | `POOL_ADDRESS` | On-chain address of the workerpool managed by the current _iExec Core Scheduler_. | String | `0x365E7BABAa85eC61Dffe5b520763062e6C29dA27` |
-| `CHAIN_OUTOFSERVICETHRESHOLD` | Threshold in seconds, the scheduler is OUT-OF-SERVICE when the last known block timestamp is older. | String | `5s` |
+| `CHAIN_OUTOFSERVICETHRESHOLD` | Threshold in seconds, the scheduler is OUT-OF-SERVICE when the last known block timestamp is older. | String | `PT5S` |
 | `IEXEC_START_BLOCK_NUMBER` | Subscribe to new deal events from a specific block number. | Positive integer | `0` |
 | `IEXEC_GAS_PRICE_MULTIPLIER` | Transactions will be sent with `networkGasPrice * gasPriceMultiplier`. | Float | `1.0` |
 | `IEXEC_GAS_PRICE_CAP` | In Wei, will be used for transactions if `networkGasPrice * gasPriceMultiplier > gasPriceCap` | Integer | `22000000000` |

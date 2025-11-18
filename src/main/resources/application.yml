@@ -52,7 +52,7 @@ wallet:
 
 chain:
   node-address: ${IEXEC_BLOCKCHAIN_NODE_ADDRESS:http://localhost:8545}
-  out-of-service-threshold: 5s
+  out-of-service-threshold: PT5S
   pool-address: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
   start-block-number: ${IEXEC_START_BLOCK_NUMBER:0}
   gas-price-multiplier: ${IEXEC_GAS_PRICE_MULTIPLIER:1.0} # txs will be sent with networkGasPrice*gasPriceMultiplier, 4.0 means super fast

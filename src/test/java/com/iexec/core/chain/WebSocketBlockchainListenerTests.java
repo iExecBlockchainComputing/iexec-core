@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @Testcontainers
-@SpringBootTest(properties = "chain.out-of-service-threshold=30s")
+@SpringBootTest(properties = "chain.out-of-service-threshold=PT30S")
 class WebSocketBlockchainListenerTests {
     private static final String CHAIN_SVC_NAME = "chain";
     private static final int CHAIN_SVC_PORT = 8545;
