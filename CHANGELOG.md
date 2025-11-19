@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.2.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.1.0...v9.2.0) (2025-11-18)
+
+
+### Features
+
+* configure block timestamp threshold above which the scheduler will be OUT-OF-SERVICE ([#768](https://github.com/iExecBlockchainComputing/iexec-core/issues/768)) ([c245d60](https://github.com/iExecBlockchainComputing/iexec-core/commit/c245d6091255ab65f50a04a4ca9ea49b932ea367))
+* update models to distinguish SGX and TDX enabled workers ([#764](https://github.com/iExecBlockchainComputing/iexec-core/issues/764)) ([c1e6ec3](https://github.com/iExecBlockchainComputing/iexec-core/commit/c1e6ec36fc38432d50177e131a394dd010d239a2))
+
+
+### Bug Fixes
+
+* refactor event lookup on-chain to use LogTopic ([#763](https://github.com/iExecBlockchainComputing/iexec-core/issues/763)) ([35e6285](https://github.com/iExecBlockchainComputing/iexec-core/commit/35e6285cef5f7fb30e1616e11e8caee9f234ca32))
+* remove circuit-break on failed worker transaction to allow replicate abortion ([#767](https://github.com/iExecBlockchainComputing/iexec-core/issues/767)) ([d2cb21f](https://github.com/iExecBlockchainComputing/iexec-core/commit/d2cb21f16642646e6d01873a252618d671522b40))
+* wallet addresses need to be encoded on 32 bytes in ETH filters ([#766](https://github.com/iExecBlockchainComputing/iexec-core/issues/766)) ([14103ec](https://github.com/iExecBlockchainComputing/iexec-core/commit/14103ec7dd76cd947415bd1d41dfc318113fd99a))
+
 ## [9.1.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.0.0...v9.1.0) (2025-10-03)
 
 
