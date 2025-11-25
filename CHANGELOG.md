@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.2.1](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.2.0...v9.2.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* upgrade to commons-poco 5.3.1 for latest eth_call fix ([#769](https://github.com/iExecBlockchainComputing/iexec-core/issues/769)) ([d7a33b1](https://github.com/iExecBlockchainComputing/iexec-core/commit/d7a33b1abaf7d5ad01cf3018001d12bb36ee94aa))
+
 ## [9.2.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.1.0...v9.2.0) (2025-11-18)
 
 
