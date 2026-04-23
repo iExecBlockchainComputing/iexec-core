@@ -1130,13 +1130,20 @@ class ReplicateServiceTests {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(RESULT_UPLOADING, ReplicateStatusModifier.WORKER);
 
+        final DealParams dealParams = DealParams.builder()
+                .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
+                .build();
+        final TaskDescription taskDescription = TaskDescription.builder()
+                .dealParams(dealParams)
+                .build();
+
         final ReplicateStatusUpdate statusUpdate = ReplicateStatusUpdate.builder()
                 .modifier(WORKER)
                 .status(RESULT_UPLOADED)
                 .build();
         final UpdateReplicateStatusArgs updateArgs = UpdateReplicateStatusArgs
                 .builder()
-                .taskDescription(TaskDescription.builder().build())
+                .taskDescription(taskDescription)
                 .build();
 
         when(resultService.isResultUploaded(any())).thenReturn(false);
