@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.exceptions.JsonRpcError;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Async;
 
@@ -51,15 +52,21 @@ public class BlockchainListener {
     @Scheduled(fixedRate = 5000)
     private void run() {
         try {
-            final EthBlock.Block ethBlock = web3Client.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-            final long blockNumber = ethBlock.getNumber().longValue();
-            final String blockHash = ethBlock.getHash();
-            final long blockTimestamp = ethBlock.getTimestamp().longValue();
-            final Instant blockTimestampInstant = Instant.ofEpochSecond(blockTimestamp);
-            log.info("Last seen block [number:{}, hash:{}, timestamp:{}, instant:{}]",
-                    blockNumber, blockHash, blockTimestamp, blockTimestampInstant);
-            lastSeenBlock.set(blockNumber);
-            applicationEventPublisher.publishEvent(new LatestBlockEvent(this, blockNumber, blockHash, blockTimestamp));
+            final EthBlock ethBlock = web3Client.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send();
+            if (ethBlock.hasError()) {
+                throw new JsonRpcError(ethBlock.getError());
+            }
+            final long blockNumber = ethBlock.getBlock().getNumber().longValue();
+            final long lastSeenBlockNumber = lastSeenBlock.get();
+            if (blockNumber > lastSeenBlockNumber) {
+                final String blockHash = ethBlock.getBlock().getHash();
+                final long blockTimestamp = ethBlock.getBlock().getTimestamp().longValue();
+                final Instant blockTimestampInstant = Instant.ofEpochSecond(blockTimestamp);
+                log.info("Last seen block [number:{}, hash:{}, timestamp:{}, instant:{}]",
+                        blockNumber, blockHash, blockTimestamp, blockTimestampInstant);
+                lastSeenBlock.set(blockNumber);
+                applicationEventPublisher.publishEvent(new LatestBlockEvent(this, blockNumber, blockHash, blockTimestamp));
+            }
         } catch (Exception e) {
             log.error("An error happened while fetching data on-chain", e);
         }
