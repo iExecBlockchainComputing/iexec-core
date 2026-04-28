@@ -33,13 +33,13 @@ import java.io.File;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static com.iexec.core.chain.WebSocketBlockchainListener.LATEST_BLOCK_METRIC_NAME;
+import static com.iexec.core.chain.BlockchainListener.LATEST_BLOCK_METRIC_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @Testcontainers
 @SpringBootTest(properties = "chain.out-of-service-threshold=PT30S")
-class WebSocketBlockchainListenerTests {
+class BlockchainListenerTests {
     private static final String CHAIN_SVC_NAME = "chain";
     private static final int CHAIN_SVC_PORT = 8545;
     private static final String CONFIG_SVC_NAME = "config-server";
