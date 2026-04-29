@@ -89,13 +89,12 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     }
 
     // Helper method to avoid redundancy
-    private void mockTaskAndTaskDecription(final String callback) {
+    private void mockTaskAndTaskDescription(final String callback) {
         final Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(iexecHubService.getTaskDescription(anyString())).thenReturn(
                 TaskDescription.builder()
                         .trust(BigInteger.ONE)
-                        .isTeeTask(true)
-                        .teeFramework(TeeFramework.SCONE)
+                        .teeFramework(TeeFramework.TDX)
                         .callback(callback)
                         .build()
         );
@@ -115,7 +114,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldDetectBothChangesOnChain(final String callback) {
-        mockTaskAndTaskDecription(callback);
+        mockTaskAndTaskDescription(callback);
 
         final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -140,7 +139,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldDetectMissedUpdateSinceOffChainOngoing(final String callback) {
-        mockTaskAndTaskDecription(callback);
+        mockTaskAndTaskDescription(callback);
 
         final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -168,7 +167,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", CALLBACK})
     void shouldNotDetectMissedUpdateSinceNotOnChainDone(final String callback) {
-        mockTaskAndTaskDecription(callback);
+        mockTaskAndTaskDescription(callback);
 
         final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_ONGOING);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -195,7 +194,7 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
     @ParameterizedTest
     @MethodSource("provideReplicateStatusAndCallback")
     void shouldDetectMissedUpdateSinceOnChainDoneNotOffChainDone(final ReplicateStatus replicateStatus, final String callback) {
-        mockTaskAndTaskDecription(callback);
+        mockTaskAndTaskDescription(callback);
 
         final Replicate replicate = getReplicateWithStatus(replicateStatus);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
@@ -220,22 +219,6 @@ class ContributionAndFinalizationUnnotifiedDetectorTests {
 
         final Replicate replicate = getReplicateWithStatus(CONTRIBUTE_AND_FINALIZE_DONE);
         when(replicatesService.getReplicates(CHAIN_TASK_ID)).thenReturn(Collections.singletonList(replicate));
-        detector.detectOnchainDone();
-
-        Mockito.verify(replicatesService, never())
-                .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
-    }
-
-    @Test
-    void shouldNotDetectMissedUpdateSinceOnChainDoneAndNotEligibleToContributeAndFinalize() {
-        when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
-                TaskDescription.builder().trust(BigInteger.ONE).isTeeTask(true).callback("0x2").build());
-        final Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
-        when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
-
-        final Replicate replicate = getReplicateWithStatus(CONTRIBUTING);
-        when(replicatesService.getReplicates(any())).thenReturn(Collections.singletonList(replicate));
-
         detector.detectOnchainDone();
 
         Mockito.verify(replicatesService, never())

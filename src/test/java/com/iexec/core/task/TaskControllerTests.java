@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2022-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.iexec.core.task;
 
 import com.iexec.common.replicate.ComputeLogs;
+import com.iexec.commons.poco.chain.SignerService;
 import com.iexec.commons.poco.eip712.EIP712Domain;
 import com.iexec.commons.poco.eip712.entity.Challenge;
 import com.iexec.commons.poco.eip712.entity.EIP712Challenge;
@@ -57,6 +58,8 @@ class TaskControllerTests {
     private ECKeyPair ecKeyPair;
     private EIP712Challenge challenge;
     private EIP712Challenge badChallenge;
+    private EIP712Domain domain = new EIP712Domain();
+    private SignerService signerService;
     private String requesterAddress;
     private String signature;
 
@@ -76,12 +79,12 @@ class TaskControllerTests {
     @BeforeEach
     @SneakyThrows
     void setUp() {
-        EIP712Domain domain = new EIP712Domain();
+        ecKeyPair = Keys.createEcKeyPair();
+        signerService = new SignerService(null, 0L, Credentials.create(ecKeyPair));
+        requesterAddress = signerService.getAddress();
         challenge = new EIP712Challenge(domain, Challenge.builder().challenge("challenge").build());
         badChallenge = new EIP712Challenge(domain, Challenge.builder().challenge("bad-challenge").build());
-        ecKeyPair = Keys.createEcKeyPair();
-        requesterAddress = Credentials.create(ecKeyPair).getAddress();
-        signature = challenge.signMessage(ecKeyPair);
+        signature = signerService.signTypedDataForDomain(challenge.getMessage(), domain);
     }
 
     //region utilities
@@ -230,8 +233,9 @@ class TaskControllerTests {
 
     @Test
     void shouldFailToGetTaskLogsWhenBadChallenge() {
-        String authorization = String.join("_", badChallenge.getHash(), badChallenge.signMessage(ecKeyPair), requesterAddress);
-        TaskDescription description = TaskDescription.builder()
+        final String badSignature = signerService.signTypedDataForDomain(badChallenge.getMessage(), domain);
+        final String authorization = String.join("_", badChallenge.getHash(), badSignature, requesterAddress);
+        final TaskDescription description = TaskDescription.builder()
                 .requester(requesterAddress)
                 .build();
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
@@ -294,8 +298,9 @@ class TaskControllerTests {
 
     @Test
     void shouldFailToGetComputeLogsWhenBadChallenge() {
-        String authorization = String.join("_", badChallenge.getHash(), badChallenge.signMessage(ecKeyPair), requesterAddress);
-        TaskDescription description = TaskDescription.builder()
+        final String badSignature = signerService.signTypedDataForDomain(badChallenge.getMessage(), domain);
+        final String authorization = String.join("_", badChallenge.getHash(), badSignature, requesterAddress);
+        final TaskDescription description = TaskDescription.builder()
                 .requester(requesterAddress)
                 .build();
         when(iexecHubService.getTaskDescription(TASK_ID)).thenReturn(description);
