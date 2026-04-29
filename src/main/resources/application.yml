@@ -20,7 +20,7 @@ mongock:
 cron:
   # all in milliseconds
   metrics.refresh.period: 20000 #20s
-  deal.replay: 60000  # 1m
+  deal.replay: 10000  # 10s
   detector:
     worker-lost: 30000  # 30s
     chain:
@@ -51,6 +51,7 @@ wallet:
   password: ${IEXEC_CORE_WALLET_PASSWORD:whatever}
 
 chain:
+  max-logs-batch-size: 1000
   node-address: ${IEXEC_BLOCKCHAIN_NODE_ADDRESS:http://localhost:8545}
   out-of-service-threshold: PT15S
   pool-address: ${POOL_ADDRESS:0x365E7BABAa85eC61Dffe5b520763062e6C29dA27}
