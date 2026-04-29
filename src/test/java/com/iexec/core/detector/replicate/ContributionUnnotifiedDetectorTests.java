@@ -20,6 +20,7 @@ import com.iexec.common.replicate.ReplicateStatus;
 import com.iexec.common.replicate.ReplicateStatusUpdate;
 import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.configuration.CronConfiguration;
@@ -88,7 +89,6 @@ class ContributionUnnotifiedDetectorTests {
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(iexecHubService.getTaskDescription(anyString())).thenReturn(TaskDescription.builder()
                 .trust(BigInteger.ONE)
-                .isTeeTask(false)
                 .build());
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
     }
@@ -208,10 +208,11 @@ class ContributionUnnotifiedDetectorTests {
                 .updateReplicateStatus(any(), any(), any(ReplicateStatusUpdate.class));
     }
 
-    @Test
-    void shouldNotDetectMissedUpdateSinceOnChainDoneAndEligibleToContributeAndFinalize() {
+    @ParameterizedTest
+    @EnumSource(value = TeeFramework.class)
+    void shouldNotDetectMissedUpdateSinceOnChainDoneAndEligibleToContributeAndFinalize(final TeeFramework teeFramework) {
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID)).thenReturn(
-                TaskDescription.builder().trust(BigInteger.ONE).isTeeTask(true).callback(BytesUtils.EMPTY_ADDRESS).build());
+                TaskDescription.builder().trust(BigInteger.ONE).teeFramework(teeFramework).callback(BytesUtils.EMPTY_ADDRESS).build());
         Task task = Task.builder().chainTaskId(CHAIN_TASK_ID).build();
         when(taskService.findByCurrentStatus(TaskStatus.getWaitingContributionStatuses())).thenReturn(Collections.singletonList(task));
 

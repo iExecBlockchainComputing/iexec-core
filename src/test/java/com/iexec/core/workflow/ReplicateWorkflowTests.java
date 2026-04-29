@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,7 +168,7 @@ class ReplicateWorkflowTests {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
-                        TaskDescription.builder().isTeeTask(true).teeFramework(TeeFramework.SCONE).trust(BigInteger.ONE).callback(BytesUtils.EMPTY_ADDRESS).build()))
+                        TaskDescription.builder().teeFramework(TeeFramework.SCONE).trust(BigInteger.ONE).callback(BytesUtils.EMPTY_ADDRESS).build()))
                 .isEqualTo(PLEASE_CONTRIBUTE_AND_FINALIZE);
     }
 
@@ -177,7 +177,7 @@ class ReplicateWorkflowTests {
         assertThat(replicateWorkflow
                 .getNextAction(COMPUTED,
                         null,
-                        TaskDescription.builder().isTeeTask(false).build()))
+                        TaskDescription.builder().build()))
                 .isEqualTo(PLEASE_CONTRIBUTE);
     }
 
@@ -188,15 +188,6 @@ class ReplicateWorkflowTests {
                         null,
                         null))
                 .isEqualTo(PLEASE_ABORT);
-    }
-
-    @Test
-    void shouldGetNextActionOnComputedWithTeeTaskAndCallBackShouldBePlease() {
-        assertThat(replicateWorkflow
-                .getNextAction(COMPUTED,
-                        null,
-                        TaskDescription.builder().isTeeTask(true).callback("callback").build()))
-                .isEqualTo(PLEASE_CONTRIBUTE);
     }
 
     // endregion

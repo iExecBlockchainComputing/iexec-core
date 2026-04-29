@@ -39,7 +39,6 @@ import static com.iexec.commons.poco.chain.ChainContributionStatus.REVEALED;
 @Service
 public class IexecHubService extends IexecHubAbstractService implements Purgeable {
 
-    private final SignerService signerService;
     private final Web3jService web3jService;
 
     public IexecHubService(final SignerService signerService,
@@ -49,7 +48,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
                 signerService.getCredentials(),
                 web3jService,
                 chainConfig.getHubAddress());
-        this.signerService = signerService;
         this.web3jService = web3jService;
         if (!hasEnoughGas()) {
             System.exit(0);
@@ -116,12 +114,6 @@ public class IexecHubService extends IexecHubAbstractService implements Purgeabl
         long startTime = chainDeal.getStartTime().longValue() * 1000;
         long maxTime = chainDeal.getChainCategory().getMaxExecutionTime();
         return new Date(startTime + maxTime * 10);
-    }
-
-    public boolean hasEnoughGas() {
-        final boolean hasEnoughGas = hasEnoughGas(signerService.getAddress());
-        log.debug("Gas status [hasEnoughGas:{}]", hasEnoughGas);
-        return hasEnoughGas;
     }
 
     // region check contribution status

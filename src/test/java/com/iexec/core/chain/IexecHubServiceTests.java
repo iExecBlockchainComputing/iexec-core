@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ class IexecHubServiceTests {
         final Credentials credentials = Credentials.create(Keys.createEcKeyPair());
 
         when(signerService.getCredentials()).thenReturn(credentials);
-        when(web3jService.hasEnoughGas(any())).thenReturn(true);
+        when(web3jService.isSidechain()).thenReturn(true);
         when(chainConfig.getHubAddress()).thenReturn("0x748e091bf16048cb5103E0E10F9D5a8b7fBDd860");
 
         iexecHubService = spy(new IexecHubService(signerService, web3jService, chainConfig));

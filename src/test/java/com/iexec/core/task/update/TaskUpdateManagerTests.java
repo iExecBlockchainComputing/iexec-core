@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2021-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1616,10 +1616,9 @@ class TaskUpdateManagerTests {
         when(iexecHubService.getChainTask(CHAIN_TASK_ID)).thenReturn(Optional.of(chainTask));
     }
 
-    private void mockTaskDescriptionFromTask(Task task) {
+    private void mockTaskDescriptionFromTask(final Task task) {
         final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(task.getChainTaskId())
-                .isTeeTask(task.isTeeTask())
                 .teeFramework(TeeUtils.getTeeFramework(task.getTag()))
                 .trust(BigInteger.valueOf(task.getTrust()))
                 .callback("")

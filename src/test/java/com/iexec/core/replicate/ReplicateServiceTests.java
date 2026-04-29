@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import com.iexec.commons.poco.chain.ChainContribution;
 import com.iexec.commons.poco.chain.ChainTask;
 import com.iexec.commons.poco.chain.DealParams;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.commons.poco.tee.TeeFramework;
 import com.iexec.commons.poco.utils.BytesUtils;
 import com.iexec.core.chain.IexecHubService;
 import com.iexec.core.chain.Web3jService;
@@ -33,7 +34,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -382,8 +384,7 @@ class ReplicateServiceTests {
                 .build();
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
 
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
-                .publishEvent(argumentCaptor.capture());
+        verify(applicationEventPublisher).publishEvent(argumentCaptor.capture());
 
         ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
@@ -397,8 +398,10 @@ class ReplicateServiceTests {
         assertThat(capturedEvent.getReplicateStatusUpdate().getDetails().getComputeLogs()).isNull();
     }
 
-    @Test
-    void shouldUpdateReplicateStatusWithStdoutIfComputed() {
+    @ParameterizedTest
+    @NullSource
+    @EnumSource(value = TeeFramework.class)
+    void shouldUpdateReplicateStatusWithStdoutIfComputed(final TeeFramework teeFramework) {
         String stdout = "This is an stdout message !";
         Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(COMPUTING, ReplicateStatusModifier.WORKER);
@@ -413,11 +416,10 @@ class ReplicateServiceTests {
                 .build();
         ArgumentCaptor<ReplicateUpdatedEvent> argumentCaptor = ArgumentCaptor.forClass(ReplicateUpdatedEvent.class);
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
-                .thenReturn(TaskDescription.builder().isTeeTask(true).build());
+                .thenReturn(TaskDescription.builder().teeFramework(teeFramework).build());
 
         replicatesService.updateReplicateStatus(CHAIN_TASK_ID, WALLET_WORKER_1, statusUpdate);
-        Mockito.verify(applicationEventPublisher, Mockito.times(1))
-                .publishEvent(argumentCaptor.capture());
+        verify(applicationEventPublisher).publishEvent(argumentCaptor.capture());
         ReplicateUpdatedEvent capturedEvent = argumentCaptor.getAllValues().get(0);
         assertThat(capturedEvent.getChainTaskId()).isEqualTo(replicate.getChainTaskId());
         assertThat(capturedEvent.getWalletAddress()).isEqualTo(WALLET_WORKER_1);
@@ -750,15 +752,16 @@ class ReplicateServiceTests {
     // region isResultUploaded
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldCheckResultServiceAndReturnTrue(final boolean isTeeTask) {
+    @NullSource
+    @EnumSource(value = TeeFramework.class)
+    void shouldCheckResultServiceAndReturnTrue(final TeeFramework teeFramework) {
         final DealParams dealParams = DealParams.builder()
                 .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
                 .build();
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
-                .isTeeTask(isTeeTask)
+                .teeFramework(teeFramework)
                 .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
@@ -771,15 +774,16 @@ class ReplicateServiceTests {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldCheckResultServiceAndReturnFalse(final boolean isTeeTask) {
+    @NullSource
+    @EnumSource(value = TeeFramework.class)
+    void shouldCheckResultServiceAndReturnFalse(final TeeFramework teeFramework) {
         final DealParams dealParams = DealParams.builder()
                 .iexecResultStorageProvider(IPFS_RESULT_STORAGE_PROVIDER)
                 .build();
         final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
-                .isTeeTask(isTeeTask)
+                .teeFramework(teeFramework)
                 .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
@@ -802,12 +806,13 @@ class ReplicateServiceTests {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldReturnTrueForCallbackTask(boolean isTeeTask) {
+    @NullSource
+    @EnumSource(value = TeeFramework.class)
+    void shouldReturnTrueForCallbackTask(final TeeFramework teeFramework) {
         TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback("callback")
-                .isTeeTask(isTeeTask)
+                .teeFramework(teeFramework)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
                 .thenReturn(taskDescription);
@@ -817,15 +822,17 @@ class ReplicateServiceTests {
         verifyNoInteractions(resultService);
     }
 
-    @Test
-    void shouldReturnTrueIfPrivateStorageForTeeTask() {
+    @ParameterizedTest
+    @NullSource
+    @EnumSource(value = TeeFramework.class)
+    void shouldReturnTrueIfPrivateStorage(final TeeFramework teeFramework) {
         final DealParams dealParams = DealParams.builder()
                 .iexecResultStorageProvider(DROPBOX_RESULT_STORAGE_PROVIDER)
                 .build();
         final TaskDescription taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
                 .callback(BytesUtils.EMPTY_ADDRESS)
-                .isTeeTask(true)
+                .teeFramework(teeFramework)
                 .dealParams(dealParams)
                 .build();
         when(iexecHubService.getTaskDescription(CHAIN_TASK_ID))
@@ -1120,7 +1127,6 @@ class ReplicateServiceTests {
                 .taskDescription(TaskDescription.builder().chainTaskId(CHAIN_TASK_ID).build())
                 .build();
 
-
         assertThat(replicatesService.canUpdateReplicateStatus(replicate, statusUpdate, updateArgs))
                 .isEqualTo(ReplicateStatusUpdateError.GENERIC_CANT_UPDATE);
     }
@@ -1166,8 +1172,9 @@ class ReplicateServiceTests {
                 .isEqualTo(ReplicateStatusUpdateError.NO_ERROR);
     }
 
-    @Test
-    void shouldAuthorizeUpdateOnContributeAndFinalizeDone() {
+    @ParameterizedTest
+    @EnumSource(value = TeeFramework.class)
+    void shouldAuthorizeUpdateOnContributeAndFinalizeDone(final TeeFramework teeFramework) {
         final Replicate replicate = new Replicate(WALLET_WORKER_1, CHAIN_TASK_ID);
         replicate.updateStatus(CONTRIBUTE_AND_FINALIZE_ONGOING, ReplicateStatusModifier.WORKER);
 
@@ -1178,7 +1185,7 @@ class ReplicateServiceTests {
         final TaskDescription task = TaskDescription
                 .builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .isTeeTask(true)
+                .teeFramework(teeFramework)
                 .build();
 
         when(iexecHubService.repeatIsRevealedTrue(CHAIN_TASK_ID, WALLET_WORKER_1))

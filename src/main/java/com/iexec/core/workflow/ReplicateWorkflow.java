@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -195,7 +195,6 @@ public class ReplicateWorkflow extends Workflow<ReplicateStatus> {
                 log.error("TaskDescription is null with a COMPUTED status, this case shouldn't happen");
                 return PLEASE_ABORT;
             }
-            // We must check CallBack is empty because there is an issue in poco (transaction is revert)
             if (taskDescription.isEligibleToContributeAndFinalize()) {
                 return PLEASE_CONTRIBUTE_AND_FINALIZE;
             }
