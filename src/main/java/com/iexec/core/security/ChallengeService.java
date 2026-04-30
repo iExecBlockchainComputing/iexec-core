@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,19 +31,19 @@ public class ChallengeService {
             .expiration(5, TimeUnit.MINUTES)
             .expirationPolicy(ExpirationPolicy.CREATED)
             .build();
+    private final SecureRandom secureRandom = new SecureRandom();
 
-    public String computeChallenge() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] seed = new byte[32];
+    private String computeChallenge() {
+        final byte[] seed = new byte[32];
         secureRandom.nextBytes(seed);
         return Base64.getEncoder().encodeToString(seed);
     }
 
-    public String getChallenge(String workerWallet) {
+    public String getChallenge(final String workerWallet) {
         return challengesMap.computeIfAbsent(workerWallet, wallet -> computeChallenge());
     }
 
-    public void removeChallenge(String workerWallet, String challenge) {
+    public void removeChallenge(final String workerWallet, final String challenge) {
         challengesMap.remove(workerWallet, challenge);
     }
 
