@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.3.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.2.1...v9.3.0) (2026-04-30)
+
+
+### Features
+
+* refactor deals detection with a simple polling at scheduled intervals ([#774](https://github.com/iExecBlockchainComputing/iexec-core/issues/774)) ([49e6091](https://github.com/iExecBlockchainComputing/iexec-core/commit/49e60917046e6b9e31fc90974c2c2d3531a7edcb))
+
+
+### Bug Fixes
+
+* handle deprecations, mostly isTeeTask on TaskDescription ([#775](https://github.com/iExecBlockchainComputing/iexec-core/issues/775)) ([d6cbcc0](https://github.com/iExecBlockchainComputing/iexec-core/commit/d6cbcc028be1b1e76653a3ece5b52cb514325271))
+* reliability issue raised by SonarQube Cloud ([#776](https://github.com/iExecBlockchainComputing/iexec-core/issues/776)) ([b413c90](https://github.com/iExecBlockchainComputing/iexec-core/commit/b413c909c589e911f11b7d178d1131d095c7745e))
+* replace WebSocket listener mechanism with a slower polling mechanism ([#773](https://github.com/iExecBlockchainComputing/iexec-core/issues/773)) ([81867eb](https://github.com/iExecBlockchainComputing/iexec-core/commit/81867eb9589a19808c5a966f843841296baa31e3))
+* result upload is wrongly checked in ResultService for a TDX task ([#771](https://github.com/iExecBlockchainComputing/iexec-core/issues/771)) ([e7879bd](https://github.com/iExecBlockchainComputing/iexec-core/commit/e7879bd233555361144c1702d94d66d0d58bf7cc))
+
 ## [9.2.1](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.2.0...v9.2.1) (2025-11-25)
 
 
