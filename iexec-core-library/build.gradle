@@ -54,8 +54,8 @@ publishing {
     repositories {
         maven {
             credentials {
-                username nexusUser
-                password nexusPassword
+                username = nexusUser
+                password = nexusPassword
             }
             url = project.hasProperty("nexusUrl") ? project.nexusUrl : ''
         }
