@@ -1,10 +1,10 @@
 plugins {
     id 'java'
-    id 'io.freefair.lombok' version '8.10.2'
+    id 'io.freefair.lombok' version '8.14.4'
     id 'org.springframework.boot' version '3.3.8'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'org.sonarqube' version '5.1.0.4882'
+    id 'org.sonarqube' version '6.3.1.5724'
     id 'maven-publish'
 }
 
@@ -25,13 +25,13 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven {
-            url "https://docker-regis-adm.iex.ec/repository/maven-public/"
+            url = "https://docker-regis-adm.iex.ec/repository/maven-public/"
             credentials {
-                username nexusUser
-                password nexusPassword
+                username = nexusUser
+                password = nexusPassword
             }
         }
-        maven { url "https://jitpack.io" }
+        maven { url = "https://jitpack.io" }
     }
     java {
         toolchain {
@@ -160,10 +160,10 @@ publishing {
     repositories {
         maven {
             credentials {
-                username nexusUser
-                password nexusPassword
+                username = nexusUser
+                password = nexusPassword
             }
-            url project.hasProperty('nexusUrl') ? nexusUrl : ''
+            url = project.hasProperty('nexusUrl') ? nexusUrl : ''
         }
     }
 }
@@ -173,8 +173,8 @@ ext.gitShortCommit = 'git rev-parse --short=8 HEAD'.execute().text.trim()
 ext.ociImageName = 'local/' + ['bash', '-c', 'basename $(git config --get remote.origin.url) .git'].execute().text.trim()
 
 tasks.register('buildImage', Exec) {
-    group 'Build'
-    description 'Builds an OCI image from a Dockerfile.'
+    group = 'Build'
+    description = 'Builds an OCI image from a Dockerfile.'
     dependsOn bootJar
     commandLine 'docker', 'build', '--build-arg', 'jar=' + jarPathForOCI, '-t', ociImageName + ':dev', '.'
 }
