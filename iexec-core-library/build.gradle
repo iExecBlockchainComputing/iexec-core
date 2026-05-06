@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    implementation platform("org.springframework.boot:spring-boot-dependencies:3.3.8")
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
 
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
