@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.4.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.3.0...v9.4.0) (2026-05-13)
+
+
+### Features
+
+* upgrade to Java 21 ([#780](https://github.com/iExecBlockchainComputing/iexec-core/issues/780)) ([fa704ab](https://github.com/iExecBlockchainComputing/iexec-core/commit/fa704ab37aab5af5874effe7dfbcc0cfad713975))
+* upgrade to Spring Boot 3.5.8 ([#778](https://github.com/iExecBlockchainComputing/iexec-core/issues/778)) ([cbab2ec](https://github.com/iExecBlockchainComputing/iexec-core/commit/cbab2ecba2f536523c7a6ff7f51ec1f3bac32986))
+
 ## [9.3.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.2.1...v9.3.0) (2026-04-30)
 
 
