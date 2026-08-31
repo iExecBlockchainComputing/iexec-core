@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,7 @@ class BlockchainListenerTests {
                 environment.getServiceHost(CHAIN_SVC_NAME, CHAIN_SVC_PORT),
                 environment.getServicePort(CHAIN_SVC_NAME, CHAIN_SVC_PORT))
         );
+        registry.add("chain.pool-address", () -> "0x01519568F2e0d235E511d36709975606D35d2E8d");
         registry.add("config-server.url", () -> getServiceUrl(
                 environment.getServiceHost(CONFIG_SVC_NAME, CONFIG_SVC_PORT),
                 environment.getServicePort(CONFIG_SVC_NAME, CONFIG_SVC_PORT))
