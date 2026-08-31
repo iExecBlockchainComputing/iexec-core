@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2025-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,9 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChainConfigTests {
-    private static final String IEXEC_NODE_ADDRESS = "https://bellecour.iex.ec";
-    private static final String IEXEC_HUB_ADDRESS = "0x1a69b2eb604db8eba185df03ea4f5288dcbbd248";
+    private static final int CHAIN_ID = 421614;
+    private static final String IEXEC_NODE_ADDRESS = "https://sepolia-rollup.arbitrum.io/rpc";
+    private static final String IEXEC_HUB_ADDRESS = "0xB2157BF2fAb286b2A4170E3491Ac39770111Da3E";
     private static final String POOL_ADDRESS = "poolAddress";
 
     private Validator validator;
@@ -65,7 +66,7 @@ class ChainConfigTests {
     @Test
     void nodeAddressMustBeValidURL() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
@@ -85,7 +86,7 @@ class ChainConfigTests {
     @Test
     void nodeAddressMustNotBeEmpty() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
@@ -105,7 +106,7 @@ class ChainConfigTests {
     @Test
     void blockTimeMustBeAtLeast100ms() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(99), // less than 100ms
@@ -125,7 +126,7 @@ class ChainConfigTests {
     @Test
     void blockTimeMustBeAtMost20Seconds() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofSeconds(21), // more than 20 seconds
@@ -145,7 +146,7 @@ class ChainConfigTests {
     @Test
     void gasPriceMultiplierMustBePositive() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
@@ -165,7 +166,7 @@ class ChainConfigTests {
     @Test
     void gasPriceCapMustBePositiveOrZero() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 IEXEC_HUB_ADDRESS,
                 Duration.ofMillis(100),
@@ -185,7 +186,7 @@ class ChainConfigTests {
     @Test
     void hubAddressMustBeValidEthereumAddress() {
         final ChainConfig config = new ChainConfig(
-                1,
+                CHAIN_ID,
                 false,
                 "0x0", // invalid address
                 Duration.ofMillis(100),
