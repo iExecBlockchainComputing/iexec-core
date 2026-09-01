@@ -16,4 +16,6 @@ jobs:
     if: github.repository_owner == 'iExecBlockchainComputing'
     # release-please-v2.2.0
     uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/release-please.yml@4e2e817b7c2dcab27a671b630e23d07f5fc94daf
-    secrets: inherit
+    secrets:
+      RELEASE_PLEASE_APPLICATION_ID: ${{ secrets.RELEASE_PLEASE_APPLICATION_ID }}
+      RELEASE_PLEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
