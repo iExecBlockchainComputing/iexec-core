@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.4.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.3.0...v9.4.0) (2026-09-08)
+
+
+### Features
+
+* extract Spring Boot Jar layers to optimize OCI image build ([#785](https://github.com/iExecBlockchainComputing/iexec-core/issues/785)) ([462c5f9](https://github.com/iExecBlockchainComputing/iexec-core/commit/462c5f916259e68a08f1a642566d6315ff98c6fb))
+* start application on Arbitrum Sepolia by default ([#782](https://github.com/iExecBlockchainComputing/iexec-core/issues/782)) ([e0b81f0](https://github.com/iExecBlockchainComputing/iexec-core/commit/e0b81f09087a2fcb8eba84de9e7a1c044c7bc133))
+* upgrade to Java 21 ([#780](https://github.com/iExecBlockchainComputing/iexec-core/issues/780)) ([fa704ab](https://github.com/iExecBlockchainComputing/iexec-core/commit/fa704ab37aab5af5874effe7dfbcc0cfad713975))
+* upgrade to Spring Boot 3.5.8 ([#778](https://github.com/iExecBlockchainComputing/iexec-core/issues/778)) ([cbab2ec](https://github.com/iExecBlockchainComputing/iexec-core/commit/cbab2ecba2f536523c7a6ff7f51ec1f3bac32986))
+
+
+### Bug Fixes
+
+* resolve ExecutorService reliability issue in TaskService with try-with-resources ([#783](https://github.com/iExecBlockchainComputing/iexec-core/issues/783)) ([c65f130](https://github.com/iExecBlockchainComputing/iexec-core/commit/c65f130dbf5a70f3ce36d76aa4518a696a04203c))
+
 ## [9.3.0](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.2.1...v9.3.0) (2026-04-30)
 
 
