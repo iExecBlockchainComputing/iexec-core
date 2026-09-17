@@ -13,5 +13,5 @@ jobs:
     if: github.repository_owner == 'iExecBlockchainComputing'
     permissions:
       pull-requests: read
-    # conventional-commits-v1.2.0
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/conventional-commits.yml@975de113847596617899976f67f5b5faceef0a84
+    # conventional-commits-v1.2.1
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/conventional-commits.yml@7825b11bd6f0b141075368add5223c873d76a2d3

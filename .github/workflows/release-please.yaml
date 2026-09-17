@@ -14,8 +14,8 @@ jobs:
   release-please:
     # Prevent execution on forks
     if: github.repository_owner == 'iExecBlockchainComputing'
-    # release-please-v2.2.0
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/release-please.yml@4e2e817b7c2dcab27a671b630e23d07f5fc94daf
+    # release-please-v2.2.1
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/release-please.yml@1c4f92368b01037ca4f209c2f9179cf8a07f00ff
     secrets:
       RELEASE_PLEASE_APPLICATION_ID: ${{ secrets.RELEASE_PLEASE_APPLICATION_ID }}
       RELEASE_PLEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
