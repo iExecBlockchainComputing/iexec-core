@@ -8,8 +8,8 @@ plugins {
 dependencies {
     implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
 
-    implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
-    implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
+    implementation "com.github.iexecblockchaincomputing:iexec-commons-poco:$iexecCommonsPocoVersion"
+    implementation "com.github.iexecblockchaincomputing:iexec-common:$iexecCommonVersion"
 }
 
 java {
@@ -54,10 +54,10 @@ publishing {
     repositories {
         maven {
             credentials {
-                username = nexusUser
-                password = nexusPassword
+                username = mvnRepositoryUsername
+                password = mvnRepositoryPassword
             }
-            url = project.hasProperty("nexusUrl") ? project.nexusUrl : ''
+            url = project.hasProperty("mvnRepositoryUrl") ? mvnRepositoryUrl : ''
         }
     }
 }
