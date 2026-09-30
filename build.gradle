@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '8.14.4'
-    id 'org.springframework.boot' version '3.5.8'
+    id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
     id 'org.sonarqube' version '6.3.1.5724'
@@ -16,10 +16,7 @@ ext {
 }
 
 allprojects {
-    group = 'com.iexec.core'
-    if (gitTag.isEmpty()) {
-        version += '-NEXT-SNAPSHOT'
-    }
+    group = 'com.github.iExecBlockchainComputing'
     repositories {
         mavenLocal()
         mavenCentral()
@@ -46,11 +43,11 @@ dependencyManagement {
 
 dependencies {
     // iexec
-    implementation "com.github.iexecblockchaincomputing:iexec-commons-poco:$iexecCommonsPocoVersion"
-    implementation "com.github.iexecblockchaincomputing:iexec-common:$iexecCommonVersion"
-    implementation "com.github.iexecblockchaincomputing.iexec-blockchain-adapter-api:iexec-blockchain-adapter-api-library:$iexecBlockchainAdapterVersion"
-    implementation "com.github.iexecblockchaincomputing.iexec-result-proxy:iexec-result-proxy-library:$iexecResultVersion"
-    implementation "com.github.iexecblockchaincomputing.iexec-sms:iexec-sms-library:$iexecSmsVersion"
+    implementation "com.github.iExecBlockchainComputing:iexec-commons-poco:$iexecCommonsPocoVersion"
+    implementation "com.github.iExecBlockchainComputing:iexec-common:$iexecCommonVersion"
+    implementation "com.github.iExecBlockchainComputing.iexec-blockchain-adapter-api:iexec-blockchain-adapter-api-library:$iexecBlockchainAdapterVersion"
+    implementation "com.github.iExecBlockchainComputing.iexec-result-proxy:iexec-result-proxy-library:$iexecResultVersion"
+    implementation "com.github.iExecBlockchainComputing.iexec-sms:iexec-sms-library:$iexecSmsVersion"
     implementation project(':iexec-core-library')
     implementation project(':iexec-task-api')
 

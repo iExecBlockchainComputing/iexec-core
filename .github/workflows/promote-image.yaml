@@ -1,0 +1,37 @@
+name: Promote Image
+
+# Releasing does not rebuild anything. The image CI already built, tested and scanned
+# for this commit is promoted to the release tag by copying its manifest, so the
+# released artifact is byte for byte the one that passed the pipeline. A rebuild would
+# not be equivalent: the Dockerfile runs `apt-get upgrade`, so the same source produces
+# a different image whenever Ubuntu has moved on.
+# The promotion itself is delegated to the docker-promote reusable workflow.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions: {}
+
+concurrency:
+  group: promote-image-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  promote-image:
+    name: Promote the tested image to the release tag
+    # Prevent execution on forks, which have no access to the registry secrets
+    if: github.repository_owner == 'iExecBlockchainComputing'
+    permissions:
+      contents: read
+      actions: read # look up the CI run that built the tagged commit
+    # docker-promote-v1.0.0
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/docker-promote.yml@23f97c518d217113e299e7c6a870a41422cd2163
+    with:
+      image-name: docker-regis.iex.ec/iexec-core
+      registry: docker-regis.iex.ec
+      security-scan: false
+    secrets:
+      username: ${{ secrets.NEXUS_USERNAME }}
+      password: ${{ secrets.NEXUS_PASSWORD }}

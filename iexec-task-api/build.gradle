@@ -5,11 +5,13 @@ plugins {
     id 'maven-publish'
 }
 
-dependencies {
-    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
+group = 'com.github.iExecBlockchainComputing.iexec-core'
 
-    implementation "com.github.iexecblockchaincomputing:iexec-commons-poco:$iexecCommonsPocoVersion"
-    implementation "com.github.iexecblockchaincomputing:iexec-common:$iexecCommonVersion"
+dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.16")
+
+    implementation "com.github.iExecBlockchainComputing:iexec-commons-poco:$iexecCommonsPocoVersion"
+    implementation "com.github.iExecBlockchainComputing:iexec-common:$iexecCommonVersion"
 }
 
 java {
