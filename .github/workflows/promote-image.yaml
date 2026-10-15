@@ -26,12 +26,12 @@ jobs:
     permissions:
       contents: read
       actions: read # look up the CI run that built the tagged commit
-    # docker-promote-v1.0.0
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/docker-promote.yml@23f97c518d217113e299e7c6a870a41422cd2163
+    # docker-promote-v1.0.1
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/docker-promote.yml@9ec0c55d4710ec8a4b1e0240c8231a16ff1516cc
     with:
-      image-name: docker-regis.iex.ec/iexec-core
-      registry: docker-regis.iex.ec
+      image-name: docker.io/iexechub/iexec-core
+      registry: docker.io
       security-scan: false
     secrets:
-      username: ${{ secrets.NEXUS_USERNAME }}
-      password: ${{ secrets.NEXUS_PASSWORD }}
+      username: ${{ secrets.DOCKERHUB_USERNAME }}
+      password: ${{ secrets.DOCKERHUB_PAT }}

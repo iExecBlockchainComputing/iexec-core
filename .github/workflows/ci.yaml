@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Apply branch and image tag rules
         id: rules
@@ -58,8 +60,8 @@ jobs:
     permissions:
       contents: read # actions/checkout
       actions: write # actions/upload-artifact
-    # java-build-v1.0.0
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/java-build.yml@230e504041b25d1e45dad1651ac29a9b9f827dd5
+    # java-build-v1.0.1
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/java-build.yml@0ef3bbf01085d84dc96167b099e137f11857e43e
     with:
       java-version: '21'
       sonar: true
@@ -80,12 +82,12 @@ jobs:
       actions: write # actions/download-artifact + actions/upload-artifact (docker-image-tag)
       security-events: write # codeql-action/upload-sarif, Trivy report on pull requests
       pull-requests: write # peter-evans/create-or-update-comment, Hadolint report on pull requests
-    # docker-build-v3.7.0
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/docker-build.yml@fc54a889aaabffc2acf96451d54592a90d068af9
+    # docker-build-v3.8.0
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/docker-build.yml@71e6b9e61eefe6ca92540523ff2589274399b7cd
     with:
-      image-name: docker-regis.iex.ec/iexec-core
+      image-name: docker.io/iexechub/iexec-core
       image-tag: ${{ needs.prepare.outputs.image_tag }}
-      registry: docker-regis.iex.ec
+      registry: docker.io
       push: true
       security-scan: false
       security-report: 'sarif'
@@ -95,7 +97,5 @@ jobs:
       artifact-path: build/libs
       build-args: jar=${{ needs.build-and-test.outputs.jar-path }}
     secrets:
-      dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-      dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN_PULL_ONLY }}
-      username: ${{ secrets.NEXUS_USERNAME }}
-      password: ${{ secrets.NEXUS_PASSWORD }}
+      username: ${{ secrets.DOCKERHUB_USERNAME }}
+      password: ${{ secrets.DOCKERHUB_PAT }}
