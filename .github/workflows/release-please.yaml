@@ -5,17 +5,14 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   release-please:
     # Prevent execution on forks
     if: github.repository_owner == 'iExecBlockchainComputing'
-    # release-please-v2.2.1
-    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/release-please.yml@1c4f92368b01037ca4f209c2f9179cf8a07f00ff
+    # release-please-v2.2.3
+    uses: iExecBlockchainComputing/github-actions-workflows/.github/workflows/release-please.yml@31ad5d9e686d47c7ebdd3c7df3f8c50f58415428
     secrets:
       RELEASE_PLEASE_APPLICATION_ID: ${{ secrets.RELEASE_PLEASE_APPLICATION_ID }}
       RELEASE_PLEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
