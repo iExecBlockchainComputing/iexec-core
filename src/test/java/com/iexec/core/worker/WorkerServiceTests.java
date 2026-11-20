@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.when;
 
@@ -498,6 +499,41 @@ class WorkerServiceTests {
     void shouldNotFindAliveWorkers() {
         assertThat(workerService.getAliveWorkers()).isEmpty();
     }
+
+    // region worker without last alive date
+    @Test
+    void shouldIgnoreWorkerWithoutLastAliveDateWhenGettingLostWorkers() {
+        final List<Worker> allWorkers = getDummyWorkers();
+        workerRepository.saveAll(allWorkers);
+        // wallet which asked for a replicate but never pinged this instance
+        workerService.isWorkerAllowedToAskReplicate("address4");
+        workerRepository.save(Worker.builder().id("4").walletAddress("address4").build());
+
+        assertThat(workerService.getLostWorkers())
+                .hasSize(2)
+                .isEqualTo(allWorkers.subList(1, 3));
+    }
+
+    @Test
+    void shouldIgnoreWorkerWithoutLastAliveDateWhenGettingAliveWorkers() {
+        final List<Worker> allWorkers = getDummyWorkers();
+        workerRepository.saveAll(allWorkers);
+        // wallet which asked for a replicate but never pinged this instance
+        workerService.updateLastReplicateDemandDate("address4");
+        workerRepository.save(Worker.builder().id("4").walletAddress("address4").build());
+
+        assertThat(workerService.getAliveWorkers())
+                .hasSize(1)
+                .isEqualTo(allWorkers.subList(0, 1));
+    }
+
+    @Test
+    void shouldUpdateMetricsWhenWorkerHasNoLastAliveDate() {
+        workerService.updateLastReplicateDemandDate("address4");
+        assertThatNoException().isThrownBy(() -> workerService.updateMetrics());
+        assertThat(workerService.getAliveWorkerMetrics().aliveWorkers()).isZero();
+    }
+    // endregion
 
     List<Worker> getDummyWorkers() {
         workerService.getWorkerStatsMap().computeIfAbsent("address1", WorkerService.WorkerStats::new)

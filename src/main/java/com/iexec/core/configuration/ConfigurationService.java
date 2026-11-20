@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.iexec.core.configuration;
 import com.iexec.core.chain.ChainConfig;
 import com.iexec.core.chain.event.LatestBlockEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +29,7 @@ import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Service
-public class ConfigurationService implements CommandLineRunner {
+public class ConfigurationService implements SmartInitializingSingleton {
 
     private final ConfigurationRepository configurationRepository;
     private final ReplayConfigurationRepository replayConfigurationRepository;
@@ -82,8 +82,15 @@ public class ConfigurationService implements CommandLineRunner {
         replayConfiguration = replayConfigurationRepository.save(replayConfiguration);
     }
 
+    /**
+     * Load or create configurations once all singletons are instantiated.
+     * <p>
+     * This happens after Mongock migrations (run as an {@code InitializingBean})
+     * and before {@code @Scheduled} tasks and event publishers are started,
+     * so that no scheduled task can read a {@code null} configuration.
+     */
     @Override
-    public void run(String... args) throws Exception {
+    public void afterSingletonsInstantiated() {
         final String messageDetails = String.format("[start:block:%s]", chainConfig.getStartBlockNumber());
         final Instant now = Instant.now();
         if (configurationRepository.count() == 0) {
