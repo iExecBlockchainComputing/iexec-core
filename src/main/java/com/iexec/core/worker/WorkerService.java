@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,7 +175,7 @@ public class WorkerService {
         final Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
         final List<String> lostWorkers = workerStatsMap.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().getLastAliveDate().getTime() < oneMinuteAgo.getTime())
+                .filter(entry -> isLastAliveBefore(entry.getValue(), oneMinuteAgo))
                 .map(Map.Entry::getKey)
                 .toList();
         return workerRepository.findByWalletAddressIn(lostWorkers);
@@ -186,10 +186,24 @@ public class WorkerService {
         final Date oneMinuteAgo = Date.from(Instant.now().minus(1L, ChronoUnit.MINUTES));
         final List<String> aliveWorkers = workerStatsMap.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().getLastAliveDate().getTime() > oneMinuteAgo.getTime())
+                .filter(entry -> isLastAliveAfter(entry.getValue(), oneMinuteAgo))
                 .map(Map.Entry::getKey)
                 .toList();
         return workerRepository.findByWalletAddressIn(aliveWorkers);
+    }
+
+    /**
+     * A worker which never pinged this instance has no last alive date,
+     * it is then considered neither alive nor lost.
+     */
+    private static boolean isLastAliveBefore(final WorkerStats stats, final Date date) {
+        final Date lastAliveDate = stats.getLastAliveDate();
+        return lastAliveDate != null && lastAliveDate.before(date);
+    }
+
+    private static boolean isLastAliveAfter(final WorkerStats stats, final Date date) {
+        final Date lastAliveDate = stats.getLastAliveDate();
+        return lastAliveDate != null && lastAliveDate.after(date);
     }
     // endregion
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2026 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,10 +65,10 @@ class ConfigurationServiceTests {
         replayConfigurationRepository.deleteAll();
     }
 
-    private void initService(long startBlockNumber) throws Exception {
+    private void initService(long startBlockNumber) {
         final ChainConfig chainConfig = new ChainConfig(65535, true, "", Duration.ofSeconds(5), Duration.ofSeconds(30), "", "0x0", startBlockNumber, 1.0f, 0);
         configurationService = new ConfigurationService(configurationRepository, replayConfigurationRepository, chainConfig);
-        configurationService.run();
+        configurationService.afterSingletonsInstantiated();
     }
 
     // region setLastScannedBlock
@@ -109,7 +109,7 @@ class ConfigurationServiceTests {
 
     // region lastSeenBlockWithDeal
     @Test
-    void shouldGetLastSeenBlockWithDealFromDatabase() throws Exception {
+    void shouldGetLastSeenBlockWithDealFromDatabase() {
         initService(10);
         final BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
 
@@ -117,7 +117,7 @@ class ConfigurationServiceTests {
     }
 
     @Test
-    void shouldGetZeroAsLastSeenBlockWithDeal() throws Exception {
+    void shouldGetZeroAsLastSeenBlockWithDeal() {
         initService(0);
         final BigInteger lastSeenBlock = configurationService.getLastSeenBlockWithDeal();
 
@@ -125,7 +125,7 @@ class ConfigurationServiceTests {
     }
 
     @Test
-    void shouldSetLastSeenBlockWithDeal() throws Exception {
+    void shouldSetLastSeenBlockWithDeal() {
         initService(1);
         configurationService.setLastSeenBlockWithDeal(BigInteger.TEN);
 
@@ -135,7 +135,7 @@ class ConfigurationServiceTests {
 
     // region replayConfiguration
     @Test
-    void shouldGetFromReplayFromDatabase() throws Exception {
+    void shouldGetFromReplayFromDatabase() {
         initService(10);
         BigInteger fromReplay = configurationService.getFromReplay();
 
@@ -143,7 +143,7 @@ class ConfigurationServiceTests {
     }
 
     @Test
-    void shouldGetZeroAsFromReplay() throws Exception {
+    void shouldGetZeroAsFromReplay() {
         initService(0);
         BigInteger fromReplay = configurationService.getFromReplay();
 
@@ -151,7 +151,7 @@ class ConfigurationServiceTests {
     }
 
     @Test
-    void shouldSetFromReplay() throws Exception {
+    void shouldSetFromReplay() {
         initService(1);
         configurationService.setFromReplay(BigInteger.TEN);
 
@@ -161,7 +161,7 @@ class ConfigurationServiceTests {
 
     // region initialization
     @Test
-    void shouldNotUpdateWhenConfigBeforeStartBlockNumber() throws Exception {
+    void shouldNotUpdateWhenConfigBeforeStartBlockNumber() {
         final Configuration configuration = Configuration.builder()
                 .lastSeenBlockWithDeal(BigInteger.TEN)
                 .build();
@@ -176,7 +176,7 @@ class ConfigurationServiceTests {
     }
 
     @Test
-    void shouldUpdateWhenConfigAfterStartBlockNumber() throws Exception {
+    void shouldUpdateWhenConfigAfterStartBlockNumber() {
         final Configuration configuration = Configuration.builder()
                 .lastSeenBlockWithDeal(BigInteger.TEN)
                 .build();
