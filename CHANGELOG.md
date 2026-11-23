@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.4.2](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.4.1...v9.4.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* prevent NullPointerException in worker detection and startup replay ([#791](https://github.com/iExecBlockchainComputing/iexec-core/issues/791)) ([ad3f19b](https://github.com/iExecBlockchainComputing/iexec-core/commit/ad3f19b51cd53fc5dfb03243b5d9622e468dfe80))
+
 ## [9.4.1](https://github.com/iExecBlockchainComputing/iexec-core/compare/v9.4.0...v9.4.1) (2026-09-30)
 
 
